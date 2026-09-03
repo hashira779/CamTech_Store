@@ -4,7 +4,8 @@
   "private": true,
   "description": "MyStore platform backend — NestJS modular monolith (spec §2, §74, §100)",
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "echo Canonical backend is services/backend-py on port 4000",
+    "nest:dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",

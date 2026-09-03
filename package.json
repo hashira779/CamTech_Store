@@ -8,8 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:all": "turbo run dev",
+    "dev": "turbo run dev --filter=!@mystore/backend",
+    "dev:all": "turbo run dev --filter=!@mystore/backend",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
