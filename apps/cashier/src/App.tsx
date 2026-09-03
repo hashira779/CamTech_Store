@@ -18,7 +18,11 @@ import {
   Printer,
   X,
   RefreshCw,
-  UserCheck
+  UserCheck,
+  Wifi,
+  WifiOff,
+  CloudOff,
+  Database
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 
@@ -45,33 +49,104 @@ export function App() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'BAKONG_KHQR' | 'CASH'>('BAKONG_KHQR');
-  const [heldOrders, setHeldOrders] = useState<any[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<'BAKONG_KHQR' | 'CASH'>('CASH');
   const [receipt, setReceipt] = useState<any>(null);
 
+  // Offline-First Fault Isolation & Outbox State
+  const [isServerOnline, setIsServerOnline] = useState<boolean>(true);
+  const [offlineQueue, setOfflineQueue] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('mystore_pos_offline_queue') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Monitor Central Database / API Gateway Health
+  useEffect(() => {
+    const checkServerHealth = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/health', {
+          method: 'GET',
+          signal: AbortSignal.timeout(1500),
+        });
+        if (res.ok) {
+          setIsServerOnline(true);
+          // Auto-sync offline queue if items exist
+          syncOfflineQueue();
+        } else {
+          setIsServerOnline(false);
+        }
+      } catch {
+        setIsServerOnline(false);
+      }
+    };
+
+    checkServerHealth();
+    const interval = setInterval(checkServerHealth, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const syncOfflineQueue = async () => {
+    const queue = JSON.parse(localStorage.getItem('mystore_pos_offline_queue') || '[]');
+    if (queue.length === 0) return;
+
+    let syncedCount = 0;
+    const remaining = [];
+
+    for (const sale of queue) {
+      try {
+        const res = await fetch('http://localhost:4000/api/v1/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sale),
+          signal: AbortSignal.timeout(2000),
+        });
+        if (res.ok) {
+          syncedCount++;
+        } else {
+          remaining.push(sale);
+        }
+      } catch {
+        remaining.push(sale);
+      }
+    }
+
+    localStorage.setItem('mystore_pos_offline_queue', JSON.stringify(remaining));
+    setOfflineQueue(remaining);
+
+    if (syncedCount > 0) {
+      toast.success(`⚡ Auto-Synced ${syncedCount} offline sale(s) to Central Database!`);
+    }
+  };
 
   // Fetch live products from Central Data Center
   const { data: serverProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['cashier-live-products'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/v1/products');
+        const res = await fetch('http://localhost:4000/api/v1/products', { signal: AbortSignal.timeout(2000) });
         if (!res.ok) throw new Error('API offline');
         const json = await res.json();
         const items = json.data?.items || json.items || json.data || [];
         if (Array.isArray(items) && items.length > 0) {
-          return items.map((p: any) => ({
+          const mapped = items.map((p: any) => ({
             id: p.id,
             name: p.name,
             price: Number(p.variants?.[0]?.sellPrice || p.sellPrice || p.price || 15.00),
             sku: p.variants?.[0]?.sku || p.sku || 'SKU-001',
             category: p.category?.name?.toUpperCase() || 'GENERAL'
           }));
+          localStorage.setItem('mystore_pos_cached_catalog', JSON.stringify(mapped));
+          return mapped;
         }
         return FALLBACK_POS_CATALOG;
       } catch {
-        return FALLBACK_POS_CATALOG;
+        // Fallback to local offline catalog cached in browser/container
+        const cached = localStorage.getItem('mystore_pos_cached_catalog');
+        return cached ? JSON.parse(cached) : FALLBACK_POS_CATALOG;
       }
     }
   });
@@ -139,29 +214,45 @@ export function App() {
       total,
       method: paymentMethod,
       timestamp: new Date().toLocaleTimeString(),
-      cashier: 'Sophea Noun (Lead Cashier)'
+      cashier: 'Sophea Noun (Lead Cashier)',
+      isOffline: !isServerOnline
     };
 
+    const salePayload = {
+      saleNumber,
+      channel: 'POS',
+      items: cart.map(i => ({ productVariantId: i.id, quantity: i.quantity, unitPrice: i.price, sku: i.sku, productName: i.name })),
+      paymentMethod,
+      timestamp: new Date().toISOString()
+    };
+
+    let synced = false;
     try {
-      // Post to Data Center backend
-      await fetch('http://localhost:4000/api/v1/sales', {
+      const res = await fetch('http://localhost:4000/api/v1/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          saleNumber,
-          channel: 'POS',
-          items: cart.map(i => ({ productVariantId: i.id, quantity: i.quantity, unitPrice: i.price, sku: i.sku, productName: i.name })),
-          paymentMethod
-        })
+        body: JSON.stringify(salePayload),
+        signal: AbortSignal.timeout(2000)
       });
+      if (res.ok) synced = true;
     } catch {
-      // Handled gracefully offline
+      synced = false;
+    }
+
+    if (!synced) {
+      // Offline-First Outbox Queue: Save to local isolated container storage!
+      const currentQueue = JSON.parse(localStorage.getItem('mystore_pos_offline_queue') || '[]');
+      const updatedQueue = [...currentQueue, salePayload];
+      localStorage.setItem('mystore_pos_offline_queue', JSON.stringify(updatedQueue));
+      setOfflineQueue(updatedQueue);
+      toast.warning('⚠️ Central Database is DOWN! Transaction saved safely in POS Local Container.');
+    } else {
+      toast.success('🎉 Transaction Completed & Synced to Data Center!');
     }
 
     setReceipt(newReceipt);
     setCart([]);
     setIsPaymentOpen(false);
-    toast.success('🎉 Transaction Completed & Recorded in Data Center!');
   };
 
   return (
@@ -182,8 +273,20 @@ export function App() {
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">
                   PORT 5003
                 </span>
+                {/* Fault Isolation Status Badge */}
+                {isServerOnline ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Server: ONLINE
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                    <CloudOff className="w-3 h-3" />
+                    Server: DOWN (Running Locally in Container)
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-slate-400">Downtown Supermarket Branch • Data Center: localhost:4000</p>
+              <p className="text-xs text-slate-400">Downtown Supermarket Branch • Isolated POS Container</p>
             </div>
           </div>
 
@@ -201,8 +304,14 @@ export function App() {
           </form>
 
           <div className="flex items-center gap-3">
+            {offlineQueue.length > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">
+                <Database className="w-3.5 h-3.5" />
+                <span>{offlineQueue.length} Queued Locally</span>
+              </div>
+            )}
             <button
-              onClick={() => { refetchProducts(); toast.info('Refreshed live catalog from Data Center'); }}
+              onClick={() => { refetchProducts(); toast.info('Refreshed local catalog cache'); }}
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1.5 transition"
               title="Sync Catalog"
             >
@@ -263,7 +372,7 @@ export function App() {
       <div className="w-96 flex flex-col bg-slate-900/40">
         {/* Register Cart Header */}
         <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
-          <h2 className="text-sm font-bold tracking-wide text-white">Active Ticket</h2>
+          <h2 className="text-sm font-bold tracking-wide text-white">Active Register Cart</h2>
           <span className="text-xs font-mono text-slate-400">{cart.length} Items</span>
         </div>
 
@@ -273,6 +382,9 @@ export function App() {
             <div className="text-center py-20 text-slate-600">
               <Barcode className="w-12 h-12 mx-auto mb-2 opacity-30" />
               <p className="text-xs">Scan or click products to ring up.</p>
+              {!isServerOnline && (
+                <p className="text-[10px] text-amber-400/80 mt-1">Autonomous container mode active.</p>
+              )}
             </div>
           ) : (
             cart.map((item) => (
@@ -325,7 +437,7 @@ export function App() {
             className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition active:scale-98"
           >
             <Banknote className="w-5 h-5" />
-            Collect Payment (${total.toFixed(2)})
+            Collect Tender (${total.toFixed(2)})
           </button>
         </div>
       </div>
@@ -335,7 +447,12 @@ export function App() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <h3 className="font-bold text-lg text-white">Select Tender Method</h3>
+              <div>
+                <h3 className="font-bold text-lg text-white">Select Tender Method</h3>
+                {!isServerOnline && (
+                  <p className="text-[11px] text-amber-400">⚡ Server Down: Cash payment & receipt work 100% offline.</p>
+                )}
+              </div>
               <button
                 onClick={() => setIsPaymentOpen(false)}
                 className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
@@ -347,6 +464,19 @@ export function App() {
             <div className="py-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <button
+                  onClick={() => setPaymentMethod('CASH')}
+                  className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
+                    paymentMethod === 'CASH'
+                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <Banknote className="w-8 h-8 text-emerald-400" />
+                  <span>Cash Payment</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Offline Ready</span>
+                </button>
+
+                <button
                   onClick={() => setPaymentMethod('BAKONG_KHQR')}
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
                     paymentMethod === 'BAKONG_KHQR'
@@ -356,17 +486,7 @@ export function App() {
                 >
                   <QrCode className="w-8 h-8 text-rose-400" />
                   <span>Bakong KHQR</span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('CASH')}
-                  className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
-                    paymentMethod === 'CASH'
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300'
-                  }`}
-                >
-                  <Banknote className="w-8 h-8 text-emerald-400" />
-                  <span>Cash Tender</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Static / Offline EMVCo</span>
                 </button>
               </div>
 
@@ -375,8 +495,8 @@ export function App() {
                   <div className="w-40 h-40 mx-auto bg-white rounded-2xl p-3 flex items-center justify-center mb-2 shadow-lg">
                     <QrCode className="w-36 h-36 text-slate-950" />
                   </div>
-                  <p className="text-xs font-bold text-rose-400">NBC EMVCo Dynamic KHQR</p>
-                  <p className="text-[10px] text-slate-400">Customer scans with any banking app</p>
+                  <p className="text-xs font-bold text-rose-400">NBC EMVCo Offline KHQR</p>
+                  <p className="text-[10px] text-slate-400">Customer scans with any mobile banking app</p>
                 </div>
               )}
             </div>
@@ -386,7 +506,7 @@ export function App() {
               className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition"
             >
               <CheckCircle2 className="w-5 h-5" />
-              Confirm Payment Received (${total.toFixed(2)})
+              Complete Sale (${total.toFixed(2)})
             </button>
           </div>
         </div>
@@ -400,6 +520,11 @@ export function App() {
               <h3 className="text-base font-extrabold uppercase">CamTech Supermarket</h3>
               <p className="text-[11px] text-slate-500">Downtown BKK1 Branch • Phnom Penh</p>
               <p className="text-[10px] text-slate-400 mt-1">{receipt.saleNumber} • {receipt.timestamp}</p>
+              {receipt.isOffline && (
+                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                  ⚡ PROCESSED IN OFFLINE CONTAINER MODE
+                </span>
+              )}
             </div>
 
             <div className="py-4 space-y-2 border-b border-dashed border-slate-300">
@@ -432,7 +557,7 @@ export function App() {
 
             <div className="text-center pt-4 text-[10px] text-slate-400">
               <p>Thank you for shopping with CamTech!</p>
-              <p>Saved to Central Data Center Database</p>
+              <p>{receipt.isOffline ? 'Queued in Local POS Container' : 'Saved to Central Database'}</p>
             </div>
 
             <div className="mt-6 flex gap-2">
