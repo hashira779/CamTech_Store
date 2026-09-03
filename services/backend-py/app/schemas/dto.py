@@ -46,6 +46,25 @@ class TokenResponse(BaseModel):
     refreshToken: str
     tokenType: str = "bearer"
 
+class OrganizationDto(BaseModel):
+    id: str
+    name: str
+    slug: str
+    currency: str
+    timezone: str
+    taxRatePct: float
+    businessType: str
+    settings: Optional[str] = None
+
+class UpdateOrganizationInput(BaseModel):
+    name: Optional[str] = None
+    currency: Optional[str] = None
+    timezone: Optional[str] = None
+    taxRatePct: Optional[float] = None
+    businessType: Optional[str] = None
+    settings: Optional[str] = None
+
+
 
 # ==============================================================================
 # 2. CATALOG & INVENTORY SCHEMAS
@@ -112,10 +131,32 @@ class InventoryItemDto(BaseModel):
 class LocationDto(BaseModel):
     id: str
     name: str
-    code: str
+    code: Optional[str] = None
     type: str
-    isActive: bool
+    isActive: bool = True
     parentId: Optional[str] = None
+
+class CreateLocationInput(BaseModel):
+    name: str
+    code: Optional[str] = None
+    type: str = "BRANCH"
+    parentId: Optional[str] = None
+
+class UpdateLocationInput(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    type: Optional[str] = None
+    parentId: Optional[str] = None
+
+class LocationTreeNodeDto(BaseModel):
+    id: str
+    name: str
+    code: Optional[str] = None
+    type: str
+    isActive: bool = True
+    parentId: Optional[str] = None
+    children: List['LocationTreeNodeDto'] = []
+
 
 # ==============================================================================
 # 3. SALES & POS SCHEMAS

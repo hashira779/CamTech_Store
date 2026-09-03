@@ -35,7 +35,7 @@ d:\Project\MyStore/
 |---|---|---|---|---|
 | **Root Workspace** | `/` | pnpm 11, Turbo 2.3 | ✅ Active | Scripts: `dev`, `build`, `test`, `typecheck`, `lint` |
 | **Web Application** | `apps/web/` | Vite 6, React 19, react-router-dom 7, Tailwind, TanStack Query | ✅ Active | 28 routes via react-router, enterprise UI with design system |
-| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ⛔ Blocked | Schema drift — 31/40 tables have write-breaking mismatches. See [audit](../audits/python-backend-schema-drift.md). |
+| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 62/62 tables mapped, 0 schema drift, 34/34 tests passing. See [audit](../audits/python-backend-schema-drift.md). |
 | **Backend (Legacy)** | `services/backend/` | NestJS 10.4, Express, Prisma 6 | ⚠️ Legacy | 28 modules implemented. Retained for reference; not actively developed. |
 | **Shared Contracts** | `packages/contracts/` | TypeScript, Zod 3.24 | ✅ Active | Single source of truth for DTOs & contracts (used by web app) |
 | **Dev Infrastructure** | `docker-compose.yml` | Docker Compose v3.8 | ✅ Active | PostgreSQL 16, Redis 7 Alpine, MinIO S3 |
@@ -50,14 +50,20 @@ d:\Project\MyStore/
 
 ### 2.1 Canonical Backend: Python/FastAPI (`services/backend-py/`)
 
-The Python backend is the designated canonical API server. However, it currently suffers from a **schema drift crisis** — the database was created by the legacy NestJS/Prisma stack, and the SQLAlchemy models do not match:
+The Python backend is the canonical API server. The previous schema drift has been **100% resolved**:
 
-- **31 of 40 model tables have write-breaking drift** (column name mismatches, missing required columns)
-- **6 models have no corresponding database table**
-- **28 database tables have no Python model**
-- **No migration tooling** (no Alembic, no `create_all`)
+- **62 of 62 database tables are mapped 1:1 to SQLAlchemy models** in `app/models/entities.py`
+- **0 critical write-breaking mismatches**; **0 warnings**
+- Automated schema audit guard tool: `python -m scripts.schema_audit`
+- Automated pytest test suite: **34/34 tests passing**
+- Multi-tenancy isolation (`where organization_id == user.organization_id`) enforced on all queries
+- Server-side pricing recalculations and idempotency key protection on sales/POS checkout
+- JWT authentication with refresh token rotation and RFC 6238 TOTP Multi-Factor Authentication
+- W3C Distributed Tracing (`traceparent` header propagation + `X-Trace-Id`)
+- AES-256-GCM authenticated field encryption service for sensitive credentials
+- Locations module with full CRUD and recursive tree hierarchy API
+- Organization settings & business profile management API
 
-**Immediate blocker:** Most POST/PUT endpoints return HTTP 500. See [`python-backend-schema-drift.md`](../audits/python-backend-schema-drift.md) for the full audit and decision options.
 
 ### 2.2 Legacy Backend: NestJS (`services/backend/`)
 

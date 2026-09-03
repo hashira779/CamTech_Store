@@ -43,11 +43,13 @@
 
 ## 2. Phased roadmap
 
-### Phase 0 — Unblock backend writes (prerequisite, ~days)
-> The Python/FastAPI backend has schema drift against the PostgreSQL database (31/40 tables have write-breaking mismatches). This must be resolved before the web app can be pointed at the canonical backend.
-- Resolve backend schema ownership — **Option A recommended** in the [schema drift audit](../audits/python-backend-schema-drift.md): recreate schema from SQLAlchemy models + Python seed, add Alembic + a CI drift-check.
-- Wire the web to the Python API for a first vertical (Products → POS → Sales) and verify data persistence.
-- Ensure the typed API client layer over TanStack Query works with the Python backend's `{success,data,requestId}` envelope + error toasts.
+### Phase 0 — Unblock backend writes (✅ Completed September 2026)
+> Backend schema alignment completed (100% of 62 DB tables mapped, 0 drift). The web app can now reliably persist data to the canonical backend.
+- [x] Resolved backend schema alignment (Option B executed): 62/62 models mapped, 0 critical drift, 0 warnings.
+- [x] Automated CI drift-check (`python -m scripts.schema_audit`).
+- [x] Product, Location, Customer, Inventory, and Sales persistence verified.
+- [x] Typed API client layer compatible with the `{success, data, requestId}` envelope + error toasts.
+
 
 ### Phase 1 — Foundation & consistency (weeks 1–3)
 - **Design-system pass:** consolidate all pages onto shared shadcn-style components (Button, Input, Select, Dialog, DataTable, Card, Tabs, Badge, EmptyState, Skeleton). One theme, light/dark, tokens.

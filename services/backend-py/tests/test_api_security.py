@@ -46,6 +46,9 @@ def test_jwt_token_generation():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("endpoint", [
+    "/api/v1/locations",
+    "/api/v1/locations/tree",
+    "/api/v1/organizations/current",
     "/api/v1/taxes",
     "/api/v1/pricing",
     "/api/v1/promotions",
@@ -63,4 +66,6 @@ async def test_enterprise_endpoints_require_auth(endpoint):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get(endpoint)
         assert resp.status_code == 401
-
+        data = resp.json()
+        assert data["success"] is False
+        assert data["code"] == "UNAUTHORIZED"

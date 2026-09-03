@@ -17,18 +17,21 @@ from app.core.security import (
 )
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import (
-    User, Product, ProductVariant, InventoryItem, Location,
+    User, Organization, Product, ProductVariant, InventoryItem, Location,
     Sale, SaleLineItem, SalePayment, Customer, Account, JournalEntry,
     JournalLine, FixedAsset, ServiceTicket, DeveloperApp, ApiKey,
     TelegramChatBinding, AutomationFlow, FlowExecution
 )
 from app.schemas.dto import (
     LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
+    OrganizationDto, UpdateOrganizationInput,
     UserDto, ProductDto, CreateProductInput,
-    InventoryItemDto, LocationDto, SaleDto, CreateSaleInput, CustomerDto,
+    InventoryItemDto, LocationDto, CreateLocationInput, UpdateLocationInput, LocationTreeNodeDto,
+    SaleDto, CreateSaleInput, CustomerDto,
     CreateCustomerInput, AutomationFlowDto, CreateFlowInput, FlowExecutionDto,
     PaginatedResponse, VariantDto, PageMeta
 )
+
 from app.domain.enterprise_engines import FlowExecutionEngine, ApiKeyGenerator, TelegramCommandRouter
 from app.domain.commerce_engines import KhqrGenerator
 
@@ -274,6 +277,67 @@ async def create_product(
 # 3. LOCATIONS & INVENTORY
 # ==============================================================================
 
+@router.get("/organizations/current", response_model=OrganizationDto)
+async def get_current_organization(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Organization).where(Organization.id == user.organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+    return OrganizationDto(
+        id=org.id,
+        name=org.name,
+        slug=org.slug,
+        currency=org.currency,
+        timezone=org.timezone,
+        taxRatePct=float(org.tax_rate_pct),
+        businessType=org.business_type,
+        settings=org.settings
+    )
+
+@router.put("/organizations/current", response_model=OrganizationDto)
+async def update_current_organization(
+    org_in: UpdateOrganizationInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Organization).where(Organization.id == user.organization_id)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+
+    if org_in.name is not None:
+        org.name = org_in.name
+    if org_in.currency is not None:
+        org.currency = org_in.currency
+    if org_in.timezone is not None:
+        org.timezone = org_in.timezone
+    if org_in.taxRatePct is not None:
+        org.tax_rate_pct = Decimal(str(org_in.taxRatePct))
+    if org_in.businessType is not None:
+        org.business_type = org_in.businessType
+    if org_in.settings is not None:
+        org.settings = org_in.settings
+
+    await db.commit()
+    await db.refresh(org)
+    return OrganizationDto(
+        id=org.id,
+        name=org.name,
+        slug=org.slug,
+        currency=org.currency,
+        timezone=org.timezone,
+        taxRatePct=float(org.tax_rate_pct),
+        businessType=org.business_type,
+        settings=org.settings
+    )
+
 @router.get("/locations", response_model=List[LocationDto])
 async def list_locations(
     user: TenantUser = Depends(get_current_user),
@@ -289,10 +353,137 @@ async def list_locations(
             name=loc.name,
             code=loc.code,
             type=loc.type,
-            isActive=loc.is_active,
+            isActive=True,
             parentId=loc.parent_id
         ) for loc in locations
     ]
+
+@router.get("/locations/tree", response_model=List[LocationTreeNodeDto])
+async def get_locations_tree(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Location).where(Location.organization_id == user.organization_id)
+    )
+    locations = result.scalars().all()
+
+    node_map = {}
+    for loc in locations:
+        node_map[loc.id] = LocationTreeNodeDto(
+            id=loc.id,
+            name=loc.name,
+            code=loc.code,
+            type=loc.type,
+            isActive=True,
+            parentId=loc.parent_id,
+            children=[]
+        )
+
+    roots = []
+    for loc in locations:
+        node = node_map[loc.id]
+        if loc.parent_id and loc.parent_id in node_map:
+            node_map[loc.parent_id].children.append(node)
+        else:
+            roots.append(node)
+
+    return roots
+
+@router.post("/locations", response_model=LocationDto)
+async def create_location(
+    loc_in: CreateLocationInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    loc = Location(
+        organization_id=user.organization_id,
+        name=loc_in.name,
+        code=loc_in.code,
+        type=loc_in.type,
+        parent_id=loc_in.parentId
+    )
+    db.add(loc)
+    await db.commit()
+    await db.refresh(loc)
+    return LocationDto(
+        id=loc.id,
+        name=loc.name,
+        code=loc.code,
+        type=loc.type,
+        isActive=True,
+        parentId=loc.parent_id
+    )
+
+@router.put("/locations/{location_id}", response_model=LocationDto)
+async def update_location(
+    location_id: str,
+    loc_in: UpdateLocationInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Location).where(
+            Location.id == location_id,
+            Location.organization_id == user.organization_id
+        )
+    )
+    loc = result.scalar_one_or_none()
+    if not loc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found")
+
+    if loc_in.name is not None:
+        loc.name = loc_in.name
+    if loc_in.code is not None:
+        loc.code = loc_in.code
+    if loc_in.type is not None:
+        loc.type = loc_in.type
+    if loc_in.parentId is not None:
+        loc.parent_id = loc_in.parentId
+
+    await db.commit()
+    await db.refresh(loc)
+    return LocationDto(
+        id=loc.id,
+        name=loc.name,
+        code=loc.code,
+        type=loc.type,
+        isActive=True,
+        parentId=loc.parent_id
+    )
+
+@router.delete("/locations/{location_id}")
+async def delete_location(
+    location_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Location).where(
+            Location.id == location_id,
+            Location.organization_id == user.organization_id
+        )
+    )
+    loc = result.scalar_one_or_none()
+    if not loc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found")
+
+    child_check = await db.execute(
+        select(Location).where(
+            Location.parent_id == location_id,
+            Location.organization_id == user.organization_id
+        )
+    )
+    if child_check.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete location with child sub-locations"
+        )
+
+    await db.delete(loc)
+    await db.commit()
+    return {"deleted": True, "id": location_id}
+
 
 @router.get("/inventory", response_model=PaginatedResponse[InventoryItemDto])
 async def list_inventory(

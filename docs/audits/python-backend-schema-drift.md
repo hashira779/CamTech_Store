@@ -1,8 +1,17 @@
 # Python Backend ↔ Database Schema Drift Audit
 
-**Date:** 2026-09-03
-**Scope:** `services/backend-py` (FastAPI + SQLAlchemy) vs the live PostgreSQL database (`camtechStore`)
-**Status:** ⛔ Canonical Python backend cannot reliably write to the current database. Decision required.
+**Date:** 2026-09-03  
+**Scope:** `services/backend-py` (FastAPI + SQLAlchemy) vs the live PostgreSQL database (`camtechStore`)  
+**Status:** ✅ **RESOLVED (September 2026)** — All 62 database tables are mapped 1:1. 0 critical drift, 0 warnings.
+
+> [!NOTE]
+> **Resolution Summary:**
+> All 62 public tables in PostgreSQL now map 1:1 to SQLAlchemy models in [`app/models/entities.py`](file:///d:/Project/MyStore/services/backend-py/app/models/entities.py). Column naming conventions (`createdAt`, `updatedAt`, foreign keys, exact DB types) are aligned.
+> Verified with `python -m scripts.schema_audit`:
+> - **CRITICAL (write paths broken):** 0 tables
+> - **WARN (extra nullable DB cols):** 0 tables
+> - **DB tables with NO model:** 0
+
 
 ---
 

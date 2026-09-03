@@ -954,3 +954,68 @@ class ProductBatch(Base):
     cost_price = Column("costPrice", Numeric(14, 4), nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+
+class PurchaseOrderLineItem(Base):
+    __tablename__ = "purchase_order_line_items"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    purchase_order_id = Column("purchaseOrderId", String, ForeignKey("purchase_orders.id"), nullable=False)
+    product_variant_id = Column("productVariantId", String, ForeignKey("product_variants.id"), nullable=False)
+    quantity = Column(Numeric(14, 4), nullable=False)
+    received_qty = Column("receivedQty", Numeric(14, 4), default=0.0, nullable=False)
+    unit_cost = Column("unitCost", Numeric(14, 4), nullable=False)
+    tax_rate_pct = Column("taxRatePct", Numeric(14, 4), default=0.0, nullable=False)
+    tax_amount = Column("taxAmount", Numeric(14, 4), default=0.0, nullable=False)
+    line_total = Column("lineTotal", Numeric(14, 4), nullable=False)
+
+class GoodsReceipt(Base):
+    __tablename__ = "goods_receipts"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
+    location_id = Column("locationId", String, ForeignKey("locations.id"), nullable=False)
+    purchase_order_id = Column("purchaseOrderId", String, ForeignKey("purchase_orders.id"), nullable=False)
+    supplier_id = Column("supplierId", String, ForeignKey("suppliers.id"), nullable=False)
+    grn_number = Column("grnNumber", String, nullable=False)
+    received_date = Column("receivedDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    status = Column(String, default="COMPLETED", nullable=False)
+    notes = Column(String, nullable=True)
+    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+
+class GoodsReceiptLineItem(Base):
+    __tablename__ = "goods_receipt_line_items"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    goods_receipt_id = Column("goodsReceiptId", String, ForeignKey("goods_receipts.id"), nullable=False)
+    po_line_item_id = Column("poLineItemId", String, ForeignKey("purchase_order_line_items.id"), nullable=False)
+    product_variant_id = Column("productVariantId", String, ForeignKey("product_variants.id"), nullable=False)
+    quantity_received = Column("quantityReceived", Numeric(14, 4), nullable=False)
+    unit_cost = Column("unitCost", Numeric(14, 4), nullable=False)
+
+class StockTransferLine(Base):
+    __tablename__ = "stock_transfer_lines"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    stock_transfer_id = Column("stockTransferId", String, ForeignKey("stock_transfers.id"), nullable=False)
+    product_variant_id = Column("productVariantId", String, ForeignKey("product_variants.id"), nullable=False)
+    requested_qty = Column("requestedQty", Numeric(14, 4), nullable=False)
+    sent_qty = Column("sentQty", Numeric(14, 4), default=0.0, nullable=False)
+    received_qty = Column("receivedQty", Numeric(14, 4), default=0.0, nullable=False)
+    batch_number = Column("batchNumber", String, nullable=True)
+    source_bin_id = Column("sourceBinId", String, nullable=True)
+    dest_bin_id = Column("destBinId", String, nullable=True)
+
+class WebhookDelivery(Base):
+    __tablename__ = "webhook_deliveries"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    subscription_id = Column("subscriptionId", String, ForeignKey("webhook_subscriptions.id"), nullable=False)
+    event = Column(String, nullable=False)
+    payload = Column(JSON, nullable=False)
+    status_code = Column("statusCode", Integer, nullable=True)
+    response_body = Column("responseBody", Text, nullable=True)
+    success = Column(Boolean, default=False, nullable=False)
+    attempts = Column(Integer, default=1, nullable=False)
+    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+

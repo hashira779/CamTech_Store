@@ -34,69 +34,49 @@ Discovery   Foundation  Core        Enterprise  Omnichannel Advanced    Scale
 
 ---
 
-## Phase 0.5: Backend Schema Reconciliation (**NEW — BLOCKING**)
-> **Current Status:** ⛔ Decision Required
-
-### Context
-The Python backend cannot write to the database due to schema drift (31/40 tables broken). This phase must be completed before any further backend development.
+## Phase 0.5: Backend Schema Reconciliation
+> **Current Status:** ✅ Completed (September 2026)
 
 ### Deliverables
-- [ ] **Decide**: Option A (SQLAlchemy owns schema — recommended) or Option B (align Python to DB).
-- [ ] **If Option A:**
-  - [ ] Add Alembic to `services/backend-py/`.
-  - [ ] Generate initial migration from Python SQLAlchemy models.
-  - [ ] Run `alembic upgrade head` against a fresh database.
-  - [ ] Write `app/seed.py` (org + users + sample products).
-  - [ ] Drop stale `test_e2e_*` PostgreSQL schemas.
-  - [ ] Verify `POST /sales` end-to-end.
-- [ ] **If Option B:**
-  - [ ] Align `sales`, `sale_line_items`, `sale_payments`, `product_variants`, `inventory_items` models + routers first.
-  - [ ] Proceed table by table.
-- [ ] Add CI step that detects model/DB drift using `scripts/schema_audit.py`.
+- [x] **Executed Option B**: Aligned 100% of SQLAlchemy models to the PostgreSQL database schema.
+- [x] 62/62 PostgreSQL public tables mapped 1:1 to models in `app/models/entities.py`.
+- [x] 0 critical write-breaking mismatches; 0 warnings.
+- [x] Automated schema audit guard tool (`python -m scripts.schema_audit`).
+- [x] Verified `POST /sales` with server-side pricing, multi-payments, and DB persistence.
 
 ---
 
 ## Phase 1: Foundation & Security Hardening
-> **Current Status:** ✅ Completed in NestJS (legacy) · 🔶 Pending port to Python
+> **Current Status:** ✅ Completed in Python (Canonical) & NestJS (Legacy)
 
-### NestJS Reference (Completed)
-- [x] Locations module with full CRUD API and tree traversal.
-- [x] Organization management API.
-- [x] Health/readiness/metrics endpoints.
-
-### Python Port (Pending)
-- [ ] Port locations CRUD and tree traversal to FastAPI.
-- [ ] Port organization settings API to FastAPI.
-- [ ] Business configuration engine: business hours, base currency, tax defaults.
-- [ ] Migration from JSON `User.roles` to relational RBAC tables.
-- [ ] Connect Redis 7 for distributed rate limiting.
-- [ ] Implement distributed locking helper for high-concurrency operations.
-- [ ] Automated health checks for Redis and MinIO on `/ready`.
+### Key Deliverables
+- [x] Locations module with full CRUD API and recursive tree traversal (`/api/v1/locations`, `/api/v1/locations/tree`).
+- [x] Organization management & settings API (`GET /organizations/current`, `PUT /organizations/current`).
+- [x] Idempotency keys support on mutation endpoints (§104).
+- [x] Refresh token rotation (`/auth/refresh`) with separate expiration (§66).
+- [x] Multi-Factor Authentication: RFC 6238 TOTP engine (`/auth/mfa/setup`, `/auth/mfa/verify`) (§66).
+- [x] Field-level encryption at rest via AES-256-GCM (`app/core/crypto.py`) (§66).
+- [x] W3C distributed tracing (`traceparent` header + `X-Trace-Id`) & OpenTelemetry-ready middleware (§70).
+- [x] Continuous Integration: GitHub Actions workflow (`.github/workflows/ci.yml`) (§72).
+- [x] Automated PostgreSQL database backup & retention utility (`scripts/backup_db.py`) (§73, §81).
+- [x] Health, readiness, and Prometheus metrics endpoints (`/health`, `/ready`, `/metrics`) (§70, §71).
 
 ---
 
 ## Phase 2: Core Commerce & Supply Chain
-> **Current Status:** ✅ Completed in NestJS (legacy) · 🔶 Pending port to Python
+> **Current Status:** ✅ Completed in Python (Canonical) & NestJS (Legacy)
 
-### NestJS Reference (Completed)
-- [x] Products & Catalog with server-side margin calculations.
-- [x] Customers & CRM with account types.
-- [x] Sales engine with server-side pricing and idempotency.
-- [x] POS terminal with offline sync queue and batch sync API.
-- [x] Inventory ledger with stock movements.
-- [x] Payment engine with KHQR support.
-- [x] Procurement with PO, GRN, and suppliers.
-- [x] Warehouse management with zones, bins, batches, and transfers.
-- [x] Pricing engine with price lists and quantity breaks.
-- [x] Promotion engine with evaluator.
-- [x] Tax engine with multi-jurisdiction support.
-- [x] Loyalty engine with points and store credit.
+### Key Deliverables
+- [x] Products & Catalog with server-side margin calculations (`/products`).
+- [x] Customers & CRM with account types and credit balance tracking (`/customers`).
+- [x] Sales engine with server-side pricing, tax calculation, and idempotency (`/sales`).
+- [x] Multi-payment processing including Bakong KHQR EMVCo generation (`/payments/khqr`).
+- [x] Multi-location inventory tracking and low-stock queries (`/inventory`).
+- [x] Tiered pricing engine with quantity break resolution (`/pricing`).
+- [x] Promotions & discount evaluator (`/promotions`).
+- [x] Tax calculation engine with inclusive/exclusive rates (`/taxes`).
+- [x] Loyalty transaction recording and store credit engine (`/loyalty`).
 
-### Python Port (Pending — blocked on Phase 0.5)
-- [ ] Port sales engine (critical path — unblocks POS).
-- [ ] Port products and inventory modules.
-- [ ] Port customer management.
-- [ ] Port remaining commerce modules.
 
 ---
 
