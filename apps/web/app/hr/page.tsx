@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+
 import type {
   EmployeeDto,
   DepartmentDto,
@@ -145,7 +146,7 @@ export default function HrPage() {
 
   return (
     <EnterpriseShell>
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12">
+      <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 p-6">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
           <div>

@@ -12,7 +12,6 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.routers.api_v1 import router as api_v1_router
-from app.routers.enterprise_routes import router as enterprise_router
 from app.routers.delivery_routes import router as delivery_router
 from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
@@ -157,9 +156,47 @@ async def response_envelope_middleware(request: Request, call_next):
 
     return response
 
-# Mount API Routers
+from app.modules.identity.api import router as auth_router
+from app.modules.organizations.api import router as org_router
+from app.modules.locations.api import router as location_router
+from app.modules.catalog.api import router as catalog_router
+from app.modules.inventory.api import router as inventory_router
+from app.modules.customers.api import router as customer_router
+from app.modules.sales.api import router as sales_router
+from app.modules.finance.api import router as finance_router
+from app.modules.service_desk.api import router as service_desk_router
+from app.modules.automations.api import router as automations_router
+from app.modules.hr.api import router as hr_router
+from app.modules.warehouse.api import router as warehouse_router
+from app.modules.projects.api import router as projects_router
+from app.modules.pricing.api import router as pricing_router
+from app.modules.documents.api import router as documents_router
+from app.modules.notifications.api import router as notifications_router
+from app.modules.workflows.api import router as workflows_router
+from app.modules.reporting.api import router as reporting_router
+
+# Mount Modular Domain Routers (Spec §198, §199 Modular Monolith)
+app.include_router(auth_router, prefix="/api/v1/auth")
+app.include_router(org_router, prefix="/api/v1/organizations")
+app.include_router(location_router, prefix="/api/v1/locations")
+app.include_router(catalog_router, prefix="/api/v1")
+app.include_router(inventory_router, prefix="/api/v1")
+app.include_router(customer_router, prefix="/api/v1")
+app.include_router(sales_router, prefix="/api/v1")
+app.include_router(finance_router, prefix="/api/v1")
+app.include_router(service_desk_router, prefix="/api/v1")
+app.include_router(automations_router, prefix="/api/v1")
+app.include_router(hr_router, prefix="/api/v1")
+app.include_router(warehouse_router, prefix="/api/v1")
+app.include_router(projects_router, prefix="/api/v1")
+app.include_router(pricing_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(workflows_router, prefix="/api/v1")
+app.include_router(reporting_router, prefix="/api/v1")
+
+# Mount Supporting API Routers
 app.include_router(api_v1_router, prefix="/api/v1")
-app.include_router(enterprise_router, prefix="/api/v1")
 app.include_router(delivery_router, prefix="/api/v1")
 app.include_router(industry_router, prefix="/api/v1")
 app.include_router(ai_copilot_router, prefix="/api/v1")

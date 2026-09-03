@@ -284,106 +284,10 @@ class CreateCustomerInput(BaseModel):
 # 5. FINANCE, ASSETS, TICKETS, WORKFLOWS
 # ==============================================================================
 
-class AccountDto(BaseModel):
-    id: str
-    code: str
-    name: str
-    type: str
-    category: str
-    isActive: bool
-    currency: str
 
-class JournalLineDto(BaseModel):
-    id: str
-    accountId: str
-    debit: float
-    credit: float
-    description: Optional[str] = None
 
-class JournalEntryDto(BaseModel):
-    id: str
-    entryNumber: str
-    date: str
-    memo: Optional[str] = None
-    status: str
-    lines: List[JournalLineDto] = []
 
-class FixedAssetDto(BaseModel):
-    id: str
-    assetNumber: str
-    name: str
-    category: str
-    purchaseCost: float
-    salvageValue: float
-    usefulLifeMonths: int
-    depreciationMethod: str
-    accumulatedDepreciation: float
-    bookValue: float
-    status: str
 
-class ServiceTicketDto(BaseModel):
-    id: str
-    ticketNumber: str
-    subject: str
-    description: str
-    priority: str
-    status: str
-    createdAt: str
-
-# ==============================================================================
-# 6. INTEGRATIONS & FLOW AUTOMATION
-# ==============================================================================
-
-class DeveloperAppDto(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    status: str
-
-class ApiKeyDto(BaseModel):
-    id: str
-    name: str
-    keyPrefix: str
-    scopes: List[str]
-    rateLimit: int
-    status: str
-    createdAt: str
-
-class TelegramBindingDto(BaseModel):
-    id: str
-    chatId: str
-    chatTitle: Optional[str] = None
-    role: str
-    isActive: bool
-
-class AutomationFlowDto(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    isActive: bool
-    triggerType: str
-    nodes: List[Dict[str, Any]] = []
-    edges: List[Dict[str, Any]] = []
-    createdAt: str
-
-class CreateFlowInput(BaseModel):
-    name: str
-    description: Optional[str] = None
-    isActive: Optional[bool] = True
-    triggerType: str = "MANUAL"
-    nodes: List[Dict[str, Any]] = []
-    edges: List[Dict[str, Any]] = []
-
-class FlowExecutionDto(BaseModel):
-    id: str
-    flowId: str
-    triggerType: str
-    status: str
-    stepsCompleted: int
-    totalSteps: int
-    startedAt: str
-    completedAt: Optional[str] = None
-    errorMessage: Optional[str] = None
 
 # ==============================================================================
 # 11. DELIVERY & FLEET DISPATCH SCHEMAS (Spec §45)

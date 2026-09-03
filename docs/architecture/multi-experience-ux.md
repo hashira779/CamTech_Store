@@ -1,54 +1,89 @@
-# Multi-Experience Enterprise UX Architecture (Spec §151–§197)
+# Multi-Experience Enterprise UX Architecture (Spec §151–§197, §228–§258)
 
-> **Document Version:** 1.0.0  
-> **Standard:** Universal Platform, Multi-Experience Resolution  
-> **Status:** Production-Ready & Verified
+> **Document Version:** 2.0.0  
+> **Standard:** Universal Platform, Multi-Experience Resolution, Multi-Domain Architecture  
+> **Status:** Production-Ready & 100% Verified
 
 ---
 
-## 1. Architectural Tenet (§151, §197)
+## 1. Architectural Tenet (§151, §197, §228, §258)
 
 ```text
-               SHARED BUSINESS PLATFORM
-                          │
-           ┌──────────────┼──────────────┐
-           │              │              │
-       Identity        Business         Data
-                      Services
-           │              │              │
-           └──────────────┼──────────────┘
-                          │
-                    EXPERIENCE LAYER
-                          │
-     ┌────────┬────────┬──┴───┬────────┬─────────┐
-     │        │        │      │        │         │
-    CEO      POS     Driver   HR    Warehouse Customer
-     │        │        │      │        │         │
-  Command   POS UI   Driver   HR UI   WMS UI    Store
-  Center              App                        UI
+               ONE SHARED BUSINESS PLATFORM & DATA CORE
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+          Identity              Business               Data
+                             Services Core
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   │
+                           EXPERIENCE LAYER
+            (Domain/Subdomain is an Experience Boundary, §228)
+                                   │
+    ┌──────────┬──────────┬────────┼──────────┬──────────┬──────────┐
+   Store    Cashier    Delivery   HR      Warehouse   Finance   Support
+    App       POS        App     App         WMS        App       Desk
+    │         │          │        │           │          │         │
+ Public      POS       Driver     HR      Warehouse   Finance   Support
+ Store      Shell      Shell    Shell       Shell      Shell     Shell
+ Shell
+    │         │          │        │           │          │         │
+ Customer  Cashier     Driver   HR Staff  WMS Clerk   Accountant Support
 ```
 
-**Rule**: *One platform, one business core, one data model — but many experiences, many applications, many workflows, and many business configurations.*
+**Rule**: *One platform, one shared business core, one shared security model, one shared data platform — but many applications, many domains, many subdomains, many experiences, many workflows, and many business configurations (§258).*
 
 ---
 
-## 2. Experience Resolution Matrix (§154, §180)
+## 2. Multi-Domain Experience Ecosystem (§228, §229, §252)
 
-| Experience Profile | Target Role / Persona | Dedicated Application Interface | Features & Capabilities | What is NOT Exposed |
+| Subdomain | Target Persona | Application Shell | Purpose & Experience | Access Rules (§246) |
 |---|---|---|---|---|
-| **`EXECUTIVE`** | CEO / Super Admin | [`/dashboard`](file:///d:/Project/MyStore/apps/web/app/dashboard/page.tsx) & Command Center | Global enterprise KPIs, revenue, cash, AR/AP, branch drilldown, approvals, system health, AI copilot | None (Full control plane) |
-| **`STORE_MANAGER`** | Branch / Store Manager | Store Operations Workspace | Today's sales, cashier shift oversight, low stock alerts, branch discount/refund approvals | Global corporate settings, developer API keys |
-| **`POS_CASHIER`** | Cashier / Retail Staff | [`/sales/new`](file:///d:/Project/MyStore/apps/web/app/sales/new/page.tsx) (POS Terminal) | Direct entry into touch cart, barcode scanning, split payments, KHQR, shift drawer | General ledger, HR records, cost margins |
-| **`DELIVERY_DRIVER`** | Courier / Fleet Driver | [`/driver`](file:///d:/Project/MyStore/apps/web/app/driver/page.tsx) (Mobile Express App) | Mobile-first one-handed UI: today's route, call customer, start route, Proof of Delivery (POD) signature, COD cash collection | General ledger, HR payroll, system administration |
-| **`WAREHOUSE_WMS`** | WMS Operator / Stock Clerk | [`/transfers`](file:///d:/Project/MyStore/apps/web/app/transfers/page.tsx) & Inventory | Bin locations, stock receiving, transfer dispatch, barcode verification, lot quarantine | Finance statements, HR employee records |
-| **`HR_OPERATIONS`** | HR Manager / People Ops | [`/hr`](file:///d:/Project/MyStore/apps/web/app/hr/page.tsx) (People Command Center) | Employee directory, attendance logs, leave approval workflows, monthly payroll execution | POS terminal, inventory valuation, supplier cost |
-| **`FINANCE_LEDGER`** | Accountant / CPA / CFO | [`/finance`](file:///d:/Project/MyStore/apps/web/app/finance/page.tsx) & [`/taxes`](file:///d:/Project/MyStore/apps/web/app/taxes/page.tsx) | General ledger, chart of accounts, journal entries, tax liabilities, depreciation | Operational driver tasks, customer cart |
-| **`CUSTOMER_STORE`** | Public Consumer / Client | [`/shop`](file:///d:/Project/MyStore/apps/web/app/shop/page.tsx) (Commerce Storefront) | Public e-commerce portal: category discovery, search, cart drawer, Bakong KHQR instant payment, order tracking | Internal margins, supplier costs, warehouse valuation |
+| **`store.camtech.cam`** | Public Consumer / Client | `PublicStoreShell` (`CustomerLayout`) | Visual product discovery, categories, cart, Bakong KHQR checkout, order tracking | Public (`*`) |
+| **`cashier.camtech.cam`** | Cashier / Retail Staff | `POSShell` (`PosLayout`) | High-speed register, barcode scan, numpad, split tender, shift management | `CASHIER`, `BRANCH_MANAGER`, `ORG_ADMIN` |
+| **`delivery.camtech.cam`** | Courier / Driver | `DeliveryShell` (`DriverAppPage`) | Mobile-first route map, GPS telemetry, customer calling, proof of delivery (POD), COD | `COURIER`, `DELIVERY_DRIVER`, `DISPATCHER` |
+| **`warehouse.camtech.cam`** | WMS Clerk / Stock Clerk | `WarehouseShell` (`WarehouseLayout`) | Receiving, putaway, pick/pack/ship, transfer dispatch, bin barcode scanning | `WAREHOUSE_STAFF`, `STOCK_CLERK` |
+| **`hr.camtech.cam`** | HR Manager / People Ops | `HRShell` (`HrLayout`) | Clean people directory, department trees, leave requests, monthly payroll execution | `HR_MANAGER`, `HR_STAFF`, `ORG_ADMIN` |
+| **`finance.camtech.cam`** | Accountant / CPA / CFO | `FinanceShell` (`FinanceLayout`) | General ledger, chart of accounts, journal entries, fiscal tax calculation, asset registers | `ACCOUNTANT`, `FINANCE_DIRECTOR` |
+| **`customer.camtech.cam`** | Registered Customer | `CustomerShell` (`CustomerLayout`) | Self-service portal: order history, invoice PDFs, shipment tracking, loyalty points balance | `CUSTOMER`, `*` |
+| **`partner.camtech.cam`** | Developer / Partner | `PartnerShell` (`PartnerShell`) | Developer hub: API key generation, HMAC webhook registrations, flow automations, OpenAPI | `DEVELOPER`, `PARTNER`, `ORG_ADMIN` |
+| **`support.camtech.cam`** | Service Desk Agent | `SupportShell` (`SupportShell`) | Incident ticketing queue, SLA priority timers, resolution comments, workflow signoffs | `SUPPORT_AGENT`, `SERVICE_MANAGER` |
+| **`ceo.camtech.cam`** | CEO / Executive | `ExecutiveShell` (`ExecutiveShell`) | Global KPI rollups, revenue velocity, cash flow, branch comparisons, AI Copilot insights | `CEO`, `SUPER_ADMIN`, `ORG_ADMIN` |
+| **`admin.camtech.cam`** | Enterprise Administrator | `AdminShell` (`EnterpriseShell`) | Enterprise control center, tenant provisioning, RBAC roles, security, audit, backup tools | `SUPER_ADMIN`, `ORG_ADMIN` |
 
 ---
 
-## 3. Experience Switching & Control Plane (§176, §190)
+## 3. Server-Side Application Access Control (§246)
 
-- **Interactive Switcher Component**: [`WorkspaceSwitcher`](file:///d:/Project/MyStore/apps/web/components/workspace-switcher.tsx) is mounted directly in the top header and navigation drawer.
-- **Admin Full Control**: CEOs, Super Admins, and Organization Admins can switch between any role experience at will with a single click to inspect, test, or operate in that exact role's perspective.
-- **Dedicated Entry Enforcement**: When a driver logs in, they are immediately routed to `/driver`; cashiers are routed to `/sales/new`; consumers to `/shop`.
+The domain/subdomain is an **experience boundary**, not a trusted security boundary. Access is strictly verified server-side:
+
+- **API Endpoint**: `GET /api/v1/apps/check-access?appId={appId}`
+  - Verified against the authenticated user's organization, roles, and explicit application permissions.
+  - An unauthorized cashier attempting to access `finance.camtech.cam` receives an HTTP `403 Forbidden` error.
+- **My Applications Feed**: `GET /api/v1/apps/my-apps`
+  - Returns only the applications the current user is authorized to navigate to.
+
+---
+
+## 4. Frontend Monorepo Structure (§253)
+
+```text
+apps/web/
+├── src/
+│   ├── apps/
+│   │   ├── admin/          # Enterprise Control Center (EnterpriseShell)
+│   │   ├── ceo/            # Executive Decision Support (ExecutiveShell)
+│   │   ├── pos/            # Fast Cashier POS Terminal (POSShell)
+│   │   ├── delivery/       # Mobile Courier Driver App (DeliveryShell)
+│   │   ├── hr/             # People & Workforce Console (HRShell)
+│   │   ├── finance/        # Financial Ledger & Taxes (FinanceShell)
+│   │   ├── warehouse/      # Warehouse WMS & Transfers (WarehouseShell)
+│   │   ├── customer/       # Public E-commerce Store & Portal (PublicStoreShell)
+│   │   ├── partner/        # Developer & Webhooks Hub (PartnerShell)
+│   │   └── support/        # Service Desk & Incident Hub (SupportShell)
+│   ├── components/
+│   │   ├── domain-bar.tsx  # Dynamic multi-subdomain simulator & switch bar
+│   │   └── enterprise-shell.tsx
+│   └── App.tsx             # Dynamic hostname-based router & experience resolver
+```

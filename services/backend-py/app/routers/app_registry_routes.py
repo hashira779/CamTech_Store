@@ -125,7 +125,31 @@ APP_REGISTRY_DATA: Dict[str, Dict[str, Any]] = {
         "defaultRoute": "/settings",
         "modules": ["organizations", "users", "security", "audit", "settings"],
         "features": ["tenant_settings", "mfa_enforcement", "schema_audit", "backups"]
+    },
+    "support": {
+        "id": "support",
+        "name": "Customer Support & Service Desk",
+        "subdomain": "support",
+        "defaultDomain": "support.camtech.cam",
+        "purpose": "Customer service management, incident tickets, SLAs, and resolution tracking.",
+        "audience": ["SUPPORT_AGENT", "SERVICE_MANAGER"],
+        "allowedRoles": ["SUPPORT_AGENT", "SERVICE_MANAGER", "ORG_ADMIN", "SUPER_ADMIN"],
+        "defaultRoute": "/tickets",
+        "modules": ["tickets", "sla", "comments", "knowledge_base"],
+        "features": ["ticket_queue", "sla_timers", "customer_history"]
     }
+}
+
+DOMAIN_ALIASES = {
+    "pos": "cashier",
+    "wms": "warehouse",
+    "shop": "store",
+    "accounting": "finance",
+    "dev": "partner",
+    "developer": "partner",
+    "desk": "support",
+    "tickets": "support",
+    "help": "support"
 }
 
 # Tenant custom domain mappings: domain -> { orgId, appId }
@@ -170,6 +194,9 @@ async def resolve_domain(host: str = Query(..., description="Hostname or subdoma
     parts = normalized.split(".")
     subdomain = parts[0] if len(parts) > 1 else "admin"
 
+    # Check aliasing (e.g. pos -> cashier, wms -> warehouse, shop -> store)
+    subdomain = DOMAIN_ALIASES.get(subdomain, subdomain)
+
     if subdomain in APP_REGISTRY_DATA:
         target_app = APP_REGISTRY_DATA[subdomain]
     elif normalized in ["camtech.cam", "localhost", "127.0.0.1"]:
@@ -211,4 +238,75 @@ async def register_custom_domain(
         "organizationId": user.organization_id,
         "targetAppId": inp.targetAppId,
         "status": "ACTIVE"
+    }
+
+@router.get("/check-access")
+async def check_application_access(
+    appId: str = Query(..., description="Target application ID to evaluate"),
+    user: TenantUser = Depends(get_current_user)
+):
+    """
+    Server-side application access control verification (Spec §246).
+    Evaluates: User, Organization, Role, Application.
+    Throws 403 Forbidden if user does not possess an allowed role for this application.
+    """
+    normalized_app_id = DOMAIN_ALIASES.get(appId.lower(), appId.lower())
+    app = APP_REGISTRY_DATA.get(normalized_app_id)
+    if not app:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Application '{appId}' not found in registry"
+        )
+
+    allowed_roles = app.get("allowedRoles", [])
+    if "*" in allowed_roles:
+        return {
+            "allowed": True,
+            "appId": app["id"],
+            "applicationName": app["name"],
+            "userRoles": user.roles
+        }
+
+    user_roles = set(user.roles)
+    # SUPER_ADMIN and ORG_ADMIN have full supervisory access across all tenant apps (§238, §239)
+    if "SUPER_ADMIN" in user_roles or "ORG_ADMIN" in user_roles or user_roles.intersection(set(allowed_roles)):
+        return {
+            "allowed": True,
+            "appId": app["id"],
+            "applicationName": app["name"],
+            "userRoles": user.roles
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"Access denied (Spec §246): User roles {list(user_roles)} are not authorized for application '{app['name']}' ({app['defaultDomain']})"
+    )
+
+@router.get("/my-apps")
+async def list_my_applications(
+    user: TenantUser = Depends(get_current_user)
+):
+    """
+    Returns all applications the current authenticated user is authorized to access (Spec §245).
+    """
+    user_roles = set(user.roles)
+    is_admin = "SUPER_ADMIN" in user_roles or "ORG_ADMIN" in user_roles
+
+    authorized = []
+    for app in APP_REGISTRY_DATA.values():
+        allowed_roles = app.get("allowedRoles", [])
+        if "*" in allowed_roles or is_admin or user_roles.intersection(set(allowed_roles)):
+            authorized.append({
+                "id": app["id"],
+                "name": app["name"],
+                "subdomain": app["subdomain"],
+                "defaultDomain": app["defaultDomain"],
+                "purpose": app["purpose"],
+                "defaultRoute": app["defaultRoute"],
+                "modules": app["modules"]
+            })
+
+    return {
+        "authorizedApps": authorized,
+        "count": len(authorized)
     }

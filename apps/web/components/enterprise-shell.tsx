@@ -166,6 +166,13 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
   if (!token || !user) return null;
 
+  const hostname = window.location.hostname;
+  const isAdminDomain = hostname.startsWith('admin.') || hostname.startsWith('ceo.') || hostname === 'localhost' || hostname === '127.0.0.1';
+
+  if (!isAdminDomain) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />

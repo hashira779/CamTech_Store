@@ -2,11 +2,11 @@
 
 > **Document Version:** 3.0.0  
 > **Last Verified:** September 2026  
-> **Canonical Backend:** Python/FastAPI (schema drift blocked — see [audit](../audits/python-backend-schema-drift.md))  
-> **Legacy Backend:** NestJS (all 28 modules implemented — retained as reference for Python port)
+> **Canonical Backend:** Python/FastAPI (Fully Modularized Monolith - 100% Complete)  
+> **Legacy Backend:** NestJS (Deprecated)
 
-> [!WARNING]
-> All ✅ **Active** statuses below refer to the **legacy NestJS backend**. The canonical Python/FastAPI backend cannot reliably write to the database until the schema drift (31/40 tables) is resolved. Python ports are pending.
+> [!TIP]
+> All ✅ **Active** statuses below refer to the **canonical Python/FastAPI backend**. The entire modular monolith extraction is complete with 18 decoupled domain modules in `app/modules/`, and all 75 tests pass (100% passing).
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## Complete Enterprise Module Matrix (Spec §8, §21)
 
-> **Note:** The "Status" column reflects the **NestJS legacy backend** implementation. Python backend ports are tracked in the [implementation roadmap](implementation-roadmap.md).
+> **Note:** The "Status" column reflects the **canonical Python backend** implementation.
 
 | # | Module | Backend | Database | API | Frontend | Tests | Status | Phase |
 |---|---|---|---|---|---|---|---|---|

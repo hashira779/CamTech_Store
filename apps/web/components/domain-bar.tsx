@@ -22,6 +22,8 @@ export function DomainBar() {
     { id: 'finance', domain: 'finance.camtech.cam', route: '/finance', exp: 'FINANCE_LEDGER' },
     { id: 'customer', domain: 'customer.camtech.cam', route: '/customer', exp: 'CUSTOMER_STORE' },
     { id: 'partner', domain: 'partner.camtech.cam', route: '/developers', exp: 'EXECUTIVE' },
+    { id: 'support', domain: 'support.camtech.cam', route: '/tickets', exp: 'EXECUTIVE' },
+    { id: 'admin', domain: 'admin.camtech.cam', route: '/settings', exp: 'EXECUTIVE' },
   ];
 
   // Detect current domain from path

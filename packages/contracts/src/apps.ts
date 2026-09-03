@@ -8,7 +8,8 @@ export type AppId =
   | 'partner'
   | 'customer'
   | 'ceo'
-  | 'admin';
+  | 'admin'
+  | 'support';
 
 export interface AppRegistryItem {
   id: AppId;
@@ -207,5 +208,22 @@ export const APP_REGISTRY: Record<AppId, AppRegistryItem> = {
     },
     modules: ['organizations', 'users', 'security', 'audit', 'settings'],
     features: ['tenant_settings', 'mfa_enforcement', 'schema_audit', 'backups'],
+  },
+  support: {
+    id: 'support',
+    name: 'Customer Support & Service Desk',
+    subdomain: 'support',
+    defaultDomain: 'support.camtech.cam',
+    purpose: 'Customer service management, incident tickets, SLAs, and resolution tracking.',
+    audience: ['SUPPORT_AGENT', 'SERVICE_MANAGER'],
+    allowedRoles: ['SUPPORT_AGENT', 'SERVICE_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN'],
+    defaultRoute: '/tickets',
+    theme: {
+      primaryColor: '#06b6d4', // cyan-500
+      accentColor: '#22d3ee',
+      mode: 'dark',
+    },
+    modules: ['tickets', 'sla', 'comments', 'knowledge_base'],
+    features: ['ticket_queue', 'sla_timers', 'customer_history'],
   },
 };

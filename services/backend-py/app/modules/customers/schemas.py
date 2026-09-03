@@ -1,0 +1,33 @@
+from pydantic import BaseModel
+from typing import Optional, List, Generic, TypeVar
+
+T = TypeVar("T")
+
+class PageMeta(BaseModel):
+    page: int = 1
+    limit: int = 50
+    total: int = 0
+    totalPages: int = 1
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    meta: PageMeta
+    total: Optional[int] = None
+
+class CustomerDto(BaseModel):
+    id: str
+    code: str
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    type: str
+    notes: Optional[str] = None
+    isActive: bool
+    creditBalance: float
+
+class CreateCustomerInput(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    type: str = "INDIVIDUAL"
+    notes: Optional[str] = None

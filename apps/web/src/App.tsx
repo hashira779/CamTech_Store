@@ -64,55 +64,52 @@ function RouteLoading() {
   );
 }
 
+import { AdminApp } from './apps/admin/AdminApp';
+import { PosApp } from './apps/pos/PosApp';
+import { HrApp } from './apps/hr/HrApp';
+import { DeliveryApp } from './apps/delivery/DeliveryApp';
+import { WarehouseApp } from './apps/warehouse/WarehouseApp';
+import { FinanceApp } from './apps/finance/FinanceApp';
+import { CustomerApp } from './apps/customer/CustomerApp';
+import { CeoApp } from './apps/ceo/CeoApp';
+import { SupportApp } from './apps/support/SupportApp';
+import { PartnerApp } from './apps/partner/PartnerApp';
+
 export function App() {
   useRealtimeStream();
+
+  const hostname = window.location.hostname.toLowerCase();
+  let CurrentApp = AdminApp; // Default fallback
+
+  if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
+    CurrentApp = PosApp;
+  } else if (hostname.startsWith('hr.')) {
+    CurrentApp = HrApp;
+  } else if (hostname.startsWith('delivery.')) {
+    CurrentApp = DeliveryApp;
+  } else if (hostname.startsWith('wms.') || hostname.startsWith('warehouse.')) {
+    CurrentApp = WarehouseApp;
+  } else if (hostname.startsWith('finance.') || hostname.startsWith('accounting.')) {
+    CurrentApp = FinanceApp;
+  } else if (hostname.startsWith('shop.') || hostname.startsWith('store.')) {
+    CurrentApp = CustomerApp;
+  } else if (hostname.startsWith('ceo.')) {
+    CurrentApp = CeoApp;
+  } else if (hostname.startsWith('support.') || hostname.startsWith('desk.')) {
+    CurrentApp = SupportApp;
+  } else if (hostname.startsWith('partner.') || hostname.startsWith('developer.') || hostname.startsWith('dev.')) {
+    CurrentApp = PartnerApp;
+  } else if (hostname.startsWith('admin.')) {
+    CurrentApp = AdminApp;
+  }
 
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
       <DomainBar />
       <Suspense fallback={<RouteLoading />}>
-        <Routes>
-
-
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/locations" element={<LocationsPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/transfers" element={<TransfersPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/taxes" element={<TaxesPage />} />
-        <Route path="/promotions" element={<PromotionsPage />} />
-        <Route path="/sales" element={<SalesPage />} />
-        <Route path="/sales/new" element={<NewSalePage />} />
-        <Route path="/customers" element={<CustomersPage />} />
-        <Route path="/loyalty" element={<LoyaltyPage />} />
-        <Route path="/storage" element={<StoragePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/approvals" element={<ApprovalsPage />} />
-        <Route path="/finance" element={<FinancePage />} />
-        <Route path="/procurement" element={<ProcurementPage />} />
-        <Route path="/delivery" element={<DeliveryPage />} />
-        <Route path="/driver" element={<DriverAppPage />} />
-        <Route path="/shop" element={<CustomerShopPage />} />
-        <Route path="/customer" element={<CustomerPortalPage />} />
-        <Route path="/hr" element={<HrPage />} />
-
-
-
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/tickets" element={<TicketsPage />} />
-        <Route path="/assets" element={<AssetsPage />} />
-        <Route path="/developers" element={<DevelopersPage />} />
-        <Route path="/telegram" element={<TelegramPage />} />
-        <Route path="/automations" element={<AutomationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Suspense>
+        <CurrentApp />
+      </Suspense>
     </>
   );
 }
