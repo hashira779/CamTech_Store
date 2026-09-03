@@ -94,6 +94,26 @@ pnpm dev:all
 
 ---
 
+### 5. Run Full Microservice Stack with Docker
+
+You can launch the entire ecosystem (Data Center, All Microservices, and Web Apps) in isolated Docker containers:
+
+```bash
+# Build and start all microservices and database containers
+docker compose up --build -d
+
+# View live logs across all containers
+docker compose logs -f
+
+# Check container status
+docker compose ps
+
+# Stop all containers
+docker compose down
+```
+
+---
+
 ## Quality Verification
 
 ```bash

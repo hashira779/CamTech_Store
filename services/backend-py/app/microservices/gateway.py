@@ -26,21 +26,23 @@ gateway.add_middleware(
     allow_headers=["*"],
 )
 
-# Routing Table: URL Prefix -> Target Microservice Port
+import os
+
+# Routing Table: URL Prefix -> Target Microservice Port (Environment-aware for Docker)
 ROUTING_MAP = {
-    "/api/v1/auth": "http://127.0.0.1:4001",
-    "/api/v1/organizations": "http://127.0.0.1:4001",
-    "/api/v1/locations": "http://127.0.0.1:4001",
-    "/api/v1/products": "http://127.0.0.1:4002",
-    "/api/v1/categories": "http://127.0.0.1:4002",
-    "/api/v1/brands": "http://127.0.0.1:4002",
-    "/api/v1/inventory": "http://127.0.0.1:4002",
-    "/api/v1/warehouse": "http://127.0.0.1:4002",
-    "/api/v1/sales": "http://127.0.0.1:4003",
-    "/api/v1/customers": "http://127.0.0.1:4003",
-    "/api/v1/delivery": "http://127.0.0.1:4004",
-    "/api/v1/hr": "http://127.0.0.1:4005",
-    "/api/v1/finance": "http://127.0.0.1:4006",
+    "/api/v1/auth": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
+    "/api/v1/organizations": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
+    "/api/v1/locations": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
+    "/api/v1/products": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
+    "/api/v1/categories": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
+    "/api/v1/brands": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
+    "/api/v1/inventory": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
+    "/api/v1/warehouse": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
+    "/api/v1/sales": os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003"),
+    "/api/v1/customers": os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003"),
+    "/api/v1/delivery": os.getenv("DELIVERY_SERVICE_URL", "http://127.0.0.1:4004"),
+    "/api/v1/hr": os.getenv("HR_SERVICE_URL", "http://127.0.0.1:4005"),
+    "/api/v1/finance": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
 }
 
 http_client = httpx.AsyncClient(timeout=15.0)

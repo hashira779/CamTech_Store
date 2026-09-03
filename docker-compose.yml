@@ -1,9 +1,12 @@
 version: '3.8'
 
-# MyStore Enterprise Platform — Development Infrastructure
+# MyStore Enterprise Platform — Full Microservices Architecture
 # Usage: docker compose up -d
 
 services:
+  # ==============================================================================
+  # DATA CENTER (CENTRAL PERSISTENCE & CACHE)
+  # ==============================================================================
   postgres:
     image: postgres:16-alpine
     container_name: mystore-postgres
@@ -21,6 +24,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - mystore-net
 
   redis:
     image: redis:7-alpine
@@ -35,27 +40,168 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - mystore-net
 
-  minio:
-    image: minio/minio:latest
-    container_name: mystore-minio
+  # ==============================================================================
+  # API GATEWAY (PORT 4000)
+  # ==============================================================================
+  api-gateway:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-api-gateway
     restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: mystore
-      MINIO_ROOT_PASSWORD: mystore_dev
+    command: python -m uvicorn app.microservices.gateway:gateway --host 0.0.0.0 --port 4000
     ports:
-      - '9000:9000'   # API
-      - '9001:9001'   # Console
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      - '4000:4000'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - CATALOG_SERVICE_URL=http://catalog-service:4002
+      - SALES_SERVICE_URL=http://sales-service:4003
+      - DELIVERY_SERVICE_URL=http://delivery-service:4004
+      - HR_SERVICE_URL=http://hr-service:4005
+      - FINANCE_SERVICE_URL=http://finance-service:4006
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  # ==============================================================================
+  # BACKEND MICROSERVICES (PORTS 4001 - 4006)
+  # ==============================================================================
+  auth-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-auth-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.auth_service:app --host 0.0.0.0 --port 4001
+    ports:
+      - '4001:4001'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  catalog-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-catalog-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.catalog_service:app --host 0.0.0.0 --port 4002
+    ports:
+      - '4002:4002'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  sales-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-sales-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.sales_service:app --host 0.0.0.0 --port 4003
+    ports:
+      - '4003:4003'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  delivery-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-delivery-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.delivery_service:app --host 0.0.0.0 --port 4004
+    ports:
+      - '4004:4004'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  hr-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-hr-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.hr_service:app --host 0.0.0.0 --port 4005
+    ports:
+      - '4005:4005'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  finance-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-finance-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.finance_service:app --host 0.0.0.0 --port 4006
+    ports:
+      - '4006:4006'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  # ==============================================================================
+  # FRONTEND WEB APPLICATIONS (PORTS 5001, 5002, 5003, 5004, 5005, 5008)
+  # ==============================================================================
+  frontend-apps:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-frontend-apps
+    restart: unless-stopped
+    command: pnpm dev:all
+    ports:
+      - '5001:5001'   # Store
+      - '5002:5002'   # Admin
+      - '5003:5003'   # Cashier POS
+      - '5004:5004'   # Delivery Driver
+      - '5005:5005'   # HR Operations
+      - '5008:5008'   # CEO Command Center
+    depends_on:
+      - api-gateway
+    networks:
+      - mystore-net
 
 volumes:
   pgdata:
   redisdata:
-  miniodata:
+
+networks:
+  mystore-net:
+    driver: bridge

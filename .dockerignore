@@ -1,0 +1,12 @@
+.git
+.github
+.turbo
+node_modules
+dist
+.next
+.pytest_cache
+__pycache__
+*.pyc
+*.log
+.env.local
+.DS_Store
