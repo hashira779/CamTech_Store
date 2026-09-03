@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/lib/auth-store';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { TrendingUp, BarChart3, LogOut, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
 import { Toaster } from 'sonner';
 
@@ -10,8 +10,7 @@ export function ExecutiveShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   if (!user) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   const tabs = [

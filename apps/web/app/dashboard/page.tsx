@@ -25,7 +25,7 @@ import {
   DollarSign,
   Package,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   AreaChart,
   Area,
@@ -68,7 +68,7 @@ export default function DashboardPage() {
     enabled: Boolean(token),
   });
 
-  if (!token) return null;
+  if (!token) return <Navigate to="/login" replace />;
 
   const completedSales = useMemo(
     () => (salesData?.items ?? []).filter((s) => s.status === 'COMPLETED'),

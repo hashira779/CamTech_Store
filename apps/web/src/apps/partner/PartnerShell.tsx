@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/lib/auth-store';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { Code2, Key, Webhook, FileCode, LogOut } from 'lucide-react';
 import { Toaster } from 'sonner';
 
@@ -10,8 +10,7 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   if (!user) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   const tabs = [

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-store';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Store,
   LayoutDashboard,
@@ -164,7 +164,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   }, [allNavigation, activeExperience, currentExpConfig]);
 
 
-  if (!token || !user) return null;
+  if (!token || !user) return <Navigate to="/login" replace />;
 
   const hostname = window.location.hostname;
   const isAdminDomain = hostname.startsWith('admin.') || hostname.startsWith('ceo.') || hostname === 'localhost' || hostname === '127.0.0.1';
