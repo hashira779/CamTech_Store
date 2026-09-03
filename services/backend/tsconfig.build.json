@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // For the production build, resolve @mystore/contracts to its built
+    // package (node_modules -> dist), NOT the source tree. This keeps the
+    // compile within rootDir and matches runtime `require` resolution.
+    "paths": {}
+  },
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+}

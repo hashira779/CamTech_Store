@@ -1,0 +1,27 @@
+{
+  "name": "mystore-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Universal Enterprise Business Platform — Phase 1 vertical slice (auth + product catalog)",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "backend:dev": "pnpm --filter @mystore/backend start:dev",
+    "backend:test": "pnpm --filter @mystore/backend test",
+    "backend:setup": "pnpm --filter @mystore/backend db:setup",
+    "web:dev": "pnpm --filter @mystore/web dev",
+    "py:dev": "python -m uvicorn app.main:app --app-dir services/backend-py --port 4000 --reload",
+    "py:test": "python -m pytest -o pythonpath=services/backend-py services/backend-py/tests"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "services/*"
+  - "packages/*"
+
+# Allow only the postinstall build scripts we actually need (pnpm 11 blocks
+# arbitrary build scripts by default for supply-chain safety, spec §66/§107).
+allowBuilds:
+  "@nestjs/core": true
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
+  "@scarf/scarf": false
+  esbuild: true
+
