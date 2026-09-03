@@ -37,10 +37,11 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS configuration
+# CORS configuration (Supports all multi-experience subdomains §228-§258)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam)(:[0-9]+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
