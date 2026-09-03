@@ -14,7 +14,11 @@ from app.core.config import settings
 from app.routers.api_v1 import router as api_v1_router
 from app.routers.enterprise_routes import router as enterprise_router
 from app.routers.delivery_routes import router as delivery_router
+from app.routers.industry_routes import router as industry_router
+from app.routers.ai_copilot_routes import router as ai_copilot_router
+from app.routers.data_exchange_routes import router as data_exchange_router
 from app.core.database import engine
+
 
 
 app = FastAPI(
@@ -149,6 +153,10 @@ async def response_envelope_middleware(request: Request, call_next):
 app.include_router(api_v1_router, prefix="/api/v1")
 app.include_router(enterprise_router, prefix="/api/v1")
 app.include_router(delivery_router, prefix="/api/v1")
+app.include_router(industry_router, prefix="/api/v1")
+app.include_router(ai_copilot_router, prefix="/api/v1")
+app.include_router(data_exchange_router, prefix="/api/v1")
+
 
 
 # ==============================================================================

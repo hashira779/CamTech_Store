@@ -47,7 +47,9 @@ import {
 } from 'lucide-react';
 import { useThemeStore } from '@/lib/theme-store';
 import { CommandPalette } from '@/components/command-palette';
+import { AiCopilotDrawer } from '@/components/ai-copilot-drawer';
 import { Button } from '@/components/ui/button';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -155,8 +157,10 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
+      <AiCopilotDrawer />
 
       {/* Mobile Drawer Backdrop */}
+
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/80 lg:hidden backdrop-blur-xs"

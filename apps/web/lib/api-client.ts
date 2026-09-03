@@ -142,7 +142,12 @@ import type {
   LiveTrackingSnapshotDto,
   CreateDeliveryOrderInput,
   CreateDriverInput,
+  CopilotChatResponse,
+  IndustryConfigDto,
+  TableDto,
+  KDSTicketDto,
 } from '@mystore/contracts';
+
 
 
 const BASE_URL =
@@ -1235,5 +1240,36 @@ export const api = {
 
   getLiveTrackingSnapshot: (token: string) =>
     request<LiveTrackingSnapshotDto>('/delivery/live-tracking', { token }),
+
+  // ─── AI Copilot Assistant (Spec §68-§71) ──────────────────────────
+  copilotChat: (token: string, message: string, pageContext?: string) =>
+    request<CopilotChatResponse>('/ai/chat', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ message, pageContext }),
+    }),
+
+  getCopilotSuggestions: (token: string, context: string = 'dashboard') =>
+    request<{ context: string; prompts: string[] }>(`/ai/suggestions?context=${context}`, {
+      token,
+    }),
+
+  // ─── Industry Verticals (Spec §17-§22, §112) ──────────────────────
+  getIndustryConfig: (token: string) =>
+    request<IndustryConfigDto>('/industry/config', { token }),
+
+  setupIndustryPreset: (token: string, preset: string) =>
+    request<IndustryConfigDto>('/industry/setup', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ preset }),
+    }),
+
+  listTables: (token: string) =>
+    request<TableDto[]>('/industry/restaurant/tables', { token }),
+
+  listKDSTickets: (token: string) =>
+    request<KDSTicketDto[]>('/industry/restaurant/kds', { token }),
 };
+
 
