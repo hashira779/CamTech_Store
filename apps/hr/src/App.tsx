@@ -57,7 +57,7 @@ export function App() {
             department: e.department?.name || e.departmentId || 'Operations',
             position: e.position || 'Specialist',
             baseSalary: Number(e.baseSalary || e.base_salary || 2000),
-            status: e.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'ACTIVE'
+            status: (e.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'ACTIVE') as 'ACTIVE' | 'ON_LEAVE'
           }));
         }
         return FALLBACK_EMPLOYEES;

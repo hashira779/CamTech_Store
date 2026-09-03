@@ -26,3 +26,23 @@ class TokenResponse(BaseModel):
     accessToken: str
     refreshToken: str
     tokenType: str = "bearer"
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    organizationName: Optional[str] = "CamTech Retail"
+    role: Optional[str] = "CUSTOMER"
+
+class RegisterResponse(BaseModel):
+    id: str
+    email: str
+    name: str
+    organizationId: str
+    roles: List[str]
+    accessToken: str
+    status: str = "PROVISIONED"
+    message: str = "User registered successfully. Welcome coupon & loyalty points queued in Redis."
+    latencyMs: float
+    queuedEventId: str
+
