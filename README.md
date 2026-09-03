@@ -27,6 +27,10 @@ MyStore/
 
 ---
 
+> 📖 **Architecture & Operations Guide**: See the [Microservices, Docker & High-Concurrency Architecture Guide](docs/architecture/microservices-and-docker-guide.md) for full port mappings, container fault isolation diagrams, and high-concurrency benchmarks.
+
+---
+
 ## Multi-Domain Experience Ecosystem (Spec §228–§258)
 
 The platform supports multiple independent web experiences based on the incoming domain/subdomain:
