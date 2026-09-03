@@ -48,7 +48,10 @@ import {
 import { useThemeStore } from '@/lib/theme-store';
 import { CommandPalette } from '@/components/command-palette';
 import { AiCopilotDrawer } from '@/components/ai-copilot-drawer';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
+import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { Button } from '@/components/ui/button';
+
 
 import {
   DropdownMenu,
@@ -118,7 +121,10 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     setMobileOpen(false);
   }, [pathname]);
 
-  const navigation: NavItem[] = useMemo(
+  const { activeExperience } = useExperienceStore();
+  const currentExpConfig = EXPERIENCE_CONFIGS[activeExperience] || EXPERIENCE_CONFIGS.EXECUTIVE;
+
+  const allNavigation: NavItem[] = useMemo(
     () => [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, section: 'Core' },
       { name: 'Analytics & Reports', href: '/reports', icon: BarChart3, section: 'Core' },
@@ -151,6 +157,12 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     ],
     []
   );
+
+  const navigation = useMemo(() => {
+    if (activeExperience === 'EXECUTIVE') return allNavigation;
+    return allNavigation.filter((item) => currentExpConfig.allowedSections.includes(item.section));
+  }, [allNavigation, activeExperience, currentExpConfig]);
+
 
   if (!token || !user) return null;
 
@@ -340,8 +352,12 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Multi-Experience Workspace Switcher (Spec §151–§176) */}
+            <WorkspaceSwitcher />
+
             {/* Online / Offline Indicator */}
             {isOnline ? (
+
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Online
