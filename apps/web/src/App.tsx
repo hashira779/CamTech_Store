@@ -25,7 +25,9 @@ const ProcurementPage = lazy(() => import('@/app/procurement/page'));
 const DeliveryPage = lazy(() => import('@/app/delivery/page'));
 const DriverAppPage = lazy(() => import('@/app/driver/page'));
 const CustomerShopPage = lazy(() => import('@/app/shop/page'));
+const CustomerPortalPage = lazy(() => import('@/app/customer/page'));
 const HrPage = lazy(() => import('@/app/hr/page'));
+
 
 
 const ProjectsPage = lazy(() => import('@/app/projects/page'));
@@ -38,8 +40,10 @@ const SettingsPage = lazy(() => import('@/app/settings/page'));
 
 import { Toaster } from 'sonner';
 import { useRealtimeStream } from '@/lib/use-realtime-stream';
+import { DomainBar } from '@/components/domain-bar';
 
 function RouteLoading() {
+
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -66,8 +70,10 @@ export function App() {
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
+      <DomainBar />
       <Suspense fallback={<RouteLoading />}>
         <Routes>
+
 
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -92,7 +98,9 @@ export function App() {
         <Route path="/delivery" element={<DeliveryPage />} />
         <Route path="/driver" element={<DriverAppPage />} />
         <Route path="/shop" element={<CustomerShopPage />} />
+        <Route path="/customer" element={<CustomerPortalPage />} />
         <Route path="/hr" element={<HrPage />} />
+
 
 
         <Route path="/projects" element={<ProjectsPage />} />

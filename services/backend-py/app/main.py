@@ -18,7 +18,9 @@ from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
 from app.routers.data_exchange_routes import router as data_exchange_router
 from app.routers.event_routes import router as event_router
+from app.routers.app_registry_routes import router as app_registry_router
 from app.core.database import engine
+
 
 SERVER_START_TIME = time.time()
 
@@ -161,6 +163,8 @@ app.include_router(industry_router, prefix="/api/v1")
 app.include_router(ai_copilot_router, prefix="/api/v1")
 app.include_router(data_exchange_router, prefix="/api/v1")
 app.include_router(event_router, prefix="/api/v1")
+app.include_router(app_registry_router, prefix="/api/v1")
+
 
 # ==============================================================================
 # OPS & 2026-2030 HEALTH MONITORING & DEEP TELEMETRY
