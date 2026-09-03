@@ -876,6 +876,17 @@ class WorkflowInstance(Base):
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
 
+# ==============================================================================
+# COMPATIBILITY ALIASES
+# ==============================================================================
+JournalLine = JournalLineItem
+Timesheet = TimesheetEntry
+PayrollRecord = PayrollItem
+ApprovalRequest = WorkflowInstance
+Document = DocumentRecord
+Notification = NotificationRecord
+
+
 class WorkflowStep(Base):
     __tablename__ = "workflow_steps"
 

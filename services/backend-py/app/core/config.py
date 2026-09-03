@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7          # 7 days
+    ENCRYPTION_KEY: str = os.getenv(
+        "ENCRYPTION_KEY",
+        "mystore-default-32-byte-secret-key-ok!"
+    )
     PORT: int = int(os.getenv("PORT", 4000))
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
@@ -23,5 +28,6 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "extra": "allow"
     }
+
 
 settings = Settings()

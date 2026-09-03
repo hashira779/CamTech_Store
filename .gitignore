@@ -52,3 +52,8 @@ coverage/
 htmlcov/
 .coverage
 
+# Backups
+backups/
+*.sql.gz
+
+

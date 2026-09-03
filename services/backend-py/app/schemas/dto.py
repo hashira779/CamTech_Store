@@ -35,7 +35,17 @@ class UserDto(BaseModel):
 
 class LoginResponse(BaseModel):
     accessToken: str
+    refreshToken: Optional[str] = None
     user: UserDto
+
+class RefreshTokenRequest(BaseModel):
+    refreshToken: str
+
+class TokenResponse(BaseModel):
+    accessToken: str
+    refreshToken: str
+    tokenType: str = "bearer"
+
 
 # ==============================================================================
 # 2. CATALOG & INVENTORY SCHEMAS
@@ -123,6 +133,7 @@ class SalePaymentInput(BaseModel):
     reference: Optional[str] = None
 
 class CreateSaleInput(BaseModel):
+    idempotencyKey: Optional[str] = None
     locationId: Optional[str] = None
     customerId: Optional[str] = None
     customerName: Optional[str] = None
@@ -150,6 +161,7 @@ class SalePaymentDto(BaseModel):
 
 class SaleDto(BaseModel):
     id: str
+    idempotencyKey: Optional[str] = None
     saleNumber: str
     channel: str
     status: str
@@ -164,6 +176,7 @@ class SaleDto(BaseModel):
     createdAt: str
     lineItems: List[SaleLineItemDto] = []
     payments: List[SalePaymentDto] = []
+
 
 # ==============================================================================
 # 4. CUSTOMERS & CRM

@@ -3,13 +3,18 @@ import datetime
 import secrets
 from decimal import Decimal
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.core.security import verify_password, create_access_token
+from app.core.security import (
+    verify_password, create_access_token, create_refresh_token,
+    decode_refresh_token, generate_totp_secret, verify_totp_code,
+    get_totp_uri
+)
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import (
     User, Product, ProductVariant, InventoryItem, Location,
@@ -18,7 +23,8 @@ from app.models.entities import (
     TelegramChatBinding, AutomationFlow, FlowExecution
 )
 from app.schemas.dto import (
-    LoginRequest, LoginResponse, UserDto, ProductDto, CreateProductInput,
+    LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
+    UserDto, ProductDto, CreateProductInput,
     InventoryItemDto, LocationDto, SaleDto, CreateSaleInput, CustomerDto,
     CreateCustomerInput, AutomationFlowDto, CreateFlowInput, FlowExecutionDto,
     PaginatedResponse, VariantDto, PageMeta
@@ -45,6 +51,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
     token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
+    refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
 
     # Default full permissions for admins and operators
     permissions = [
@@ -64,6 +71,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     return LoginResponse(
         accessToken=token,
+        refreshToken=refresh_token,
         user=UserDto(
             id=user.id,
             organizationId=user.organization_id,
@@ -74,6 +82,62 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             locationId=user.location_id
         )
     )
+
+@router.post("/auth/refresh", response_model=TokenResponse)
+async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    payload = decode_refresh_token(req.refreshToken)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    user_id = payload["sub"]
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
+    new_access_token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
+    new_refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
+
+    return TokenResponse(
+        accessToken=new_access_token,
+        refreshToken=new_refresh_token,
+        tokenType="bearer"
+    )
+
+@router.post("/auth/mfa/setup")
+async def mfa_setup(user: TenantUser = Depends(get_current_user)):
+    """Generate RFC 6238 TOTP MFA secret and configuration URI (§66)."""
+    secret = generate_totp_secret()
+    uri = get_totp_uri(secret, user.email, issuer="MyStore")
+    return {
+        "secret": secret,
+        "otpauthUri": uri,
+        "instructions": "Scan QR code or enter secret in Google Authenticator or 1Password"
+    }
+
+@router.post("/auth/mfa/verify")
+async def mfa_verify(
+    payload: Dict[str, str],
+    user: TenantUser = Depends(get_current_user)
+):
+    """Verify 6-digit TOTP code against secret (§66)."""
+    secret = payload.get("secret", "")
+    code = payload.get("code", "")
+    if not secret or not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both secret and code are required",
+        )
+    is_valid = verify_totp_code(secret, code)
+    return {"valid": is_valid}
+
 
 @router.get("/auth/me", response_model=UserDto)
 async def get_me(user: TenantUser = Depends(get_current_user)):
@@ -338,9 +402,65 @@ async def list_sales(
 @router.post("/sales", response_model=SaleDto)
 async def create_sale(
     sale_in: CreateSaleInput,
+    request: Request,
+    idempotency_key_header: Optional[str] = Header(None, alias="Idempotency-Key"),
+    x_idempotency_key_header: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Idempotency Key Handling (§104)
+    idempotency_key = sale_in.idempotencyKey or idempotency_key_header or x_idempotency_key_header
+    if idempotency_key:
+        existing_stmt = (
+            select(Sale)
+            .where(
+                Sale.organization_id == user.organization_id,
+                Sale.idempotency_key == idempotency_key
+            )
+            .options(selectinload(Sale.line_items), selectinload(Sale.payments))
+        )
+        existing_res = await db.execute(existing_stmt)
+        existing_sale = existing_res.scalar_one_or_none()
+        if existing_sale:
+            # Return previously created sale without re-processing
+            return SaleDto(
+                id=existing_sale.id,
+                idempotencyKey=existing_sale.idempotency_key,
+                saleNumber=existing_sale.sale_number,
+                channel=existing_sale.channel,
+                status=existing_sale.status,
+                subtotal=float(existing_sale.subtotal),
+                taxTotal=float(existing_sale.tax_total),
+                discountTotal=float(existing_sale.discount_total),
+                grandTotal=float(existing_sale.grand_total),
+                currency=existing_sale.currency,
+                itemCount=len(existing_sale.line_items),
+                customerName=sale_in.customerName,
+                paymentStatus="PAID" if existing_sale.payments else "PENDING",
+                createdAt=existing_sale.created_at.isoformat(),
+                lineItems=[
+                    SaleLineItemDto(
+                        id=li.id,
+                        variantId=li.product_variant_id,
+                        sku=li.sku,
+                        name=li.product_name,
+                        quantity=float(li.quantity),
+                        unitPrice=float(li.unit_price),
+                        taxRatePct=float(li.tax_rate_pct),
+                        lineTotal=float(li.line_total)
+                    ) for li in existing_sale.line_items
+                ],
+                payments=[
+                    SalePaymentDto(
+                        id=p.id,
+                        amount=float(p.amount),
+                        method=p.method,
+                        status=p.status,
+                        reference=p.reference
+                    ) for p in existing_sale.payments
+                ]
+            )
+
     sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
     location_id = sale_in.locationId or user.location_id or "loc_main"
 
@@ -369,7 +489,6 @@ async def create_sale(
     for item in sale_in.items:
         variant = variants.get(item.variantId)
         if variant is None:
-            # Unknown id, or a variant belonging to another tenant.
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unknown or inaccessible product variant: {item.variantId}",
@@ -382,8 +501,8 @@ async def create_sale(
                 detail=f"Quantity must be positive for variant {item.variantId}",
             )
 
-        price = Decimal(str(variant.sell_price))      # authoritative, from DB
-        tax_pct = Decimal(str(variant.tax_rate_pct))  # authoritative, from DB
+        price = Decimal(str(variant.sell_price))
+        tax_pct = Decimal(str(variant.tax_rate_pct))
 
         line_sub = (qty * price).quantize(Decimal('0.01'))
         line_tax = (line_sub * (tax_pct / Decimal('100.0'))).quantize(Decimal('0.01'))
@@ -393,12 +512,15 @@ async def create_sale(
         tax_total += line_tax
 
         line_entities.append(SaleLineItem(
-            variant_id=variant.id,
+            product_variant_id=variant.id,
             sku=variant.sku,
-            name=variant.name,
+            product_name=variant.name or variant.sku,
+            variant_name=variant.name,
             quantity=qty,
             unit_price=price,
+            discount=Decimal('0.0'),
             tax_rate_pct=tax_pct,
+            tax_amount=line_tax,
             line_total=line_tot
         ))
 
@@ -407,6 +529,8 @@ async def create_sale(
     sale = Sale(
         organization_id=user.organization_id,
         location_id=location_id,
+        user_id=user.id,
+        idempotency_key=idempotency_key,
         sale_number=sale_num,
         channel=sale_in.channel,
         status="COMPLETED",
@@ -415,10 +539,7 @@ async def create_sale(
         discount_total=Decimal('0.0'),
         grand_total=grand_total,
         currency=sale_in.currency,
-        item_count=len(sale_in.items),
-        customer_name=sale_in.customerName,
         customer_id=sale_in.customerId,
-        payment_status="PAID" if sale_in.payments else "PENDING",
         line_items=line_entities
     )
 
@@ -436,6 +557,7 @@ async def create_sale(
 
     return SaleDto(
         id=sale.id,
+        idempotencyKey=sale.idempotency_key,
         saleNumber=sale.sale_number,
         channel=sale.channel,
         status=sale.status,
@@ -444,32 +566,33 @@ async def create_sale(
         discountTotal=float(sale.discount_total),
         grandTotal=float(sale.grand_total),
         currency=sale.currency,
-        itemCount=sale.item_count,
-        customerName=sale.customer_name,
-        paymentStatus=sale.payment_status,
+        itemCount=len(sale_in.items),
+        customerName=sale_in.customerName,
+        paymentStatus="PAID" if sale_in.payments else "PENDING",
         createdAt=sale.created_at.isoformat(),
         lineItems=[
-            {
-                "id": li.id,
-                "variantId": li.variant_id,
-                "sku": li.sku,
-                "name": li.name,
-                "quantity": float(li.quantity),
-                "unitPrice": float(li.unit_price),
-                "taxRatePct": float(li.tax_rate_pct),
-                "lineTotal": float(li.line_total)
-            } for li in sale.line_items
+            SaleLineItemDto(
+                id=li.id,
+                variantId=li.product_variant_id,
+                sku=li.sku,
+                name=li.product_name,
+                quantity=float(li.quantity),
+                unitPrice=float(li.unit_price),
+                taxRatePct=float(li.tax_rate_pct),
+                lineTotal=float(li.line_total)
+            ) for li in sale.line_items
         ],
         payments=[
-            {
-                "id": p.id,
-                "amount": float(p.amount),
-                "method": p.method,
-                "status": p.status,
-                "reference": p.reference
-            } for p in sale.payments
+            SalePaymentDto(
+                id=p.id,
+                amount=float(p.amount),
+                method=p.method,
+                status=p.status,
+                reference=p.reference
+            ) for p in sale.payments
         ]
     )
+
 
 # ==============================================================================
 # 5. CUSTOMERS & CRM

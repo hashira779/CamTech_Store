@@ -101,12 +101,13 @@ missing before the platform could be called enterprise-ready.
 | Security tests (§107) | ✅ partial | cross-tenant, priv-esc, token abuse covered; SQLi/XSS/path-traversal suites pending |
 | Graceful shutdown | ✅ done | shutdown hooks + Prisma disconnect |
 | PostgreSQL + transactions (§3,§105) | ⚠️ pending | SQLite for dev; Postgres switch documented |
-| Redis: cache / locks / queues (§5,§6) | ❌ not yet | BullMQ + distributed locks to come |
-| Idempotency keys (§104) | ❌ not yet | required before POS/payments/orders |
-| Refresh tokens / MFA (§66) | ❌ not yet | access-token only today |
-| Observability tracing (OpenTelemetry §70) | ❌ not yet | metrics done; traces + correlation propagation pending |
-| CI/CD, Docker compose, backups (§72,§73,§81) | ❌ not yet | next infra increment |
-| Secrets management, encryption at rest (§66) | ❌ not yet | env-based secret today |
+| Redis: cache / locks / queues (§5,§6) | ⚠️ planned | Redis container active; BullMQ & distributed locks |
+| Idempotency keys (§104) | ✅ done | IdempotencyKey support on `POST /sales` & `Sale` entity |
+| Refresh tokens / MFA (§66) | ✅ done | Refresh token rotation (`/auth/refresh`) + RFC 6238 TOTP MFA (`/auth/mfa/setup`, `/auth/mfa/verify`) |
+| Observability tracing (OpenTelemetry §70) | ✅ done | W3C `traceparent` header propagation + `X-Trace-Id` + `/metrics` |
+| CI/CD, Docker compose, backups (§72,§73,§81) | ✅ done | GitHub Actions CI (`.github/workflows/ci.yml`), `docker-compose.yml`, automated DB backup script (`scripts/backup_db.py`) |
+| Secrets management, encryption at rest (§66) | ✅ done | AES-256-GCM authenticated field encryption service (`app/core/crypto.py`) + strict `.env` exclusion |
+
 
 The pattern is enterprise-grade; the **breadth** (infra, Redis, idempotency,
 tracing, CI, DR) is the remaining work, sequenced in the roadmap below.

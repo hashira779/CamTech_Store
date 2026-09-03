@@ -1,7 +1,9 @@
 import time
 import uuid
 import json
+import secrets
 from fastapi import FastAPI, Request, Response, status
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -78,6 +80,21 @@ async def response_envelope_middleware(request: Request, call_next):
     req_id = str(uuid.uuid4())
     request.state.request_id = req_id
 
+    # Distributed Tracing & W3C Traceparent Header (§70)
+    incoming_traceparent = request.headers.get("traceparent")
+    if incoming_traceparent and len(incoming_traceparent.split("-")) == 4:
+        parts = incoming_traceparent.split("-")
+        trace_id = parts[1]
+        parent_span_id = parts[2]
+    else:
+        trace_id = secrets.token_hex(16)  # 32 hex chars (128-bit)
+        parent_span_id = secrets.token_hex(8)
+    span_id = secrets.token_hex(8)         # 16 hex chars (64-bit child span)
+    traceparent = f"00-{trace_id}-{span_id}-01"
+
+    request.state.trace_id = trace_id
+    request.state.span_id = span_id
+
     # Raw pass-through for Swagger docs, openapi.json, and internal ops health
     path = request.url.path
     if path in ["/docs", "/redoc", "/openapi.json", "/health", "/ready", "/metrics"]:
@@ -85,12 +102,17 @@ async def response_envelope_middleware(request: Request, call_next):
         process_time = (time.time() - start_time) * 1000
         response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
         response.headers["X-Request-Id"] = req_id
+        response.headers["X-Trace-Id"] = trace_id
+        response.headers["traceparent"] = traceparent
         return response
 
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
     response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
     response.headers["X-Request-Id"] = req_id
+    response.headers["X-Trace-Id"] = trace_id
+    response.headers["traceparent"] = traceparent
+
 
     # Automatically wrap 2xx JSON responses in { success: True, data: ..., requestId: ... }
     content_type = response.headers.get("content-type", "")
