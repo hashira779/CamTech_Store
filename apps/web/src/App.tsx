@@ -33,7 +33,11 @@ const TelegramPage = lazy(() => import('@/app/telegram/page'));
 const AutomationsPage = lazy(() => import('@/app/automations/page'));
 const SettingsPage = lazy(() => import('@/app/settings/page'));
 
+import { Toaster } from 'sonner';
+import { useRealtimeStream } from '@/lib/use-realtime-stream';
+
 function RouteLoading() {
+
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
@@ -54,9 +58,14 @@ function RouteLoading() {
 }
 
 export function App() {
+  useRealtimeStream();
+
   return (
-    <Suspense fallback={<RouteLoading />}>
-      <Routes>
+    <>
+      <Toaster position="top-right" richColors closeButton />
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
+
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -90,7 +99,9 @@ export function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
+    </>
   );
 }
+
 
 export default App;

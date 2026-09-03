@@ -1,6 +1,6 @@
 import json
 from typing import Optional, List, Dict, Any
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,16 +24,19 @@ class TenantUser:
 
 async def get_current_user(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    token_query: Optional[str] = Query(None, alias="token"),
     db: AsyncSession = Depends(get_db),
 ) -> TenantUser:
-    if not auth or not auth.credentials:
+    raw_token = auth.credentials if auth and auth.credentials else token_query
+    if not raw_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    payload = decode_access_token(auth.credentials)
+    payload = decode_access_token(raw_token)
+
     if not payload or "sub" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
