@@ -73,10 +73,23 @@ pnpm py:dev
 pnpm py:test
 ```
 
-### 4. Start Multi-Experience Web Client
+### 4. Independent Multi-Server Web Applications
+
+Each business role runs on its own dedicated server/port, all connected to the **Central Data Center API** (`http://localhost:4000`):
+
+| Role / Application | Port | Dev Command | Description |
+|---|---|---|---|
+| **Store** (`apps/store`) | **`http://localhost:5001`** | `pnpm store:dev` | Customer Online Store: live catalog, cart, Bakong KHQR checkout, order history |
+| **Admin** (`apps/web`) | **`http://localhost:5002`** | `pnpm admin:dev` | Enterprise Admin Control Hub: tenants, users, branches, audit |
+| **Cashier** (`apps/cashier`) | **`http://localhost:5003`** | `pnpm cashier:dev` | Retail POS Terminal: barcode scan, touch catalog, split tender |
+| **Delivery** (`apps/delivery`) | **`http://localhost:5004`** | `pnpm delivery:dev` | Courier Driver App: live dispatch route, GPS navigation, POD signature |
+| **HR** (`apps/hr`) | **`http://localhost:5005`** | `pnpm hr:dev` | HR & Workforce: employee directory, department tree, payroll runner |
+| **CEO** (`apps/ceo`) | **`http://localhost:5008`** | `pnpm ceo:dev` | Executive Command Center: revenue velocity curves, KPI analytics |
+| **Data Center** (`services/backend-py`) | **`http://localhost:4000`** | `pnpm py:dev` | Central Data Center API (FastAPI + PostgreSQL) |
+
+To run all applications together:
 ```bash
-# Run unified multi-experience SPA (runs on http://localhost:3000)
-pnpm web:dev
+pnpm dev:all
 ```
 
 ---
