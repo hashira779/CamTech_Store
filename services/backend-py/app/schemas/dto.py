@@ -128,13 +128,23 @@ class InventoryItemDto(BaseModel):
     availableQty: float
     reorderPoint: float
 
-class LocationDto(BaseModel):
+class LocationParentSummaryDto(BaseModel):
     id: str
     name: str
-    code: Optional[str] = None
     type: str
-    isActive: bool = True
+
+class LocationDto(BaseModel):
+    id: str
+    organizationId: str
     parentId: Optional[str] = None
+    type: str
+    name: str
+    code: Optional[str] = None
+    isActive: bool = True
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+    parent: Optional[LocationParentSummaryDto] = None
+    childrenCount: Optional[int] = 0
 
 class CreateLocationInput(BaseModel):
     name: str
@@ -150,12 +160,41 @@ class UpdateLocationInput(BaseModel):
 
 class LocationTreeNodeDto(BaseModel):
     id: str
+    organizationId: str
+    parentId: Optional[str] = None
+    type: str
     name: str
     code: Optional[str] = None
-    type: str
-    isActive: bool = True
-    parentId: Optional[str] = None
+    createdAt: Optional[str] = None
     children: List['LocationTreeNodeDto'] = []
+
+class CategoryDto(BaseModel):
+    id: str
+    organizationId: str
+    parentId: Optional[str] = None
+    name: str
+    description: Optional[str] = None
+    createdAt: Optional[str] = None
+    childrenCount: Optional[int] = 0
+
+class CategoryTreeNodeDto(BaseModel):
+    id: str
+    organizationId: str
+    parentId: Optional[str] = None
+    name: str
+    description: Optional[str] = None
+    children: List['CategoryTreeNodeDto'] = []
+
+class CreateCategoryInput(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parentId: Optional[str] = None
+
+class UpdateCategoryInput(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    parentId: Optional[str] = None
+
 
 
 # ==============================================================================
