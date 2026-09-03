@@ -60,6 +60,7 @@ async def event_stream(
         finally:
             event_bus.unsubscribe(org_id, queue)
 
+    origin = request.headers.get("origin") or "*"
     return StreamingResponse(
         sse_generator(),
         media_type="text/event-stream",
@@ -67,6 +68,9 @@ async def event_stream(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "*",
         }
     )
 

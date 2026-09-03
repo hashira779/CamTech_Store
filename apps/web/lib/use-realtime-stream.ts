@@ -23,10 +23,9 @@ export function useRealtimeStream() {
     // In browsers standard EventSource doesn't support headers, so we pass token in URL
     const streamUrl = `${BASE_URL}/api/v1/events/stream?token=${encodeURIComponent(token)}`;
 
-    // Custom or native EventSource fallback
     let eventSource: EventSource | null = null;
     try {
-      eventSource = new EventSource(streamUrl);
+      eventSource = new EventSource(streamUrl, { withCredentials: true });
 
       eventSource.onmessage = (event) => {
         try {
