@@ -177,24 +177,77 @@ services:
       - mystore-net
 
   # ==============================================================================
-  # FRONTEND WEB APPLICATIONS (PORTS 5001, 5002, 5003, 5004, 5005, 5008)
+  # INDEPENDENT FRONTEND CONTAINERS (ISOLATED PORTS & FAULT TOLERANCE)
   # ==============================================================================
-  frontend-apps:
+  pos-app:
     build:
       context: .
       dockerfile: apps/Dockerfile
-    container_name: mystore-frontend-apps
+    container_name: mystore-pos-app
     restart: unless-stopped
-    command: pnpm dev:all
+    command: pnpm --filter @mystore/cashier dev
     ports:
-      - '5001:5001'   # Store
-      - '5002:5002'   # Admin
-      - '5003:5003'   # Cashier POS
-      - '5004:5004'   # Delivery Driver
-      - '5005:5005'   # HR Operations
-      - '5008:5008'   # CEO Command Center
-    depends_on:
-      - api-gateway
+      - '5003:5003'   # Cashier POS (Standalone Isolated Container)
+    networks:
+      - mystore-net
+
+  store-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-store-app
+    restart: unless-stopped
+    command: pnpm --filter @mystore/store dev
+    ports:
+      - '5001:5001'   # Customer Storefront Container
+    networks:
+      - mystore-net
+
+  admin-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-admin-app
+    restart: unless-stopped
+    command: pnpm --filter @mystore/web dev
+    ports:
+      - '5002:5002'   # Enterprise Admin Container
+    networks:
+      - mystore-net
+
+  delivery-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-delivery-app
+    restart: unless-stopped
+    command: pnpm --filter @mystore/delivery dev
+    ports:
+      - '5004:5004'   # Courier Driver Container
+    networks:
+      - mystore-net
+
+  hr-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-hr-app
+    restart: unless-stopped
+    command: pnpm --filter @mystore/hr dev
+    ports:
+      - '5005:5005'   # HR Workforce Container
+    networks:
+      - mystore-net
+
+  ceo-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile
+    container_name: mystore-ceo-app
+    restart: unless-stopped
+    command: pnpm --filter @mystore/ceo dev
+    ports:
+      - '5008:5008'   # CEO Command Center Container
     networks:
       - mystore-net
 
