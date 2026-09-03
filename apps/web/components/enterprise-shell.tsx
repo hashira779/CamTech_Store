@@ -16,7 +16,9 @@ import {
   Search,
   Building2,
   Truck,
+  Navigation,
   Tag,
+
   Coins,
   ArrowLeftRight,
   Percent,
@@ -124,7 +126,9 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
       { name: 'Inventory Ledger', href: '/inventory', icon: Boxes, section: 'Commerce' },
       { name: 'Stock Transfers & WMS', href: '/transfers', icon: ArrowLeftRight, section: 'Logistics' },
       { name: 'Procurement & POs', href: '/procurement', icon: Truck, section: 'Logistics' },
+      { name: 'Delivery & Live Fleet', href: '/delivery', icon: Navigation, section: 'Logistics' },
       { name: 'Locations & Branches', href: '/locations', icon: Building2, section: 'Logistics' },
+
       { name: 'Customers & CRM', href: '/customers', icon: Users, section: 'Customers' },
       { name: 'Loyalty & Credit', href: '/loyalty', icon: Award, section: 'Customers' },
       { name: 'Pricing & Price Lists', href: '/pricing', icon: Coins, section: 'Pricing' },

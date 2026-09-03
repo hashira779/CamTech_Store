@@ -137,7 +137,13 @@ import type {
   CreateFlowInput,
   UpdateFlowInput,
   FlowExecutionDto,
+  DeliveryOrderDto,
+  DeliveryDriverDto,
+  LiveTrackingSnapshotDto,
+  CreateDeliveryOrderInput,
+  CreateDriverInput,
 } from '@mystore/contracts';
+
 
 const BASE_URL =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
@@ -1168,4 +1174,66 @@ export const api = {
 
   listFlowExecutions: (token: string, id: string) =>
     request<FlowExecutionDto[]>(`/flows/${id}/executions`, { token }),
+
+  // ─── Delivery & Fleet Dispatch (Spec §45) ─────────────────────────
+  listDeliveryOrders: (token: string, params: { status?: string; search?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.search) qs.set('search', params.search);
+    const q = qs.toString();
+    return request<DeliveryOrderDto[]>(`/delivery/orders${q ? `?${q}` : ''}`, { token });
+  },
+
+  createDeliveryOrder: (token: string, input: CreateDeliveryOrderInput) =>
+    request<DeliveryOrderDto>('/delivery/orders', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  getDeliveryOrder: (token: string, id: string) =>
+    request<DeliveryOrderDto>(`/delivery/orders/${id}`, { token }),
+
+  updateDeliveryStatus: (
+    token: string,
+    id: string,
+    input: { status: string; proofOfDelivery?: string; notes?: string }
+  ) =>
+    request<DeliveryOrderDto>(`/delivery/orders/${id}/status`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  assignDriver: (token: string, orderId: string, driverId: string) =>
+    request<DeliveryOrderDto>(`/delivery/orders/${orderId}/assign`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ driverId }),
+    }),
+
+  listDrivers: (token: string) =>
+    request<DeliveryDriverDto[]>('/delivery/drivers', { token }),
+
+  createDriver: (token: string, input: CreateDriverInput) =>
+    request<DeliveryDriverDto>('/delivery/drivers', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  pingDriverLocation: (
+    token: string,
+    driverId: string,
+    data: { latitude: number; longitude: number; heading?: number; batteryLevel?: number }
+  ) =>
+    request<DeliveryDriverDto>(`/delivery/drivers/${driverId}/location`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
+    }),
+
+  getLiveTrackingSnapshot: (token: string) =>
+    request<LiveTrackingSnapshotDto>('/delivery/live-tracking', { token }),
 };
+

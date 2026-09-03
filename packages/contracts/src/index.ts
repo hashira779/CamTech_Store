@@ -84,6 +84,13 @@ export {
   FLOW_NODE_SUBTYPES,
   FLOW_EXECUTION_STATUSES,
 } from './automations';
+export * from './delivery';
+export {
+  VEHICLE_TYPES,
+  DRIVER_STATUSES,
+  DELIVERY_STATUSES,
+} from './delivery';
+
 
 
 

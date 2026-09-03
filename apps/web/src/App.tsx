@@ -22,7 +22,9 @@ const ReportsPage = lazy(() => import('@/app/reports/page'));
 const ApprovalsPage = lazy(() => import('@/app/approvals/page'));
 const FinancePage = lazy(() => import('@/app/finance/page'));
 const ProcurementPage = lazy(() => import('@/app/procurement/page'));
+const DeliveryPage = lazy(() => import('@/app/delivery/page'));
 const HrPage = lazy(() => import('@/app/hr/page'));
+
 const ProjectsPage = lazy(() => import('@/app/projects/page'));
 const TicketsPage = lazy(() => import('@/app/tickets/page'));
 const AssetsPage = lazy(() => import('@/app/assets/page'));
@@ -75,7 +77,9 @@ export function App() {
         <Route path="/approvals" element={<ApprovalsPage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/procurement" element={<ProcurementPage />} />
+        <Route path="/delivery" element={<DeliveryPage />} />
         <Route path="/hr" element={<HrPage />} />
+
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/tickets" element={<TicketsPage />} />
         <Route path="/assets" element={<AssetsPage />} />

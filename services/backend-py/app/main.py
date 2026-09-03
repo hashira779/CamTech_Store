@@ -13,7 +13,9 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.routers.api_v1 import router as api_v1_router
 from app.routers.enterprise_routes import router as enterprise_router
+from app.routers.delivery_routes import router as delivery_router
 from app.core.database import engine
+
 
 app = FastAPI(
     title="MyStore Universal Enterprise API (FastAPI)",
@@ -146,6 +148,8 @@ async def response_envelope_middleware(request: Request, call_next):
 # Mount API Routers
 app.include_router(api_v1_router, prefix="/api/v1")
 app.include_router(enterprise_router, prefix="/api/v1")
+app.include_router(delivery_router, prefix="/api/v1")
+
 
 # ==============================================================================
 # OPS & HEALTH MONITORING
