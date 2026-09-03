@@ -13,22 +13,22 @@ export function DomainBar() {
   const { setExperience } = useExperienceStore();
 
   const domainApps: Array<{ id: AppId; domain: string; route: string; exp: ExperienceType }> = [
-    { id: 'ceo', domain: 'ceo.camtech.cam', route: '/dashboard', exp: 'EXECUTIVE' },
+    { id: 'ceo', domain: 'ceo.camtech.cam', route: '/ceo', exp: 'EXECUTIVE' },
     { id: 'store', domain: 'store.camtech.cam', route: '/shop', exp: 'CUSTOMER_STORE' },
-    { id: 'cashier', domain: 'cashier.camtech.cam', route: '/sales/new', exp: 'POS_CASHIER' },
+    { id: 'cashier', domain: 'cashier.camtech.cam', route: '/pos', exp: 'POS_CASHIER' },
     { id: 'delivery', domain: 'delivery.camtech.cam', route: '/driver', exp: 'DELIVERY_DRIVER' },
-    { id: 'warehouse', domain: 'warehouse.camtech.cam', route: '/transfers', exp: 'WAREHOUSE_WMS' },
+    { id: 'warehouse', domain: 'warehouse.camtech.cam', route: '/wms', exp: 'WAREHOUSE_WMS' },
     { id: 'hr', domain: 'hr.camtech.cam', route: '/hr', exp: 'HR_OPERATIONS' },
     { id: 'finance', domain: 'finance.camtech.cam', route: '/finance', exp: 'FINANCE_LEDGER' },
     { id: 'customer', domain: 'customer.camtech.cam', route: '/customer', exp: 'CUSTOMER_STORE' },
     { id: 'partner', domain: 'partner.camtech.cam', route: '/developers', exp: 'EXECUTIVE' },
     { id: 'support', domain: 'support.camtech.cam', route: '/tickets', exp: 'EXECUTIVE' },
-    { id: 'admin', domain: 'admin.camtech.cam', route: '/settings', exp: 'EXECUTIVE' },
+    { id: 'admin', domain: 'admin.camtech.cam', route: '/dashboard', exp: 'EXECUTIVE' },
   ];
 
   // Detect current domain from path
   const currentApp =
-    domainApps.find((d) => location.pathname === d.route || (d.route !== '/dashboard' && location.pathname.startsWith(d.route))) ||
+    domainApps.find((d) => location.pathname === d.route || (d.route !== '/dashboard' && d.route !== '/ceo' && location.pathname.startsWith(d.route))) ||
     domainApps[0];
 
   const handleDomainSelect = (app: (typeof domainApps)[0]) => {

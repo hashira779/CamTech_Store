@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Store } from 'lucide-react';
 
 const HomePage = lazy(() => import('@/app/page'));
@@ -78,9 +78,11 @@ import { PartnerApp } from './apps/partner/PartnerApp';
 export function App() {
   useRealtimeStream();
 
+  const location = useLocation();
   const hostname = window.location.hostname.toLowerCase();
   let CurrentApp = AdminApp; // Default fallback
 
+  // 1. Subdomain matching (production multi-subdomain routing §228)
   if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
     CurrentApp = PosApp;
   } else if (hostname.startsWith('hr.')) {
@@ -101,6 +103,31 @@ export function App() {
     CurrentApp = PartnerApp;
   } else if (hostname.startsWith('admin.')) {
     CurrentApp = AdminApp;
+  } 
+  // 2. Dynamic route-based simulation for local development & DomainBar switcher
+  else {
+    const p = location.pathname;
+    if (p.startsWith('/pos') || p.startsWith('/sales/new')) {
+      CurrentApp = PosApp;
+    } else if (p.startsWith('/driver') || p.startsWith('/delivery')) {
+      CurrentApp = DeliveryApp;
+    } else if (p.startsWith('/wms') || p.startsWith('/transfers')) {
+      CurrentApp = WarehouseApp;
+    } else if (p.startsWith('/hr')) {
+      CurrentApp = HrApp;
+    } else if (p.startsWith('/finance') || p.startsWith('/taxes')) {
+      CurrentApp = FinanceApp;
+    } else if (p.startsWith('/shop') || p.startsWith('/customer')) {
+      CurrentApp = CustomerApp;
+    } else if (p.startsWith('/ceo')) {
+      CurrentApp = CeoApp;
+    } else if (p.startsWith('/tickets') || p.startsWith('/approvals')) {
+      CurrentApp = SupportApp;
+    } else if (p.startsWith('/developers') || p.startsWith('/automations')) {
+      CurrentApp = PartnerApp;
+    } else {
+      CurrentApp = AdminApp;
+    }
   }
 
   return (
