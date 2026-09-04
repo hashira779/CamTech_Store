@@ -89,10 +89,10 @@ export default function DriverAppPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-bold tracking-tight">Driver Express</h1>
                 <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                  Spec §160
+                  Live Dispatch
                 </Badge>
               </div>
-              <p className="text-[11px] text-slate-400">{user?.name || 'Courier Unit 01'} • Motor #PP-1928</p>
+              <p className="text-[11px] text-slate-400">{user?.name || 'Courier Fleet'} • Active Unit</p>
             </div>
           </div>
 

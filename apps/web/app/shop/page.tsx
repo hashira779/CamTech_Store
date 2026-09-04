@@ -56,8 +56,8 @@ export default function CustomerShopPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
   const [customerName, setCustomerName] = useState(user?.name || '');
-  const [customerPhone, setCustomerPhone] = useState('012 888 999');
-  const [deliveryAddress, setDeliveryAddress] = useState('Street 310, BKK1, Phnom Penh');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
 
   // Fetch Public Products (sanitize: only sell price exposed!)
@@ -117,15 +117,27 @@ export default function CustomerShopPage() {
 
   const handleCheckoutSubmit = async () => {
     if (cart.length === 0) return;
+    if (!customerName.trim()) {
+      toast.error('Please enter your full name');
+      return;
+    }
+    if (!customerPhone.trim()) {
+      toast.error('Please enter your phone number');
+      return;
+    }
+    if (!deliveryAddress.trim()) {
+      toast.error('Please enter your delivery address');
+      return;
+    }
 
     try {
       const res = await fetch(`${BASE_URL}/api/v1/delivery/orders/public`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: customerName || 'Customer',
-          customerPhone: customerPhone || '+855 12 000 000',
-          deliveryAddress: deliveryAddress || 'Phnom Penh Center',
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          deliveryAddress: deliveryAddress.trim(),
           paymentMethod: paymentMethod === 'KHQR' ? 'PAID_KHQR' : 'CASH_ON_DELIVERY',
           items: cart.map((i) => ({
             productVariantId: i.variantId || i.productId,
@@ -172,7 +184,7 @@ export default function CustomerShopPage() {
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-base tracking-tight text-white">CamTech Online</span>
                 <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-400 border-sky-500/30">
-                  Spec §161
+                  Official Store
                 </Badge>
               </div>
               <p className="text-[11px] text-slate-400">Official Retail & Wholesale Storefront</p>
@@ -386,27 +398,30 @@ export default function CustomerShopPage() {
             <div>
               <label className="text-[11px] font-medium text-slate-300 block mb-1">Your Full Name</label>
               <Input
+                placeholder="e.g. Sokha Chem"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs text-slate-100"
+                className="bg-slate-950 border-slate-800 text-xs text-slate-100 placeholder:text-slate-600"
               />
             </div>
 
             <div>
               <label className="text-[11px] font-medium text-slate-300 block mb-1">Phone Number</label>
               <Input
+                placeholder="e.g. +855 12 345 678"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs text-slate-100"
+                className="bg-slate-950 border-slate-800 text-xs text-slate-100 placeholder:text-slate-600"
               />
             </div>
 
             <div>
               <label className="text-[11px] font-medium text-slate-300 block mb-1">Delivery Address</label>
               <Input
+                placeholder="Street address, Sangkat, Khan, City"
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs text-slate-100"
+                className="bg-slate-950 border-slate-800 text-xs text-slate-100 placeholder:text-slate-600"
               />
             </div>
 

@@ -49,7 +49,7 @@ export function DomainBar() {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[10px] text-slate-500 hidden md:inline">Switch Subdomain (Spec §228):</span>
+        <span className="text-[10px] text-slate-500 hidden md:inline">Switch Portal:</span>
         {domainApps.map((item) => {
           const isSelected = currentApp.id === item.id;
           return (

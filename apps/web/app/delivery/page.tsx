@@ -226,7 +226,7 @@ export function DeliveryPage() {
       <div className="space-y-6 pb-12">
         <PageHeader
           title="Delivery & Fleet Dispatch"
-          description="Real-time order fulfillment, live GPS telemetry, and driver dispatch management (Spec §45)"
+          description="Real-time order fulfillment, live GPS telemetry, and driver dispatch management"
         >
           <div className="flex items-center gap-2">
             <Button

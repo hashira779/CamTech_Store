@@ -68,7 +68,7 @@ export function WorkspaceSwitcher() {
 
       <DropdownMenuContent align="start" className="w-72 bg-slate-950 border-slate-800 text-slate-200 p-1.5 shadow-2xl">
         <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 tracking-wider px-2 py-1.5 flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-sky-400" /> Multi-Experience Switcher (Spec §151–§176)
+          <Layers className="w-3.5 h-3.5 text-sky-400" /> Multi-Experience Workspaces
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-slate-800 my-1" />
 

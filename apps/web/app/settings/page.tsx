@@ -231,7 +231,7 @@ export default function SettingsPage() {
               <div className="mt-4 pt-4 border-t border-border">
                 <label className="block font-medium text-foreground mb-1 flex items-center gap-1.5">
                   <Store className="w-3.5 h-3.5 text-primary" />
-                  Primary Business Industry (Spec §10, §98)
+                  Primary Business Industry
                 </label>
                 <select
                   disabled={!canWrite}
@@ -262,7 +262,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
                 <Sliders className="w-4 h-4 text-purple-400" />
                 <div>
-                  <h2 className="font-bold text-foreground text-sm">Enterprise Feature Modules (Spec §98)</h2>
+                  <h2 className="font-bold text-foreground text-sm">Enterprise Feature Modules</h2>
                   <p className="text-muted-foreground text-[11px]">
                     Enable or disable platform capabilities per organization without modifying code.
                   </p>

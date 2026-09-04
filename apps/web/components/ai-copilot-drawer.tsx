@@ -44,7 +44,7 @@ export function AiCopilotDrawer() {
     {
       id: 'msg_welcome',
       sender: 'assistant',
-      text: 'Hello! I am your **MyStore Enterprise Copilot** (Spec §69). Ask me about today\'s sales, stock shortages, active delivery couriers, or pending approvals.',
+      text: 'Hello! I am your **MyStore Enterprise Copilot**. Ask me about today\'s sales, stock shortages, active delivery couriers, or pending approvals.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       suggestions: [
         'What are today\'s sales and top products?',
@@ -155,7 +155,7 @@ export function AiCopilotDrawer() {
                 <h3 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
                   Enterprise AI Copilot
                   <Badge variant="outline" className="text-[9px] bg-sky-500/10 text-sky-400 border-sky-500/30">
-                    Spec §69
+                    AI Assistant
                   </Badge>
                 </h3>
                 <p className="text-[10px] text-slate-400">Contextual telemetry & analytics assistant</p>

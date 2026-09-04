@@ -78,7 +78,8 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authNameInput, setAuthNameInput] = useState('');
   const [authEmailInput, setAuthEmailInput] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('Street 310, BKK1, Phnom Penh');
+  const [authPhoneInput, setAuthPhoneInput] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -112,7 +113,7 @@ export function App() {
         setCustomer({
           name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
           email: session.user.email || '',
-          phone: session.user.phone || metadata.phone || '+855 12 888 999',
+          phone: session.user.phone || metadata.phone || '',
         });
       }
     });
@@ -123,7 +124,7 @@ export function App() {
         setCustomer({
           name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
           email: session.user.email || '',
-          phone: session.user.phone || metadata.phone || '+855 12 888 999',
+          phone: session.user.phone || metadata.phone || '',
         });
         toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
       }
@@ -1003,10 +1004,14 @@ export function App() {
                     toast.error('Please enter your name');
                     return;
                   }
+                  if (!authPhoneInput.trim()) {
+                    toast.error('Please enter your phone number');
+                    return;
+                  }
                   setCustomer({
                     name: authNameInput.trim(),
                     email: authEmailInput.trim() || `${authNameInput.toLowerCase().replace(/\s+/g, '')}@camtech.cam`,
-                    phone: '+855 12 888 999'
+                    phone: authPhoneInput.trim()
                   });
                   setIsAuthModalOpen(false);
                   toast.success(`Welcome, ${authNameInput.trim()}!`);
@@ -1014,12 +1019,23 @@ export function App() {
                 className="space-y-3"
               >
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-1">Your Name</label>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1">Your Name *</label>
                   <input
                     type="text"
                     placeholder="e.g. Dara Pich"
                     value={authNameInput}
                     onChange={(e) => setAuthNameInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. +855 12 345 678"
+                    value={authPhoneInput}
+                    onChange={(e) => setAuthPhoneInput(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -1043,31 +1059,7 @@ export function App() {
                 </button>
               </form>
 
-              <div className="relative my-2 text-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-800"></div>
-                </div>
-                <span className="relative bg-slate-900 px-2 text-[10px] text-slate-500 uppercase">demo</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomer({
-                    name: 'Sokha Chem',
-                    email: 'sokha.chem@gmail.com',
-                    phone: '+855 12 889 900'
-                  });
-                  setIsAuthModalOpen(false);
-                  toast.success('Signed in with Demo Account (Sokha Chem)');
-                }}
-                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 font-medium transition flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                Quick Demo Login (Sokha Chem)
-              </button>
-
-              <p className="text-[11px] text-slate-500 text-center pt-2">
+              <p className="text-[11px] text-slate-500 text-center pt-3 border-t border-slate-800">
                 Don't have an account? You can simply checkout as a guest without signing in.
               </p>
             </div>

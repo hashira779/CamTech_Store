@@ -255,7 +255,7 @@ export function App() {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-base font-bold text-white">Multi-Domain Ecosystem</h3>
-                <p className="text-xs text-slate-400">Micro-frontend domain architecture (Spec §228)</p>
+                <p className="text-xs text-slate-400">Micro-frontend domain architecture</p>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
                 {appsList.length > 0 ? `${appsList.length} Connected Subdomains` : 'Registry Connected'}

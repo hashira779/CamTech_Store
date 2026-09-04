@@ -83,8 +83,8 @@ export function App() {
             id: t.id,
             trackingNumber: t.trackingNumber || `TRK-${t.id.slice(-6)}`,
             recipientName: t.recipientName || 'Customer',
-            recipientPhone: t.recipientPhone || '+855 12 000 000',
-            destinationAddress: t.destinationAddress || 'Phnom Penh Center',
+            recipientPhone: t.recipientPhone || 'N/A',
+            destinationAddress: t.destinationAddress || 'Address on file',
             status: t.status || 'DISPATCHED',
             codAmount: Number(t.codAmount || 0),
             paymentMethod: t.paymentMethod || 'PAID_KHQR'
@@ -278,7 +278,7 @@ export function App() {
             <Package className="w-10 h-10 text-slate-600 mx-auto mb-3 animate-pulse" />
             <h3 className="text-sm font-bold text-white mb-1">Queue is Empty</h3>
             <p className="text-xs text-slate-400 max-w-xs mx-auto mb-4">
-              All deliveries completed or waiting for incoming customer orders from Storefront (Port 5001).
+              All deliveries completed or waiting for incoming customer orders from online storefront.
             </p>
             <button
               onClick={() => refetch()}
