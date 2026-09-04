@@ -16,7 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camtech123}
       POSTGRES_DB: ${POSTGRES_DB:-camtechStore}
     ports:
-      - '${POSTGRES_BIND:-0.0.0.0}:5432:5432'
+      - '${POSTGRES_PORT_HOST:-5433}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -34,7 +34,7 @@ services:
     restart: always
     command: redis-server --appendonly yes
     ports:
-      - '127.0.0.1:6379:6379'
+      - '127.0.0.1:${REDIS_PORT_HOST:-6380}:6379'
     volumes:
       - redisdata:/data
     healthcheck:
@@ -54,7 +54,7 @@ services:
     restart: always
     command: python -m uvicorn app.microservices.gateway:gateway --host 0.0.0.0 --port 4000 --workers 4
     ports:
-      - '4000:4000'
+      - '${API_GATEWAY_PORT_HOST:-4010}:4000'
     security_opt:
       - no-new-privileges:true
     environment:
@@ -277,8 +277,7 @@ services:
     container_name: mystore-nginx-ingress
     restart: always
     ports:
-      - '80:80'
-      - '443:443'
+      - '${INGRESS_PORT_HOST:-8090}:80'
     security_opt:
       - no-new-privileges:true
     volumes:

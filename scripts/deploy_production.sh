@@ -6,8 +6,8 @@
 
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/home/ubuntu-server/CamTech_Store}"
-BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu-server/CamTech_Store_backup}"
+APP_DIR="${APP_DIR:-$HOME/CamTech_Store}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/CamTech_Store_backup}"
 COMPOSE_FILE="docker-compose.prod.yml"
 
 # ── Credentials & Environment Setup ──────────────────────────────────────────
@@ -134,7 +134,8 @@ check_endpoint() {
 DEPLOY_FAILED=0
 
 # Verify API Gateway & Microservices
-if ! check_endpoint "http://localhost:4000/api/v1/public/products" "API Gateway (Port 4000)"; then
+API_PORT="${API_GATEWAY_PORT_HOST:-4010}"
+if ! check_endpoint "http://localhost:${API_PORT}/health" "API Gateway (Port ${API_PORT})"; then
     DEPLOY_FAILED=1
 fi
 
@@ -153,8 +154,9 @@ if ! check_endpoint "http://localhost:5003/" "POS Cashier (Port 5003)"; then
     DEPLOY_FAILED=1
 fi
 
-# Verify Main Ingress Proxy (Port 80)
-if ! check_endpoint "http://localhost:80/" "Nginx Ingress Edge Router (Port 80)"; then
+# Verify Main Ingress Proxy
+INGRESS_PORT="${INGRESS_PORT_HOST:-8090}"
+if ! check_endpoint "http://localhost:${INGRESS_PORT}/health" "Nginx Ingress Edge Router (Port ${INGRESS_PORT})"; then
     DEPLOY_FAILED=1
 fi
 
@@ -184,8 +186,8 @@ echo "========================================================================"
 echo "  🎉 Deployment Succeeded & Verified! MyStore Production is LIVE."
 echo "========================================================================"
 echo "Available Service Endpoints on 10.1.0.11:"
-echo "  • Nginx Ingress:       http://10.1.0.11"
-echo "  • API Gateway:         http://10.1.0.11:4000"
+echo "  • Nginx Ingress:       http://10.1.0.11:${INGRESS_PORT:-8090}"
+echo "  • API Gateway:         http://10.1.0.11:${API_PORT:-4010}"
 echo "  • Storefront:          http://10.1.0.11:5001"
 echo "  • Enterprise Admin:    http://10.1.0.11:5002"
 echo "  • Cashier POS:         http://10.1.0.11:5003"

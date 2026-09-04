@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Pytest Test Suite
         run: |
-          python -m pytest -v --tb=short
+          python -m pytest -v -o pythonpath=. --tb=short tests
 
   typescript-monorepo:
     name: TypeScript Build & Typecheck
@@ -59,4 +59,4 @@ jobs:
         run: pnpm --filter @mystore/contracts build
 
       - name: Typecheck
-        run: pnpm --filter @mystore/web typecheck
+        run: pnpm typecheck
