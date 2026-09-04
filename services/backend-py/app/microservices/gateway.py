@@ -56,6 +56,7 @@ ROUTING_MAP = {
     "/api/v1/organizations": AUTH,
     "/api/v1/locations": AUTH,
     "/api/v1/products": CATALOG,
+    "/api/v1/public": CATALOG,
     "/api/v1/categories": CATALOG,
     "/api/v1/brands": CATALOG,
     "/api/v1/inventory": CATALOG,
