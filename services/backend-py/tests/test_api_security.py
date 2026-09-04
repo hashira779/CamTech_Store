@@ -59,6 +59,8 @@ def test_jwt_token_generation():
     "/api/v1/assets",
     "/api/v1/tickets",
     "/api/v1/developers/apps",
+    "/api/v1/developers/keys",
+    "/api/v1/developers/webhooks",
     "/api/v1/telegram/bindings",
     "/api/v1/wms/transfers"
 ])

@@ -1,0 +1,44 @@
+name: Deploy via SSH to Ubuntu Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+
+jobs:
+  deploy:
+    name: Remote SSH Production Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            echo "============================================================"
+            echo "🚀 Starting Remote CI/CD Deployment on Ubuntu..."
+            echo "============================================================"
+            TARGET_DIR="$HOME/CamTech_Store"
+            if [ -d "$TARGET_DIR/.git" ]; then
+              cd "$TARGET_DIR"
+              echo "📥 Pulling latest updates from Git..."
+              git fetch origin
+              git checkout ${{ github.event.inputs.target_branch || 'main' }}
+              git pull origin ${{ github.event.inputs.target_branch || 'main' }}
+            else
+              echo "📦 Cloning repository..."
+              git clone https://github.com/hashira779/CamTech_Store.git "$TARGET_DIR"
+              cd "$TARGET_DIR"
+            fi
+            
+            chmod +x ./scripts/*.sh ./scripts/*.py 2>/dev/null || true
+            ./scripts/deploy_production.sh

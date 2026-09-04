@@ -19,6 +19,34 @@ export interface AuthenticatedUser {
 
 export interface LoginResult {
   accessToken: string;
-  expiresIn: string;
+  expiresIn?: string;
   user: AuthenticatedUser;
 }
+
+export interface UserDetailDto {
+  id: string;
+  organizationId: string;
+  email: string;
+  name: string;
+  roles: Role[];
+  isActive: boolean;
+  locationId?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  roles: Role[];
+  locationId?: string | null;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  roles?: Role[];
+  isActive?: boolean;
+  password?: string;
+  locationId?: string | null;
+}
+

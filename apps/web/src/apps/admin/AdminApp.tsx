@@ -33,6 +33,7 @@ const DevelopersPage = lazy(() => import('@/app/developers/page'));
 const TelegramPage = lazy(() => import('@/app/telegram/page'));
 const AutomationsPage = lazy(() => import('@/app/automations/page'));
 const SettingsPage = lazy(() => import('@/app/settings/page'));
+const UsersPage = lazy(() => import('@/app/users/page'));
 
 import { PageSkeleton } from '@/components/page-skeleton';
 
@@ -72,6 +73,7 @@ export function AdminApp() {
         <Route path="/telegram" element={<TelegramPage />} />
         <Route path="/automations" element={<AutomationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

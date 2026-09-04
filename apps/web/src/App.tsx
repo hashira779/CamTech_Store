@@ -53,32 +53,26 @@ export function App() {
     CurrentApp = PartnerApp;
   } else if (hostname.startsWith('admin.')) {
     CurrentApp = AdminApp;
-  } 
-  // 2. Dynamic route-based simulation for local development & DomainBar switcher
-  else {
+  } else {
+    // 2. Dynamic route-based simulation for local development & DomainBar switcher
+    // Dedicated standalone mini-frontends are kept to their specific entrypoints;
+    // all admin management routes (/delivery, /transfers, /hr, /finance, /taxes, etc.)
+    // stay cleanly inside AdminApp with full enterprise sidebar.
     const p = location.pathname;
     const isPath = (prefix: string) => p === prefix || p.startsWith(`${prefix}/`);
 
-    if (isPath('/pos') || isPath('/sales/new')) {
+    if (isPath('/pos')) {
       CurrentApp = PosApp;
-    } else if (isPath('/driver') || isPath('/delivery')) {
+    } else if (isPath('/driver')) {
       CurrentApp = DeliveryApp;
-    } else if (isPath('/wms') || isPath('/transfers')) {
+    } else if (isPath('/wms')) {
       CurrentApp = WarehouseApp;
-    } else if (isPath('/hr')) {
-      CurrentApp = HrApp;
-    } else if (isPath('/finance') || isPath('/taxes')) {
-      CurrentApp = FinanceApp;
     } else if (isPath('/shop') || isPath('/customer')) {
       // isPath('/customer') matches '/customer' or '/customer/...' exactly,
       // preventing admin CRM route '/customers' from being swallowed.
       CurrentApp = CustomerApp;
     } else if (isPath('/ceo')) {
       CurrentApp = CeoApp;
-    } else if (isPath('/tickets') || isPath('/approvals')) {
-      CurrentApp = SupportApp;
-    } else if (isPath('/developers') || isPath('/automations')) {
-      CurrentApp = PartnerApp;
     } else {
       CurrentApp = AdminApp;
     }

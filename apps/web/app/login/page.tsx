@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@mystore/contracts';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
-import { Store, KeyRound, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -35,121 +35,202 @@ export default function LoginPage() {
   });
 
   return (
-    <main className="flex min-h-screen bg-background">
-      {/* Left Pane - Brand / Visual */}
-      <div className="relative hidden w-1/2 overflow-hidden bg-zinc-950 lg:flex lg:flex-col lg:justify-between p-12 text-zinc-300">
-        <div className="relative z-10 flex items-center gap-2 text-white font-bold text-2xl tracking-tight">
-          <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/30">
-            <Store className="w-6 h-6 text-white" />
+    <main className="relative flex min-h-screen overflow-hidden bg-background text-foreground">
+      {/* Aurora background */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="lw-blob left-[-10%] top-[-12%] h-[520px] w-[520px]"
+          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.45), transparent 70%)' }}
+        />
+        <div
+          className="lw-blob right-[-12%] top-[18%] h-[480px] w-[480px]"
+          style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.40), transparent 70%)', animationDelay: '-6s' }}
+        />
+        <div
+          className="lw-blob bottom-[-18%] left-[28%] h-[460px] w-[460px]"
+          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.42), transparent 70%)', animationDelay: '-12s' }}
+        />
+        {/* faint grid */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              'linear-gradient(var(--foreground) 1px, transparent 1px), linear-gradient(90deg, var(--foreground) 1px, transparent 1px)',
+            backgroundSize: '44px 44px',
+          }}
+        />
+      </div>
+
+      {/* Left — brand + credential card */}
+      <div className="relative z-10 hidden w-1/2 flex-col justify-between p-12 lg:flex">
+        <div className="flex items-center gap-2.5 text-xl font-bold tracking-tight animate-fade-up">
+          <div className="bg-brand grid h-10 w-10 place-items-center rounded-xl brand-glow">
+            <Store className="h-5 w-5 text-white" />
           </div>
           MyStore
         </div>
 
-        <div className="relative z-10 max-w-md">
-          <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            The Universal Enterprise Business Platform
+        <div className="max-w-lg">
+          <p
+            className="mb-5 inline-flex items-center gap-2 rounded-full border-brand border bg-card/40 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur animate-fade-up"
+            style={{ animationDelay: '60ms' }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Universal Enterprise Platform
+          </p>
+          <h1
+            className="animate-fade-up text-5xl font-extrabold leading-[1.05] tracking-tight"
+            style={{ animationDelay: '120ms' }}
+          >
+            Run your entire
+            <br />
+            <span className="text-gradient">business empire</span>
           </h1>
-          <p className="text-lg text-zinc-400 mb-12">
-            Seamlessly manage your retail, F&B, wholesale, and multi-branch operations from a single unified dashboard.
+          <p
+            className="mt-5 max-w-md text-lg text-muted-foreground animate-fade-up"
+            style={{ animationDelay: '180ms' }}
+          >
+            POS, inventory, finance, CRM &amp; delivery — unified across every branch, in real time.
           </p>
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-zinc-900 border border-zinc-800">
-                <ShieldCheck className="w-5 h-5 text-primary" />
+          {/* Credential ID card */}
+          <div className="mt-10 max-w-sm animate-float">
+            <div className="glass-panel brand-glow rounded-3xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="bg-brand grid h-12 w-12 place-items-center rounded-2xl font-bold text-white">
+                  MS
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-bold leading-tight">MyStore Enterprise</p>
+                  <p className="truncate text-xs text-muted-foreground">Universal Business Platform</p>
+                </div>
+                <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Active
+                </span>
               </div>
-              <div>
-                <h3 className="font-semibold text-white">Enterprise Security</h3>
-                <p className="text-sm text-zinc-400">Bank-grade RBAC and tenant isolation</p>
+
+              <div className="my-4 h-px bg-border" />
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Modules</p>
+                  <p className="font-semibold">30+ Suites</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Deployment</p>
+                  <p className="font-semibold">Multi-Branch</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Uptime</p>
+                  <p className="font-semibold">99.98%</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Security</p>
+                  <p className="font-semibold">RBAC · Isolated</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-zinc-900 border border-zinc-800">
-                <Zap className="w-5 h-5 text-primary" />
+
+              {/* barcode */}
+              <div className="mt-5 flex h-9 items-end gap-[3px]">
+                {Array.from({ length: 46 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="bg-foreground/70"
+                    style={{ height: `${10 + ((i * 7) % 5) * 6}px`, width: i % 3 === 0 ? '2px' : '1px' }}
+                  />
+                ))}
               </div>
-              <div>
-                <h3 className="font-semibold text-white">Real-time Sync</h3>
-                <p className="text-sm text-zinc-400">Instant updates across Web, POS & Mobile</p>
+              <div className="mt-2 flex justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span>MS-ENTERPRISE-2026</span>
+                <span>CamTech</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ambient background decoration */}
-        <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[800px] rounded-full bg-primary/20 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/4 w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[100px] pointer-events-none" />
+        <div className="flex items-center gap-6 text-xs text-muted-foreground animate-fade-up" style={{ animationDelay: '240ms' }}>
+          <span className="inline-flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" /> Enterprise Security
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" /> Real-time Sync
+          </span>
+        </div>
       </div>
 
-      {/* Right Pane - Auth Form */}
-      <div className="flex w-full flex-col justify-center items-center lg:w-1/2 p-6 lg:p-12 relative overflow-hidden">
-        {/* Subtle background glow for right pane */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background to-secondary/20 -z-10" />
-
-        <div className="w-full max-w-[420px]">
-          <div className="mb-10 text-center lg:text-left">
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-8 text-foreground font-bold text-2xl tracking-tight">
-              <div className="bg-primary p-2 rounded-xl">
-                <Store className="w-6 h-6 text-white" />
-              </div>
-              MyStore
+      {/* Right — auth form */}
+      <div className="relative z-10 flex w-full flex-col items-center justify-center p-6 lg:w-1/2 lg:p-12">
+        <div className="w-full max-w-[420px] animate-fade-up">
+          <div className="mb-8 flex items-center justify-center gap-2 text-2xl font-bold tracking-tight lg:hidden">
+            <div className="bg-brand grid h-9 w-9 place-items-center rounded-xl">
+              <Store className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-3xl font-semibold tracking-tight mb-2">Welcome back</h2>
-            <p className="text-muted-foreground">Sign in to access your dashboard</p>
+            MyStore
           </div>
 
-          <form onSubmit={onSubmit} className="glass-panel rounded-2xl p-8 space-y-6">
+          <div className="mb-8 text-center lg:text-left">
+            <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
+            <p className="mt-1 text-muted-foreground">Sign in to your command center</p>
+          </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Email or Username</label>
-                <div className="relative">
-                  <input 
-                    className="input pl-4 bg-background/50 focus:bg-background" 
-                    type="text" 
-                    placeholder="admin@camtechstore"
-                    autoComplete="username" 
-                    {...register('email')} 
-                  />
-                </div>
-                {errors.email && <span className="text-xs text-destructive">{errors.email.message}</span>}
+          <form onSubmit={onSubmit} className="glass-panel brand-glow space-y-5 rounded-3xl p-8">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email or Username</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="h-11 w-full rounded-xl border border-input bg-background/60 pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  type="text"
+                  placeholder="admin@camtechstore"
+                  autoComplete="username"
+                  {...register('email')}
+                />
               </div>
+              {errors.email && <span className="text-xs text-destructive">{errors.email.message}</span>}
+            </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium text-foreground">Password</label>
-                  <a href="#" className="text-xs font-medium text-primary hover:underline">Forgot password?</a>
-                </div>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    className="input pl-10 bg-background/50 focus:bg-background"
-                    type="password"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    {...register('password')}
-                  />
-                </div>
-                {errors.password && (
-                  <span className="text-xs text-destructive">{errors.password.message}</span>
-                )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Password</label>
+                <a href="#" className="text-xs font-medium text-primary hover:underline">
+                  Forgot password?
+                </a>
               </div>
+              <div className="relative">
+                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="h-11 w-full rounded-xl border border-input bg-background/60 pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  {...register('password')}
+                />
+              </div>
+              {errors.password && <span className="text-xs text-destructive">{errors.password.message}</span>}
             </div>
 
             {serverError && (
-              <div className="p-3 text-sm bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive" />
+              <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+                <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
                 {serverError}
               </div>
             )}
 
-            <button className="btn w-full flex items-center justify-center gap-2 group" type="submit" disabled={isSubmitting}>
+            <button
+              className="bg-brand brand-glow group flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Authenticating…' : 'Sign In'}
-              {!isSubmitting && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+              {!isSubmitting && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
             </button>
           </form>
 
-
-          
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Demo · <span className="font-mono text-foreground">admin@demo.test</span> /{' '}
+            <span className="font-mono text-foreground">Admin123!</span>
+          </p>
         </div>
       </div>
     </main>

@@ -11,6 +11,7 @@ import {
   Users,
   Boxes,
   Settings,
+  ShieldCheck,
   LogOut,
   Bell,
   Search,
@@ -153,6 +154,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
       { name: 'Developer & API', href: '/developers', icon: Code2, section: 'Platform' },
       { name: 'Telegram Platform', href: '/telegram', icon: Send, section: 'Platform' },
       { name: 'Flow Automations', href: '/automations', icon: Workflow, section: 'Platform' },
+      { name: 'Users & Access Control', href: '/users', icon: ShieldCheck, section: 'System' },
       { name: 'Settings', href: '/settings', icon: Settings, section: 'System' },
     ],
     []
@@ -164,14 +166,46 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   }, [allNavigation, activeExperience, currentExpConfig]);
 
 
+  const sectionLabels: Record<string, string> = {
+    Core: 'Overview & Analytics',
+    Commerce: 'Commercial & Sales',
+    Logistics: 'Supply Chain & Logistics',
+    Customers: 'Customers & CRM',
+    Pricing: 'Pricing & Fiscal',
+    Enterprise: 'Enterprise Governance',
+    Platform: 'Platform & Integrations',
+    System: 'System Administration',
+  };
+
+  const groupedNavigation = useMemo(() => {
+    const groups: { section: string; label: string; items: NavItem[] }[] = [];
+    navigation.forEach((item) => {
+      let group = groups.find((g) => g.section === item.section);
+      if (!group) {
+        group = {
+          section: item.section,
+          label: sectionLabels[item.section] || item.section,
+          items: [],
+        };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+    return groups;
+  }, [navigation]);
+
+  const activeItem = useMemo(() => {
+    return (
+      navigation.find(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
+          (item.href === '/sales' && pathname === '/sales')
+      ) || navigation[0]
+    );
+  }, [navigation, pathname]);
+
   if (!token || !user) return <Navigate to="/login" replace />;
-
-  const hostname = window.location.hostname;
-  const isAdminDomain = hostname.startsWith('admin.') || hostname.startsWith('ceo.') || hostname === 'localhost' || hostname === '127.0.0.1';
-
-  if (!isAdminDomain) {
-    return <>{children}</>;
-  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -179,7 +213,6 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
       <AiCopilotDrawer />
 
       {/* Mobile Drawer Backdrop */}
-
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/80 lg:hidden backdrop-blur-xs"
@@ -193,19 +226,22 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
           collapsed ? 'w-18' : 'w-64'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Brand */}
+        {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2.5 font-bold text-base tracking-tight text-foreground overflow-hidden"
+            className="flex items-center gap-2.5 font-bold text-base tracking-tight text-foreground overflow-hidden group"
           >
-            <div className="bg-primary p-2 rounded-lg shadow-sm text-primary-foreground shrink-0">
+            <div className="bg-primary p-2 rounded-xl text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform">
               <Store className="w-5 h-5" />
             </div>
             {!collapsed && (
-              <span className="whitespace-nowrap font-semibold tracking-tight">
-                MyStore <span className="text-primary text-xs font-mono uppercase ml-1 px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">ERP</span>
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="whitespace-nowrap font-bold tracking-tight text-sm text-foreground flex items-center gap-1.5">
+                  MyStore <span className="text-primary text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">ERP</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate font-normal">Enterprise Management</span>
+              </div>
             )}
           </Link>
           <button
@@ -226,9 +262,9 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
         {/* Quick Launch POS Terminal */}
         <div className="p-3 border-b border-border/60 shrink-0">
           <Button
-            onClick={() => navigate('/sales/new')}
+            onClick={() => navigate('/pos')}
             size="sm"
-            className={`w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-xs transition-all ${
+            className={`w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs transition-all ${
               collapsed ? 'px-0 justify-center' : 'justify-start gap-2'
             }`}
           >
@@ -237,30 +273,41 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {navigation.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
-              (item.href === '/sales' && pathname === '/sales');
+        {/* Grouped Navigation List */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+          {groupedNavigation.map((group) => (
+            <div key={group.section} className="space-y-0.5">
+              {!collapsed ? (
+                <div className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+                  {group.label}
+                </div>
+              ) : (
+                <div className="border-t border-border/40 my-2 mx-2" />
+              )}
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
+                  (item.href === '/sales' && pathname === '/sales');
 
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                title={collapsed ? item.name : undefined}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                } ${collapsed ? 'justify-center px-2' : ''}`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                {!collapsed && <span className="truncate">{item.name}</span>}
-              </Link>
-            );
-          })}
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    title={collapsed ? item.name : undefined}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    } ${collapsed ? 'justify-center px-2' : ''}`}
+                  >
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    {!collapsed && <span className="truncate">{item.name}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* User Context & Branch Footer */}
@@ -343,14 +390,24 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
 
+            {/* Breadcrumb Navigation */}
+            <div className="hidden sm:flex items-center gap-2 text-xs font-medium border-l border-border/80 pl-3 ml-1">
+              <span className="text-muted-foreground/70">{sectionLabels[activeItem?.section || 'Core'] || 'Enterprise'}</span>
+              <span className="text-muted-foreground/30">/</span>
+              <span className="text-foreground font-semibold flex items-center gap-1.5">
+                {activeItem && <activeItem.icon className="w-3.5 h-3.5 text-primary" />}
+                {activeItem?.name || 'Dashboard'}
+              </span>
+            </div>
+
             {/* Quick Command Palette Launcher */}
             <button
               onClick={() => setCmdOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-input bg-background/50 hover:bg-accent/70 text-xs text-muted-foreground hover:text-foreground transition-all w-48 sm:w-72 justify-between cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-input bg-background/50 hover:bg-accent/70 text-xs text-muted-foreground hover:text-foreground transition-all w-44 sm:w-64 justify-between cursor-pointer"
             >
               <span className="flex items-center gap-2 truncate">
                 <Search className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Search or type Cmd+K...</span>
+                <span className="truncate">Search or Cmd+K...</span>
               </span>
               <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-muted/80 px-1.5 py-0.5 rounded border border-border">
                 <span>⌘</span>K
@@ -364,7 +421,6 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
             {/* Online / Offline Indicator */}
             {isOnline ? (
-
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Online
@@ -376,32 +432,37 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
               </span>
             )}
 
-            {/* Theme Toggle Button */}
+            {/* Theme Toggle Button with Smooth Transition */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg transition-transform hover:scale-105"
+                  title={`Current theme: ${theme}. Click for options.`}
+                >
                   {theme === 'dark' ? (
-                    <Moon className="h-4 w-4" />
+                    <Moon className="h-4 w-4 text-blue-400" />
                   ) : theme === 'light' ? (
-                    <Sun className="h-4 w-4" />
+                    <Sun className="h-4 w-4 text-amber-500" />
                   ) : (
                     <Laptop className="h-4 w-4" />
                   )}
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme('light')}>
-                  <Sun className="mr-2 h-4 w-4" />
-                  Light
+              <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center gap-2 cursor-pointer">
+                  <Sun className="h-4 w-4 text-amber-500" />
+                  <span>Light</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('dark')}>
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark
+                <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center gap-2 cursor-pointer">
+                  <Moon className="h-4 w-4 text-blue-400" />
+                  <span>Dark</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('system')}>
-                  <Laptop className="mr-2 h-4 w-4" />
-                  System
+                <DropdownMenuItem onClick={() => setTheme('system')} className="flex items-center gap-2 cursor-pointer">
+                  <Laptop className="h-4 w-4 text-muted-foreground" />
+                  <span>System</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

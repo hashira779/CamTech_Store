@@ -16,10 +16,12 @@ from app.core.security import (
 from app.core.dependencies import get_current_user, TenantUser
 from app.domain.registration_worker import dispatch_user_registered_event
 
+from typing import List
 from .models import User
 from .schemas import (
     LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
-    RegisterRequest, RegisterResponse, UserDto, OAuthSyncRequest
+    RegisterRequest, RegisterResponse, UserDto, OAuthSyncRequest,
+    CreateUserInput, UpdateUserInput, UserDetailDto
 )
 
 router = APIRouter(tags=["Auth"])
@@ -290,3 +292,170 @@ async def get_me(user: TenantUser = Depends(get_current_user)):
         permissions=permissions,
         locationId=user.location_id
     )
+
+# ==============================================================================
+# USER & ACCESS CONTROL MANAGEMENT (Spec §12, §68)
+# ==============================================================================
+
+@router.get("/users", response_model=List[UserDetailDto])
+async def list_users(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all users/staff in the organization. Requires admin access."""
+    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
+        )
+    
+    stmt = select(User).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
+    res = await db.execute(stmt)
+    users = res.scalars().all()
+    
+    out = []
+    for u in users:
+        roles_list = json.loads(u.roles) if isinstance(u.roles, str) else (u.roles or [])
+        out.append(UserDetailDto(
+            id=u.id,
+            organizationId=u.organization_id,
+            email=u.email,
+            name=u.name or u.email,
+            roles=roles_list,
+            isActive=bool(u.is_active),
+            locationId=u.location_id,
+            createdAt=u.created_at.isoformat() if u.created_at else None
+        ))
+    return out
+
+@router.post("/users", response_model=UserDetailDto, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    req: CreateUserInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Super Admin / Org Admin creates a new staff, cashier, or admin user."""
+    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
+        )
+    
+    # Check if email exists
+    exist = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
+    if exist:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User with email '{req.email}' already exists"
+        )
+    
+    pwd_hash = await asyncio.to_thread(hash_password, req.password)
+    user_id = f"usr_{uuid.uuid4().hex[:10]}"
+    roles = [r.upper() for r in req.roles] if req.roles else ["STAFF"]
+    
+    # Only SUPER_ADMIN can create another SUPER_ADMIN
+    if "SUPER_ADMIN" in roles and "SUPER_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only existing SUPER_ADMIN can grant the SUPER_ADMIN role"
+        )
+    
+    new_user = User(
+        id=user_id,
+        organization_id=user.organization_id,
+        email=req.email,
+        name=req.name,
+        password_hash=pwd_hash,
+        roles=json.dumps(roles),
+        location_id=req.locationId,
+        is_active=True
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    return UserDetailDto(
+        id=new_user.id,
+        organizationId=new_user.organization_id,
+        email=new_user.email,
+        name=new_user.name,
+        roles=roles,
+        isActive=bool(new_user.is_active),
+        locationId=new_user.location_id,
+        createdAt=new_user.created_at.isoformat() if new_user.created_at else None
+    )
+
+@router.patch("/users/{user_id}", response_model=UserDetailDto)
+async def update_user(
+    user_id: str,
+    req: UpdateUserInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Super Admin / Org Admin updates a user's roles, active status, name, or password."""
+    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
+        )
+    
+    target = (await db.execute(select(User).where(User.id == user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    if req.name is not None:
+        target.name = req.name
+    if req.roles is not None:
+        roles = [r.upper() for r in req.roles]
+        if "SUPER_ADMIN" in roles and "SUPER_ADMIN" not in user.roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only existing SUPER_ADMIN can grant the SUPER_ADMIN role"
+            )
+        target.roles = json.dumps(roles)
+    if req.isActive is not None:
+        target.is_active = req.isActive
+    if req.locationId is not None:
+        target.location_id = req.locationId
+    if req.password:
+        target.password_hash = await asyncio.to_thread(hash_password, req.password)
+    
+    await db.commit()
+    await db.refresh(target)
+    
+    roles_list = json.loads(target.roles) if isinstance(target.roles, str) else (target.roles or [])
+    return UserDetailDto(
+        id=target.id,
+        organizationId=target.organization_id,
+        email=target.email,
+        name=target.name or target.email,
+        roles=roles_list,
+        isActive=bool(target.is_active),
+        locationId=target.location_id,
+        createdAt=target.created_at.isoformat() if target.created_at else None
+    )
+
+@router.delete("/users/{user_id}")
+async def deactivate_user(
+    user_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Deactivates a user account."""
+    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
+        )
+    
+    target = (await db.execute(select(User).where(User.id == user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    if target.id == user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate your own account")
+    
+    target.is_active = False
+    await db.commit()
+    return {"success": True, "message": f"User '{target.email}' deactivated successfully"}
+

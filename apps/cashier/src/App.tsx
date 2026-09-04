@@ -23,7 +23,15 @@ import {
   WifiOff,
   CloudOff,
   Database,
-  Package
+  Package,
+  Lock,
+  Unlock,
+  LogOut,
+  Key,
+  ShieldCheck,
+  AlertCircle,
+  Loader2,
+  User
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 
@@ -33,6 +41,13 @@ interface PosItem {
   price: number;
   sku: string;
   category: string;
+}
+
+interface CashierUser {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
 }
 
 const API_BASE_URL = (() => {
@@ -52,13 +67,53 @@ export function App() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'BAKONG_KHQR' | 'CASH'>('CASH');
   const [receipt, setReceipt] = useState<any>(null);
-  const [cashierName, setCashierName] = useState<string>(() => {
+
+  // Cashier Authentication & Shift State
+  const [cashierUser, setCashierUser] = useState<CashierUser | null>(() => {
     try {
-      return localStorage.getItem('mystore_pos_cashier_name') || 'Lead Cashier (POS-01)';
+      const saved = localStorage.getItem('mystore_pos_user');
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return 'Lead Cashier (POS-01)';
+      return null;
     }
   });
+
+  const [cashierToken, setCashierToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('mystore_pos_token') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [cashierName, setCashierName] = useState<string>(() => {
+    try {
+      const savedUser = localStorage.getItem('mystore_pos_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u?.name) return u.name;
+      }
+      return localStorage.getItem('mystore_pos_cashier_name') || 'Cashier Operator';
+    } catch {
+      return 'Cashier Operator';
+    }
+  });
+
+  // Shift Lock Gate: If not authenticated, require shift login
+  const [isRegisterLocked, setIsRegisterLocked] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('mystore_pos_token') && !localStorage.getItem('mystore_pos_user');
+    } catch {
+      return true;
+    }
+  });
+
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [offlineOperatorName, setOfflineOperatorName] = useState('');
+  const [loginMode, setLoginMode] = useState<'CREDENTIALS' | 'OFFLINE_EMERGENCY'>('CREDENTIALS');
 
   // Offline-First Fault Isolation & Outbox State
   const [isServerOnline, setIsServerOnline] = useState<boolean>(true);
@@ -214,6 +269,92 @@ export function App() {
     }
   };
 
+  const handleCashierLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setLoginError('Please enter both email and password.');
+      return;
+    }
+    setLoginError(null);
+    setIsLoggingIn(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
+        signal: AbortSignal.timeout(5000),
+      });
+
+      const json = await res.json();
+      const data = json.data || json;
+
+      if (!res.ok || !data?.accessToken) {
+        throw new Error(data?.detail || json?.detail || 'Invalid email or password');
+      }
+
+      const user: CashierUser = {
+        id: data.user?.id || 'cashier-user',
+        email: data.user?.email || loginEmail.trim(),
+        name: data.user?.name || loginEmail.trim().split('@')[0],
+        roles: data.user?.roles || ['CASHIER'],
+      };
+
+      setCashierToken(data.accessToken);
+      setCashierUser(user);
+      setCashierName(user.name);
+      localStorage.setItem('mystore_pos_token', data.accessToken);
+      localStorage.setItem('mystore_pos_user', JSON.stringify(user));
+      localStorage.setItem('mystore_pos_cashier_name', user.name);
+      localStorage.setItem('mystore_pos_shift_start', new Date().toISOString());
+
+      setIsRegisterLocked(false);
+      setLoginPassword('');
+      toast.success(`👋 Welcome, ${user.name}! Shift active.`);
+    } catch (err: any) {
+      console.error('POS Cashier login failed:', err);
+      setLoginError(err.message || 'Login failed. Please verify credentials.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleOfflineEmergencyUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offlineOperatorName.trim()) {
+      setLoginError('Please enter operator name for offline shift.');
+      return;
+    }
+    const operator: CashierUser = {
+      id: `offline-${Date.now()}`,
+      email: `${offlineOperatorName.trim().toLowerCase().replace(/\s+/g, '.')}@offline.pos`,
+      name: offlineOperatorName.trim(),
+      roles: ['CASHIER', 'OFFLINE_OPERATOR'],
+    };
+    setCashierUser(operator);
+    setCashierName(operator.name);
+    localStorage.setItem('mystore_pos_user', JSON.stringify(operator));
+    localStorage.setItem('mystore_pos_cashier_name', operator.name);
+    localStorage.setItem('mystore_pos_shift_start', new Date().toISOString());
+    setIsRegisterLocked(false);
+    toast.warning(`⚡ Registered as Offline Operator: ${operator.name}`);
+  };
+
+  const handleLockRegister = () => {
+    setIsRegisterLocked(true);
+    toast.info('🔒 Register locked. Shift paused.');
+  };
+
+  const handleSwitchCashier = () => {
+    localStorage.removeItem('mystore_pos_token');
+    localStorage.removeItem('mystore_pos_user');
+    localStorage.removeItem('mystore_pos_shift_start');
+    setCashierToken(null);
+    setCashierUser(null);
+    setIsRegisterLocked(true);
+    toast.info('👋 Cashier shift ended. Register locked.');
+  };
+
   const completeSale = async () => {
     const saleNumber = `POS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -234,14 +375,20 @@ export function App() {
       channel: 'POS',
       items: cart.map(i => ({ productVariantId: i.id, quantity: i.quantity, unitPrice: i.price, sku: i.sku, productName: i.name })),
       paymentMethod,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      cashierId: cashierUser?.id,
+      cashierName: cashierName
     };
 
     let synced = false;
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (cashierToken) {
+        headers['Authorization'] = `Bearer ${cashierToken}`;
+      }
       const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(salePayload),
         signal: AbortSignal.timeout(2000)
       });
@@ -336,20 +483,46 @@ export function App() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
-              <UserCheck className="w-4 h-4 text-emerald-400" />
-              <input
-                type="text"
-                value={cashierName}
-                onChange={(e) => {
-                  setCashierName(e.target.value);
-                  localStorage.setItem('mystore_pos_cashier_name', e.target.value);
-                }}
-                className="text-xs font-medium text-slate-300 bg-transparent border-none focus:outline-none w-36"
-                title="POS Cashier Operator Name"
-                placeholder="Cashier Operator"
-              />
-            </div>
+            {/* Cashier Badge & Lock Register Controls */}
+            {cashierUser ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    <UserCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-white leading-tight max-w-[120px] truncate">{cashierUser.name}</p>
+                    <p className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      {cashierUser.roles?.[0] || 'CASHIER'} • ACTIVE
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLockRegister}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-700/50"
+                  title="Lock Register / Pause Shift"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Lock</span>
+                </button>
+                <button
+                  onClick={handleSwitchCashier}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 text-xs transition border border-slate-700/50"
+                  title="Log Out Cashier / Switch Shift"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsRegisterLocked(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 text-xs font-bold transition"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Unlock Register</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -638,6 +811,175 @@ export function App() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cashier Shift Login & Register Lock Gate Modal */}
+      {isRegisterLocked && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 flex flex-col space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                <Lock className="w-7 h-7" />
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-wide">Register POS-01 Shift Gate</h2>
+              <p className="text-xs text-slate-400">
+                Authorized staff sign-in required to unlock cashier register and issue sales receipts.
+              </p>
+              
+              {/* Server Connectivity Pill */}
+              <div className="pt-1 flex justify-center">
+                {isServerOnline ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Central Data Center: Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <CloudOff className="w-3.5 h-3.5" />
+                    Container Mode: Offline Resilient
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => { setLoginMode('CREDENTIALS'); setLoginError(null); }}
+                className={`py-2 rounded-lg transition ${
+                  loginMode === 'CREDENTIALS'
+                    ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Staff Credentials
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginMode('OFFLINE_EMERGENCY'); setLoginError(null); }}
+                className={`py-2 rounded-lg transition ${
+                  loginMode === 'OFFLINE_EMERGENCY'
+                    ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Offline Operator
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {loginError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            {loginMode === 'CREDENTIALS' ? (
+              <form onSubmit={handleCashierLogin} className="space-y-4">
+                <div className="space-y-1 text-left">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Email or Staff ID</label>
+                  <input
+                    type="text"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="cashier@demo.test"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Password / PIN</label>
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+
+                {/* Quick Autofill Presets */}
+                <div className="pt-1 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail('cashier@demo.test');
+                      setLoginPassword('Cashier123!');
+                    }}
+                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                  >
+                    Quick: Demo Cashier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail('admin@camtechstore');
+                      setLoginPassword('camtechstore@28022002');
+                    }}
+                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                  >
+                    Quick: Super Admin
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full mt-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Authenticating Shift...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-4 h-4" />
+                      <span>Unlock Register & Start Shift</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleOfflineEmergencyUnlock} className="space-y-4">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed">
+                  ⚡ <strong>Emergency Standalone Mode:</strong> When Central Database is unreachable, sign in as a local operator. Sales will be safely queued in local container storage and synced automatically once online.
+                </div>
+
+                <div className="space-y-1 text-left">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Cashier Operator Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={offlineOperatorName}
+                    onChange={(e) => setOfflineOperatorName(e.target.value)}
+                    placeholder="e.g. Sokha Vathanak"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full mt-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Unlock Offline Register</span>
+                </button>
+              </form>
+            )}
+
+            {/* Footer reassurance */}
+            <div className="text-center pt-2 border-t border-slate-800/80">
+              <p className="text-[10px] text-slate-500">
+                CamTech Multi-Store Commerce • Protected Register Terminal POS-01
+              </p>
             </div>
           </div>
         </div>

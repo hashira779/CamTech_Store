@@ -53,3 +53,28 @@ class OAuthSyncRequest(BaseModel):
     providerId: Optional[str] = None
     avatarUrl: Optional[str] = None
 
+class CreateUserInput(BaseModel):
+    name: str
+    email: str
+    password: str
+    roles: List[str] = ["STAFF"]
+    locationId: Optional[str] = None
+
+class UpdateUserInput(BaseModel):
+    name: Optional[str] = None
+    roles: Optional[List[str]] = None
+    isActive: Optional[bool] = None
+    password: Optional[str] = None
+    locationId: Optional[str] = None
+
+class UserDetailDto(BaseModel):
+    id: str
+    organizationId: str
+    email: str
+    name: str
+    roles: List[str]
+    isActive: bool = True
+    locationId: Optional[str] = None
+    createdAt: Optional[str] = None
+
+

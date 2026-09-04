@@ -6,6 +6,9 @@ import type {
   CreateSaleInput,
   AdjustInventoryInput,
   LoginResult,
+  UserDetailDto,
+  CreateUserInput,
+  UpdateUserInput,
   Paginated,
   ProductDto,
   CustomerDto,
@@ -218,6 +221,30 @@ export const api = {
     request<LoginResult>('/auth/oauth-sync', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  // ─── Users & Access Control ──────────────────────────────────
+  listUsers: (token: string) =>
+    request<UserDetailDto[]>('/auth/users', { token }),
+
+  createUser: (token: string, input: CreateUserInput) =>
+    request<UserDetailDto>('/auth/users', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateUser: (token: string, userId: string, input: UpdateUserInput) =>
+    request<UserDetailDto>(`/auth/users/${userId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deactivateUser: (token: string, userId: string) =>
+    request<{ success: boolean; message: string }>(`/auth/users/${userId}`, {
+      method: 'DELETE',
+      token,
     }),
 
   // ─── Products ──────────────────────────────────────────────────

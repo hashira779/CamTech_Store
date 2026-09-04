@@ -13,7 +13,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck --filter=!@mystore/backend",
+    "typecheck": "turbo run typecheck --filter=!@mystore/backend --concurrency=2",
     "store:dev": "pnpm --filter @mystore/store dev",
     "admin:dev": "pnpm --filter @mystore/web dev",
     "cashier:dev": "pnpm --filter @mystore/cashier dev",

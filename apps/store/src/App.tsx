@@ -22,7 +22,11 @@ import {
   RefreshCw,
   Phone,
   MapPin,
-  Navigation
+  Navigation,
+  Zap,
+  Award,
+  ExternalLink,
+  ArrowRight
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
@@ -335,104 +339,113 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-[#09090b] text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden bg-dot-grid pb-24">
       <Toaster position="top-right" richColors />
 
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white text-xs py-1.5 px-4 text-center font-medium tracking-wide flex items-center justify-between">
+      {/* Ambient Glow Orbs */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-gradient-to-r from-blue-600/15 via-indigo-500/20 to-purple-600/15 blur-[120px] rounded-full animate-pulse-glow" />
+      <div className="pointer-events-none absolute top-[750px] -right-40 w-[600px] h-[400px] bg-gradient-to-tr from-purple-600/10 via-indigo-600/10 to-cyan-500/10 blur-[130px] rounded-full" />
+
+      {/* Top Ambient Status Ribbon */}
+      <div className="max-w-6xl mx-auto pt-3 px-4 flex items-center justify-between text-[11px] text-zinc-400 font-mono">
         <div className="flex items-center gap-2">
-          <span className="bg-black/20 px-2 py-0.5 rounded text-[10px] font-mono">STOREFRONT</span>
-          <span>🚀 CamTech Storefront Online • Next-Day Delivery across Phnom Penh</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          <span className="hidden sm:inline">CAMTECH COMMERCE CLOUD • NEXT-DAY FLEET IN PHNOM PENH</span>
+          <span className="sm:hidden">CAMTECH CLOUD</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px]">
+        <div className="flex items-center gap-2">
           {isBackendConnected ? (
-            <span className="flex items-center gap-1.5 text-emerald-100 bg-black/20 px-2.5 py-0.5 rounded font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live Data Center Connected
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              PostgreSQL 16: Connected
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-amber-200 bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-500/30 font-medium">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              Backend Offline (Autonomous Mode)
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Autonomous Container Mode
             </span>
           )}
         </div>
       </div>
 
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
-              <Store className="w-6 h-6" />
+      {/* Floating Glassmorphic Capsule Navbar (Lightswind Style) */}
+      <header className="sticky top-3 z-40 max-w-6xl mx-auto px-4 mt-2">
+        <div className="h-14 px-3 sm:px-5 rounded-full bg-zinc-950/75 backdrop-blur-2xl border border-zinc-800/80 shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 sm:gap-4">
+          {/* Brand Identity */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+              <Store className="w-4 h-4" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                CamTech Store
-                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">Live</span>
-              </h1>
-              <p className="text-xs text-slate-400">customer.camtech.cam (Port 5001)</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-extrabold text-white tracking-tight">CamTech</span>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                STORE
+              </span>
             </div>
           </div>
 
-          {/* Search bar */}
-          <div className="flex-1 max-w-md relative hidden sm:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          {/* Quick Search Capsule with Keyboard Shortcut */}
+          <div className="flex-1 max-w-md relative hidden md:block">
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search MacBook, AirPods, Coffee, Charger..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-lg text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full pl-9 pr-12 py-1.5 bg-zinc-900/60 border border-zinc-800 rounded-full text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
             />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-500 bg-zinc-800/60 px-1.5 py-0.5 rounded border border-zinc-700/50">
+              ⌘K
+            </span>
           </div>
 
-          {/* Customer & Cart Actions */}
-          <div className="flex items-center gap-3">
+          {/* Customer Auth & Cart Controls */}
+          <div className="flex items-center gap-2 shrink-0">
             {customer ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => setIsHistoryOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 border border-slate-700 transition"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 border border-zinc-800 transition"
                   title="View Purchase History"
                 >
-                  <History className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>My Orders</span>
+                  <History className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden sm:inline">Orders</span>
                 </button>
-                <div className="hidden md:flex flex-col text-right">
-                  <span className="text-xs font-semibold text-white">{customer.name}</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">Member</span>
+                <div className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-zinc-900/80 border border-zinc-800">
+                  <div className="w-5 h-5 rounded-full bg-indigo-500/30 text-indigo-300 font-bold text-[10px] flex items-center justify-center">
+                    {customer.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-semibold text-white max-w-[80px] truncate hidden sm:inline">
+                    {customer.name}
+                  </span>
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition"
+                  className="p-1.5 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-rose-400 transition"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline text-[11px] text-slate-400">Guest Shopper</span>
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-white transition flex items-center gap-1.5"
-                >
-                  <User className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Sign In</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-200 transition flex items-center gap-1.5 shadow-sm"
+              >
+                <GoogleIcon className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
             )}
 
-            {/* Cart Button */}
+            {/* Floating High-Contrast Cart Pill */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+              className="relative px-3 sm:px-4 py-1.5 rounded-full bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-xs flex items-center gap-2 shadow-lg shadow-white/10 transition active:scale-95 cursor-pointer"
             >
-              <ShoppingCart className="w-5 h-5" />
-              <span className="hidden sm:inline text-xs font-bold">${cartTotal.toFixed(2)}</span>
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span className="font-mono">${cartTotal.toFixed(2)}</span>
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[11px] font-bold flex items-center justify-center border-2 border-slate-950">
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
@@ -441,18 +454,248 @@ export function App() {
         </div>
       </header>
 
-      {/* Category Pills */}
-      <div className="border-b border-slate-800 bg-slate-900/40 py-3">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 overflow-x-auto">
-          <div className="flex items-center gap-2">
+      {/* Hero Section with Signature 3D Hanging Lanyard VIP Pass */}
+      <section className="max-w-6xl mx-auto px-4 pt-12 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column: Typography & Action CTA */}
+          <div className="lg:col-span-7 text-left space-y-5">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 backdrop-blur-md shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <span className="font-medium text-[11px] sm:text-xs">
+                Live Enterprise Commerce • Instant NBC Bakong KHQR
+              </span>
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.08]">
+              Elevate Daily Living with{' '}
+              <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                CamTech Store
+              </span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
+              Next-gen Apple silicon, high-fidelity audio, and artisan roast coffee delivered to your doorstep in Phnom Penh. Powered by native PostgreSQL microservices and instant Bakong KHQR settlement.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <a
+                href="#catalog"
+                className="px-6 py-3 rounded-full bg-white text-zinc-950 font-bold text-xs sm:text-sm hover:scale-105 transition shadow-[0_0_25px_rgba(255,255,255,0.25)] flex items-center gap-2 cursor-pointer"
+              >
+                <span>Shop Catalog</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+              <button
+                onClick={() => setIsHistoryOpen(true)}
+                className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 text-xs sm:text-sm font-semibold transition flex items-center gap-2 backdrop-blur-md cursor-pointer"
+              >
+                <Truck className="w-4 h-4 text-indigo-400" />
+                <span>Track Live Delivery</span>
+              </button>
+            </div>
+
+            {/* Metrics Ticker Row */}
+            <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-zinc-800/80 text-xs text-zinc-400 font-mono">
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>0.4s Instant KHQR</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>100% Genuine Warranty</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Navigation className="w-3.5 h-3.5 text-blue-400" />
+                <span>GPS Courier Fleet</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Signature 3D Hanging Lanyard VIP Pass */}
+          <div className="lg:col-span-5 relative flex flex-col items-center justify-center pt-4 lg:pt-0">
+            {/* Suspended Lanyard Cord */}
+            <div className="w-1.5 h-12 bg-gradient-to-b from-indigo-500/30 via-purple-500/60 to-zinc-700 mx-auto -mb-1 rounded-t-full shadow-sm" />
+            {/* Metallic Clasp Clip */}
+            <div className="w-7 h-5 bg-gradient-to-b from-zinc-600 via-zinc-400 to-zinc-700 rounded-md border border-zinc-500 shadow-md mx-auto -mb-2 z-10 relative flex items-center justify-center">
+              <div className="w-3 h-1 bg-zinc-800 rounded-full" />
+            </div>
+            {/* Hanging Pass Container */}
+            <div className="relative w-72 sm:w-80 rounded-[2rem] p-5 bg-zinc-950/85 backdrop-blur-xl border border-zinc-800/90 shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2)] animate-float-lanyard text-left overflow-hidden">
+              {/* Card Header Banner */}
+              <div className="rounded-2xl p-4 bg-gradient-to-tr from-purple-900/90 via-indigo-900/90 to-blue-900/90 border border-white/10 flex items-center justify-between mb-4 relative overflow-hidden">
+                <div className="relative z-10">
+                  <span className="text-[10px] font-mono tracking-wider uppercase text-indigo-200">
+                    CAMTECH COMMERCE
+                  </span>
+                  <h4 className="text-sm font-extrabold text-white">VIP Member Pass</h4>
+                </div>
+                <div className="w-10 h-10 rounded-full border-2 border-indigo-400/80 shadow-[0_0_12px_rgba(99,102,241,0.6)] flex items-center justify-center font-black text-sm text-white bg-indigo-950 relative z-10">
+                  {customer ? customer.name.slice(0, 2).toUpperCase() : 'CT'}
+                </div>
+                <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-pink-500/20 rounded-full blur-xl pointer-events-none" />
+              </div>
+
+              {/* Customer ID */}
+              <div className="space-y-0.5 mb-4">
+                <p className="text-base font-extrabold text-white truncate">
+                  {customer ? customer.name : 'VIP Guest Member'}
+                </p>
+                <p className="text-xs text-indigo-400 font-mono">
+                  {customer ? customer.email : 'guest.vip@camtech.cam'}
+                </p>
+              </div>
+
+              {/* Detail Matrix */}
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-[11px] mb-4">
+                <div>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">TIER</span>
+                  <span className="font-bold text-white">Executive Gold</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">SETTLEMENT</span>
+                  <span className="font-bold text-emerald-400">NBC KHQR</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">HUB</span>
+                  <span className="font-bold text-zinc-300">Phnom Penh</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">STATUS</span>
+                  <span className="font-bold text-indigo-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                    Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Digital Waveform Barcode */}
+              <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-0.5 h-5">
+                  {[16, 8, 22, 12, 28, 6, 20, 14, 26, 10, 18, 24, 12, 16, 20, 8, 24, 14, 18, 10].map((h, i) => (
+                    <div
+                      key={i}
+                      className="w-1 bg-zinc-600 rounded-full"
+                      style={{ height: `${h}px` }}
+                    />
+                  ))}
+                </div>
+                <span className="text-[10px] font-mono text-zinc-500">CAMTECH-2026-VIP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Infinite Horizontal Tech & Partner Marquee */}
+      <div className="w-full overflow-hidden py-4 border-y border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md my-8">
+        <div className="animate-marquee flex items-center gap-3">
+          {[
+            '⚡ NBC Bakong KHQR Instant Checkout',
+            '🍎 Apple M3 Silicon & Pro Audio',
+            '📦 15-Minute Micro-Warehouse Fleet',
+            '🚀 FastAPI Modular Monolith',
+            '🐘 PostgreSQL 16 Native Database',
+            '🔒 Cloudflare Zero Trust Security',
+            '☕ Artisan Espresso & Daily Essentials',
+            '🐳 Isolated Docker Containers',
+            '⚡ NBC Bakong KHQR Instant Checkout',
+            '🍎 Apple M3 Silicon & Pro Audio',
+            '📦 15-Minute Micro-Warehouse Fleet',
+            '🚀 FastAPI Modular Monolith',
+            '🐘 PostgreSQL 16 Native Database',
+            '🔒 Cloudflare Zero Trust Security',
+            '☕ Artisan Espresso & Daily Essentials',
+            '🐳 Isolated Docker Containers',
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="px-4 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-300 font-medium whitespace-nowrap flex items-center gap-2 shrink-0 shadow-sm"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Interactive Bento Stat Grid (4 Core Platform Pillars) */}
+      <section className="max-w-6xl mx-auto px-4 mb-14">
+        <div className="text-center max-w-xl mx-auto mb-8">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+            Architected for Speed & Reliability
+          </span>
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-3">
+            Enterprise Retail Infrastructure
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: NBC Bakong KHQR */}
+          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+              <QrCode className="w-5 h-5" />
+            </div>
+            <h4 className="text-base font-bold text-white mb-1">Instant Bakong KHQR</h4>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+              0.4-second settlement via NBC Bakong. Pay directly with ABA Mobile, Wing, ACLEDA, or any KHQR app.
+            </p>
+            <span className="text-[10px] font-mono text-rose-400 font-bold">0% Transaction Fee</span>
+          </div>
+
+          {/* Card 2: 15-Minute Fleet Dispatch */}
+          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+              <Truck className="w-5 h-5" />
+            </div>
+            <h4 className="text-base font-bold text-white mb-1">15-Min Fleet Dispatch</h4>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+              Automated dispatch from downtown BKK1 and Toul Kork micro-warehouses straight to your coordinates.
+            </p>
+            <span className="text-[10px] font-mono text-indigo-400 font-bold">Live GPS Courier Track</span>
+          </div>
+
+          {/* Card 3: 100% Genuine Guaranteed */}
+          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h4 className="text-base font-bold text-white mb-1">100% Verified Stock</h4>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+              Direct manufacturer warranty on Apple, Sony, and Anker hardware, plus fresh daily artisan roasts.
+            </p>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">Original Verified</span>
+          </div>
+
+          {/* Card 4: Autonomous Offline Container */}
+          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+              <Store className="w-5 h-5" />
+            </div>
+            <h4 className="text-base font-bold text-white mb-1">Offline Resilience</h4>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+              Stores and POS continue ringing up sales even during internet outages, auto-syncing when reconnected.
+            </p>
+            <span className="text-[10px] font-mono text-amber-400 font-bold">Zero Data Loss</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Products Catalog Section */}
+      <main id="catalog" className="max-w-6xl mx-auto px-4 scroll-mt-20">
+        {/* Category Pills & Refresh Action */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 p-2 bg-zinc-950/70 border border-zinc-800/80 rounded-2xl backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-1.5">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1 rounded-full text-xs font-medium transition ${
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   selectedCategory === cat
-                    ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
-                    : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                    ? 'bg-white text-zinc-950 shadow-md shadow-white/10'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
               >
                 {cat}
@@ -460,39 +703,30 @@ export function App() {
             ))}
           </div>
           <button
-            onClick={() => { refetchProducts(); toast.info('Catalog refreshed from Data Center!'); }}
-            className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition shrink-0"
+            onClick={() => {
+              refetchProducts();
+              toast.info('Catalog refreshed from Central Data Center!');
+            }}
+            className="text-[11px] font-mono text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 transition cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" />
-            Sync Products
+            <span>Sync Catalog</span>
           </button>
         </div>
-      </div>
 
-      {/* Hero Banner */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950/40 p-8 border border-slate-800 relative overflow-hidden">
-          <div className="relative z-10 max-w-xl">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3 border border-emerald-500/30">
-              <Sparkles className="w-3.5 h-3.5" /> 2026 Modern Commerce Standard
-            </span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-white mb-2">
-              Next-Gen Tech, Artisan Coffee & Daily Essentials.
-            </h2>
-            <p className="text-sm text-slate-400 mb-6">
-              Instant checkout with Bakong KHQR, live stock reservation, and real-time courier tracking right to your doorstep.
+        {/* Catalog Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-extrabold text-white">Featured Catalog</h3>
+            <p className="text-xs text-zinc-400">
+              Showing {filteredProducts.length} verified item(s) in category {selectedCategory}
             </p>
           </div>
-        </div>
-
-        {/* Product Grid */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">Featured Products ({filteredProducts.length})</h3>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs font-mono">
             {isBackendConnected ? (
-              <span className="text-emerald-400 font-medium">● Live from Central Data Center</span>
+              <span className="text-emerald-400 font-semibold">● Central Data Center</span>
             ) : (
-              <span className="text-amber-400/90 font-medium">○ Local Autonomous Catalog (Run `pnpm py:dev` for live DB)</span>
+              <span className="text-amber-400 font-semibold">○ Container Autonomous</span>
             )}
           </span>
         </div>
@@ -502,42 +736,34 @@ export function App() {
             {Array.from({ length: 8 }).map((_, n) => (
               <div
                 key={n}
-                className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between animate-pulse"
+                className="bg-zinc-900/50 border border-zinc-800/80 rounded-[2rem] p-5 flex flex-col justify-between animate-pulse space-y-4"
               >
                 <div>
-                  <div className="w-full h-40 bg-slate-800/70 rounded-xl mb-4 relative flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-lg bg-slate-700/40" />
-                    <div className="absolute top-2 right-2 h-4 w-14 rounded bg-slate-700/50" />
-                  </div>
-                  <div className="h-3 bg-slate-800 rounded w-16 mb-2" />
-                  <div className="h-5 bg-slate-800 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-slate-800/60 rounded w-full mb-1" />
-                  <div className="h-3 bg-slate-800/40 rounded w-2/3" />
+                  <div className="w-full h-40 bg-zinc-800/60 rounded-2xl mb-4" />
+                  <div className="h-3 bg-zinc-800 rounded w-16 mb-2" />
+                  <div className="h-5 bg-zinc-800 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-zinc-800/60 rounded w-full mb-1" />
                 </div>
-
-                <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="h-2.5 bg-slate-800 rounded w-8" />
-                    <div className="h-5 bg-slate-800 rounded w-16" />
-                  </div>
-                  <div className="h-8 w-24 bg-slate-800 rounded-xl" />
+                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                  <div className="h-5 bg-zinc-800 rounded w-16" />
+                  <div className="h-8 w-24 bg-zinc-800 rounded-full" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800 my-4">
-            <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+          <div className="p-16 text-center rounded-[2.5rem] bg-zinc-950/60 border border-zinc-800/80 my-4 shadow-xl">
+            <Package className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
             <h3 className="text-base font-bold text-white mb-1">No Products Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto mb-4">
               There are currently no items matching your filter in this category. Catalog refreshes automatically from the central data center.
             </p>
             <button
               onClick={() => refetchProducts()}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition"
+              className="px-5 py-2.5 rounded-full bg-white text-zinc-950 text-xs font-bold inline-flex items-center gap-2 hover:bg-zinc-200 transition"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Sync Catalog
+              <span>Refresh Catalog</span>
             </button>
           </div>
         ) : (
@@ -545,39 +771,39 @@ export function App() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group bg-slate-900/70 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/5"
+                className="group bg-zinc-900/50 border border-zinc-800/80 hover:border-indigo-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden"
               >
                 <div>
-                  <div className="w-full h-40 rounded-xl bg-slate-800/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:bg-slate-800 transition">
-                    <Package className="w-12 h-12 text-slate-600 group-hover:text-emerald-400 transition transform group-hover:scale-110 duration-300" />
-                    <span className="absolute top-2 right-2 text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950/80 text-slate-300 border border-slate-800">
+                  <div className="w-full h-40 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-500/40 transition">
+                    <Package className="w-12 h-12 text-zinc-600 group-hover:text-indigo-400 transition transform group-hover:scale-110 duration-300" />
+                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-800">
                       {product.sku}
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-emerald-400 tracking-wider uppercase">
+                  <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase">
                     {product.category}
                   </span>
-                  <h4 className="text-base font-bold text-white mt-1 group-hover:text-emerald-300 transition">
+                  <h4 className="text-base font-bold text-white mt-1 group-hover:text-indigo-300 transition line-clamp-1">
                     {product.name}
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                    {product.description}
+                  <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
+                    {product.description || 'Premium standard verified inventory with instant NBC Bakong settlement.'}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <div className="mt-5 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Price</span>
-                    <span className="text-lg font-bold text-emerald-400">
+                    <span className="text-[10px] font-mono text-zinc-500 block">PRICE</span>
+                    <span className="text-lg font-extrabold text-white font-mono">
                       ${product.price.toFixed(2)}
                     </span>
                   </div>
                   <button
                     onClick={() => addToCart(product)}
-                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/20"
+                    className="px-3.5 py-2 rounded-full bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-white/5 active:scale-95 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add to Cart
+                    <span>Add</span>
                   </button>
                 </div>
               </div>
@@ -585,6 +811,45 @@ export function App() {
           </div>
         )}
       </main>
+
+      {/* Floating Bottom Quick Action Dock (Lightswind Style) */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-zinc-800/90 shadow-[0_12px_40px_rgba(0,0,0,0.8)] flex items-center gap-1.5 sm:gap-2">
+        <a
+          href="#catalog"
+          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          title="Products Catalog"
+        >
+          <Package className="w-4 h-4" />
+        </a>
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          title="My Orders"
+        >
+          <History className="w-4 h-4" />
+        </button>
+        <div className="w-px h-4 bg-zinc-800" />
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="px-3 py-1.5 rounded-full bg-white text-zinc-950 font-bold text-xs flex items-center gap-1.5 hover:bg-zinc-200 transition shadow-md cursor-pointer"
+        >
+          <ShoppingCart className="w-3.5 h-3.5" />
+          <span>${cartTotal.toFixed(2)}</span>
+          {cartCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+              {cartCount}
+            </span>
+          )}
+        </button>
+        <div className="w-px h-4 bg-zinc-800" />
+        <button
+          onClick={() => (customer ? setIsHistoryOpen(true) : setIsAuthModalOpen(true))}
+          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          title={customer ? customer.name : 'Sign In'}
+        >
+          <User className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Cart Drawer */}
       {isCartOpen && (
