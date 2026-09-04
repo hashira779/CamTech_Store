@@ -38,20 +38,25 @@ export default function LoginPage() {
   const setAuth = useAuth((s) => s.setAuth);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Check Supabase Google OAuth Session
+  // Check Supabase Google OAuth Session & Sync to local PostgreSQL
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const metadata = session.user.user_metadata || {};
-        setAuth(session.access_token, {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
-          organizationId: 'org-default',
-          roles: ['SUPER_ADMIN'],
-          permissions: ['*'],
-        });
-        navigate('/dashboard');
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user?.email) {
+        try {
+          const metadata = session.user.user_metadata || {};
+          const result = await api.oauthSync({
+            email: session.user.email,
+            name: metadata.full_name || metadata.name || session.user.email.split('@')[0] || 'Google User',
+            provider: 'google',
+            providerId: session.user.id,
+            avatarUrl: metadata.avatar_url || metadata.picture,
+          });
+          setAuth(result.accessToken, result.user);
+          navigate('/dashboard');
+        } catch (err: any) {
+          console.error('Failed to sync OAuth with local database:', err);
+          setServerError(err?.message || 'Failed to sync account with local database');
+        }
       }
     });
   }, [navigate, setAuth]);

@@ -19,7 +19,7 @@ from app.domain.registration_worker import dispatch_user_registered_event
 from .models import User
 from .schemas import (
     LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
-    RegisterRequest, RegisterResponse, UserDto
+    RegisterRequest, RegisterResponse, UserDto, OAuthSyncRequest
 )
 
 router = APIRouter(tags=["Auth"])
@@ -111,6 +111,83 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
         )
 
     roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
+    token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
+    refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
+
+    permissions = [
+        "products.read", "products.write", "customers.read", "customers.write",
+        "sales.read", "sales.write", "sales.void", "sales.refund",
+        "inventory.read", "inventory.adjust", "locations.read", "locations.write",
+        "organizations.read", "organizations.write", "procurement.read", "procurement.write",
+        "promotions.read", "promotions.write", "pricing.read", "pricing.write",
+        "payments.read", "taxes.read", "taxes.write", "loyalty.read", "loyalty.write",
+        "storage.read", "storage.write", "notifications.read", "notifications.write",
+        "reports.read", "reports.export", "finance.read", "finance.write", "journal.post",
+        "workflow.read", "workflow.manage", "workflow.approve", "hr.read", "hr.write",
+        "payroll.run", "assets.read", "assets.write", "projects.read", "projects.write",
+        "tickets.read", "tickets.write", "developer.read", "developer.write",
+        "webhooks.manage", "telegram.manage", "automation.read", "automation.write", "automation.execute"
+    ]
+
+    return LoginResponse(
+        accessToken=token,
+        refreshToken=refresh_token,
+        user=UserDto(
+            id=user.id,
+            organizationId=user.organization_id,
+            email=user.email,
+            name=user.name,
+            roles=roles,
+            permissions=permissions,
+            locationId=user.location_id
+        )
+    )
+
+@router.post("/oauth-sync", response_model=LoginResponse)
+async def oauth_sync(req: OAuthSyncRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    auth_rate_limiter.check(request)
+    if not req.email or "@" not in req.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Valid email is required for OAuth synchronization"
+        )
+
+    # 1. Lookup user in local PostgreSQL
+    result = await db.execute(select(User).where(User.email == req.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Determine organization id from existing database
+        org_res = await db.execute(select(User.organization_id).limit(1))
+        org_id = org_res.scalar_one_or_none()
+        if not org_id:
+            from app.models.entities import Organization
+            org_lookup = await db.execute(select(Organization.id).limit(1))
+            org_id = org_lookup.scalar_one_or_none() or "cmtn25rqc0000vk64wgyfvaov"
+
+        user_id = f"usr_{uuid.uuid4().hex[:10]}"
+        roles = ["ORG_ADMIN"]
+        dummy_hash = await asyncio.to_thread(hash_password, uuid.uuid4().hex)
+
+        user = User(
+            id=user_id,
+            organization_id=org_id,
+            email=req.email,
+            name=req.name or req.email.split("@")[0],
+            password_hash=dummy_hash,
+            roles=json.dumps(roles),
+            is_active=True
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        if req.name and user.name != req.name:
+            user.name = req.name
+            await db.commit()
+            await db.refresh(user)
+
+    roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["ORG_ADMIN"])
     token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
     refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
 

@@ -214,6 +214,12 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  oauthSync: (data: { email: string; name?: string; provider?: string; providerId?: string; avatarUrl?: string }) =>
+    request<LoginResult>('/auth/oauth-sync', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // ─── Products ──────────────────────────────────────────────────
   listProducts: (token: string, params: { page?: number; limit?: number; search?: string } = {}) => {
     const qs = new URLSearchParams();

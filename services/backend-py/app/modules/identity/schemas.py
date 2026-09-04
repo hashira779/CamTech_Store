@@ -46,3 +46,10 @@ class RegisterResponse(BaseModel):
     latencyMs: float
     queuedEventId: str
 
+class OAuthSyncRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    provider: Optional[str] = "google"
+    providerId: Optional[str] = None
+    avatarUrl: Optional[str] = None
+
