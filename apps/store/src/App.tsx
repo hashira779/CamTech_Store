@@ -119,25 +119,30 @@ export function App() {
 
   // Listen for Supabase Google session
   useEffect(() => {
+    const savedPhone = localStorage.getItem('camtech_customer_phone') || '';
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const metadata = session.user.user_metadata || {};
+        const phone = session.user.phone || metadata.phone || savedPhone || '';
         setCustomer({
           name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
           email: session.user.email || '',
-          phone: session.user.phone || metadata.phone || '',
+          phone,
         });
+        if (phone) setGuestPhone(phone);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const metadata = session.user.user_metadata || {};
+        const phone = session.user.phone || metadata.phone || savedPhone || '';
         setCustomer({
           name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
           email: session.user.email || '',
-          phone: session.user.phone || metadata.phone || '',
+          phone,
         });
+        if (phone) setGuestPhone(phone);
         toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
       }
     });
@@ -265,7 +270,7 @@ export function App() {
 
   const handleCheckout = async () => {
     const buyerName = customer ? customer.name : guestName.trim();
-    const buyerPhone = customer ? customer.phone : guestPhone.trim();
+    const buyerPhone = (customer?.phone || guestPhone).trim();
     const buyerEmail = customer ? customer.email : (guestEmail.trim() || 'guest@camtech.cam');
 
     if (!buyerName) {
@@ -279,6 +284,10 @@ export function App() {
     if (!deliveryAddress.trim()) {
       toast.error('Please enter a delivery destination');
       return;
+    }
+
+    if (buyerPhone) {
+      localStorage.setItem('camtech_customer_phone', buyerPhone);
     }
 
     const orderPayload = {
@@ -952,26 +961,51 @@ export function App() {
             <div className="py-4 space-y-4">
               {/* Customer / Guest Identity */}
               {customer ? (
-                <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-white flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-emerald-400" />
-                      Ordering as <span className="text-emerald-300 font-bold">{customer.name}</span>
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      Phone: {customer.phone} • {customer.email}
-                    </p>
+                <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                        Ordering as <span className="text-emerald-300 font-bold">{customer.name}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {customer.email}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomer(null);
+                        toast.info('Switched to Guest Checkout');
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-emerald-400 underline"
+                    >
+                      Buy as Guest
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomer(null);
-                      toast.info('Switched to Guest Checkout');
-                    }}
-                    className="text-[11px] text-slate-400 hover:text-emerald-400 underline"
-                  >
-                    Buy as Guest
-                  </button>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 block mb-1">
+                      Phone Number (For Driver Contact) *
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 012 345 678 or +855..."
+                      value={customer.phone || guestPhone}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setGuestPhone(val);
+                        setCustomer((prev) => (prev ? { ...prev, phone: val } : null));
+                        localStorage.setItem('camtech_customer_phone', val);
+                      }}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                    />
+                    {!(customer.phone || guestPhone) && (
+                      <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+                        <span>⚠️</span> Please enter your phone number so our driver can contact you.
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-3">
