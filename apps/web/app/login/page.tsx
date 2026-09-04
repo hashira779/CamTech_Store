@@ -69,7 +69,6 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setValue,
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -85,11 +84,6 @@ export default function LoginPage() {
       setServerError(err instanceof ApiClientError ? err.message : 'Login failed');
     }
   });
-
-  const fillDemo = (email: string, password: string) => {
-    setValue('email', email);
-    setValue('password', password);
-  };
 
   return (
     <main className="flex min-h-screen bg-background">
@@ -181,7 +175,7 @@ export default function LoginPage() {
                   <input 
                     className="input pl-4 bg-background/50 focus:bg-background" 
                     type="email" 
-                    placeholder="name@enterprise.com"
+                    placeholder="you@company.com"
                     autoComplete="username" 
                     {...register('email')} 
                   />
@@ -223,30 +217,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Login Injectors */}
-          <div className="mt-10">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4 text-center lg:text-left">
-              Quick Test Environments
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                className="flex flex-col items-start p-3 text-sm border rounded-xl hover:bg-accent hover:border-accent-foreground/20 transition-all text-left"
-                onClick={() => fillDemo('admin@demo.test', 'Admin123!')}
-              >
-                <span className="font-semibold text-foreground">Enterprise Admin</span>
-                <span className="text-muted-foreground text-xs mt-0.5">Global access</span>
-              </button>
-              <button
-                type="button"
-                className="flex flex-col items-start p-3 text-sm border rounded-xl hover:bg-accent hover:border-accent-foreground/20 transition-all text-left"
-                onClick={() => fillDemo('cashier@demo.test', 'Cashier123!')}
-              >
-                <span className="font-semibold text-foreground">Branch Cashier</span>
-                <span className="text-muted-foreground text-xs mt-0.5">Central Cafe branch</span>
-              </button>
-            </div>
-          </div>
+
           
         </div>
       </div>
