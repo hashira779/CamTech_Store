@@ -40,10 +40,13 @@ def apply_enterprise_layer(app: FastAPI) -> None:
                 "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
             )
         )
+        resp_headers = {"X-Request-Id": req_id}
+        if exc.headers:
+            resp_headers.update(exc.headers)
         return JSONResponse(
             status_code=exc.status_code,
             content={"success": False, "code": code, "message": str(exc.detail), "requestId": req_id},
-            headers={"X-Request-Id": req_id},
+            headers=resp_headers,
         )
 
     @app.exception_handler(RequestValidationError)
@@ -123,7 +126,7 @@ def create_microservice(name: str, description: str, port: int) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
-        allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam)(:[0-9]+)?",
+        allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam|camtech\.local|10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+)(:[0-9]+)?",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

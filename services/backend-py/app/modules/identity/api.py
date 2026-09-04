@@ -2,7 +2,8 @@ import json
 import time
 import asyncio
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from app.core.rate_limiter import auth_rate_limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -24,7 +25,8 @@ from .schemas import (
 router = APIRouter(tags=["Auth"])
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(req: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    auth_rate_limiter.check(request)
     """
     Ultra-Low Latency Non-Blocking Registration:
     1. Fast DB check & async threadpool bcrypt hash (never blocks event loop)
@@ -90,7 +92,8 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    auth_rate_limiter.check(request)
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
 
