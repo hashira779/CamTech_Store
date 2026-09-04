@@ -221,3 +221,67 @@ docker compose -f docker-compose.prod.yml restart
 ```bash
 python3 scripts/backup_db.py --retention 14 --out-dir /home/ubuntu-server/db_backups
 ```
+
+---
+
+## 7. Remote Database Connection & Management Guide
+
+### 7.1 Production Database Credentials
+Configure your secure production credentials in `/home/ubuntu-server/CamTech_Store/.env`:
+
+```ini
+# PostgreSQL Production Settings
+POSTGRES_USER=camtech_admin
+POSTGRES_PASSWORD=YourStrongGeneratedPassword2026!
+POSTGRES_DB=camtechStore
+POSTGRES_PORT=5432
+POSTGRES_BIND=0.0.0.0
+```
+
+> [!TIP]
+> Setting `POSTGRES_BIND=0.0.0.0` exposes PostgreSQL port `5432` on the network so you can connect from remote GUI clients (DBeaver, TablePlus, pgAdmin).
+
+Apply the new credentials:
+```bash
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### 7.2 Remote GUI Connection (DBeaver, pgAdmin, TablePlus, Navicat)
+
+#### Option A: Direct LAN Connection (from any PC on `10.1.0.x`)
+1. Open port `5432` in Ubuntu firewall:
+   ```bash
+   sudo ufw allow from 10.1.0.0/24 to any port 5432 proto tcp
+   # Or allow all LAN connections:
+   # sudo ufw allow 5432/tcp
+   ```
+2. In DBeaver / pgAdmin / TablePlus, create a new PostgreSQL connection:
+   - **Host / Server**: `10.1.0.11`
+   - **Port**: `5432`
+   - **Database**: `camtechStore` (or your custom `POSTGRES_DB`)
+   - **Username**: `camtech_admin` (or your `POSTGRES_USER`)
+   - **Password**: `YourStrongGeneratedPassword2026!` (or your `POSTGRES_PASSWORD`)
+   - **SSL Mode**: `Prefer` or `Disable`
+3. Click **Test Connection** -> **Connect**.
+
+#### Option B: Secure SSH Tunnel (Works from anywhere, most secure)
+If you prefer to keep port 5432 closed to the outside internet:
+1. Open an SSH tunnel on your local computer:
+   ```bash
+   ssh -L 5432:localhost:5432 ubuntu-server@10.1.0.11
+   ```
+2. In your database tool (DBeaver / TablePlus):
+   - **Host**: `127.0.0.1` (or `localhost`)
+   - **Port**: `5432`
+   - **Database**: `camtechStore`
+   - **Username**: `camtech_admin`
+   - **Password**: your database password
+
+#### Option C: Remote CLI Test via `psql`
+Test connection directly from terminal:
+```bash
+# Connect to production database from remote terminal:
+psql "postgresql://camtech_admin:YourStrongGeneratedPassword2026!@10.1.0.11:5432/camtechStore"
+```
+
