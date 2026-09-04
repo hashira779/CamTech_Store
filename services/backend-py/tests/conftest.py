@@ -1,8 +1,13 @@
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
+from sqlalchemy.pool import NullPool
+from app.core import database
 from app.core.database import engine, Base
 from app.core.db_enums import ENUM_LABELS
+
+# Replace engine pool with NullPool for tests so asyncpg connections never cross event loops
+database.engine.sync_engine.pool = NullPool(database.engine.sync_engine.pool._creator)
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_test_database():
