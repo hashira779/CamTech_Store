@@ -11,11 +11,14 @@ def run_cmd(command: str):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(HOST, username=USER, password=PASSWORD, timeout=15)
     
-    # Prepend sudo if needed
+    # Execute via bash -c for proper pipe and quotation support
     if "sudo" in command and USER != "root":
-        command = f"echo '{PASSWORD}' | sudo -S {command.replace('sudo ', '')}"
+        # Pass sudo password to sudo -S bash -c
+        full_command = f"echo '{PASSWORD}' | sudo -S bash -c {repr(command)}"
+    else:
+        full_command = f"bash -c {repr(command)}"
         
-    stdin, stdout, stderr = ssh.exec_command(command, get_pty=True)
+    stdin, stdout, stderr = ssh.exec_command(full_command, get_pty=True)
     out = stdout.read().decode(errors="replace")
     err = stderr.read().decode(errors="replace")
     ssh.close()
