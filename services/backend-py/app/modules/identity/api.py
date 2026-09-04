@@ -91,13 +91,20 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
     )
 
 
+# Constant-time dummy hash to mitigate user enumeration timing attacks
+_DUMMY_BCRYPT_HASH = "$2b$12$e8uq5eZ5h5W5w7m7q7m7qu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7"
+
 @router.post("/login", response_model=LoginResponse)
 async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     auth_rate_limiter.check(request)
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(req.password, user.password_hash):
+    # Constant-time verification: always perform bcrypt hash check even if user is not found
+    hash_to_verify = user.password_hash if user else _DUMMY_BCRYPT_HASH
+    is_valid = verify_password(req.password, hash_to_verify)
+
+    if not user or not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -137,7 +144,8 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
     )
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+async def refresh_token(req: RefreshTokenRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    auth_rate_limiter.check(request)
     payload = decode_refresh_token(req.refreshToken)
     if not payload or "sub" not in payload:
         raise HTTPException(

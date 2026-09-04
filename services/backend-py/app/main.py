@@ -87,6 +87,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         headers={"X-Request-Id": req_id}
     )
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "code": "INTERNAL_SERVER_ERROR",
+            "message": "An internal server error occurred. Please contact system support.",
+            "requestId": req_id
+        },
+        headers={"X-Request-Id": req_id}
+    )
+
 # ==============================================================================
 # RESPONSE ENVELOPE & PERFORMANCE TIMING MIDDLEWARE
 # ==============================================================================
