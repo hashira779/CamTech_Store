@@ -14,6 +14,11 @@ COPY apps/ ./apps/
 # Install exact dependencies
 RUN pnpm install --frozen-lockfile
 
+ARG VITE_SUPABASE_URL=https://icouardbzhytnozaordc.supabase.co
+ARG VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imljb3VhcmRiemh5dG5vemFvcmRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NzkwNTEsImV4cCI6MjEwMjQ1NTA1MX0.xsEXyGBe0J_3NtRIRPBF_QgwIdkm5wt0uxJNJmRzDpI
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 # Compile and optimize all production frontend bundles
 RUN pnpm build
 
