@@ -106,6 +106,7 @@ services:
       - '127.0.0.1:4002:4002'
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,6 +124,7 @@ services:
       - '127.0.0.1:4003:4003'
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
     depends_on:
       postgres:
         condition: service_healthy
@@ -140,6 +142,7 @@ services:
       - '127.0.0.1:4004:4004'
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,6 +160,7 @@ services:
       - '127.0.0.1:4005:4005'
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,6 +178,7 @@ services:
       - '127.0.0.1:4006:4006'
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
     depends_on:
       postgres:
         condition: service_healthy

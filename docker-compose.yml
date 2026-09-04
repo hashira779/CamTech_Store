@@ -103,6 +103,7 @@ services:
       - '4002:4002'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,6 +121,7 @@ services:
       - '4003:4003'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,6 +139,7 @@ services:
       - '4004:4004'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,6 +157,7 @@ services:
       - '4005:4005'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,6 +175,7 @@ services:
       - '4006:4006'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
     depends_on:
       postgres:
         condition: service_healthy
