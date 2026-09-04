@@ -18,7 +18,7 @@ jobs:
           POSTGRES_PASSWORD: camtech123
           POSTGRES_DB: camtechStore
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
@@ -40,7 +40,7 @@ jobs:
         working-directory: services/backend-py
 
     env:
-      DATABASE_URL: postgresql+asyncpg://camtech:camtech123@127.0.0.1:5432/camtechStore
+      DATABASE_URL: postgresql+asyncpg://camtech:camtech123@127.0.0.1:5433/camtechStore
       REDIS_URL: redis://127.0.0.1:6379/0
       JWT_SECRET: mystore_ci_testing_secret_key_2026
 
@@ -59,9 +59,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify Database Connectivity
+        run: |
+          python -c "import asyncio, asyncpg; asyncio.run(asyncpg.connect('postgresql://camtech:camtech123@127.0.0.1:5433/camtechStore'))"
+
       - name: Run Pytest Test Suite
         run: |
-          python -m pytest -v -o pythonpath=. --tb=short tests
+          python -m pytest -v --tb=short tests
 
   typescript-monorepo:
     name: TypeScript Build & Typecheck

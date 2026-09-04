@@ -38,7 +38,9 @@ async def init_test_database():
                 ON CONFLICT (id) DO NOTHING;
             """))
     except Exception as exc:
-        print(f"[conftest] Note: Test database initialization skipped or already present: {exc}")
+        import traceback
+        traceback.print_exc()
+        raise exc
 
     yield
 
