@@ -9,7 +9,7 @@ async def test_user_management_lifecycle():
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Login as Admin
         admin_login = await client.post("/api/v1/auth/login", json={
-            "email": "admin@camtechstore",
+            "email": "admin@camtech.cam",
             "password": "camtechstore@28022002"
         })
         assert admin_login.status_code == 200
@@ -24,7 +24,7 @@ async def test_user_management_lifecycle():
 
         # 3. Create New Cashier User
         import uuid
-        test_email = f"cashier_{uuid.uuid4().hex[:6]}@camtechstore"
+        test_email = f"cashier_{uuid.uuid4().hex[:6]}@camtech.cam"
         create_payload = {
             "name": "Test Cashier 01",
             "email": test_email,
