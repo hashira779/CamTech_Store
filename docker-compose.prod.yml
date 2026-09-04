@@ -294,6 +294,17 @@ services:
     networks:
       - mystore-net
 
+  # ── CLOUDFLARE ZERO TRUST SECURE TUNNEL ──────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: mystore-cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-eyJhIjoiYTZkNTM1YTYzOWY3ZTk5ZjJlNDkzNGNmZjQ3ZGUyODgiLCJ0IjoiODg2ODgwYTktMWUwYi00ZTAzLThkYTAtNDRiOWVjYmZmOGIwIiwicyI6Ik5XUmlOamd5TWpJdFlXTTJaQzAwTXpBeExUazNNVGN0Wm1KaE1qRXlOek0xTlRJNCJ9}
+    networks:
+      - mystore-net
+    depends_on:
+      - nginx-ingress
+
 volumes:
   pgdata:
   redisdata:

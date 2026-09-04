@@ -27,7 +27,15 @@ import {
 import { Toaster, toast } from 'sonner';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE_URL = (() => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return window.location.origin;
+    }
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:4000';
+})();
 
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (

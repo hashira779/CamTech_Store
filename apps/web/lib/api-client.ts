@@ -150,10 +150,21 @@ import type {
 
 
 
-export const BASE_URL =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
-  (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_API_URL) ||
-  'http://localhost:4000';
+const resolveApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return window.location.origin;
+    }
+  }
+  return (
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
+    (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_API_URL) ||
+    'http://localhost:4000'
+  );
+};
+
+export const BASE_URL = resolveApiBaseUrl();
 export const API = `${BASE_URL}/api/v1`;
 
 /** Error carrying the backend's stable code + requestId (spec §14). */
