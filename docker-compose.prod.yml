@@ -207,7 +207,7 @@ services:
     container_name: mystore-store-app
     restart: always
     ports:
-      - '127.0.0.1:5001:80'
+      - '${STORE_PORT_HOST:-5001}:80'
     networks:
       - mystore-net
 
@@ -219,7 +219,7 @@ services:
     container_name: mystore-admin-app
     restart: always
     ports:
-      - '127.0.0.1:5002:80'
+      - '${ADMIN_PORT_HOST:-5002}:80'
     networks:
       - mystore-net
 
@@ -231,7 +231,7 @@ services:
     container_name: mystore-pos-app
     restart: always
     ports:
-      - '127.0.0.1:5003:80'
+      - '${POS_PORT_HOST:-5003}:80'
     networks:
       - mystore-net
 
@@ -243,7 +243,7 @@ services:
     container_name: mystore-delivery-app
     restart: always
     ports:
-      - '127.0.0.1:5004:80'
+      - '${DELIVERY_PORT_HOST:-5004}:80'
     networks:
       - mystore-net
 
@@ -255,7 +255,7 @@ services:
     container_name: mystore-hr-app
     restart: always
     ports:
-      - '127.0.0.1:5005:80'
+      - '${HR_PORT_HOST:-5005}:80'
     networks:
       - mystore-net
 
@@ -267,7 +267,7 @@ services:
     container_name: mystore-ceo-app
     restart: always
     ports:
-      - '127.0.0.1:5008:80'
+      - '${CEO_PORT_HOST:-5008}:80'
     networks:
       - mystore-net
 
@@ -298,9 +298,8 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: mystore-cloudflared
     restart: always
+    network_mode: host
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-eyJhIjoiYTZkNTM1YTYzOWY3ZTk5ZjJlNDkzNGNmZjQ3ZGUyODgiLCJ0IjoiODg2ODgwYTktMWUwYi00ZTAzLThkYTAtNDRiOWVjYmZmOGIwIiwicyI6Ik5XUmlOamd5TWpJdFlXTTJaQzAwTXpBeExUazNNVGN0Wm1KaE1qRXlOek0xTlRJNCJ9}
-    networks:
-      - mystore-net
     depends_on:
       - nginx-ingress
 
