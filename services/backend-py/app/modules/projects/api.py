@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
-from app.models.entities import Project, Timesheet
+from app.models.entities import Project, Timesheet, ProjectTask
 from .schemas import ProjectDto, TimesheetDto
 
 router = APIRouter(tags=["Projects & Timesheets"])
@@ -36,19 +36,27 @@ async def list_project_timesheets(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Timesheet).where(
-            Timesheet.project_id == project_id,
-            Timesheet.organization_id == user.organization_id
+    proj_res = await db.execute(
+        select(Project).where(
+            Project.id == project_id,
+            Project.organization_id == user.organization_id
         )
+    )
+    if not proj_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    result = await db.execute(
+        select(Timesheet)
+        .join(ProjectTask, Timesheet.task_id == ProjectTask.id)
+        .where(ProjectTask.project_id == project_id)
     )
     timesheets = result.scalars().all()
     return [
         {
             "id": t.id,
-            "projectId": t.project_id,
+            "projectId": project_id,
             "hours": float(t.hours),
-            "description": t.description,
+            "description": t.notes,
             "date": t.date.isoformat() if hasattr(t.date, 'isoformat') else str(t.date)
         } for t in timesheets
     ]

@@ -104,8 +104,8 @@ async def list_promotions(
             "name": p.name,
             "code": p.code,
             "type": p.type,
-            "value": float(p.value),
-            "minSpend": float(p.min_spend),
+            "value": float(p.discount_value),
+            "minSpend": float(p.min_order_amount or 0.0),
             "isActive": p.is_active
         } for p in promos
     ]
@@ -151,7 +151,13 @@ async def get_customer_loyalty(
         "tier": tier,
         "dollarValue": float(LoyaltyCalculator.calculate_redemption_value(points)),
         "history": [
-            {"id": t.id, "points": t.points, "type": t.type, "reference": t.reference, "date": t.created_at.isoformat()}
+            {
+                "id": t.id,
+                "points": t.points,
+                "type": t.type,
+                "reference": t.reference_id or t.reference_type or "",
+                "date": t.created_at.isoformat()
+            }
             for t in txs[:10]
         ]
     }

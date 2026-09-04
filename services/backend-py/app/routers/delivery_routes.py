@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Header, Query
 from app.core.config import settings
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser
 from app.schemas.dto import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
@@ -11,22 +11,29 @@ from app.services.delivery_service import delivery_service
 
 router = APIRouter(prefix="/delivery", tags=["Delivery & Live Fleet Dispatch"])
 
-def resolve_org_id(x_org_id: Optional[str], org_id: Optional[str]) -> str:
-    return x_org_id or org_id or settings.DEFAULT_ORG_ID
+def resolve_org_id(user: Optional[TenantUser]) -> str:
+    """
+    Secure tenant scoping (Spec Golden Rule §3):
+    If user is authenticated, strictly scope to their token's organization_id.
+    Unauthenticated public endpoints are restricted to DEFAULT_ORG_ID.
+    Arbitrary user-provided org headers/queries are never trusted.
+    """
+    if user:
+        return user.organization_id
+    return settings.DEFAULT_ORG_ID
 
 # Public & Fleet Driver Task Endpoints (Spec §45, §161)
 @router.get("/tasks")
 async def list_delivery_tasks(
     status: Optional[str] = None,
     search: Optional[str] = None,
-    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
-    org_id: Optional[str] = Query(None)
+    user: Optional[TenantUser] = Depends(get_optional_user)
 ):
     """
     Courier App & Driver Dispatch Endpoint for apps/delivery (Port 5004).
     Returns real-time tasks dispatched from customer storefront checkout.
     """
-    target_org = resolve_org_id(x_org_id, org_id)
+    target_org = resolve_org_id(user)
     orders = delivery_service.list_orders(org_id=target_org, status=status, search=search)
     return {
         "items": [
@@ -48,41 +55,38 @@ async def list_delivery_tasks(
 
 @router.get("/drivers/public", response_model=List[DeliveryDriverDto])
 async def list_public_drivers(
-    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
-    org_id: Optional[str] = Query(None)
+    user: Optional[TenantUser] = Depends(get_optional_user)
 ):
     """
     Public Fleet Roster for mobile courier apps.
     Returns live telemetry, vehicle type, and battery status.
     """
-    target_org = resolve_org_id(x_org_id, org_id)
+    target_org = resolve_org_id(user)
     return delivery_service.list_drivers(org_id=target_org)
 
 @router.post("/orders/public", response_model=DeliveryOrderDto)
 @router.post("/tasks", response_model=DeliveryOrderDto)
 async def create_public_delivery_order(
     inp: CreateDeliveryOrderInput,
-    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
-    org_id: Optional[str] = Query(None)
+    user: Optional[TenantUser] = Depends(get_optional_user)
 ):
     """
     Live Storefront Checkout Dispatch Endpoint.
     When an order is confirmed in apps/store, this immediately dispatches a live task to apps/delivery.
     """
-    target_org = resolve_org_id(x_org_id, org_id)
+    target_org = resolve_org_id(user)
     return delivery_service.create_order(org_id=target_org, inp=inp)
 
 @router.patch("/tasks/{order_id}/status", response_model=DeliveryOrderDto)
 async def update_delivery_task_status(
     order_id: str,
     inp: UpdateDeliveryStatusInput,
-    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
-    org_id: Optional[str] = Query(None)
+    user: Optional[TenantUser] = Depends(get_optional_user)
 ):
     """
     Allows mobile delivery couriers to update package status (IN_TRANSIT, DELIVERED).
     """
-    target_org = resolve_org_id(x_org_id, org_id)
+    target_org = resolve_org_id(user)
     order = delivery_service.update_order_status(org_id=target_org, order_id=order_id, inp=inp)
     if not order:
         raise HTTPException(

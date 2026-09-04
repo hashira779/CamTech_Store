@@ -30,6 +30,6 @@ async def list_notifications(
             "title": n.title,
             "message": n.message,
             "status": n.status,
-            "sentAt": n.sent_at.isoformat()
+            "sentAt": n.sent_at.isoformat() if n.sent_at else (n.created_at.isoformat() if n.created_at else "")
         } for n in notes
     ]

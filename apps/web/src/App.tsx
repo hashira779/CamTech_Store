@@ -57,25 +57,27 @@ export function App() {
   // 2. Dynamic route-based simulation for local development & DomainBar switcher
   else {
     const p = location.pathname;
-    if (p.startsWith('/pos') || p.startsWith('/sales/new')) {
+    const isPath = (prefix: string) => p === prefix || p.startsWith(`${prefix}/`);
+
+    if (isPath('/pos') || isPath('/sales/new')) {
       CurrentApp = PosApp;
-    } else if (p.startsWith('/driver') || p.startsWith('/delivery')) {
+    } else if (isPath('/driver') || isPath('/delivery')) {
       CurrentApp = DeliveryApp;
-    } else if (p.startsWith('/wms') || p.startsWith('/transfers')) {
+    } else if (isPath('/wms') || isPath('/transfers')) {
       CurrentApp = WarehouseApp;
-    } else if (p.startsWith('/hr')) {
+    } else if (isPath('/hr')) {
       CurrentApp = HrApp;
-    } else if (p.startsWith('/finance') || p.startsWith('/taxes')) {
+    } else if (isPath('/finance') || isPath('/taxes')) {
       CurrentApp = FinanceApp;
-    } else if (p.startsWith('/shop') || p === '/customer' || p.startsWith('/customer/')) {
-      // NOTE: match '/customer' exactly (and its subpaths) so the admin CRM
-      // route '/customers' is NOT swallowed by the customer-portal shell.
+    } else if (isPath('/shop') || isPath('/customer')) {
+      // isPath('/customer') matches '/customer' or '/customer/...' exactly,
+      // preventing admin CRM route '/customers' from being swallowed.
       CurrentApp = CustomerApp;
-    } else if (p.startsWith('/ceo')) {
+    } else if (isPath('/ceo')) {
       CurrentApp = CeoApp;
-    } else if (p.startsWith('/tickets') || p.startsWith('/approvals')) {
+    } else if (isPath('/tickets') || isPath('/approvals')) {
       CurrentApp = SupportApp;
-    } else if (p.startsWith('/developers') || p.startsWith('/automations')) {
+    } else if (isPath('/developers') || isPath('/automations')) {
       CurrentApp = PartnerApp;
     } else {
       CurrentApp = AdminApp;

@@ -14,18 +14,34 @@ class RateLimiter:
         self._requests: Dict[str, List[float]] = defaultdict(list)
 
     def _get_client_identifier(self, request: Request) -> str:
-        # Prefer X-Forwarded-For if behind a reverse proxy (e.g., Nginx)
+        # Nginx sets X-Real-IP directly from the remote client address
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
         forwarded = request.headers.get("X-Forwarded-For")
         if forwarded:
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
+
+    def _cleanup_expired(self, now: float):
+        valid_window_start = now - self.window_seconds
+        expired_keys = [
+            k for k, timestamps in self._requests.items()
+            if not timestamps or timestamps[-1] <= valid_window_start
+        ]
+        for k in expired_keys:
+            del self._requests[k]
 
     def check(self, request: Request):
         now = time.time()
         client_ip = self._get_client_identifier(request)
         key = f"{client_ip}:{request.url.path}"
 
-        # Clean old timestamps outside the sliding window
+        # Prevent unbounded dictionary growth (DoS prevention)
+        if len(self._requests) > 1000:
+            self._cleanup_expired(now)
+
+        # Clean old timestamps outside the sliding window for this key
         valid_window_start = now - self.window_seconds
         self._requests[key] = [t for t in self._requests[key] if t > valid_window_start]
 

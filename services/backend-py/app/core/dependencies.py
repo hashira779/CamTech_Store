@@ -60,3 +60,29 @@ async def get_current_user(
         roles_list = [user.roles] if user.roles else ["CASHIER"]
 
     return TenantUser(user=user, roles=roles_list)
+
+
+async def get_optional_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    token_query: Optional[str] = Query(None, alias="token"),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[TenantUser]:
+    raw_token = auth.credentials if auth and auth.credentials else token_query
+    if not raw_token:
+        return None
+    try:
+        payload = decode_access_token(raw_token)
+        if not payload or "sub" not in payload:
+            return None
+        user_id = payload["sub"]
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            return None
+        try:
+            roles_list = json.loads(user.roles) if isinstance(user.roles, str) else user.roles
+        except Exception:
+            roles_list = [user.roles] if user.roles else ["CASHIER"]
+        return TenantUser(user=user, roles=roles_list)
+    except Exception:
+        return None

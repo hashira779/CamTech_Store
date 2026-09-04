@@ -23,8 +23,8 @@ async def list_stock_transfers(
         {
             "id": t.id,
             "transferNumber": t.transfer_number,
-            "fromLocationId": t.from_location_id,
-            "toLocationId": t.to_location_id,
+            "fromLocationId": t.source_location_id,
+            "toLocationId": t.destination_location_id,
             "status": t.status,
             "createdAt": t.created_at.isoformat()
         } for t in transfers
@@ -48,8 +48,8 @@ async def get_stock_transfer(
     return {
         "id": transfer.id,
         "transferNumber": transfer.transfer_number,
-        "fromLocationId": transfer.from_location_id,
-        "toLocationId": transfer.to_location_id,
+        "fromLocationId": transfer.source_location_id,
+        "toLocationId": transfer.destination_location_id,
         "status": transfer.status,
         "createdAt": transfer.created_at.isoformat()
     }

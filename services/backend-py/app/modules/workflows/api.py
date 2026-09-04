@@ -24,7 +24,7 @@ async def list_approvals(
             "id": r.id,
             "entityType": r.entity_type,
             "entityId": r.entity_id,
-            "stepNumber": r.step_number,
+            "stepNumber": r.current_step,
             "totalSteps": r.total_steps,
             "status": r.status,
             "submittedById": r.submitted_by_id,
@@ -51,6 +51,5 @@ async def sign_approval(
 
     decision = data.decision or "APPROVED"
     req.status = decision
-    req.approved_by_id = user.id
     await db.commit()
     return {"id": req.id, "status": req.status, "approvedBy": user.id}

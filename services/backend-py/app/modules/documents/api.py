@@ -23,11 +23,11 @@ async def list_documents(
     return [
         {
             "id": d.id,
-            "fileName": d.file_name,
+            "fileName": d.filename,
             "mimeType": d.mime_type,
-            "sizeBytes": d.size_bytes,
-            "storagePath": d.storage_path,
-            "createdAt": d.created_at.isoformat()
+            "sizeBytes": d.byte_size,
+            "storagePath": f"{d.bucket}/{d.key}" if d.bucket else d.key,
+            "createdAt": d.created_at.isoformat() if d.created_at else ""
         } for d in docs
     ]
 
