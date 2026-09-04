@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag,
   Search,
@@ -74,6 +74,7 @@ interface ProductItem {
 }
 
 export function App() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [cart, setCart] = useState<Array<ProductItem & { quantity: number }>>([]);
@@ -262,7 +263,23 @@ export function App() {
     }
     setCustomer(null);
     setCart([]);
-    toast.info('Signed out. You can still shop and checkout as a guest!');
+
+    // Clear local storage customer data & auth tokens
+    localStorage.removeItem('camtech_customer_phone');
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-') || key.startsWith('camtech_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Clear React Query cache and session storage
+    sessionStorage.clear();
+    queryClient.clear();
+
+    toast.info('Signed out. Refreshing session...');
+
+    // Hard refresh/reload the page to ensure completely clean cache and memory
+    window.location.href = window.location.origin + window.location.pathname;
   };
 
   // 1. Fetch live products from Central Data Center API
