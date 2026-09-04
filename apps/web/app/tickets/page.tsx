@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { ListSkeleton } from '@/components/page-skeleton';
 import type {
   ServiceTicketDto,
   TicketStatus,
@@ -132,7 +133,7 @@ export default function TicketsPage() {
 
         {/* Tickets Grid */}
         {isLoading ? (
-          <div className="p-12 text-center text-muted-foreground text-sm">Loading tickets...</div>
+          <ListSkeleton count={5} />
         ) : tickets.length === 0 ? (
           <div className="card p-12 text-center border-border">
             <LifeBuoy className="w-10 h-10 text-muted-foreground mx-auto mb-2" />

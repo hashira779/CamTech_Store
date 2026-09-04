@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import type {
   TaxRateDto,
   CreateTaxRateInput,
@@ -234,11 +235,7 @@ export default function TaxesPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {isLoading ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                        Loading tax rates...
-                      </td>
-                    </tr>
+                    <TableSkeletonRows rows={5} cols={6} />
                   ) : taxRates.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-muted-foreground">

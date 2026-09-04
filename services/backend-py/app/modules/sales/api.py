@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
 from app.modules.catalog.models import ProductVariant
+from app.modules.locations.models import Location
 
 from .models import Sale, SaleLineItem, SalePayment
 from .schemas import (
@@ -18,6 +19,22 @@ from .schemas import (
 )
 
 router = APIRouter(tags=["Sales"])
+
+
+def _derive_payment_status(payments, grand_total) -> str:
+    """Payment status from the ACTUAL amount tendered vs the sale total.
+
+    A sale is only PAID once payments cover the grand total; a smaller amount is
+    PARTIAL, and none is PENDING. (Previously any payment marked a sale PAID,
+    so an underpayment looked fully settled — spec §106.)
+    """
+    total_paid = sum((Decimal(str(p.amount)) for p in payments), Decimal("0"))
+    if total_paid <= 0:
+        return "PENDING"
+    if total_paid >= Decimal(str(grand_total)):
+        return "PAID"
+    return "PARTIAL"
+
 
 @router.get("/sales", response_model=PaginatedResponse[SaleDto])
 async def list_sales(
@@ -48,7 +65,7 @@ async def list_sales(
             currency=s.currency,
             itemCount=len(s.line_items),
             customerName=None, # Derived field
-            paymentStatus="PAID" if s.payments else "PENDING",
+            paymentStatus=_derive_payment_status(s.payments, s.grand_total),
             createdAt=s.created_at.isoformat(),
             lineItems=[
                 SaleLineItemDto(
@@ -111,7 +128,7 @@ async def create_sale(
                 currency=existing_sale.currency,
                 itemCount=len(existing_sale.line_items),
                 customerName=sale_in.customerName,
-                paymentStatus="PAID" if existing_sale.payments else "PENDING",
+                paymentStatus=_derive_payment_status(existing_sale.payments, existing_sale.grand_total),
                 createdAt=existing_sale.created_at.isoformat(),
                 lineItems=[
                     SaleLineItemDto(
@@ -137,7 +154,23 @@ async def create_sale(
             )
 
     sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
-    location_id = sale_in.locationId or user.location_id or "loc_main"
+
+    # Location is optional (nullable FK). Use the request's, else the user's
+    # scope, else NULL — never a hardcoded id that would violate the FK. A
+    # supplied/derived location must belong to the caller's org.
+    location_id = sale_in.locationId or user.location_id
+    if location_id:
+        loc = await db.execute(
+            select(Location.id).where(
+                Location.id == location_id,
+                Location.organization_id == user.organization_id,
+            )
+        )
+        if loc.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown or inaccessible location: {location_id}",
+            )
 
     if not sale_in.items:
         raise HTTPException(
@@ -201,6 +234,24 @@ async def create_sale(
 
     grand_total = subtotal + tax_total
 
+    # Build payments up front so the collection is always populated in memory
+    # (even when empty) — otherwise a no-payment sale lazy-loads sale.payments
+    # after commit and raises MissingGreenlet.
+    payment_entities = []
+    for p_in in sale_in.payments:
+        pay_amount = Decimal(str(p_in.amount))
+        if pay_amount <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment amount must be positive",
+            )
+        payment_entities.append(SalePayment(
+            amount=pay_amount,
+            method=p_in.method,
+            status="COMPLETED",
+            reference=p_in.reference
+        ))
+
     sale = Sale(
         organization_id=user.organization_id,
         location_id=location_id,
@@ -215,20 +266,16 @@ async def create_sale(
         grand_total=grand_total,
         currency=sale_in.currency,
         customer_id=sale_in.customerId,
-        line_items=line_entities
+        line_items=line_entities,
+        payments=payment_entities,
     )
-
-    for p_in in sale_in.payments:
-        sale.payments.append(SalePayment(
-            amount=Decimal(str(p_in.amount)),
-            method=p_in.method,
-            status="COMPLETED",
-            reference=p_in.reference
-        ))
 
     db.add(sale)
     await db.commit()
-    await db.refresh(sale)
+    # No refresh(): ids/timestamps use Python-side defaults already set during
+    # flush, and line_items/payments are the in-memory lists we built. Calling
+    # refresh() would expire those collections and trigger a lazy load outside
+    # the async context -> MissingGreenlet.
 
     return SaleDto(
         id=sale.id,
@@ -243,7 +290,7 @@ async def create_sale(
         currency=sale.currency,
         itemCount=len(sale_in.items),
         customerName=sale_in.customerName,
-        paymentStatus="PAID" if sale_in.payments else "PENDING",
+        paymentStatus=_derive_payment_status(sale.payments, sale.grand_total),
         createdAt=sale.created_at.isoformat(),
         lineItems=[
             SaleLineItemDto(

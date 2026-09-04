@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import {
   Coins,
   Plus,
@@ -251,11 +252,7 @@ export default function PricingPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    Loading price lists...
-                  </td>
-                </tr>
+                <TableSkeletonRows rows={5} cols={7} />
               ) : priceListsData?.items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">

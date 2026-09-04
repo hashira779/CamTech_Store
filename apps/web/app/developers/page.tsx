@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ApiClientError } from '@/lib/api-client';
+import { api, ApiClientError, BASE_URL } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import type {
@@ -190,7 +190,7 @@ export default function DevelopersPage() {
 
           <div className="flex items-center gap-2">
             <a
-              href="http://localhost:4000/api/docs"
+              href={`${BASE_URL}/api/docs`}
               target="_blank"
               rel="noreferrer"
               className="btn btn-secondary flex items-center gap-1.5 text-xs py-2"

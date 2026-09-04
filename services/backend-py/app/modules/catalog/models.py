@@ -10,6 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -42,7 +43,7 @@ class Product(Base):
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     category_id = Column("categoryId", String, ForeignKey("categories.id"), nullable=True)
     brand_id = Column("brandId", String, ForeignKey("brands.id"), nullable=True)
-    type = Column(String, default="PHYSICAL", nullable=False)  # ProductType enum
+    type = Column(pg_enum("ProductType"), default="PHYSICAL", nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)

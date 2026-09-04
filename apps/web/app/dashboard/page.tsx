@@ -118,8 +118,8 @@ export default function DashboardPage() {
       const dayRevenue = matchingSales.reduce((acc, curr) => acc + curr.grandTotal, 0);
       result.push({
         date: dateStr,
-        revenue: dayRevenue > 0 ? Math.round(dayRevenue) : Math.round(totalRevenue > 0 ? (totalRevenue / days) * (0.8 + Math.random() * 0.4) : 0),
-        orders: matchingSales.length > 0 ? matchingSales.length : Math.round(Math.max(1, totalOrders / days)),
+        revenue: Math.round(dayRevenue),
+        orders: matchingSales.length,
       });
     }
 
@@ -134,9 +134,9 @@ export default function DashboardPage() {
       counts[ch] = (counts[ch] || 0) + s.grandTotal;
     });
     return [
-      { name: 'POS Terminal', amount: counts.POS || totalRevenue * 0.7 },
-      { name: 'Online / Storefront', amount: counts.ONLINE || totalRevenue * 0.2 },
-      { name: 'B2B Wholesale', amount: counts.B2B || totalRevenue * 0.1 },
+      { name: 'POS Terminal', amount: counts.POS || 0 },
+      { name: 'Online / Storefront', amount: counts.ONLINE || 0 },
+      { name: 'B2B Wholesale', amount: counts.B2B || 0 },
     ];
   }, [completedSales, totalRevenue]);
 

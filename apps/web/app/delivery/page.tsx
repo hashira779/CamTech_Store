@@ -89,6 +89,8 @@ export function DeliveryPage() {
     phone: '',
     vehicleType: 'MOTORCYCLE',
     licensePlate: '',
+    initialLat: 11.5564,
+    initialLng: 104.9282,
   });
 
   const [assignDriverId, setAssignDriverId] = useState<string>('');
@@ -142,6 +144,8 @@ export function DeliveryPage() {
         phone: '',
         vehicleType: 'MOTORCYCLE',
         licensePlate: '',
+        initialLat: 11.5564,
+        initialLng: 104.9282,
       });
     },
   });
@@ -223,71 +227,69 @@ export function DeliveryPage() {
         <PageHeader
           title="Delivery & Fleet Dispatch"
           description="Real-time order fulfillment, live GPS telemetry, and driver dispatch management (Spec §45)"
-          actions={
-            <div className="flex items-center gap-2">
-              <Button
-                variant={isSimulating ? 'destructive' : 'outline'}
-                size="sm"
-                onClick={() => setIsSimulating((s) => !s)}
-                className="gap-1.5 font-medium"
-              >
-                {isSimulating ? (
-                  <>
-                    <Pause className="w-3.5 h-3.5" /> Stop Simulation
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5" /> Simulate Live Movement
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateDriverOpen(true)}
-                className="gap-1.5"
-              >
-                <Truck className="w-3.5 h-3.5" /> Add Driver
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setCreateOrderOpen(true)}
-                className="gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Create Delivery
-              </Button>
-            </div>
-          }
-        />
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isSimulating ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={() => setIsSimulating((s) => !s)}
+              className="gap-1.5 font-medium"
+            >
+              {isSimulating ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" /> Stop Simulation
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" /> Simulate Live Movement
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateDriverOpen(true)}
+              className="gap-1.5"
+            >
+              <Truck className="w-3.5 h-3.5" /> Add Driver
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setCreateOrderOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> Create Delivery
+            </Button>
+          </div>
+        </PageHeader>
 
         {/* ─── KPI Cards ─── */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <KpiCard
             title="Active Deliveries"
             value={activeOrders.length}
-            description={`${pendingOrders.length} orders awaiting dispatch`}
             icon={Navigation}
-            trend={{ value: 12, label: 'vs last week', isPositive: true }}
+            change={12}
+            changeLabel="vs last week"
           />
           <KpiCard
             title="Fleet Units En Route"
             value={`${enRouteDrivers.length} / ${drivers.length}`}
-            description="Active GPS telemetry heartbeats"
             icon={Truck}
-            trend={{ value: 8, label: 'units active', isPositive: true }}
+            change={8}
+            changeLabel="units active"
           />
           <KpiCard
             title="Active COD to Collect"
             value={`$${totalCod.toFixed(2)}`}
-            description="Cash-on-delivery in transit"
             icon={DollarSign}
           />
           <KpiCard
             title="Avg Transit Time"
             value="16.4 min"
-            description="98.2% on-time delivery rate"
             icon={Clock}
-            trend={{ value: 4, label: 'faster delivery', isPositive: true }}
+            change={-4}
+            changeLabel="faster delivery"
           />
         </div>
 

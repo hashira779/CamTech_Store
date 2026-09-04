@@ -16,19 +16,22 @@ This document specifies the enterprise architecture for MyStore: independent mul
                                        ▼
                        API GATEWAY (Port 4000)
               services/backend-py/app/microservices/gateway.py
+              routes EVERY /api/v1 prefix to a service · lazy in-process fallback
                                        │
-        ┌─────────────┬────────────────┼─────────────┬────────────────┬─────────────┐
-        │             │                │             │                │             │
-      Port 4001     Port 4002        Port 4003     Port 4004        Port 4005     Port 4006
-    Auth / User     Catalog &        Orders &      Fleet Delivery   HR & Payroll  Finance &
-      Service       Inventory        POS Sales        Service         Service       Ledger
-        │             │                │             │                │             │
-        └─────────────┴────────────────┼─────────────┴────────────────┴─────────────┘
+   ┌───────────┬───────────┬──────────┼──────────┬───────────┬───────────┬───────────┐
+   │           │           │          │          │           │           │           │
+ Port 4001  Port 4002   Port 4003  Port 4004  Port 4005  Port 4006   Port 4007
+ Auth/User  Catalog &   Orders &   Fleet      HR &       Finance &   Platform &
+ Service    Inventory   POS Sales  Delivery   Payroll    Ledger      Experience*
+   │           │           │          │          │           │           │
+   └───────────┴───────────┴──────────┼──────────┴───────────┴───────────┘
                                        │
                                        ▼
                          ONE CENTRAL DATA CENTER
                       PostgreSQL 16 Enterprise Database
 ```
+
+> *The **Platform & Experience** service (`:4007`) owns every domain that isn't one of the six core services — reporting/BI, workflows, tickets, notifications, projects, documents, automations, industry packs, AI copilot, data exchange, live events (SSE), app registry and the outbox/saga engine. With it, **every** route is owned by a microservice; the gateway's in-process fallback is a safety net, never the primary path.
 
 ---
 
@@ -49,15 +52,18 @@ This document specifies the enterprise architecture for MyStore: independent mul
 
 | Service Name | Port | Dev Script | Responsibilities |
 |---|---|---|---|
-| **API Gateway** | **`4000`** | `pnpm ms:gateway` | Reverse proxy, global CORS, resilient in-process fallback |
+| **API Gateway** | **`4000`** | `pnpm ms:gateway` | Reverse proxy (routes every prefix to a service), global CORS, **lazy** resilient in-process fallback |
 | **Auth & Identity** | **`4001`** | `pnpm ms:auth` | Authentication, JWT, MFA TOTP, organizations, branches |
-| **Catalog & Inventory** | **`4002`** | `pnpm ms:catalog` | Products, variants, categories, inventory, warehouse WMS |
+| **Catalog & Inventory** | **`4002`** | `pnpm ms:catalog` | Products, variants, categories, inventory, warehouse WMS, pricing/taxes |
 | **Sales & POS Orders** | **`4003`** | `pnpm ms:sales` | POS sales, customer checkout, Bakong KHQR, CRM loyalty |
 | **Delivery & Fleet** | **`4004`** | `pnpm ms:delivery` | Driver dispatch, route telemetry, GPS, POD signatures |
 | **HR & Workforce** | **`4005`** | `pnpm ms:hr` | Employee directory, departments, leave, monthly payroll |
-| **Finance & Ledger** | **`4006`** | `pnpm ms:finance` | Chart of accounts, general ledger, fiscal balance sheet |
+| **Finance & Ledger** | **`4006`** | `pnpm ms:finance` | Chart of accounts, general ledger, assets, fiscal balance sheet |
+| **Platform & Experience** | **`4007`** | `pnpm ms:platform` | Reporting/BI, workflows, tickets, notifications, projects, documents, automations, industry, AI, events, outbox |
 | **PostgreSQL 16** | **`5432`** | `pnpm db:up` | Central Data Center: relational persistence & multi-tenant schemas |
 | **Redis 7** | **`6379`** | In Docker | Message broker for asynchronous event queue |
+
+> **Every service shares one enterprise layer.** The `create_microservice()` factory ([`microservices/common.py`](../../services/backend-py/app/microservices/common.py)) applies the same `{success, data, requestId}` response envelope, error handlers, and the full SQLAlchemy model registry to each service — so a response is identical whether it came from a microservice or the fallback, and no service 500s on a cross-module relationship.
 
 ---
 
@@ -91,6 +97,16 @@ If `mystore-store-app`, `mystore-admin-app`, `mystore-delivery-app`, `mystore-hr
 * If the central database (`mystore-postgres`) goes down, the Cashier POS automatically switches to **Offline Autonomous Mode**, saves transactions to its local Outbox Queue, and prints receipts.
 * When the database container comes back online, the POS auto-syncs all queued transactions with zero data loss.
 
+### The Code-Error Isolation Scenario (verified 2026-09-04):
+If a **syntax/import error is introduced into one module** (e.g. the delivery routes):
+* Only that module's service goes down — a broken `delivery` module stops **`:4004`** alone.
+* **The gateway (`:4000`) still boots**, because it imports the in-process fallback **lazily and guarded** (`get_fallback_app()` in `gateway.py`) — a broken module can no longer prevent the whole API from starting.
+* Every other service (`auth`, `catalog`, `sales`, `hr`, `finance`, `platform`) stays **UP**, so **Admin, POS, and all other experiences keep working normally**.
+* The broken route returns a clean `503 SERVICE_UNAVAILABLE` envelope instead of crashing the gateway.
+* Live proof: with delivery deliberately broken, 7/8 services stayed up and `login`/`products`/`customers`/`sales`/`reports` all returned `200`.
+
+> **Frontend equivalent:** the Admin super-app wraps its routed experience in a React **error boundary** ([`apps/web/components/error-boundary.tsx`](../../apps/web/components/error-boundary.tsx)), so a runtime crash in one screen is contained to that panel while the nav and every other route keep working. Standalone apps (`cashier`, `delivery`, `store`) are separate builds/containers and are unaffected by each other entirely.
+
 ---
 
 ## 4. High Concurrency: 10,000 Concurrent Registrations
@@ -117,11 +133,18 @@ Bcrypt password hashing is intentionally CPU-intensive. When 10,000 users regist
 
 ### Development Mode (Local Terminal)
 
-1. **Start the Data Center API Gateway**:
+**Option 1 — Single-process monolith** (simplest; one FastAPI process serves all 26 modules on `:4000`):
    ```powershell
    pnpm py:dev
    ```
-2. **Start any Web Application**:
+
+**Option 2 — Full microservices** (gateway + all 7 services on `:4000`–`:4007`):
+   ```powershell
+   pnpm ms:all
+   ```
+   Frontends need no change — they still call `:4000`. To go back to the monolith, use `pnpm py:dev`.
+
+Then start any Web Application:
    * Store: `pnpm store:dev` (Port 5001)
    * Admin: `pnpm admin:dev` (Port 5002)
    * Cashier POS: `pnpm cashier:dev` (Port 5003)

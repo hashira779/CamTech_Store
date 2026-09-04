@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { ListSkeleton } from '@/components/page-skeleton';
 import type {
   NotificationRecordDto,
   NotificationConfigDto,
@@ -302,9 +303,7 @@ export default function NotificationsPage() {
         {activeTab !== 'CONFIG' && (
           <div className="space-y-3">
             {isLoading ? (
-              <div className="card p-8 border-border bg-card text-center text-muted-foreground text-xs">
-                Loading notifications feed...
-              </div>
+              <ListSkeleton count={5} />
             ) : notifications.length === 0 ? (
               <div className="card p-8 border-border bg-card text-center text-muted-foreground text-xs">
                 No notifications found in this view.

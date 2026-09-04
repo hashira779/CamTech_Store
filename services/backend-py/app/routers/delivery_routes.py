@@ -1,5 +1,6 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header, Query
+from app.core.config import settings
 from app.core.dependencies import get_current_user, TenantUser
 from app.schemas.dto import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
@@ -9,6 +10,86 @@ from app.schemas.dto import (
 from app.services.delivery_service import delivery_service
 
 router = APIRouter(prefix="/delivery", tags=["Delivery & Live Fleet Dispatch"])
+
+def resolve_org_id(x_org_id: Optional[str], org_id: Optional[str]) -> str:
+    return x_org_id or org_id or settings.DEFAULT_ORG_ID
+
+# Public & Fleet Driver Task Endpoints (Spec §45, §161)
+@router.get("/tasks")
+async def list_delivery_tasks(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
+    org_id: Optional[str] = Query(None)
+):
+    """
+    Courier App & Driver Dispatch Endpoint for apps/delivery (Port 5004).
+    Returns real-time tasks dispatched from customer storefront checkout.
+    """
+    target_org = resolve_org_id(x_org_id, org_id)
+    orders = delivery_service.list_orders(org_id=target_org, status=status, search=search)
+    return {
+        "items": [
+            {
+                "id": o.id,
+                "trackingNumber": o.trackingNumber,
+                "recipientName": o.recipientName,
+                "recipientPhone": o.recipientPhone,
+                "destinationAddress": o.deliveryAddress,
+                "status": o.status,
+                "codAmount": float(o.codAmount or 0.0),
+                "paymentMethod": "CASH_ON_DELIVERY" if (o.codAmount and float(o.codAmount) > 0) else "PAID_KHQR",
+                "notes": o.notes or ""
+            }
+            for o in orders
+        ],
+        "total": len(orders)
+    }
+
+@router.get("/drivers/public", response_model=List[DeliveryDriverDto])
+async def list_public_drivers(
+    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
+    org_id: Optional[str] = Query(None)
+):
+    """
+    Public Fleet Roster for mobile courier apps.
+    Returns live telemetry, vehicle type, and battery status.
+    """
+    target_org = resolve_org_id(x_org_id, org_id)
+    return delivery_service.list_drivers(org_id=target_org)
+
+@router.post("/orders/public", response_model=DeliveryOrderDto)
+@router.post("/tasks", response_model=DeliveryOrderDto)
+async def create_public_delivery_order(
+    inp: CreateDeliveryOrderInput,
+    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
+    org_id: Optional[str] = Query(None)
+):
+    """
+    Live Storefront Checkout Dispatch Endpoint.
+    When an order is confirmed in apps/store, this immediately dispatches a live task to apps/delivery.
+    """
+    target_org = resolve_org_id(x_org_id, org_id)
+    return delivery_service.create_order(org_id=target_org, inp=inp)
+
+@router.patch("/tasks/{order_id}/status", response_model=DeliveryOrderDto)
+async def update_delivery_task_status(
+    order_id: str,
+    inp: UpdateDeliveryStatusInput,
+    x_org_id: Optional[str] = Header(None, alias="X-Organization-Id"),
+    org_id: Optional[str] = Query(None)
+):
+    """
+    Allows mobile delivery couriers to update package status (IN_TRANSIT, DELIVERED).
+    """
+    target_org = resolve_org_id(x_org_id, org_id)
+    order = delivery_service.update_order_status(org_id=target_org, order_id=order_id, inp=inp)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status transition or order not found: {order_id}"
+        )
+    return order
 
 @router.get("/orders", response_model=List[DeliveryOrderDto])
 async def list_delivery_orders(
@@ -138,3 +219,4 @@ async def get_live_tracking_snapshot(
     Returns real-time snapshot of all active drivers and in-transit orders for the live map.
     """
     return delivery_service.get_live_tracking_snapshot(org_id=user.organization_id)
+

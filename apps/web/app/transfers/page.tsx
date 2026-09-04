@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import type {
   StockTransferDto,
   StockTransferStatus,
@@ -282,11 +283,7 @@ export default function TransfersPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                      Loading transfers...
-                    </td>
-                  </tr>
+                  <TableSkeletonRows rows={6} cols={6} />
                 ) : transfers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-muted-foreground">

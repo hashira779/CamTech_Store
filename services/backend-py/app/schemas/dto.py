@@ -352,8 +352,8 @@ class CreateDeliveryOrderInput(BaseModel):
     recipientName: str
     recipientPhone: str
     deliveryAddress: str
-    destLat: float
-    destLng: float
+    destLat: Optional[float] = 11.5564
+    destLng: Optional[float] = 104.9282
     saleId: Optional[str] = None
     codAmount: Optional[float] = 0.0
     deliveryFee: Optional[float] = 2.50

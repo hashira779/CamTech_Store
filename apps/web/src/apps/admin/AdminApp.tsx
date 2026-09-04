@@ -34,43 +34,47 @@ const TelegramPage = lazy(() => import('@/app/telegram/page'));
 const AutomationsPage = lazy(() => import('@/app/automations/page'));
 const SettingsPage = lazy(() => import('@/app/settings/page'));
 
+import { PageSkeleton } from '@/components/page-skeleton';
+
 export function AdminApp() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/products" element={<ProductsPage />} />
-      <Route path="/locations" element={<LocationsPage />} />
-      <Route path="/inventory" element={<InventoryPage />} />
-      <Route path="/transfers" element={<TransfersPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/taxes" element={<TaxesPage />} />
-      <Route path="/promotions" element={<PromotionsPage />} />
-      <Route path="/sales" element={<SalesPage />} />
-      <Route path="/sales/new" element={<NewSalePage />} />
-      <Route path="/customers" element={<CustomersPage />} />
-      <Route path="/loyalty" element={<LoyaltyPage />} />
-      <Route path="/storage" element={<StoragePage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/approvals" element={<ApprovalsPage />} />
-      <Route path="/finance" element={<FinancePage />} />
-      <Route path="/procurement" element={<ProcurementPage />} />
-      <Route path="/delivery" element={<DeliveryPage />} />
-      <Route path="/driver" element={<DriverAppPage />} />
-      <Route path="/shop" element={<CustomerShopPage />} />
-      <Route path="/customer" element={<CustomerPortalPage />} />
-      <Route path="/hr" element={<HrPage />} />
-      <Route path="/projects" element={<ProjectsPage />} />
-      <Route path="/tickets" element={<TicketsPage />} />
-      <Route path="/assets" element={<AssetsPage />} />
-      <Route path="/developers" element={<DevelopersPage />} />
-      <Route path="/telegram" element={<TelegramPage />} />
-      <Route path="/automations" element={<AutomationsPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<PageSkeleton variant="table" />}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/locations" element={<LocationsPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/transfers" element={<TransfersPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/taxes" element={<TaxesPage />} />
+        <Route path="/promotions" element={<PromotionsPage />} />
+        <Route path="/sales" element={<SalesPage />} />
+        <Route path="/sales/new" element={<NewSalePage />} />
+        <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/loyalty" element={<LoyaltyPage />} />
+        <Route path="/storage" element={<StoragePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/approvals" element={<ApprovalsPage />} />
+        <Route path="/finance" element={<FinancePage />} />
+        <Route path="/procurement" element={<ProcurementPage />} />
+        <Route path="/delivery" element={<DeliveryPage />} />
+        <Route path="/driver" element={<DriverAppPage />} />
+        <Route path="/shop" element={<CustomerShopPage />} />
+        <Route path="/customer" element={<CustomerPortalPage />} />
+        <Route path="/hr" element={<HrPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/tickets" element={<TicketsPage />} />
+        <Route path="/assets" element={<AssetsPage />} />
+        <Route path="/developers" element={<DevelopersPage />} />
+        <Route path="/telegram" element={<TelegramPage />} />
+        <Route path="/automations" element={<AutomationsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

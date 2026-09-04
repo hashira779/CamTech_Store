@@ -5,8 +5,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from app.core.config import settings
 
-# Import local fallback routers so Gateway always works even if individual microservice processes aren't spun up yet
-from app.main import app as fallback_app
+# The in-process fallback (the full monolith) is imported LAZILY and guarded, so a
+# syntax/import error in ANY single module can never stop the gateway from booting.
+# Without this, `from app.main import app` at startup couples the gateway's health to
+# every module compiling — one broken file would take :4000 (the whole API) down.
+_fallback_app = None
+_fallback_import_failed = False
+
+
+def get_fallback_app():
+    global _fallback_app, _fallback_import_failed
+    if _fallback_app is None and not _fallback_import_failed:
+        try:
+            from app.main import app as fb
+            _fallback_app = fb
+        except Exception as exc:  # a broken module must not crash the gateway
+            _fallback_import_failed = True
+            print(f"[gateway] in-process fallback unavailable (a module failed to import): {exc}")
+    return _fallback_app
 
 gateway = FastAPI(
     title="MyStore Universal Enterprise API Gateway (Port 4000)",
@@ -29,20 +45,31 @@ gateway.add_middleware(
 import os
 
 # Routing Table: URL Prefix -> Target Microservice Port (Environment-aware for Docker)
+CATALOG = os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002")
+AUTH = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001")
+SALES = os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003")
+# Platform & Experience service owns every domain not carved into a core service.
+PLATFORM_SERVICE_URL = os.getenv("PLATFORM_SERVICE_URL", "http://127.0.0.1:4007")
+
 ROUTING_MAP = {
-    "/api/v1/auth": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
-    "/api/v1/organizations": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
-    "/api/v1/locations": os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001"),
-    "/api/v1/products": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
-    "/api/v1/categories": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
-    "/api/v1/brands": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
-    "/api/v1/inventory": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
-    "/api/v1/warehouse": os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002"),
-    "/api/v1/sales": os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003"),
-    "/api/v1/customers": os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003"),
+    "/api/v1/auth": AUTH,
+    "/api/v1/organizations": AUTH,
+    "/api/v1/locations": AUTH,
+    "/api/v1/products": CATALOG,
+    "/api/v1/categories": CATALOG,
+    "/api/v1/brands": CATALOG,
+    "/api/v1/inventory": CATALOG,
+    "/api/v1/warehouse": CATALOG,
+    "/api/v1/pricing": CATALOG,
+    "/api/v1/taxes": CATALOG,
+    "/api/v1/sales": SALES,
+    "/api/v1/customers": SALES,
+    "/api/v1/loyalty": SALES,
     "/api/v1/delivery": os.getenv("DELIVERY_SERVICE_URL", "http://127.0.0.1:4004"),
     "/api/v1/hr": os.getenv("HR_SERVICE_URL", "http://127.0.0.1:4005"),
     "/api/v1/finance": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
+    "/api/v1/accounts": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
+    "/api/v1/assets": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
 }
 
 http_client = httpx.AsyncClient(timeout=15.0)
@@ -61,6 +88,7 @@ async def gateway_health():
             "delivery": "http://localhost:4004",
             "hr": "http://localhost:4005",
             "finance": "http://localhost:4006",
+            "platform": "http://localhost:4007",
         },
         "mode": "Dynamic Reverse Proxy with In-Process Resilient Fallback"
     }
@@ -75,6 +103,12 @@ async def route_gateway(request: Request, path: str):
         if full_path.startswith(prefix):
             target_base = target_url
             break
+
+    # Every other /api/v1 route is owned by the Platform & Experience service, so
+    # traffic always lands on a microservice — the in-process fallback below is a
+    # safety net, never the primary path.
+    if target_base is None and full_path.startswith("/api/v1"):
+        target_base = PLATFORM_SERVICE_URL
 
     # 2. If matching microservice found, attempt proxying
     if target_base:
@@ -104,15 +138,29 @@ async def route_gateway(request: Request, path: str):
             # If target microservice is offline, gracefully fall through to in-process fallback
             pass
 
-    # 3. Resilient In-Process Fallback: Execute via canonical local router
-    # This guarantees the gateway is 100% operational regardless of how services are started
+    # 3. Resilient In-Process Fallback: Execute via canonical local router.
+    # Loaded lazily — if a module is broken the fallback is simply unavailable for
+    # THAT route, while every healthy service (and the gateway itself) keeps serving.
+    fallback_app = get_fallback_app()
+    if fallback_app is None:
+        import json as _json
+        return Response(
+            content=_json.dumps({
+                "success": False,
+                "code": "SERVICE_UNAVAILABLE",
+                "message": "This route's service is unavailable and the in-process fallback could not load.",
+            }).encode("utf-8"),
+            status_code=503,
+            media_type="application/json",
+        )
+
     scope = request.scope
     receive = request.receive
-    
+
     response_body = []
     response_status = 200
     response_headers = []
-    
+
     async def send(message):
         nonlocal response_status, response_headers, response_body
         if message["type"] == "http.response.start":
@@ -120,7 +168,7 @@ async def route_gateway(request: Request, path: str):
             response_headers = message.get("headers", [])
         elif message["type"] == "http.response.body":
             response_body.append(message.get("body", b""))
-            
+
     await fallback_app(scope, receive, send)
     
     headers_dict = {k.decode("latin1"): v.decode("latin1") for k, v in response_headers}

@@ -26,9 +26,11 @@ export function DomainBar() {
     { id: 'admin', domain: 'admin.camtech.cam', route: '/dashboard', exp: 'EXECUTIVE' },
   ];
 
-  // Detect current domain from path
+  // Detect current domain from path. Use a path-boundary match (`route + '/'`) so
+  // a route like '/customer' does NOT greedily swallow the admin '/customers' page.
   const currentApp =
-    domainApps.find((d) => location.pathname === d.route || (d.route !== '/dashboard' && d.route !== '/ceo' && location.pathname.startsWith(d.route))) ||
+    domainApps.find((d) => location.pathname === d.route || (d.route !== '/dashboard' && d.route !== '/ceo' && location.pathname.startsWith(d.route + '/'))) ||
+    domainApps.find((d) => d.id === 'admin') ||
     domainApps[0];
 
   const handleDomainSelect = (app: (typeof domainApps)[0]) => {

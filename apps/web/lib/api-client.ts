@@ -150,11 +150,11 @@ import type {
 
 
 
-const BASE_URL =
+export const BASE_URL =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
   (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_API_URL) ||
   'http://localhost:4000';
-const API = `${BASE_URL}/api/v1`;
+export const API = `${BASE_URL}/api/v1`;
 
 /** Error carrying the backend's stable code + requestId (spec §14). */
 export class ApiClientError extends Error {
@@ -273,12 +273,24 @@ export const api = {
   getSale: (token: string, id: string) =>
     request<SaleDto>(`/sales/${id}`, { token }),
 
-  createSale: (token: string, input: CreateSaleInput) =>
-    request<SaleDto>('/sales', {
+  createSale: (token: string, input: CreateSaleInput) => {
+    // The canonical Python backend expects `items: [{ variantId, quantity }]`,
+    // while the shared contract still uses `lineItems: [{ productVariantId }]`.
+    // Adapt at the boundary so POS checkout works until the contract is
+    // reconciled with the backend. Price/tax are resolved server-side.
+    const body = {
+      ...input,
+      items: (input.lineItems ?? []).map((li) => ({
+        variantId: li.productVariantId,
+        quantity: li.quantity,
+      })),
+    };
+    return request<SaleDto>('/sales', {
       method: 'POST',
       token,
-      body: JSON.stringify(input),
-    }),
+      body: JSON.stringify(body),
+    });
+  },
 
   syncSalesBatch: (token: string, input: SyncBatchRequest) =>
     request<SyncBatchResponseDto>('/sales/sync-batch', {

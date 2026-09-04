@@ -64,6 +64,7 @@ services:
       - DELIVERY_SERVICE_URL=http://delivery-service:4004
       - HR_SERVICE_URL=http://hr-service:4005
       - FINANCE_SERVICE_URL=http://finance-service:4006
+      - PLATFORM_SERVICE_URL=http://platform-service:4007
     depends_on:
       postgres:
         condition: service_healthy
@@ -170,6 +171,24 @@ services:
       - '4006:4006'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  platform-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-platform-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.platform_service:app --host 0.0.0.0 --port 4007
+    ports:
+      - '4007:4007'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
     depends_on:
       postgres:
         condition: service_healthy

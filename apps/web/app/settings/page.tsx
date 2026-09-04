@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Settings,
   Building,
@@ -126,7 +127,24 @@ export default function SettingsPage() {
         )}
 
         {isLoading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Loading organization settings...</div>
+          <div className="space-y-6">
+            <div className="card p-5 border-border space-y-4">
+              <Skeleton className="h-5 w-40 rounded" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Skeleton className="h-10 rounded-lg" />
+                <Skeleton className="h-10 rounded-lg" />
+                <Skeleton className="h-10 rounded-lg" />
+              </div>
+            </div>
+            <div className="card p-5 border-border space-y-4">
+              <Skeleton className="h-5 w-48 rounded" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Skeleton className="h-10 rounded-lg" />
+                <Skeleton className="h-10 rounded-lg" />
+                <Skeleton className="h-10 rounded-lg" />
+              </div>
+            </div>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6 text-xs">
             {/* Organization Identity Card */}

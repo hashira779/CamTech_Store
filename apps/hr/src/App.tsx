@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
 interface Employee {
   id: string;
   name: string;
@@ -28,28 +30,21 @@ interface Employee {
   status: 'ACTIVE' | 'ON_LEAVE';
 }
 
-const FALLBACK_EMPLOYEES: Employee[] = [
-  { id: 'emp-01', name: 'Kosal Vann', email: 'kosal.v@camtech.cam', department: 'Engineering & IT', position: 'Principal Software Architect', baseSalary: 4500.00, status: 'ACTIVE' },
-  { id: 'emp-02', name: 'Sophea Noun', email: 'sophea.n@camtech.cam', department: 'Retail Operations', position: 'Retail Operations Lead', baseSalary: 2200.00, status: 'ACTIVE' },
-  { id: 'emp-03', name: 'Rathana Lim', email: 'rathana.l@camtech.cam', department: 'Finance & Accounting', position: 'Senior Financial Controller', baseSalary: 2800.00, status: 'ACTIVE' },
-  { id: 'emp-04', name: 'Meng Chhay', email: 'meng.c@camtech.cam', department: 'Supply Chain & Fleet', position: 'Fleet Logistics Coordinator', baseSalary: 1800.00, status: 'ACTIVE' },
-];
-
 export function App() {
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [isPayrollRunning, setIsPayrollRunning] = useState(false);
 
   // Fetch live employees from Central Data Center API
-  const { data: serverEmployees, refetch } = useQuery({
+  const { data: serverEmployees, isLoading: isEmployeesLoading, refetch } = useQuery({
     queryKey: ['hr-live-employees'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/v1/hr/employees');
+        const res = await fetch(`${API_BASE_URL}/api/v1/hr/employees`);
         if (!res.ok) throw new Error('API offline');
         const json = await res.json();
         const items = json.data?.items || json.items || json.data || [];
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           return items.map((e: any) => ({
             id: e.id,
             name: `${e.firstName || e.first_name || ''} ${e.lastName || e.last_name || ''}`.trim() || e.name || 'Staff Member',
@@ -60,14 +55,14 @@ export function App() {
             status: (e.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'ACTIVE') as 'ACTIVE' | 'ON_LEAVE'
           }));
         }
-        return FALLBACK_EMPLOYEES;
+        return [];
       } catch {
-        return FALLBACK_EMPLOYEES;
+        return [];
       }
     }
   });
 
-  const employees: Employee[] = serverEmployees || FALLBACK_EMPLOYEES;
+  const employees: Employee[] = serverEmployees || [];
 
   const totalPayroll = employees.reduce((sum, e) => sum + e.baseSalary, 0);
 
@@ -94,10 +89,10 @@ export function App() {
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white text-xs py-1.5 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="bg-black/20 px-2 py-0.5 rounded text-[10px] font-mono">PORT 5005</span>
+          <span className="bg-black/20 px-2 py-0.5 rounded text-[10px] font-mono">HR OPERATIONS</span>
           <span>CamTech People & Workforce Operations Console</span>
         </div>
-        <span className="text-[11px] text-purple-200">Central Data Center: localhost:4000</span>
+        <span className="text-[11px] text-purple-200">Central Data Center Connected</span>
       </div>
 
       {/* Navigation Header */}
@@ -141,7 +136,11 @@ export function App() {
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
               <Users className="w-4 h-4 text-purple-400" /> Total Active Staff
             </span>
-            <p className="text-2xl font-extrabold text-white mt-2 font-mono">{employees.length}</p>
+            {isEmployeesLoading ? (
+              <div className="h-8 w-16 bg-slate-800 rounded-lg animate-pulse mt-2" />
+            ) : (
+              <p className="text-2xl font-extrabold text-white mt-2 font-mono">{employees.length}</p>
+            )}
             <span className="text-[10px] text-emerald-400 mt-1 block">100% Retained</span>
           </div>
 
@@ -149,7 +148,11 @@ export function App() {
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-emerald-400" /> Monthly Base Payroll
             </span>
-            <p className="text-2xl font-extrabold text-emerald-400 mt-2 font-mono">${totalPayroll.toLocaleString()}</p>
+            {isEmployeesLoading ? (
+              <div className="h-8 w-28 bg-slate-800 rounded-lg animate-pulse mt-2" />
+            ) : (
+              <p className="text-2xl font-extrabold text-emerald-400 mt-2 font-mono">${totalPayroll.toLocaleString()}</p>
+            )}
             <span className="text-[10px] text-slate-500 mt-1 block">Due 28th of each month</span>
           </div>
 
@@ -213,44 +216,81 @@ export function App() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
-              {filtered.map((emp) => (
-                <tr key={emp.id} className="hover:bg-slate-800/40 transition">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold font-mono">
-                        {emp.name.split(' ').map(n => n[0]).join('')}
+              {isEmployeesLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-slate-800" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 w-32 bg-slate-800 rounded" />
+                          <div className="h-3 w-40 bg-slate-800/60 rounded" />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-white text-sm">{emp.name}</p>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-500" />
-                          {emp.email}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <p className="font-medium text-slate-200">{emp.position}</p>
-                    <p className="text-[11px] text-slate-500">{emp.department}</p>
-                  </td>
-                  <td className="py-4 px-6 font-mono font-bold text-emerald-400 text-sm">
-                    ${emp.baseSalary.toFixed(2)}/mo
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      {emp.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    <button
-                      onClick={() => toast.info(`Viewing details for ${emp.name}`)}
-                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
-                    >
-                      Profile
-                    </button>
+                    </td>
+                    <td className="py-4 px-6 space-y-1.5">
+                      <div className="h-4 w-28 bg-slate-800 rounded" />
+                      <div className="h-3 w-20 bg-slate-800/60 rounded" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-5 w-24 bg-slate-800 rounded" />
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-5 w-16 bg-slate-800 rounded-full" />
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="h-7 w-16 bg-slate-800 rounded-lg ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-500">
+                    <Users className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+                    <p className="font-semibold text-slate-400">No personnel records found</p>
+                    <p className="text-[11px] text-slate-600 mt-0.5">Records will appear as employees are onboarded from Central HR database.</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((emp) => (
+                  <tr key={emp.id} className="hover:bg-slate-800/40 transition">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold font-mono">
+                          {emp.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">{emp.name}</p>
+                          <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Mail className="w-3 h-3 text-slate-500" />
+                            {emp.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <p className="font-medium text-slate-200">{emp.position}</p>
+                      <p className="text-[11px] text-slate-500">{emp.department}</p>
+                    </td>
+                    <td className="py-4 px-6 font-mono font-bold text-emerald-400 text-sm">
+                      ${emp.baseSalary.toFixed(2)}/mo
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {emp.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <button
+                        onClick={() => toast.info(`Viewing details for ${emp.name}`)}
+                        className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
+                      >
+                        Profile
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

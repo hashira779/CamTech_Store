@@ -7,11 +7,29 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
 )
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 def gen_id():
     return str(uuid.uuid4())
+
+# The DB defines these as native Postgres ENUM types (created by the original
+# schema). Binding the columns to the existing types (create_type=False) makes
+# SQLAlchemy emit the required cast on insert instead of sending a bare varchar,
+# which Postgres rejects with DatatypeMismatchError.
+SaleStatusEnum = PgEnum(
+    "DRAFT", "COMPLETED", "VOIDED", "REFUNDED", "PARTIALLY_REFUNDED",
+    name="SaleStatus", create_type=False,
+)
+PaymentMethodEnum = PgEnum(
+    "CASH", "CARD", "QR", "BANK_TRANSFER", "WALLET", "CREDIT", "OTHER",
+    name="PaymentMethod", create_type=False,
+)
+PaymentStatusEnum = PgEnum(
+    "PENDING", "COMPLETED", "FAILED", "REFUNDED",
+    name="PaymentStatus", create_type=False,
+)
 
 class Sale(Base):
     __tablename__ = "sales"
@@ -24,7 +42,7 @@ class Sale(Base):
     idempotency_key = Column("idempotencyKey", String, unique=True, nullable=True)
     sale_number = Column("saleNumber", String, nullable=False)
     channel = Column(String, default="POS", nullable=False)
-    status = Column(String, default="DRAFT", nullable=False)  # SaleStatus enum
+    status = Column(SaleStatusEnum, default="DRAFT", nullable=False)
     subtotal = Column(Numeric(14, 4), nullable=False)
     discount_total = Column("discountTotal", Numeric(14, 4), default=0.0, nullable=False)
     tax_total = Column("taxTotal", Numeric(14, 4), default=0.0, nullable=False)
@@ -63,8 +81,8 @@ class SalePayment(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     sale_id = Column("saleId", String, ForeignKey("sales.id"), nullable=False)
-    method = Column(String, nullable=False)  # PaymentMethod enum
-    status = Column(String, default="COMPLETED", nullable=False)  # PaymentStatus enum
+    method = Column(PaymentMethodEnum, nullable=False)
+    status = Column(PaymentStatusEnum, default="COMPLETED", nullable=False)
     provider = Column(String, nullable=True)
     amount = Column(Numeric(14, 4), nullable=False)
     reference = Column(String, nullable=True)

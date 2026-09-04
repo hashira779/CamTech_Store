@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -32,7 +33,7 @@ class StockMovement(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     inventory_item_id = Column("inventoryItemId", String, ForeignKey("inventory_items.id"), nullable=False)
-    type = Column(String, nullable=False)  # StockMovementType enum
+    type = Column(pg_enum("StockMovementType"), nullable=False)
     quantity = Column(Numeric(14, 4), nullable=False)
     balance_after = Column("balanceAfter", Numeric(14, 4), nullable=False)
     reference_type = Column("referenceType", String, nullable=True)

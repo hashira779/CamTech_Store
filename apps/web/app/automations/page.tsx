@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ApiClientError } from '@/lib/api-client';
+import { api, ApiClientError, BASE_URL } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import type {
@@ -216,7 +216,7 @@ export default function AutomationsPage() {
   };
 
   const copyWebhookUrl = (flowId: string) => {
-    const url = `http://localhost:4000/api/v1/flows/${flowId}/webhook`;
+    const url = `${BASE_URL}/api/v1/flows/${flowId}/webhook`;
     navigator.clipboard.writeText(url);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
@@ -488,7 +488,7 @@ export default function AutomationsPage() {
                     <Globe className="w-4 h-4 text-primary shrink-0" />
                     <span className="text-muted-foreground shrink-0">Inbound Webhook Endpoint:</span>
                     <span className="font-mono text-primary font-semibold truncate select-all">
-                      http://localhost:4000/api/v1/flows/{activeFlow.id}/webhook
+                      {BASE_URL}/api/v1/flows/{activeFlow.id}/webhook
                     </span>
                   </div>
                   <button

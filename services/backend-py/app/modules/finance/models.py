@@ -11,6 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -22,7 +23,7 @@ class Account(Base):
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     code = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    type = Column(String, nullable=False)  # AccountType enum
+    type = Column(pg_enum("AccountType"), nullable=False)
     currency = Column(String, default="USD", nullable=False)
     description = Column(String, nullable=True)
     is_system = Column("isSystem", Boolean, default=False, nullable=False)
@@ -38,7 +39,7 @@ class AccountingPeriod(Base):
     name = Column(String, nullable=False)
     start_date = Column("startDate", DateTime, nullable=False)
     end_date = Column("endDate", DateTime, nullable=False)
-    status = Column(String, default="OPEN", nullable=False)
+    status = Column(pg_enum("AccountingPeriodStatus"), default="OPEN", nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
 
@@ -49,10 +50,10 @@ class JournalEntry(Base):
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     entry_number = Column("entryNumber", String, nullable=False)
     posting_date = Column("postingDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    source_type = Column("sourceType", String, default="MANUAL", nullable=False)
+    source_type = Column("sourceType", pg_enum("JournalSourceType"), default="MANUAL", nullable=False)
     source_id = Column("sourceId", String, nullable=True)
     description = Column(String, nullable=False)
-    status = Column(String, default="DRAFT", nullable=False)
+    status = Column(pg_enum("JournalEntryStatus"), default="DRAFT", nullable=False)
     period_id = Column("periodId", String, nullable=True)
     created_by_id = Column("createdById", String, nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -85,10 +86,10 @@ class FixedAsset(Base):
     purchase_cost = Column("purchaseCost", Numeric(14, 4), nullable=False)
     salvage_value = Column("salvageValue", Numeric(14, 4), default=0.0, nullable=False)
     useful_life_months = Column("usefulLifeMonths", Integer, default=60, nullable=False)
-    depreciation_method = Column("depreciationMethod", String, default="STRAIGHT_LINE", nullable=False)
+    depreciation_method = Column("depreciationMethod", pg_enum("DepreciationMethod"), default="STRAIGHT_LINE", nullable=False)
     accumulated_deprec = Column("accumulatedDeprec", Numeric(14, 4), default=0.0, nullable=False)
     current_book_value = Column("currentBookValue", Numeric(14, 4), nullable=False)
-    status = Column(String, default="ACTIVE", nullable=False)
+    status = Column(pg_enum("AssetStatus"), default="ACTIVE", nullable=False)
     location_id = Column("locationId", String, nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)

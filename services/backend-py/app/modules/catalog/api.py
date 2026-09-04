@@ -22,6 +22,54 @@ router = APIRouter(tags=["Catalog"])
 # PRODUCTS
 # ==============================================================================
 
+@router.get("/public/products", response_model=PaginatedResponse[ProductDto])
+async def list_public_products(
+    search: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    """Public customer storefront catalog endpoint (§161, §228).
+    Does not require enterprise login. Sanitizes internal margins/cost prices.
+    """
+    stmt = select(Product).options(selectinload(Product.variants))
+    if search:
+        stmt = stmt.where(Product.name.ilike(f"%{search}%"))
+    stmt = stmt.limit(limit).offset((page - 1) * limit)
+
+    result = await db.execute(stmt)
+    products = result.scalars().all()
+
+    out = []
+    for p in products:
+        out.append(ProductDto(
+            id=p.id,
+            organizationId=p.organization_id or "default",
+            name=p.name,
+            description=p.description,
+            categoryId=p.category_id,
+            brandId=p.brand_id,
+            type="PHYSICAL",
+            isActive=True,
+            variants=[
+                VariantDto(
+                    id=v.id,
+                    productId=v.product_id,
+                    sku=v.sku,
+                    name=v.name,
+                    barcode=v.barcode,
+                    unit="piece",
+                    currency="USD",
+                    costPrice=0.0,
+                    sellPrice=float(v.sell_price),
+                    taxRatePct=float(v.tax_rate_pct),
+                    marginPct=0.0,
+                    isActive=True
+                ) for v in p.variants
+            ]
+        ))
+    return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
+
 @router.get("/products", response_model=PaginatedResponse[ProductDto])
 async def list_products(
     search: Optional[str] = None,

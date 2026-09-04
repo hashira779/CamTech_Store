@@ -28,6 +28,8 @@ MyStore/
 ---
 
 > 📖 **Architecture & Operations Guide**: See the [Microservices, Docker & High-Concurrency Architecture Guide](docs/architecture/microservices-and-docker-guide.md) for full port mappings, container fault isolation diagrams, and high-concurrency benchmarks.
+>
+> 🤖 **Extending / scaling this platform** (human or AI): start with [`AGENTS.md`](AGENTS.md) — conventions, step-by-step flows for adding modules/services/screens, and the long-term scaling roadmap.
 
 ---
 
@@ -69,13 +71,22 @@ pnpm --filter @mystore/contracts build
 ```
 
 ### 3. Start Canonical Python Backend
+
+The backend runs the **same code** two ways — pick one:
+
 ```bash
-# Run FastAPI server with auto-reload (runs on http://localhost:4000)
+# Option A — single-process modular monolith on http://localhost:4000
 pnpm py:dev
 
-# Run automated backend test suite (76 tests)
+# Option B — full microservices: gateway + 7 services on :4000–:4007
+#   (auth 4001 · catalog 4002 · sales 4003 · delivery 4004 · hr 4005 · finance 4006 · platform 4007)
+pnpm ms:all
+
+# Run automated backend test suite
 pnpm py:test
 ```
+
+Frontends always call `http://localhost:4000`, so they work unchanged in either mode. In microservices mode the gateway routes every `/api/v1` prefix to a service and falls back in-process only if one is down. See the [Microservices, Docker & High-Concurrency Guide](docs/architecture/microservices-and-docker-guide.md).
 
 ### 4. Independent Multi-Server Web Applications
 

@@ -27,7 +27,18 @@ class CustomerDto(BaseModel):
 
 class CreateCustomerInput(BaseModel):
     name: str
+    code: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     type: str = "INDIVIDUAL"
     notes: Optional[str] = None
+
+
+class UpdateCustomerInput(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    type: Optional[str] = None
+    notes: Optional[str] = None
+    isActive: Optional[bool] = None

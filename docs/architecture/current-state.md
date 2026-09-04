@@ -1,8 +1,11 @@
 # Current State — Universal Enterprise Business Platform
 
-> **Document Version:** 3.0.0  
-> **Last Verified:** September 2026  
-> **Status:** Backend Migration In Progress (Python canonical, NestJS legacy) · Frontend Modernization Complete
+> **Document Version:** 4.0.0  
+> **Last Verified:** 2026-09-04  
+> **Status:** Python canonical backend — **schema drift resolved, all write paths live**. Runs as a single monolith *or* as 7 microservices behind a resilient gateway. Frontend Modernization Complete.
+
+> [!NOTE]
+> **What changed in 4.0.0 (2026-09-04):** the systemic enum-binding bug is fixed (all writes work), `POST/PATCH /customers` added, a real `/reports/summary` (+ `/reports/export`) replaced the missing/hardcoded reporting, the `/customers` routing bug is fixed, the backend can now run fully split into 7 microservices (added a Platform & Experience service + made the gateway boot resiliently), and the Admin super-app gained a crash-containing error boundary. Full detail: [`docs/audits/session-2026-09-04.md`](../audits/session-2026-09-04.md).
 
 ---
 
@@ -120,9 +123,9 @@ All 28 modules are implemented in the legacy NestJS backend. These serve as **re
 
 ## 3. Database Schema & Data Models (Spec §13, §101)
 
-The primary database is **PostgreSQL 16**, with tables originally created by **Prisma ORM 6.2+**. The Python backend reads from these tables but cannot reliably write due to schema drift.
+The primary database is **PostgreSQL 16**, with tables originally created by **Prisma ORM 6.2+**. The Python backend reads *and writes* these tables: the earlier schema drift is **100% resolved** and the systemic enum-binding defect (native Postgres `ENUM` columns vs. `String` models) is fixed platform-wide via [`app/core/db_enums.py`](../../services/backend-py/app/core/db_enums.py), so create/update endpoints persist correctly.
 
-**62 public tables** exist in the database. See the [schema drift audit](../audits/python-backend-schema-drift.md) for the complete per-table mismatch analysis.
+**62 public tables** exist in the database. See the [schema drift audit](../audits/python-backend-schema-drift.md) (resolved) and the [API functional audit](../audits/api-functional-audit.md) (write paths verified live).
 
 ---
 
@@ -194,8 +197,8 @@ The web frontend (`apps/web`) is built with **Vite 6 + React 19 + react-router-d
 - **E2E Security Suite:** `security.e2e-spec.ts` verifies cross-tenant isolation, privilege escalation prevention, and token validation.
 
 ### Python Backend
-- **Current:** Minimal test coverage. Schema drift prevents meaningful integration testing.
-- **Target:** pytest suite covering all endpoints once schema reconciliation is complete.
+- **Current:** pytest suite green — **81 logic/unit tests pass** (the only non-passing ones require a live Postgres/Redis, not code bugs). Write paths verified live against the running stack (all create endpoints `200/201`).
+- **Target:** expand integration coverage against an ephemeral test database in CI; add a drift-guard CI step (`scripts/schema_audit.py`).
 
 ### Web Frontend
 - **Build verification:** `pnpm --filter @mystore/web build` and `typecheck`.
@@ -205,10 +208,9 @@ The web frontend (`apps/web`) is built with **Vite 6 + React 19 + react-router-d
 
 ## 7. Immediate Technical Debt & Remediation
 
-1. **⛔ CRITICAL — Schema Drift:**
-   - The Python backend cannot reliably write to the database. 31/40 tables have column mismatches.
-   - Decision required: Option A (SQLAlchemy owns schema) or Option B (align Python to DB).
-   - See [`docs/audits/python-backend-schema-drift.md`](../audits/python-backend-schema-drift.md).
+1. **✅ RESOLVED — Schema Drift & Write Paths:**
+   - Schema drift is fully reconciled; the systemic enum-binding defect is fixed; all create/update endpoints persist (verified live). See [`schema-drift audit`](../audits/python-backend-schema-drift.md) and [`API functional audit`](../audits/api-functional-audit.md).
+   - Remaining: add a CI drift-guard step so it can never silently recur.
 
 2. **Backend Migration:**
    - Port NestJS module business logic to Python/FastAPI incrementally.

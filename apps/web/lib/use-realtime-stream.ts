@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from './auth-store';
+import { BASE_URL } from './api-client';
 
 /**
  * 2026-2030 Standard Real-time Event Streaming Client Hook (SSE).
@@ -14,10 +15,6 @@ export function useRealtimeStream() {
 
   useEffect(() => {
     if (!token || !user) return;
-
-    const BASE_URL =
-      (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
-      'http://localhost:4000';
 
     // SSE connection with Bearer token passed via query param or header
     // In browsers standard EventSource doesn't support headers, so we pass token in URL

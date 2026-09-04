@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -19,6 +20,6 @@ class Location(Base):
     parent_id = Column("parentId", String, nullable=True)
     name = Column(String, nullable=False)
     code = Column(String, nullable=True)
-    type = Column(String, default="BRANCH", nullable=False)
+    type = Column(pg_enum("LocationType"), default="BRANCH", nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)

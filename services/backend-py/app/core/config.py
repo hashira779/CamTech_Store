@@ -19,6 +19,7 @@ class Settings(BaseSettings):
         "mystore-default-32-byte-secret-key-ok!"
     )
     PORT: int = int(os.getenv("PORT", 4000))
+    DEFAULT_ORG_ID: str = os.getenv("DEFAULT_ORG_ID", "cmtk8h18o0000vkd0etmdacgw")
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",

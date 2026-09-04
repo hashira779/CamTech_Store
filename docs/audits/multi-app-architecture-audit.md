@@ -8,6 +8,9 @@
 > - Spec §253: Frontend Monorepo for Multiple Independent Web Applications
 > **Audit Status:** ✅ **100% COMPLIANT & FULLY VERIFIED**
 
+> [!NOTE]
+> **Update 2026-09-04 — frontend fault isolation hardened.** The Admin super-app now wraps its routed experience in a React error boundary ([`apps/web/components/error-boundary.tsx`](../../apps/web/components/error-boundary.tsx)), so a runtime crash in one experience is contained (that panel shows a retry; nav + other routes stay live). Standalone apps (`store`, `cashier`, `delivery`) remain separate builds/containers. Ports referenced below (3000–3003) are historical — current dev ports are `5001`–`5008` (see [README](../../README.md)). Backend fault isolation was proven live on the same date — see [`session-2026-09-04.md`](session-2026-09-04.md).
+
 ---
 
 ## 1. Executive Summary

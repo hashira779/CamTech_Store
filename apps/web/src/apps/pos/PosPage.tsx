@@ -34,6 +34,32 @@ export function PosPage() {
   const tax = subtotal * 0.1; // 10% demo
   const total = subtotal + tax;
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSale, setLastSale] = useState<any | null>(null);
+
+  // Actually persist the sale to the backend. Price/tax are recomputed
+  // server-side from the DB; we only send variant ids, quantities and payment.
+  const handleCheckout = async (method: 'CASH' | 'QR' | 'CARD') => {
+    if (cart.length === 0 || !token || isSubmitting) return;
+    setIsSubmitting(true);
+    setLastSale(null);
+    try {
+      const sale = await api.createSale(token, {
+        channel: 'POS',
+        currency: 'USD',
+        idempotencyKey: `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        lineItems: cart.map((i) => ({ productVariantId: i.id, quantity: i.qty })),
+        payments: [{ method, amount: total }],
+      } as any);
+      setLastSale(sale);
+      setCart([]);
+    } catch (e: any) {
+      setLastSale({ error: e?.message || 'Checkout failed' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PosLayout>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-140px)]">
@@ -134,16 +160,42 @@ export function PosPage() {
               </div>
             </div>
 
+            {lastSale && (
+              <div
+                className={`rounded-xl p-3 text-sm font-semibold ${
+                  lastSale.error
+                    ? 'bg-red-500/10 text-red-400'
+                    : 'bg-emerald-500/10 text-emerald-400'
+                }`}
+              >
+                {lastSale.error
+                  ? `✕ ${lastSale.error}`
+                  : `✓ Sale ${lastSale.saleNumber} — $${Number(lastSale.grandTotal).toFixed(2)} · ${lastSale.paymentStatus}`}
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-3 pt-4">
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 font-bold active:scale-95">
+              <button
+                onClick={() => handleCheckout('CASH')}
+                disabled={cart.length === 0 || isSubmitting}
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 <Banknote className="w-6 h-6" />
-                Cash
+                {isSubmitting ? '...' : 'Cash'}
               </button>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 font-bold active:scale-95">
+              <button
+                onClick={() => handleCheckout('QR')}
+                disabled={cart.length === 0 || isSubmitting}
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 <QrCode className="w-6 h-6" />
                 KHQR
               </button>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700 font-bold active:scale-95">
+              <button
+                onClick={() => handleCheckout('CARD')}
+                disabled={cart.length === 0 || isSubmitting}
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 <CreditCard className="w-6 h-6" />
                 Card
               </button>

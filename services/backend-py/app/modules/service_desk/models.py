@@ -10,6 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -22,8 +23,8 @@ class ServiceTicket(Base):
     ticket_number = Column("ticketNumber", String, nullable=False)
     subject = Column(String, nullable=False)
     description = Column(Text, nullable=False)
-    priority = Column(String, default="MEDIUM", nullable=False)
-    status = Column(String, default="OPEN", nullable=False)
+    priority = Column(pg_enum("TicketPriority"), default="MEDIUM", nullable=False)
+    status = Column(pg_enum("TicketStatus"), default="OPEN", nullable=False)
     category = Column(String, default="GENERAL", nullable=False)
     assigned_to_id = Column("assignedToId", String, nullable=True)
     reporter_id = Column("reporterId", String, nullable=True)

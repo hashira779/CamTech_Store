@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import type { DocumentRecordDto, DocumentEntityType } from '@mystore/contracts';
 import {
   FolderArchive,
@@ -233,11 +234,7 @@ export default function StoragePage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                      Loading documents and media files...
-                    </td>
-                  </tr>
+                  <TableSkeletonRows rows={5} cols={6} />
                 ) : documents.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-muted-foreground">

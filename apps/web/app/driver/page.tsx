@@ -58,7 +58,7 @@ export default function DriverAppPage() {
   // Update Delivery Status Mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status, podNotes, signature }: { id: string; status: string; podNotes?: string; signature?: string }) =>
-      api.updateDeliveryStatus(token!, id, status, podNotes, signature),
+      api.updateDeliveryStatus(token!, id, { status, proofOfDelivery: signature, notes: podNotes }),
     onSuccess: (updated) => {
       toast.success(`Delivery status updated to ${updated.status}`);
       queryClient.invalidateQueries({ queryKey: ['driver-deliveries'] });
@@ -74,7 +74,7 @@ export default function DriverAppPage() {
 
   const activeOrders = orders.filter((o) => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
   const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
-  const totalCodToCollect = activeOrders.reduce((sum, o) => sum + (o.paymentMethod === 'CASH_ON_DELIVERY' ? o.codAmount : 0), 0);
+  const totalCodToCollect = activeOrders.reduce((sum, o) => sum + (Number(o.codAmount) > 0 ? Number(o.codAmount) : 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-md mx-auto shadow-2xl border-x border-slate-800">
@@ -191,11 +191,11 @@ export default function DriverAppPage() {
               {/* Destination Address */}
               <div className="flex items-start gap-2 text-xs text-slate-300">
                 <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <p className="line-clamp-2 leading-relaxed">{order.destinationAddress}</p>
+                <p className="line-clamp-2 leading-relaxed">{order.deliveryAddress}</p>
               </div>
 
               {/* COD Badge */}
-              {order.paymentMethod === 'CASH_ON_DELIVERY' && (
+              {Number(order.codAmount) > 0 && (
                 <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
                   <span className="font-semibold flex items-center gap-1">
                     <DollarSign className="w-3.5 h-3.5" /> Collect Cash (COD)
@@ -258,7 +258,7 @@ export default function DriverAppPage() {
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-[10px] text-slate-500">Tracking Code</span>
                 <p className="font-mono font-bold text-slate-200">{selectedOrder.trackingNumber}</p>
-                {selectedOrder.paymentMethod === 'CASH_ON_DELIVERY' && (
+                {Number(selectedOrder.codAmount) > 0 && (
                   <div className="mt-2 pt-2 border-t border-slate-800 text-amber-300 font-bold flex justify-between">
                     <span>COD Collected:</span>
                     <span>${Number(selectedOrder.codAmount).toFixed(2)}</span>

@@ -239,8 +239,12 @@ class DeliveryService:
         distance_km = None
         eta_minutes = None
 
-        if inp.driverId and inp.driverId in self._drivers[org_id]:
-            drv = self._drivers[org_id][inp.driverId]
+        dest_lat = inp.destLat if inp.destLat is not None else 11.5564
+        dest_lng = inp.destLng if inp.destLng is not None else 104.9282
+
+        assigned_driver_id = inp.driverId
+        if assigned_driver_id and assigned_driver_id in self._drivers[org_id]:
+            drv = self._drivers[org_id][assigned_driver_id]
             driver_info = {
                 "driverId": drv["id"],
                 "driverName": drv["name"],
@@ -251,7 +255,7 @@ class DeliveryService:
             drv["activeOrdersCount"] = drv.get("activeOrdersCount", 0) + 1
             drv["status"] = "EN_ROUTE"
             distance_km = DeliveryEngine.calculate_distance_km(
-                drv["currentLat"], drv["currentLng"], inp.destLat, inp.destLng
+                drv["currentLat"], drv["currentLng"], dest_lat, dest_lng
             )
             eta_minutes = DeliveryEngine.calculate_eta_minutes(distance_km, drv["vehicleType"])
 
@@ -264,8 +268,8 @@ class DeliveryService:
             "recipientName": inp.recipientName,
             "recipientPhone": inp.recipientPhone,
             "deliveryAddress": inp.deliveryAddress,
-            "destLat": round(inp.destLat, 6),
-            "destLng": round(inp.destLng, 6),
+            "destLat": round(dest_lat, 6),
+            "destLng": round(dest_lng, 6),
             "codAmount": inp.codAmount or 0.0,
             "deliveryFee": inp.deliveryFee or 2.50,
             "distanceKm": distance_km,
@@ -318,6 +322,16 @@ class DeliveryService:
 
         old_status = order["status"]
         new_status = inp.status.upper()
+
+        # Allow flexible field courier workflow:
+        # PENDING -> IN_TRANSIT or DELIVERED automatically dispatches
+        # DISPATCHED -> DELIVERED automatically marks in-transit then delivered
+        if old_status == "PENDING" and new_status in ["IN_TRANSIT", "DELIVERED"]:
+            order["status"] = "DISPATCHED"
+            old_status = "DISPATCHED"
+        if old_status == "DISPATCHED" and new_status == "DELIVERED":
+            order["status"] = "IN_TRANSIT"
+            old_status = "IN_TRANSIT"
 
         if not DeliveryEngine.validate_status_transition(old_status, new_status):
             return None

@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -103,7 +104,7 @@ class PriceList(Base):
     description = Column(String, nullable=True)
     currency = Column(String, default="USD", nullable=False)
     is_default = Column("isDefault", Boolean, default=False, nullable=False)
-    customer_type = Column("customerType", String, nullable=True)
+    customer_type = Column("customerType", pg_enum("CustomerType"), nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
@@ -127,8 +128,8 @@ class Promotion(Base):
     name = Column(String, nullable=False)
     code = Column(String, nullable=True)
     description = Column(String, nullable=True)
-    type = Column(String, default="PERCENTAGE", nullable=False)  # PromotionType enum
-    scope = Column(String, default="ORDER", nullable=False)  # PromotionScope enum
+    type = Column(pg_enum("PromotionType"), default="PERCENTAGE", nullable=False)
+    scope = Column(pg_enum("PromotionScope"), default="ORDER", nullable=False)
     discount_value = Column("discountValue", Numeric(14, 4), nullable=False)  # FIXED: was 'value'
     min_order_amount = Column("minOrderAmount", Numeric(14, 4), nullable=True)  # FIXED: was 'minSpend'
     max_discount_amount = Column("maxDiscountAmount", Numeric(14, 4), nullable=True)
@@ -163,7 +164,7 @@ class LoyaltyTransaction(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     customer_id = Column("customerId", String, ForeignKey("customers.id"), nullable=False)
-    type = Column(String, nullable=False)  # LoyaltyTxType enum
+    type = Column(pg_enum("LoyaltyTxType"), nullable=False)
     points = Column(Integer, nullable=False)
     balance_after = Column("balanceAfter", Integer, nullable=False)  # FIXED: was missing (NOT NULL)
     reference_type = Column("referenceType", String, nullable=True)
@@ -180,7 +181,7 @@ class StoreCreditTransaction(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     customer_id = Column("customerId", String, ForeignKey("customers.id"), nullable=False)
-    type = Column(String, nullable=False)  # StoreCreditTxType enum
+    type = Column(pg_enum("StoreCreditTxType"), nullable=False)
     amount = Column(Numeric(14, 4), nullable=False)
     balance_after = Column("balanceAfter", Numeric(14, 4), nullable=False)
     reference_type = Column("referenceType", String, nullable=True)
@@ -227,11 +228,11 @@ class NotificationRecord(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     user_id = Column("userId", String, nullable=True)
-    channel = Column(String, default="IN_APP", nullable=False)
+    channel = Column(pg_enum("NotificationChannel"), default="IN_APP", nullable=False)
     type = Column(String, default="GENERAL", nullable=False)
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
-    status = Column(String, default="PENDING", nullable=False)
+    status = Column(pg_enum("NotificationStatus"), default="PENDING", nullable=False)
     metadata_ = Column("metadata", JSON, nullable=True)
     is_read = Column("isRead", Boolean, default=False, nullable=False)
     sent_at = Column("sentAt", DateTime, nullable=True)
@@ -246,7 +247,7 @@ class StockTransfer(Base):
     transfer_number = Column("transferNumber", String, nullable=False)
     source_location_id = Column("sourceLocationId", String, nullable=False)  # FIXED: was 'fromLocationId'
     destination_location_id = Column("destinationLocationId", String, nullable=False)  # FIXED: was 'toLocationId'
-    status = Column(String, default="DRAFT", nullable=False)
+    status = Column(pg_enum("StockTransferStatus"), default="DRAFT", nullable=False)
     requested_by_id = Column("requestedById", String, nullable=False)  # FIXED: was missing (NOT NULL)
     approved_by_id = Column("approvedById", String, nullable=True)
     shipped_by_id = Column("shippedById", String, nullable=True)
@@ -283,7 +284,7 @@ class Employee(Base):
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     position = Column(String, nullable=False)  # FIXED: was missing (NOT NULL)
-    status = Column(String, default="FULL_TIME", nullable=False)
+    status = Column(pg_enum("EmploymentStatus"), default="FULL_TIME", nullable=False)
     base_salary = Column("baseSalary", Numeric(14, 4), default=0.0, nullable=False)
     hire_date = Column("hireDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -295,12 +296,12 @@ class LeaveRequest(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     employee_id = Column("employeeId", String, ForeignKey("employees.id"), nullable=False)
-    type = Column(String, nullable=False)  # LeaveType enum
+    type = Column(pg_enum("LeaveType"), nullable=False)
     start_date = Column("startDate", DateTime, nullable=False)
     end_date = Column("endDate", DateTime, nullable=False)
     days_count = Column("daysCount", Integer, default=1, nullable=False)
     reason = Column(String, nullable=True)
-    status = Column(String, default="PENDING", nullable=False)
+    status = Column(pg_enum("LeaveStatus"), default="PENDING", nullable=False)
     approved_by_id = Column("approvedById", String, nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
@@ -313,7 +314,7 @@ class PayrollRun(Base):
     period_start = Column("periodStart", DateTime, nullable=False)
     period_end = Column("periodEnd", DateTime, nullable=False)
     name = Column(String, nullable=False)
-    status = Column(String, default="DRAFT", nullable=False)
+    status = Column(pg_enum("PayrollStatus"), default="DRAFT", nullable=False)
     total_gross = Column("totalGross", Numeric(14, 4), default=0.0, nullable=False)
     total_net = Column("totalNet", Numeric(14, 4), default=0.0, nullable=False)
     journal_entry_id = Column("journalEntryId", String, nullable=True)
@@ -340,7 +341,7 @@ class Project(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     budget = Column(Numeric(14, 4), default=0.0, nullable=False)
-    status = Column(String, default="PLANNING", nullable=False)  # FIXED: was 'ACTIVE'
+    status = Column(pg_enum("ProjectStatus"), default="PLANNING", nullable=False)  # FIXED: was 'ACTIVE'
     start_date = Column("startDate", DateTime, nullable=True)
     end_date = Column("endDate", DateTime, nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -353,7 +354,7 @@ class ProjectTask(Base):
     project_id = Column("projectId", String, ForeignKey("projects.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    status = Column(String, default="TODO", nullable=False)
+    status = Column(pg_enum("TaskStatus"), default="TODO", nullable=False)
     assigned_to_id = Column("assignedToId", String, nullable=True)
     estimated_hours = Column("estimatedHours", Numeric(8, 2), default=0.0, nullable=False)
     actual_hours = Column("actualHours", Numeric(8, 2), default=0.0, nullable=False)
@@ -387,7 +388,7 @@ class Supplier(Base):
     phone = Column(String, nullable=True)
     tax_id = Column("taxId", String, nullable=True)
     address = Column(String, nullable=True)
-    payment_terms = Column("paymentTerms", String, default="NET_30", nullable=False)
+    payment_terms = Column("paymentTerms", pg_enum("PaymentTerm"), default="NET_30", nullable=False)
     notes = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -403,7 +404,7 @@ class PurchaseOrder(Base):
     po_number = Column("poNumber", String, nullable=False)
     order_date = Column("orderDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
     expected_delivery_date = Column("expectedDeliveryDate", DateTime, nullable=True)
-    status = Column(String, default="DRAFT", nullable=False)
+    status = Column(pg_enum("PurchaseOrderStatus"), default="DRAFT", nullable=False)
     currency = Column(String, default="USD", nullable=False)
     subtotal = Column(Numeric(14, 4), nullable=False)
     tax_total = Column("taxTotal", Numeric(14, 4), nullable=False)
@@ -422,7 +423,7 @@ class WorkflowDefinition(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     name = Column(String, nullable=False)
-    entity_type = Column("entityType", String, nullable=False)
+    entity_type = Column("entityType", pg_enum("WorkflowEntityType"), nullable=False)
     description = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
@@ -434,10 +435,10 @@ class WorkflowInstance(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     definition_id = Column("definitionId", String, nullable=True)
-    entity_type = Column("entityType", String, nullable=False)
+    entity_type = Column("entityType", pg_enum("WorkflowEntityType"), nullable=False)
     entity_id = Column("entityId", String, nullable=False)
     title = Column(String, nullable=False)
-    status = Column(String, default="PENDING", nullable=False)
+    status = Column(pg_enum("WorkflowStatus"), default="PENDING", nullable=False)
     submitted_by_id = Column("submittedById", String, nullable=True)
     current_step = Column("currentStep", Integer, default=1, nullable=False)
     total_steps = Column("totalSteps", Integer, default=1, nullable=False)
@@ -465,7 +466,7 @@ class WorkflowStep(Base):
     name = Column(String, nullable=False)
     assigned_role = Column("assignedRole", String, nullable=True)
     assigned_to_id = Column("assignedToId", String, nullable=True)
-    status = Column(String, default="PENDING", nullable=False)
+    status = Column(pg_enum("WorkflowStepStatus"), default="PENDING", nullable=False)
     decision_by = Column("decisionBy", String, nullable=True)
     decision_at = Column("decisionAt", DateTime, nullable=True)
     comment = Column(String, nullable=True)
@@ -491,7 +492,7 @@ class WarehouseZone(Base):
     location_id = Column("locationId", String, ForeignKey("locations.id"), nullable=False)
     code = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    type = Column(String, default="STORAGE", nullable=False)
+    type = Column(pg_enum("WarehouseZoneType"), default="STORAGE", nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
@@ -547,7 +548,7 @@ class GoodsReceipt(Base):
     supplier_id = Column("supplierId", String, ForeignKey("suppliers.id"), nullable=False)
     grn_number = Column("grnNumber", String, nullable=False)
     received_date = Column("receivedDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    status = Column(String, default="COMPLETED", nullable=False)
+    status = Column(pg_enum("GoodsReceiptStatus"), default="COMPLETED", nullable=False)
     notes = Column(String, nullable=True)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)

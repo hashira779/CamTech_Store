@@ -17,8 +17,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
 class SaleLineItemInput(BaseModel):
     variantId: str
     quantity: float
-    unitPrice: float
-    taxRatePct: float = 0.0
+    # Price and tax are resolved SERVER-SIDE from the product variant and are
+    # never trusted from the client (spec §66/§106). Accepted but ignored, so
+    # they are optional — a client need not (and should not) send a price.
+    unitPrice: Optional[float] = None
+    taxRatePct: Optional[float] = None
 
 class SalePaymentInput(BaseModel):
     amount: float

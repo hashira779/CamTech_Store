@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { SupportShell } from './SupportShell';
+import { PageSkeleton } from '@/components/page-skeleton';
 
 const TicketsPage = lazy(() => import('@/app/tickets/page'));
 const ApprovalsPage = lazy(() => import('@/app/approvals/page'));
@@ -8,7 +9,7 @@ const ApprovalsPage = lazy(() => import('@/app/approvals/page'));
 export function SupportApp() {
   return (
     <SupportShell>
-      <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading Support Desk...</div>}>
+      <Suspense fallback={<PageSkeleton variant="list" />}>
         <Routes>
           <Route path="/" element={<Navigate to="/tickets" replace />} />
           <Route path="/tickets" element={<TicketsPage />} />

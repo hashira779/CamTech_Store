@@ -10,6 +10,7 @@ from sqlalchemy import (
     Integer
 )
 from app.core.database import Base
+from app.core.db_enums import pg_enum
 
 def gen_id():
     return str(uuid.uuid4())
@@ -24,7 +25,7 @@ class Customer(Base):
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     tax_id = Column("taxId", String, nullable=True)
-    type = Column(String, default="INDIVIDUAL", nullable=False)  # CustomerType enum
+    type = Column(pg_enum("CustomerType"), default="INDIVIDUAL", nullable=False)
     price_list_id = Column("priceListId", String, nullable=True)
     loyalty_points = Column("loyaltyPoints", Integer, default=0, nullable=False)
     loyalty_tier = Column("loyaltyTier", String, default="BRONZE", nullable=False)

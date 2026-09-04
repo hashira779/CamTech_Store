@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import {
   Truck,
   Plus,
@@ -386,11 +387,7 @@ export default function ProcurementPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {isPosLoading ? (
-                    <tr>
-                      <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                        Loading purchase orders...
-                      </td>
-                    </tr>
+                    <TableSkeletonRows rows={5} cols={8} />
                   ) : posData?.items.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-8 text-center text-muted-foreground">
@@ -487,11 +484,7 @@ export default function ProcurementPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isReceiptsLoading ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                      Loading goods receipt notes...
-                    </td>
-                  </tr>
+                  <TableSkeletonRows rows={5} cols={7} />
                 ) : receiptsData?.items.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-muted-foreground">
@@ -548,11 +541,7 @@ export default function ProcurementPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isSuppliersLoading ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                      Loading suppliers...
-                    </td>
-                  </tr>
+                  <TableSkeletonRows rows={5} cols={7} />
                 ) : suppliersData?.items.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-muted-foreground">

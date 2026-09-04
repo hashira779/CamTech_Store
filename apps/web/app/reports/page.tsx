@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { PageSkeleton } from '@/components/page-skeleton';
 import type { ReportExportType } from '@mystore/contracts';
 import {
   BarChart3,
@@ -218,8 +219,12 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* KPI Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI Grid & Main Content */}
+        {isLoading ? (
+          <PageSkeleton variant="dashboard" showKpis={true} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Net Sales */}
           <div className="card p-5 border-border shadow-sm flex flex-col justify-between relative overflow-hidden">
             <div className="flex items-center justify-between">
@@ -636,6 +641,8 @@ export default function ReportsPage() {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
     </EnterpriseShell>

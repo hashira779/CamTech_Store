@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/lib/api-client';
+import { api, BASE_URL } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { useExperienceStore } from '@/lib/experience-store';
 import {
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CardGridSkeleton } from '@/components/page-skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -114,24 +115,48 @@ export default function CustomerShopPage() {
     );
   };
 
-  const handleCheckoutSubmit = () => {
+  const handleCheckoutSubmit = async () => {
     if (cart.length === 0) return;
 
-    const trackingNum = `TRK-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const orderData = {
-      orderNumber: `#ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-      trackingNumber: trackingNum,
-      totalAmount: cartTotal,
-      customerName,
-      deliveryAddress,
-      paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : 'Cash On Delivery',
-      itemCount: cartItemCount,
-    };
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/delivery/orders/public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: customerName || 'Customer',
+          customerPhone: customerPhone || '+855 12 000 000',
+          deliveryAddress: deliveryAddress || 'Phnom Penh Center',
+          paymentMethod: paymentMethod === 'KHQR' ? 'PAID_KHQR' : 'CASH_ON_DELIVERY',
+          items: cart.map((i) => ({
+            productVariantId: i.variantId || i.productId,
+            quantity: i.quantity,
+            unitPrice: i.price,
+          })),
+        }),
+      });
 
-    setConfirmedOrder(orderData);
-    setCart([]);
-    setIsCheckoutOpen(false);
-    toast.success('Order placed successfully!');
+      if (!res.ok) throw new Error('Order placement failed');
+
+      const json = await res.json();
+      const serverOrder = json.data || json;
+
+      const orderData = {
+        orderNumber: serverOrder.trackingNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`,
+        trackingNumber: serverOrder.trackingNumber,
+        totalAmount: cartTotal,
+        customerName: serverOrder.recipientName || customerName,
+        deliveryAddress: serverOrder.deliveryAddress || deliveryAddress,
+        paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : 'Cash On Delivery',
+        itemCount: cartItemCount,
+      };
+
+      setConfirmedOrder(orderData);
+      setCart([]);
+      setIsCheckoutOpen(false);
+      toast.success('🎉 Order confirmed and dispatched to Delivery Fleet!');
+    } catch {
+      toast.error('Failed to place order with server. Please try again.');
+    }
   };
 
   return (
@@ -231,7 +256,7 @@ export default function CustomerShopPage() {
 
         {/* Product Cards */}
         {isLoading ? (
-          <div className="text-center py-20 text-xs text-slate-500">Loading catalog items...</div>
+          <CardGridSkeleton count={8} />
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 text-xs text-slate-500">No products found matching your search.</div>
         ) : (

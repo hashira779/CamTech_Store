@@ -22,7 +22,8 @@ import {
   Wifi,
   WifiOff,
   CloudOff,
-  Database
+  Database,
+  Package
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 
@@ -34,15 +35,7 @@ interface PosItem {
   category: string;
 }
 
-const FALLBACK_POS_CATALOG: PosItem[] = [
-  { id: 'prod-mbp14', name: 'MacBook Pro 14 M3', price: 1999.00, sku: 'MBP-14-512', category: 'TECH' },
-  { id: 'prod-airpods', name: 'AirPods Pro 2', price: 249.00, sku: 'APP-PRO-2', category: 'TECH' },
-  { id: 'prod-charger', name: '65W GaN Fast Charger', price: 39.99, sku: 'CHG-GAN-65', category: 'TECH' },
-  { id: 'prod-espresso', name: 'Artisan Espresso Double Shot', price: 2.90, sku: 'COF-ESP-DBL', category: 'CAFE' },
-  { id: 'prod-latte', name: 'Iced Spanish Caramel Latte', price: 3.50, sku: 'COF-LAT-16', category: 'CAFE' },
-  { id: 'prod-croissant', name: 'French Butter Croissant', price: 2.80, sku: 'BAK-CRS-BUT', category: 'CAFE' },
-  { id: 'prod-hoodie', name: 'Tech Fleece Zip Hoodie', price: 110.00, sku: 'NK-HD-BLK-M', category: 'APPAREL' },
-];
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export function App() {
   const [cart, setCart] = useState<Array<PosItem & { quantity: number }>>([]);
@@ -51,6 +44,13 @@ export function App() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'BAKONG_KHQR' | 'CASH'>('CASH');
   const [receipt, setReceipt] = useState<any>(null);
+  const [cashierName, setCashierName] = useState<string>(() => {
+    try {
+      return localStorage.getItem('mystore_pos_cashier_name') || 'Lead Cashier (POS-01)';
+    } catch {
+      return 'Lead Cashier (POS-01)';
+    }
+  });
 
   // Offline-First Fault Isolation & Outbox State
   const [isServerOnline, setIsServerOnline] = useState<boolean>(true);
@@ -68,7 +68,7 @@ export function App() {
   useEffect(() => {
     const checkServerHealth = async () => {
       try {
-        const res = await fetch('http://localhost:4000/health', {
+        const res = await fetch(`${API_BASE_URL}/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(1500),
         });
@@ -98,7 +98,7 @@ export function App() {
 
     for (const sale of queue) {
       try {
-        const res = await fetch('http://localhost:4000/api/v1/sales', {
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(sale),
@@ -123,36 +123,39 @@ export function App() {
   };
 
   // Fetch live products from Central Data Center
-  const { data: serverProducts, refetch: refetchProducts } = useQuery({
+  const { data: serverProducts, isLoading: isCatalogLoading, refetch: refetchProducts } = useQuery({
     queryKey: ['cashier-live-products'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/v1/products', { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${API_BASE_URL}/api/v1/public/products`, { signal: AbortSignal.timeout(2000) });
         if (!res.ok) throw new Error('API offline');
         const json = await res.json();
         const items = json.data?.items || json.items || json.data || [];
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           const mapped = items.map((p: any) => ({
             id: p.id,
             name: p.name,
-            price: Number(p.variants?.[0]?.sellPrice || p.sellPrice || p.price || 15.00),
-            sku: p.variants?.[0]?.sku || p.sku || 'SKU-001',
-            category: p.category?.name?.toUpperCase() || 'GENERAL'
+            price: Number(p.variants?.[0]?.sellPrice ?? p.sellPrice ?? p.price ?? 0),
+            sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.slice(0, 6)}`,
+            category: p.category?.name?.toUpperCase() || p.category?.toUpperCase() || 'GENERAL'
           }));
           localStorage.setItem('mystore_pos_cached_catalog', JSON.stringify(mapped));
           return mapped;
         }
-        return FALLBACK_POS_CATALOG;
+        return [];
       } catch {
         // Fallback to local offline catalog cached in browser/container
         const cached = localStorage.getItem('mystore_pos_cached_catalog');
-        return cached ? JSON.parse(cached) : FALLBACK_POS_CATALOG;
+        return cached ? JSON.parse(cached) : [];
       }
     }
   });
 
-  const catalog: PosItem[] = serverProducts || FALLBACK_POS_CATALOG;
-  const categories = ['ALL', 'TECH', 'CAFE', 'APPAREL'];
+  const catalog: PosItem[] = serverProducts || [];
+  const categories = React.useMemo(() => {
+    const set = new Set(catalog.map((i) => i.category).filter(Boolean));
+    return ['ALL', ...Array.from(set)];
+  }, [catalog]);
 
   const filteredItems = catalog.filter((i) => {
     const matchesCat = selectedCategory === 'ALL' || i.category.includes(selectedCategory);
@@ -214,7 +217,7 @@ export function App() {
       total,
       method: paymentMethod,
       timestamp: new Date().toLocaleTimeString(),
-      cashier: 'Sophea Noun (Lead Cashier)',
+      cashier: cashierName,
       isOffline: !isServerOnline
     };
 
@@ -228,13 +231,21 @@ export function App() {
 
     let synced = false;
     try {
-      const res = await fetch('http://localhost:4000/api/v1/sales', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(salePayload),
         signal: AbortSignal.timeout(2000)
       });
-      if (res.ok) synced = true;
+      if (res.ok) {
+        synced = true;
+        try {
+          const json = await res.json();
+          if (json?.saleNumber) {
+            newReceipt.saleNumber = json.saleNumber;
+          }
+        } catch {}
+      }
     } catch {
       synced = false;
     }
@@ -319,7 +330,17 @@ export function App() {
             </button>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
               <UserCheck className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-medium text-slate-300">Sophea Noun</span>
+              <input
+                type="text"
+                value={cashierName}
+                onChange={(e) => {
+                  setCashierName(e.target.value);
+                  localStorage.setItem('mystore_pos_cashier_name', e.target.value);
+                }}
+                className="text-xs font-medium text-slate-300 bg-transparent border-none focus:outline-none w-36"
+                title="POS Cashier Operator Name"
+                placeholder="Cashier Operator"
+              />
             </div>
           </div>
         </header>
@@ -343,28 +364,52 @@ export function App() {
 
         {/* Products Grid */}
         <div className="flex-1 p-6 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => addToCart(item)}
-              className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 flex flex-col justify-between text-left transition transform active:scale-95 group shadow-sm hover:shadow-lg hover:shadow-amber-500/5"
-            >
-              <div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
-                  {item.sku}
-                </span>
-                <h4 className="text-sm font-bold text-white mt-2 group-hover:text-amber-400 transition line-clamp-2">
-                  {item.name}
-                </h4>
+          {isCatalogLoading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between animate-pulse space-y-4 shadow-sm"
+              >
+                <div>
+                  <div className="w-16 h-3.5 bg-slate-800 rounded mb-2.5"></div>
+                  <div className="w-3/4 h-5 bg-slate-800 rounded mb-1.5"></div>
+                  <div className="w-1/2 h-3.5 bg-slate-800/60 rounded"></div>
+                </div>
+                <div className="mt-4 pt-2.5 border-t border-slate-800/60 flex items-center justify-between w-full">
+                  <div className="w-12 h-3 bg-slate-800/50 rounded"></div>
+                  <div className="w-16 h-5 bg-emerald-500/20 rounded"></div>
+                </div>
               </div>
-              <div className="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between w-full">
-                <span className="text-xs text-slate-500">{item.category}</span>
-                <span className="text-base font-mono font-bold text-emerald-400">
-                  ${item.price.toFixed(2)}
-                </span>
-              </div>
-            </button>
-          ))}
+            ))
+          ) : filteredItems.length === 0 ? (
+            <div className="col-span-full py-16 text-center text-slate-500">
+              <Package className="w-10 h-10 mx-auto mb-2 opacity-30 animate-pulse" />
+              <p className="text-xs font-medium">No items found matching filter</p>
+            </div>
+          ) : (
+            filteredItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => addToCart(item)}
+                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 flex flex-col justify-between text-left transition transform active:scale-95 group shadow-sm hover:shadow-lg hover:shadow-amber-500/5"
+              >
+                <div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                    {item.sku}
+                  </span>
+                  <h4 className="text-sm font-bold text-white mt-2 group-hover:text-amber-400 transition line-clamp-2">
+                    {item.name}
+                  </h4>
+                </div>
+                <div className="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between w-full">
+                  <span className="text-xs text-slate-500">{item.category}</span>
+                  <span className="text-base font-mono font-bold text-emerald-400">
+                    ${item.price.toFixed(2)}
+                  </span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -491,12 +536,23 @@ export function App() {
               </div>
 
               {paymentMethod === 'BAKONG_KHQR' && (
-                <div className="p-4 rounded-2xl bg-slate-950 border border-rose-900/40 text-center">
-                  <div className="w-40 h-40 mx-auto bg-white rounded-2xl p-3 flex items-center justify-center mb-2 shadow-lg">
-                    <QrCode className="w-36 h-36 text-slate-950" />
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-slate-950 border border-rose-800/40 text-center space-y-2.5">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
+                    <span>KHQR</span> • <span>National Bank of Cambodia</span>
                   </div>
-                  <p className="text-xs font-bold text-rose-400">NBC EMVCo Offline KHQR</p>
-                  <p className="text-[10px] text-slate-400">Customer scans with any mobile banking app</p>
+                  <div className="w-48 h-48 mx-auto bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-xl shadow-rose-950/50 relative border-2 border-rose-500">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                        `00020101021229380016bakong@nbc.org.kh0108CAMTECH1520459995303840540${total.toFixed(2)}5802KH5912CAMTECH_STORE6010Phnom_Penh6304`
+                      )}`}
+                      alt="NBC Bakong KHQR"
+                      className="w-40 h-40 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-white font-mono">${total.toFixed(2)} USD</p>
+                    <p className="text-[10px] text-rose-300/80">Scan with ABA Mobile, Wing, ACLEDA, or any Bakong App</p>
+                  </div>
                 </div>
               )}
             </div>

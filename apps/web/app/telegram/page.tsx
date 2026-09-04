@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ApiClientError } from '@/lib/api-client';
+import { api, ApiClientError, BASE_URL } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { TableSkeletonRows } from '@/components/page-skeleton';
 import type { TelegramChatBindingDto, BindTelegramChatInput } from '@mystore/contracts';
 import {
   Send,
@@ -86,7 +87,7 @@ export default function TelegramPage() {
     setIsSimulating(true);
     setSimResponse(null);
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/webhook', {
+      const res = await fetch(`${BASE_URL}/api/v1/telegram/webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +197,9 @@ export default function TelegramPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {bindings.length === 0 ? (
+                {isLoading ? (
+                  <TableSkeletonRows rows={4} cols={5} />
+                ) : bindings.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-muted-foreground">
                       No Telegram chats currently bound. Click "Bind Chat ID" to register a manager or group chat.

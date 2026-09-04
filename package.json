@@ -26,15 +26,18 @@
     "web:dev": "pnpm --filter @mystore/web dev",
     "py:dev": "python -m uvicorn app.main:app --app-dir services/backend-py --port 4000 --reload",
     "py:test": "python -m pytest -o pythonpath=services/backend-py services/backend-py/tests",
+    "ms:all": "concurrently -n \"gw,auth,catalog,sales,delivery,hr,finance,platform\" -c \"blue,green,yellow,magenta,cyan,white,red,gray\" \"pnpm ms:gateway\" \"pnpm ms:auth\" \"pnpm ms:catalog\" \"pnpm ms:sales\" \"pnpm ms:delivery\" \"pnpm ms:hr\" \"pnpm ms:finance\" \"pnpm ms:platform\"",
     "ms:gateway": "python -m uvicorn app.microservices.gateway:gateway --app-dir services/backend-py --port 4000 --reload",
     "ms:auth": "python -m uvicorn app.microservices.auth_service:app --app-dir services/backend-py --port 4001 --reload",
     "ms:catalog": "python -m uvicorn app.microservices.catalog_service:app --app-dir services/backend-py --port 4002 --reload",
     "ms:sales": "python -m uvicorn app.microservices.sales_service:app --app-dir services/backend-py --port 4003 --reload",
     "ms:delivery": "python -m uvicorn app.microservices.delivery_service:app --app-dir services/backend-py --port 4004 --reload",
     "ms:hr": "python -m uvicorn app.microservices.hr_service:app --app-dir services/backend-py --port 4005 --reload",
-    "ms:finance": "python -m uvicorn app.microservices.finance_service:app --app-dir services/backend-py --port 4006 --reload"
+    "ms:finance": "python -m uvicorn app.microservices.finance_service:app --app-dir services/backend-py --port 4006 --reload",
+    "ms:platform": "python -m uvicorn app.microservices.platform_service:app --app-dir services/backend-py --port 4007 --reload"
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   }
