@@ -170,6 +170,36 @@ export function App() {
     return null;
   };
 
+  // Synchronize cart with PostgreSQL Database for logged in customer
+  const syncCartWithDatabase = async (email: string, items: Array<ProductItem & { quantity: number }>) => {
+    if (!email) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/customers/cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, items }),
+      });
+    } catch (err) {
+      console.warn('Central DB customer cart sync fallback:', err);
+    }
+  };
+
+  const loadCartFromDatabase = async (email: string) => {
+    if (!email) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/customers/cart?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const json = await res.json();
+        const serverItems = json.data?.items || json.items || [];
+        if (Array.isArray(serverItems) && serverItems.length > 0) {
+          setCart(serverItems);
+        }
+      }
+    } catch (err) {
+      console.warn('Central DB customer cart load fallback:', err);
+    }
+  };
+
   // Listen for Supabase Google session and dynamically link with Central Database
   useEffect(() => {
     const processSession = (session: any) => {
@@ -194,6 +224,8 @@ export function App() {
         email,
         phone,
         avatarUrl: metadata.avatar_url,
+      }).then(() => {
+        loadCartFromDatabase(email);
       });
     };
 
@@ -229,6 +261,7 @@ export function App() {
       // ignore
     }
     setCustomer(null);
+    setCart([]);
     toast.info('Signed out. You can still shop and checkout as a guest!');
   };
 
@@ -245,22 +278,15 @@ export function App() {
           const items = json.data?.items || json.items || json.data || [];
           if (Array.isArray(items) && items.length > 0) {
             return items.map((p: any) => {
-              const catRaw = `${p.categoryId || ''} ${p.category?.name || ''} ${p.name || ''}`.toUpperCase();
-              let category = 'TECH';
-              if (catRaw.includes('CAFE') || catRaw.includes('COFFEE') || catRaw.includes('ESPRESSO') || catRaw.includes('LATTE')) {
-                category = 'CAFE';
-              } else if (catRaw.includes('BAKERY') || catRaw.includes('CROISSANT') || catRaw.includes('BREAD')) {
-                category = 'BAKERY';
-              } else if (catRaw.includes('APPAREL') || catRaw.includes('SHIRT') || catRaw.includes('HOODIE') || catRaw.includes('FLEECE') || catRaw.includes('T-SHIRT')) {
-                category = 'APPAREL';
-              }
+              const categoryName = p.category?.name || p.categoryId || 'UNCATEGORIZED';
+              
               return {
                 id: p.id,
                 name: p.name,
                 description: p.description || '',
-                price: Number(p.variants?.[0]?.sellPrice || p.sellPrice || p.price || 19.99),
-                sku: p.variants?.[0]?.sku || p.sku || 'SKU-001',
-                category
+                price: Number(p.variants?.[0]?.sellPrice || p.sellPrice || p.price || 0),
+                sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.substring(0,6)}`,
+                category: categoryName.toUpperCase()
               };
             });
           }
@@ -296,8 +322,10 @@ export function App() {
   });
 
   const products: ProductItem[] = serverProducts || [];
-
-  const categories = ['ALL', 'TECH', 'CAFE', 'BAKERY', 'APPAREL'];
+  
+  // Extract categories dynamically from the actual database products
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const categories = ['ALL', ...uniqueCategories];
 
   const filteredProducts = products.filter((p) => {
     const matchesCat = selectedCategory === 'ALL' || p.category.includes(selectedCategory);
@@ -312,22 +340,27 @@ export function App() {
   const addToCart = (product: ProductItem) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
+      const newCart = existing
+        ? prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
+        : [...prev, { ...product, quantity: 1 }];
+      if (customer?.email) {
+        syncCartWithDatabase(customer.email, newCart);
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return newCart;
     });
     toast.success(`Added ${product.name} to cart!`);
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setCart((prev) =>
-      prev
+    setCart((prev) => {
+      const newCart = prev
         .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
-        .filter((i) => i.quantity > 0)
-    );
+        .filter((i) => i.quantity > 0);
+      if (customer?.email) {
+        syncCartWithDatabase(customer.email, newCart);
+      }
+      return newCart;
+    });
   };
 
   const handleCheckout = async () => {
@@ -398,6 +431,9 @@ export function App() {
       };
 
       setConfirmedOrder(newOrder);
+      if (customer?.email) {
+        syncCartWithDatabase(customer.email, []);
+      }
       setCart([]);
       setIsCheckoutOpen(false);
       setIsCartOpen(false);

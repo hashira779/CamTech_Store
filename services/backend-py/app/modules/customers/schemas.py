@@ -38,6 +38,14 @@ class CustomerSyncInput(BaseModel):
     avatarUrl: Optional[str] = None
     authProvider: Optional[str] = "google"
 
+class CustomerCartSyncInput(BaseModel):
+    email: str
+    items: List[dict]
+
+class CustomerCartDto(BaseModel):
+    email: str
+    items: List[dict]
+
 class CreateCustomerInput(BaseModel):
     name: str
     code: Optional[str] = None

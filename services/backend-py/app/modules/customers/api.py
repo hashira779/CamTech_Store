@@ -12,10 +12,13 @@ from app.core.db_enums import ENUM_LABELS
 from app.modules.organizations.models import Organization
 from app.modules.identity.models import User
 
+import json
 from .models import Customer
 from .schemas import (
     CustomerDto,
     CustomerSyncInput,
+    CustomerCartSyncInput,
+    CustomerCartDto,
     CreateCustomerInput,
     UpdateCustomerInput,
     PaginatedResponse,
@@ -167,6 +170,98 @@ async def get_customer_profile(
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found in database")
     return _to_dto(customer)
+
+
+@router.get("/customers/cart", response_model=CustomerCartDto)
+async def get_customer_cart(
+    email: str,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Retrieves the customer's active shopping cart directly from PostgreSQL.
+    """
+    email_clean = email.strip().lower()
+    target_org = user.organization_id if user else None
+    if not target_org:
+        org_result = await db.execute(select(Organization.id).limit(1))
+        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+
+    cust_result = await db.execute(
+        select(Customer).where(
+            Customer.organization_id == target_org,
+            func.lower(Customer.email) == email_clean
+        )
+    )
+    customer = cust_result.scalar_one_or_none()
+    if not customer or not customer.notes:
+        return CustomerCartDto(email=email_clean, items=[])
+
+    items = []
+    try:
+        parsed = json.loads(customer.notes)
+        if isinstance(parsed, dict) and "cart" in parsed and isinstance(parsed["cart"], list):
+            items = parsed["cart"]
+        elif isinstance(parsed, list):
+            items = parsed
+    except Exception:
+        pass
+
+    return CustomerCartDto(email=email_clean, items=items)
+
+
+@router.post("/customers/cart", response_model=CustomerCartDto)
+async def sync_customer_cart(
+    payload: CustomerCartSyncInput,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Persists customer shopping cart in PostgreSQL linked to their customer profile.
+    """
+    email_clean = payload.email.strip().lower()
+    target_org = user.organization_id if user else None
+    if not target_org:
+        org_result = await db.execute(select(Organization.id).limit(1))
+        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+
+    cust_result = await db.execute(
+        select(Customer).where(
+            Customer.organization_id == target_org,
+            func.lower(Customer.email) == email_clean
+        )
+    )
+    customer = cust_result.scalar_one_or_none()
+    if not customer:
+        customer = Customer(
+            organization_id=target_org,
+            code=f"CUST-{uuid.uuid4().hex[:8].upper()}",
+            name=email_clean.split("@")[0],
+            email=email_clean,
+            type="INDIVIDUAL",
+            loyalty_points=500,
+            loyalty_tier="Executive Gold",
+            store_credit=0.0,
+            is_active=True
+        )
+        db.add(customer)
+
+    existing_meta = {}
+    if customer.notes:
+        try:
+            parsed = json.loads(customer.notes)
+            if isinstance(parsed, dict):
+                existing_meta = parsed
+            else:
+                existing_meta["notes"] = customer.notes
+        except Exception:
+            existing_meta["notes"] = customer.notes
+
+    existing_meta["cart"] = payload.items
+    customer.notes = json.dumps(existing_meta)
+
+    await db.commit()
+    return CustomerCartDto(email=email_clean, items=payload.items)
 
 
 @router.get("/customers", response_model=PaginatedResponse[CustomerDto])
