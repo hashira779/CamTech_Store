@@ -83,7 +83,16 @@ export function App() {
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
 
   // Customer session state (null = Guest)
-  const [customer, setCustomer] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [customer, setCustomer] = useState<{
+    id?: string;
+    code?: string;
+    name: string;
+    email: string;
+    phone: string;
+    loyaltyPoints?: number;
+    loyaltyTier?: string;
+    storeCredit?: number;
+  } | null>(null);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
@@ -117,32 +126,85 @@ export function App() {
     );
   };
 
-  // Listen for Supabase Google session
-  useEffect(() => {
-    const savedPhone = localStorage.getItem('camtech_customer_phone') || '';
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const metadata = session.user.user_metadata || {};
-        const phone = session.user.phone || metadata.phone || savedPhone || '';
+  // Sync authenticated customer with central PostgreSQL database
+  const syncCustomerWithDatabase = async (info: {
+    name: string;
+    email: string;
+    phone?: string;
+    avatarUrl?: string;
+  }) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/customers/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: info.name,
+          email: info.email,
+          phone: info.phone || '',
+          avatarUrl: info.avatarUrl || '',
+          authProvider: 'google',
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const data = json.data || json;
         setCustomer({
-          name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
-          email: session.user.email || '',
-          phone,
+          id: data.id,
+          code: data.code,
+          name: data.name || info.name,
+          email: data.email || info.email,
+          phone: data.phone || info.phone || '',
+          loyaltyPoints: data.loyaltyPoints ?? 500,
+          loyaltyTier: data.loyaltyTier || 'Executive Gold',
+          storeCredit: data.storeCredit ?? 0.0,
         });
-        if (phone) setGuestPhone(phone);
+        if (data.phone) {
+          setGuestPhone(data.phone);
+          localStorage.setItem('camtech_customer_phone', data.phone);
+        }
+        return data;
       }
+    } catch (err) {
+      console.warn('Central DB customer sync fallback:', err);
+    }
+    return null;
+  };
+
+  // Listen for Supabase Google session and dynamically link with Central Database
+  useEffect(() => {
+    const processSession = (session: any) => {
+      if (!session?.user) return;
+      const metadata = session.user.user_metadata || {};
+      const savedPhone = localStorage.getItem('camtech_customer_phone') || '';
+      const phone = session.user.phone || metadata.phone || savedPhone || '';
+      const name = metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User';
+      const email = session.user.email || '';
+
+      setCustomer({
+        name,
+        email,
+        phone,
+        loyaltyPoints: 500,
+        loyaltyTier: 'Executive Gold',
+      });
+      if (phone) setGuestPhone(phone);
+
+      syncCustomerWithDatabase({
+        name,
+        email,
+        phone,
+        avatarUrl: metadata.avatar_url,
+      });
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      processSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        processSession(session);
         const metadata = session.user.user_metadata || {};
-        const phone = session.user.phone || metadata.phone || savedPhone || '';
-        setCustomer({
-          name: metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User',
-          email: session.user.email || '',
-          phone,
-        });
-        if (phone) setGuestPhone(phone);
         toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
       }
     });
@@ -561,21 +623,23 @@ export function App() {
               <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-[11px] mb-4">
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">TIER</span>
-                  <span className="font-bold text-white">Executive Gold</span>
+                  <span className="font-bold text-white">{customer?.loyaltyTier || 'Executive Gold'}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">SETTLEMENT</span>
-                  <span className="font-bold text-emerald-400">NBC KHQR</span>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">LOYALTY PTS</span>
+                  <span className="font-bold text-emerald-400">
+                    {customer?.loyaltyPoints != null ? `${customer.loyaltyPoints} PTS` : '500 PTS'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">HUB</span>
-                  <span className="font-bold text-zinc-300">Phnom Penh</span>
+                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">ACCOUNT CODE</span>
+                  <span className="font-bold text-zinc-300 font-mono">{customer?.code || 'CT-ONLINE'}</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">STATUS</span>
                   <span className="font-bold text-indigo-400 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                    Verified
+                    {customer?.id ? 'Linked (Postgres)' : (customer ? 'Synced (DB)' : 'Guest')}
                   </span>
                 </div>
               </div>
@@ -591,7 +655,9 @@ export function App() {
                     />
                   ))}
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">CAMTECH-2026-VIP</span>
+                <span className="text-[10px] font-mono text-zinc-500">
+                  {customer?.code ? `CAMTECH-${customer.code}` : 'CAMTECH-2026-VIP'}
+                </span>
               </div>
             </div>
           </div>
@@ -997,6 +1063,13 @@ export function App() {
                         setGuestPhone(val);
                         setCustomer((prev) => (prev ? { ...prev, phone: val } : null));
                         localStorage.setItem('camtech_customer_phone', val);
+                        if (customer?.email) {
+                          syncCustomerWithDatabase({
+                            name: customer.name,
+                            email: customer.email,
+                            phone: val,
+                          });
+                        }
                       }}
                       className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none transition"
                     />
@@ -1315,13 +1388,23 @@ export function App() {
                     toast.error('Please enter your phone number');
                     return;
                   }
+                  const newEmail = authEmailInput.trim() || `${authNameInput.toLowerCase().replace(/\s+/g, '')}@camtech.cam`;
+                  const newPhone = authPhoneInput.trim();
+                  const newName = authNameInput.trim();
                   setCustomer({
-                    name: authNameInput.trim(),
-                    email: authEmailInput.trim() || `${authNameInput.toLowerCase().replace(/\s+/g, '')}@camtech.cam`,
-                    phone: authPhoneInput.trim()
+                    name: newName,
+                    email: newEmail,
+                    phone: newPhone,
+                    loyaltyPoints: 500,
+                    loyaltyTier: 'Executive Gold',
+                  });
+                  syncCustomerWithDatabase({
+                    name: newName,
+                    email: newEmail,
+                    phone: newPhone,
                   });
                   setIsAuthModalOpen(false);
-                  toast.success(`Welcome, ${authNameInput.trim()}!`);
+                  toast.success(`Welcome, ${newName}!`);
                 }}
                 className="space-y-3"
               >

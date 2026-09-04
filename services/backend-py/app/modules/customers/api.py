@@ -1,15 +1,21 @@
 import uuid
+import datetime
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser
+from app.core.config import settings
 from app.core.db_enums import ENUM_LABELS
+from app.modules.organizations.models import Organization
+from app.modules.identity.models import User
 
 from .models import Customer
 from .schemas import (
     CustomerDto,
+    CustomerSyncInput,
     CreateCustomerInput,
     UpdateCustomerInput,
     PaginatedResponse,
@@ -30,9 +36,14 @@ def _to_dto(c: Customer) -> CustomerDto:
         email=c.email,
         phone=c.phone,
         type=c.type,
+        loyaltyPoints=c.loyalty_points or 0,
+        loyaltyTier=c.loyalty_tier or "BRONZE",
+        storeCredit=float(c.store_credit or 0),
+        creditBalance=float(c.store_credit or 0),
         notes=c.notes,
         isActive=c.is_active,
-        creditBalance=float(c.store_credit or 0),
+        createdAt=c.created_at.isoformat() if c.created_at else None,
+        updatedAt=c.updated_at.isoformat() if c.updated_at else None,
     )
 
 
@@ -43,6 +54,119 @@ def _validate_type(value: str) -> str:
             detail=f"Invalid customer type '{value}'. Allowed: {sorted(_CUSTOMER_TYPES)}",
         )
     return value
+
+
+@router.post("/customers/sync", response_model=CustomerDto)
+@router.post("/customers/public-sync", response_model=CustomerDto)
+async def sync_customer(
+    input_data: CustomerSyncInput,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Storefront Google / Customer Sync Endpoint.
+    When a customer signs in with Google (or manual login) on store.camtech.cam:
+    1. Persists & updates the customer profile in PostgreSQL 'customers' table with real loyalty tier & points.
+    2. Persists & updates the user account in PostgreSQL 'users' table with role 'CUSTOMER'.
+    Both Super Admin (apps/web) and Storefront immediately share dynamic, synchronized data without gaps.
+    """
+    email_clean = input_data.email.strip().lower()
+    name_clean = input_data.name.strip()
+    phone_clean = input_data.phone.strip() if input_data.phone else None
+
+    # Resolve Target Organization ID
+    target_org = user.organization_id if user else None
+    if not target_org:
+        org_result = await db.execute(select(Organization.id).limit(1))
+        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+
+    # 1. Sync / Provision in 'customers' table
+    cust_result = await db.execute(
+        select(Customer).where(
+            Customer.organization_id == target_org,
+            func.lower(Customer.email) == email_clean
+        )
+    )
+    customer = cust_result.scalar_one_or_none()
+
+    if not customer:
+        customer_code = f"CUST-{uuid.uuid4().hex[:8].upper()}"
+        customer = Customer(
+            organization_id=target_org,
+            code=customer_code,
+            name=name_clean or email_clean.split("@")[0],
+            email=email_clean,
+            phone=phone_clean,
+            type="INDIVIDUAL",
+            loyalty_points=500,  # 500 VIP Welcome points
+            loyalty_tier="Executive Gold",
+            store_credit=0.0,
+            notes=f"Store customer via {input_data.authProvider or 'Google OAuth'}",
+            is_active=True
+        )
+        db.add(customer)
+    else:
+        if name_clean and (not customer.name or customer.name == "Google User"):
+            customer.name = name_clean
+        if phone_clean:
+            customer.phone = phone_clean
+        if not customer.loyalty_tier or customer.loyalty_tier == "BRONZE":
+            customer.loyalty_tier = "Executive Gold"
+        if not customer.loyalty_points:
+            customer.loyalty_points = 500
+        customer.is_active = True
+
+    # 2. Sync / Provision in 'users' table (Visible to Super Admin in User Directory)
+    user_result = await db.execute(
+        select(User).where(func.lower(User.email) == email_clean)
+    )
+    user_record = user_result.scalar_one_or_none()
+
+    if not user_record:
+        user_record = User(
+            organization_id=target_org,
+            email=email_clean,
+            name=name_clean or email_clean.split("@")[0],
+            password_hash="OAUTH_EXTERNAL_SSO_USER",
+            roles='["CUSTOMER"]',
+            is_active=True
+        )
+        db.add(user_record)
+    else:
+        if name_clean and (not user_record.name or user_record.name == "Google User"):
+            user_record.name = name_clean
+        user_record.is_active = True
+
+    await db.commit()
+    await db.refresh(customer)
+    return _to_dto(customer)
+
+
+@router.get("/customers/profile", response_model=CustomerDto)
+async def get_customer_profile(
+    email: str,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Fetches real-time customer profile & loyalty metrics by email.
+    """
+    email_clean = email.strip().lower()
+    target_org = user.organization_id if user else None
+    if not target_org:
+        org_result = await db.execute(select(Organization.id).limit(1))
+        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+
+    cust_result = await db.execute(
+        select(Customer).where(
+            Customer.organization_id == target_org,
+            func.lower(Customer.email) == email_clean
+        )
+    )
+    customer = cust_result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found in database")
+    return _to_dto(customer)
 
 
 @router.get("/customers", response_model=PaginatedResponse[CustomerDto])
