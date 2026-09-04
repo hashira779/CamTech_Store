@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { Role } from './permissions';
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(3, 'Username or email is required'),
   password: z.string().min(1, 'Password is required'),
 });
 

@@ -175,12 +175,12 @@ export default function LoginPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Email address</label>
+                <label className="text-sm font-medium text-foreground">Email or Username</label>
                 <div className="relative">
                   <input 
                     className="input pl-4 bg-background/50 focus:bg-background" 
-                    type="email" 
-                    placeholder="you@company.com"
+                    type="text" 
+                    placeholder="admin@camtechstore"
                     autoComplete="username" 
                     {...register('email')} 
                   />
