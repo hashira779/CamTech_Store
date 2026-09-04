@@ -1,0 +1,41 @@
+name: Deploy to Production (Ubuntu 10.1.0.11)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Safe Production Deploy
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Free Disk Space
+        run: |
+          # Prune dangling unused container images
+          sudo docker image prune -f 2>/dev/null || true
+          # Clean old runner diagnostic logs older than 2 days
+          find /home/ubuntu-server/actions-runner/_diag -name "*.log" -mtime +2 -delete 2>/dev/null || true
+          # Vacuum system logs
+          sudo journalctl --vacuum-time=2d 2>/dev/null || true
+          echo "✅ Disk optimization complete"
+          df -h /
+
+      - name: Make Scripts Executable
+        run: |
+          chmod +x ./scripts/deploy_production.sh
+          chmod +x ./scripts/*.py 2>/dev/null || true
+
+      - name: Safe Deploy with Automated Rollback
+        run: ./scripts/deploy_production.sh
