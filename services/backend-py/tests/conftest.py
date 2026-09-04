@@ -31,12 +31,21 @@ async def init_test_database():
             # 2. Create tables
             await conn.run_sync(Base.metadata.create_all)
 
-            # 3. Ensure primary test organization exists
+            # 3. Ensure primary test organizations exist
             await conn.execute(text("""
-                INSERT INTO organizations (id, name, slug, "isActive", "createdAt", "updatedAt")
-                VALUES ('cmtn25rqc0000vk64wgyfvaov', 'Global Enterprise Group', 'enterprise-group', true, NOW(), NOW())
-                ON CONFLICT (id) DO NOTHING;
+                INSERT INTO organizations (id, name, slug, "createdAt", "updatedAt")
+                VALUES 
+                    ('cmtn25rqc0000vk64wgyfvaov', 'Global Enterprise Group', 'enterprise-group', NOW(), NOW()),
+                    ('cmtk8h18o0000vkd0etmdacgw', 'CamTech Enterprise Org', 'camtech-enterprise', NOW(), NOW())
+                ON CONFLICT DO NOTHING;
             """))
+
+        # 4. Seed test database with initial products, locations, and users
+        try:
+            from scripts.seed_data import seed
+            await seed()
+        except Exception as seed_err:
+            print(f"[conftest] Seed notice: {seed_err}")
     except Exception as exc:
         import traceback
         traceback.print_exc()
