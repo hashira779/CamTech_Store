@@ -160,10 +160,30 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const userRoles = useMemo<string[]>(() => {
+    const rawRoles = user?.roles as unknown;
+    if (Array.isArray(rawRoles)) {
+      return rawRoles.map((r) => String(r).toUpperCase());
+    }
+    if (typeof rawRoles === 'string') {
+      try {
+        const parsed = JSON.parse(rawRoles);
+        if (Array.isArray(parsed)) return parsed.map((r) => String(r).toUpperCase());
+      } catch {
+        return [rawRoles.toUpperCase()];
+      }
+    }
+    return [];
+  }, [user?.roles]);
+
+  const isSuperAdmin = userRoles.includes('SUPER_ADMIN') || userRoles.includes('ORG_ADMIN');
+
   const navigation = useMemo(() => {
-    if (activeExperience === 'EXECUTIVE') return allNavigation;
-    return allNavigation.filter((item) => currentExpConfig.allowedSections.includes(item.section));
-  }, [allNavigation, activeExperience, currentExpConfig]);
+    // Super Admins or Executive profile ALWAYS get complete enterprise navigation
+    if (isSuperAdmin || activeExperience === 'EXECUTIVE') return allNavigation;
+    const filtered = allNavigation.filter((item) => currentExpConfig?.allowedSections?.includes(item.section));
+    return filtered.length > 0 ? filtered : allNavigation;
+  }, [allNavigation, activeExperience, currentExpConfig, isSuperAdmin]);
 
 
   const sectionLabels: Record<string, string> = {
@@ -317,7 +337,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
               <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <div className="truncate flex-1">
                 <p className="font-semibold text-foreground truncate">
-                  {user.roles.includes('ORG_ADMIN') ? 'Global Headquarters' : 'Branch Store #1'}
+                  {isSuperAdmin ? 'Global Headquarters (Super Admin)' : 'Branch Store #1'}
                 </p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Workspace</p>
               </div>

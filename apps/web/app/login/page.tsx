@@ -7,11 +7,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@mystore/contracts';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
-import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail } from 'lucide-react';
+import { useThemeStore } from '@/lib/theme-store';
+import { useExperienceStore } from '@/lib/experience-store';
+import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuth((s) => s.setAuth);
+  const { theme, setTheme } = useThemeStore();
+  const { resolveDefaultExperience, setExperience } = useExperienceStore();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -28,6 +32,8 @@ export default function LoginPage() {
     try {
       const result = await api.login(values.email, values.password);
       setAuth(result.accessToken, result.user);
+      const targetExp = resolveDefaultExperience(result.user.roles || []);
+      setExperience(targetExp);
       navigate('/dashboard');
     } catch (err) {
       setServerError(err instanceof ApiClientError ? err.message : 'Login failed');
@@ -35,7 +41,29 @@ export default function LoginPage() {
   });
 
   return (
-    <main className="relative flex min-h-screen overflow-hidden bg-background text-foreground">
+    <main className="relative flex min-h-screen overflow-hidden bg-background text-foreground transition-colors">
+      {/* Top right theme toggle */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-border bg-card/90 backdrop-blur-md text-xs font-semibold text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span>Light Mode</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-3.5 h-3.5 text-blue-500" />
+              <span>Dark Mode</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Aurora background */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -180,7 +208,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="h-11 w-full rounded-xl border border-input bg-background/60 pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  className="h-11 w-full rounded-xl border border-input bg-card text-foreground pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring shadow-xs"
                   type="text"
                   placeholder="admin@camtechstore"
                   autoComplete="username"
@@ -200,7 +228,7 @@ export default function LoginPage() {
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="h-11 w-full rounded-xl border border-input bg-background/60 pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  className="h-11 w-full rounded-xl border border-input bg-card text-foreground pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring shadow-xs"
                   type="password"
                   placeholder="••••••••"
                   autoComplete="current-password"

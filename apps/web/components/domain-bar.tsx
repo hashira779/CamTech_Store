@@ -39,27 +39,27 @@ export function DomainBar() {
   };
 
   return (
-    <div className="bg-slate-950/95 border-b border-slate-800 px-4 py-1.5 text-[11px] flex items-center justify-between overflow-x-auto gap-4 text-slate-400 select-none">
+    <div className="bg-card/95 border-b border-border px-4 py-1.5 text-[11px] flex items-center justify-between overflow-x-auto gap-4 text-muted-foreground select-none backdrop-blur-sm transition-colors">
       <div className="flex items-center gap-2 shrink-0">
-        <Globe className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
-        <span className="font-semibold text-slate-300">Active Domain:</span>
-        <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-300 border-sky-500/30 font-mono py-0">
+        <Globe className="w-3.5 h-3.5 text-primary animate-pulse" />
+        <span className="font-semibold text-foreground">Active Domain:</span>
+        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-mono py-0">
           {currentApp.domain}
         </Badge>
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-[10px] text-slate-500 hidden md:inline">Switch Portal:</span>
+        <span className="text-[10px] text-muted-foreground hidden md:inline">Switch Portal:</span>
         {domainApps.map((item) => {
           const isSelected = currentApp.id === item.id;
           return (
             <button
               key={item.id}
               onClick={() => handleDomainSelect(item)}
-              className={`px-2 py-0.5 rounded-md font-mono text-[10px] transition-all ${
+              className={`px-2 py-0.5 rounded-md font-mono text-[10px] transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-sky-500 text-white font-bold shadow-xs'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                  ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                  : 'hover:bg-accent text-muted-foreground hover:text-foreground'
               }`}
             >
               {item.id}

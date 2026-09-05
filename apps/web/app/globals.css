@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  .dark {
+    color-scheme: dark;
     /* Professional Dark Theme — Executive Obsidian Slate */
     --background: #090d16;
     --foreground: #f1f5f9;
@@ -34,6 +36,7 @@
   }
 
   .light {
+    color-scheme: light;
     /* Professional Light Theme — Clean Executive Pearl */
     --background: #f8fafc;
     --foreground: #0f172a;
