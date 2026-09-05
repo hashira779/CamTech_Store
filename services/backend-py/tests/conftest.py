@@ -35,14 +35,20 @@ async def init_test_database():
             await conn.execute(text("""
                 INSERT INTO organizations (id, name, slug, "createdAt", "updatedAt")
                 VALUES 
-                    ('cmtn25rqc0000vk64wgyfvaov', 'Global Enterprise Group', 'enterprise-group', NOW(), NOW()),
                     ('cmtk8h18o0000vkd0etmdacgw', 'CamTech Enterprise Org', 'camtech-enterprise', NOW(), NOW())
                 ON CONFLICT DO NOTHING;
             """))
 
-            # 3b. Ensure baseline admin users exist for integration tests
             org_row = (await conn.execute(text("SELECT id FROM organizations LIMIT 1;"))).fetchone()
             org_id = org_row[0] if org_row else "cmtk8h18o0000vkd0etmdacgw"
+
+            # 3a. Ensure primary test location exists for the active test organization
+            await conn.execute(text("""
+                INSERT INTO locations (id, "organizationId", name, code, type, "createdAt", "updatedAt")
+                VALUES 
+                    ('loc-default-branch', :org_id, 'Primary Enterprise Branch', 'PP-01', 'BRANCH'::"LocationType", NOW(), NOW())
+                ON CONFLICT (id) DO NOTHING;
+            """), {"org_id": org_id})
 
             from app.core.security import hash_password
             demo_hash = hash_password("Admin123!")

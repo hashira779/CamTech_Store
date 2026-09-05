@@ -75,9 +75,11 @@ async def test_enterprise_endpoints_require_auth(endpoint):
 @pytest.mark.asyncio
 async def test_auth_rate_limiter():
     from app.core.rate_limiter import auth_rate_limiter
-    auth_rate_limiter._requests.clear()
+    await auth_rate_limiter.reset()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Use an isolated client IP to ensure no crosstalk with other tests or localhost
+        headers = {"X-Real-IP": "198.51.100.246"}
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=headers) as client:
             # Fire 15 requests (allowed limit)
             for _ in range(15):
                 res = await client.post("/api/v1/auth/login", json={"email": "nonexistent@test.com", "password": "wrong"})
@@ -92,6 +94,6 @@ async def test_auth_rate_limiter():
             assert "Too many requests" in (data.get("message") or data.get("detail", ""))
             assert "retry-after" in res.headers
     finally:
-        # Always clean up rate limiter state
-        auth_rate_limiter._requests.clear()
+        # Always clean up rate limiter state across both memory and Redis
+        await auth_rate_limiter.reset()
 

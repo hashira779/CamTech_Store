@@ -87,4 +87,15 @@ class RateLimiter:
         valid_timestamps.append(now)
         self._requests[key] = valid_timestamps
 
+    async def reset(self):
+        """Clears in-memory cache and all Redis rate limit keys."""
+        self._requests.clear()
+        if self.redis_client:
+            try:
+                keys = await self.redis_client.keys("rate_limit:*")
+                if keys:
+                    await self.redis_client.delete(*keys)
+            except Exception:
+                pass
+
 auth_rate_limiter = RateLimiter(max_requests=15, window_seconds=60)

@@ -69,8 +69,17 @@ jobs:
           python -c "from app.models.entities import *; import app.main; import app.microservices.gateway"
 
       - name: Run Pytest Test Suite
+        id: pytest_run
         run: |
-          python -m pytest -v --tb=short tests
+          python -m pytest -v --tb=short tests 2>&1 | tee pytest_output.log
+
+      - name: Report Pytest Diagnostics on Failure
+        if: failure() && steps.pytest_run.outcome == 'failure'
+        run: |
+          echo "## ❌ Pytest Test Suite Failure Trace" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 80 pytest_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Schema Drift Audit (Database Architecture Gate)
         run: |

@@ -27,35 +27,41 @@ from unittest.mock import AsyncMock, MagicMock
 @pytest.mark.asyncio
 async def test_event_bus_publish_and_subscribe():
     org_id = "org_unit_test"
+    orig_get_pubsub = event_bus.get_pubsub
+    orig_publish = event_bus.publish
     
-    mock_pubsub = AsyncMock()
-    mock_pubsub.get_message.side_effect = [
-        None,
-        {"type": "message", "data": '{"event": "ORDER_DISPATCHED", "data": {"trackingNumber": "TRK-2026-9999"}}'}
-    ]
-    
-    event_bus.get_pubsub = AsyncMock(return_value=mock_pubsub)
-    event_bus.publish = AsyncMock()
+    try:
+        mock_pubsub = AsyncMock()
+        mock_pubsub.get_message.side_effect = [
+            None,
+            {"type": "message", "data": '{"event": "ORDER_DISPATCHED", "data": {"trackingNumber": "TRK-2026-9999"}}'}
+        ]
+        
+        event_bus.get_pubsub = AsyncMock(return_value=mock_pubsub)
+        event_bus.publish = AsyncMock()
 
-    pubsub = await event_bus.get_pubsub(org_id)
-    
-    msg = await pubsub.get_message(ignore_subscribe_messages=True)
-    assert msg is None
+        pubsub = await event_bus.get_pubsub(org_id)
+        
+        msg = await pubsub.get_message(ignore_subscribe_messages=True)
+        assert msg is None
 
-    await event_bus.publish(
-        org_id=org_id,
-        event_type="ORDER_DISPATCHED",
-        data={"trackingNumber": "TRK-2026-9999"}
-    )
+        await event_bus.publish(
+            org_id=org_id,
+            event_type="ORDER_DISPATCHED",
+            data={"trackingNumber": "TRK-2026-9999"}
+        )
 
-    msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-    assert msg is not None
-    assert msg["type"] == "message"
-    assert "ORDER_DISPATCHED" in msg["data"]
-    assert "TRK-2026-9999" in msg["data"]
+        msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+        assert msg is not None
+        assert msg["type"] == "message"
+        assert "ORDER_DISPATCHED" in msg["data"]
+        assert "TRK-2026-9999" in msg["data"]
 
-    await pubsub.unsubscribe()
-    await pubsub.close()
+        await pubsub.unsubscribe()
+        await pubsub.close()
+    finally:
+        event_bus.get_pubsub = orig_get_pubsub
+        event_bus.publish = orig_publish
 
 @pytest.mark.asyncio
 async def test_deep_health_endpoint():
