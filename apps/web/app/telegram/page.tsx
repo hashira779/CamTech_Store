@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError, BASE_URL } from '@/lib/api-client';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { TableSkeletonRows } from '@/components/page-skeleton';
@@ -29,6 +30,7 @@ import {
   Play,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Sparkles,
   Star,
   ShoppingBag,
@@ -97,6 +99,8 @@ export default function TelegramPage() {
   const [isBindModalOpen, setIsBindModalOpen] = useState(false);
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [broadcastTargetBotId, setBroadcastTargetBotId] = useState<string>('');
+  const [deletingBinding, setDeletingBinding] = useState<TelegramChatBindingDto | null>(null);
+  const [deletingBot, setDeletingBot] = useState<TelegramBotDto | null>(null);
 
   // Add Bot Form
   const [botName, setBotName] = useState('');
@@ -152,73 +156,131 @@ export default function TelegramPage() {
 
   // ─── Mutations ────────────────────────────────────────────────────────
   const createBotMutation = useMutation({
-    mutationFn: (input: CreateTelegramBotInput) => api.createTelegramBot(token!, input),
+    mutationFn: (input: CreateTelegramBotInput) => {
+      console.log('[Telegram] Creating bot:', input.name);
+      return api.createTelegramBot(token!, input);
+    },
     onSuccess: () => {
+      toast.success('Telegram bot registered successfully');
       queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
       setIsAddBotModalOpen(false);
       resetBotForm();
     },
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to create bot'),
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to create bot:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to create bot');
+    },
   });
 
   const updateBotMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateTelegramBotInput }) =>
-      api.updateTelegramBot(token!, id, input),
+    mutationFn: ({ id, input }: { id: string; input: UpdateTelegramBotInput }) => {
+      console.log('[Telegram] Updating bot:', id);
+      return api.updateTelegramBot(token!, id, input);
+    },
     onSuccess: () => {
+      toast.success('Telegram bot updated successfully');
       queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
       setEditingBot(null);
     },
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to update bot'),
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to update bot:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to update bot');
+    },
   });
 
   const deleteBotMutation = useMutation({
-    mutationFn: (id: string) => api.deleteTelegramBot(token!, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['telegramBots'] }),
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to delete bot'),
+    mutationFn: (id: string) => {
+      console.log('[Telegram] API DELETE /telegram/bots/' + id);
+      return api.deleteTelegramBot(token!, id);
+    },
+    onSuccess: (_, id) => {
+      console.log('[Telegram] Successfully deleted bot:', id);
+      toast.success('Telegram bot removed successfully');
+      queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
+      queryClient.invalidateQueries({ queryKey: ['telegramBindings'] });
+      setDeletingBot(null);
+    },
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to delete bot:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to delete bot');
+    },
   });
 
   const testBotMutation = useMutation({
-    mutationFn: (id: string) => api.testTelegramBot(token!, id),
+    mutationFn: (id: string) => {
+      console.log('[Telegram] Testing connection for bot:', id);
+      return api.testTelegramBot(token!, id);
+    },
     onSuccess: (data, id) => {
       setTestResults((prev) => ({ ...prev, [id]: data }));
       queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
+      if (data.success) {
+        toast.success(`Verified: @${data.botUsername || 'Bot Online'}`);
+      } else {
+        toast.error(`Verification Failed: ${data.botName || 'API Error'}`);
+      }
     },
     onError: (err: any, id) => {
+      console.error('[Telegram] Failed to test bot:', err);
       setTestResults((prev) => ({
         ...prev,
         [id]: { success: false, status: 'ERROR', botName: 'Failed: ' + (err.message || 'Connection Error') },
       }));
+      toast.error(err.message || 'Connection Error');
     },
     onSettled: () => setTestingBotId(null),
   });
 
   const bindMutation = useMutation({
-    mutationFn: (input: BindTelegramChatInput) => api.bindTelegramChat(token!, input),
+    mutationFn: (input: BindTelegramChatInput) => {
+      console.log('[Telegram] Binding destination chat:', input);
+      return api.bindTelegramChat(token!, input);
+    },
     onSuccess: () => {
+      toast.success('Telegram chat destination bound successfully');
       queryClient.invalidateQueries({ queryKey: ['telegramBindings'] });
       setIsBindModalOpen(false);
       setBindChatId('');
       setBindChatTitle('');
       setBindBotId('');
     },
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to bind chat'),
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to bind chat destination:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to bind chat');
+    },
   });
 
   const deleteBindingMutation = useMutation({
-    mutationFn: (id: string) => api.deleteTelegramBinding(token!, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['telegramBindings'] }),
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to unbind chat'),
+    mutationFn: (id: string) => {
+      console.log('[Telegram] API DELETE /telegram/bindings/' + id);
+      return api.deleteTelegramBinding(token!, id);
+    },
+    onSuccess: (_, id) => {
+      console.log('[Telegram] Successfully unbound chat destination:', id);
+      toast.success('Chat destination unbound successfully');
+      queryClient.invalidateQueries({ queryKey: ['telegramBindings'] });
+      setDeletingBinding(null);
+    },
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to unbind chat destination:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to unbind chat');
+    },
   });
 
   const broadcastMutation = useMutation({
-    mutationFn: ({ msg, botId }: { msg: string; botId?: string }) =>
-      api.sendTelegramBroadcast(token!, msg, botId || undefined),
+    mutationFn: ({ msg, botId }: { msg: string; botId?: string }) => {
+      console.log('[Telegram] Broadcasting message with bot:', botId);
+      return api.sendTelegramBroadcast(token!, msg, botId || undefined);
+    },
     onSuccess: (res) => {
       setIsBroadcastModalOpen(false);
       setBroadcastMessage('');
-      alert(`Broadcast dispatched! Sent to ${res.sentCount} destination(s).`);
+      toast.success(`Broadcast dispatched! Sent to ${res.sentCount} destination(s).`);
     },
-    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to broadcast message'),
+    onError: (err: any) => {
+      console.error('[Telegram] Failed to broadcast:', err);
+      toast.error(err instanceof ApiClientError ? err.message : 'Failed to broadcast message');
+    },
   });
 
   const resetBotForm = () => {
@@ -517,9 +579,8 @@ export default function TelegramPage() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Delete Telegram bot "${bot.name}"?`)) {
-                              deleteBotMutation.mutate(bot.id);
-                            }
+                            console.log('[Telegram] Delete bot button clicked:', bot.id, bot.name);
+                            setDeletingBot(bot);
                           }}
                           className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Delete Bot"
@@ -647,12 +708,11 @@ export default function TelegramPage() {
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => {
-                              if (confirm(`Unbind chat ${b.chatId}?`)) {
-                                deleteBindingMutation.mutate(b.id);
-                              }
+                              console.log('[Telegram] Unbind clicked for chat destination:', b.id, b.chatId);
+                              setDeletingBinding(b);
                             }}
                             className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                            title="Unbind"
+                            title="Unbind Destination"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1191,6 +1251,109 @@ export default function TelegramPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ─── MODAL: CONFIRM UNBIND DESTINATION ─────────────────────────── */}
+        {deletingBinding && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 rounded-2xl border border-destructive/30 shadow-2xl bg-card space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-destructive/15 text-destructive shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Unbind Chat Destination?</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Are you sure you want to remove the destination for Telegram chat{' '}
+                    <span className="font-mono text-primary font-semibold break-all">{deletingBinding.chatId}</span>
+                    {deletingBinding.chatTitle ? ` (${deletingBinding.chatTitle})` : ''}? 
+                    Automations and alerts will no longer be dispatched here.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+                <button
+                  type="button"
+                  disabled={deleteBindingMutation.isPending}
+                  onClick={() => setDeletingBinding(null)}
+                  className="px-3.5 py-2 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteBindingMutation.isPending}
+                  onClick={() => {
+                    console.log('[Telegram] Confirmed unbind destination:', deletingBinding.id);
+                    deleteBindingMutation.mutate(deletingBinding.id);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+                >
+                  {deleteBindingMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Unbinding...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" /> Unbind Destination
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── MODAL: CONFIRM DELETE BOT ──────────────────────────────────── */}
+        {deletingBot && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 rounded-2xl border border-destructive/30 shadow-2xl bg-card space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-destructive/15 text-destructive shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Delete Telegram Bot?</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Are you sure you want to permanently delete bot{' '}
+                    <span className="font-semibold text-foreground">{deletingBot.name}</span>? 
+                    Its encrypted token will be removed, and any linked chat destinations will be unassigned.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+                <button
+                  type="button"
+                  disabled={deleteBotMutation.isPending}
+                  onClick={() => setDeletingBot(null)}
+                  className="px-3.5 py-2 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteBotMutation.isPending}
+                  onClick={() => {
+                    console.log('[Telegram] Confirmed delete bot ID:', deletingBot.id);
+                    deleteBotMutation.mutate(deletingBot.id);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+                >
+                  {deleteBotMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Bot
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
