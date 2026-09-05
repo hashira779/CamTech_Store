@@ -1,7 +1,7 @@
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from app.core.config import settings
@@ -139,6 +139,8 @@ async def route_gateway(request: Request, path: str):
     if target_base is None and full_path.startswith("/api/v1"):
         target_base = PLATFORM_SERVICE_URL
 
+    is_sse = "text/event-stream" in request.headers.get("accept", "") or "/events/stream" in full_path
+
     # 2. If matching microservice found, attempt proxying
     if target_base:
         target_url = f"{target_base}{request.url.path}"
@@ -150,6 +152,22 @@ async def route_gateway(request: Request, path: str):
             headers = dict(request.headers)
             headers.pop("host", None)
             
+            if is_sse:
+                sse_client = httpx.AsyncClient(timeout=None)
+                req = sse_client.build_request(
+                    method=request.method,
+                    url=target_url,
+                    headers=headers,
+                    content=body
+                )
+                r = await sse_client.send(req, stream=True)
+                return StreamingResponse(
+                    r.aiter_raw(),
+                    status_code=r.status_code,
+                    headers=dict(r.headers),
+                    background=BackgroundTask(r.aclose)
+                )
+
             proxy_resp = await http_client.request(
                 method=request.method,
                 url=target_url,
@@ -181,6 +199,23 @@ async def route_gateway(request: Request, path: str):
             }).encode("utf-8"),
             status_code=503,
             media_type="application/json",
+        )
+
+    if is_sse:
+        transport = httpx.ASGITransport(app=fallback_app)
+        fb_sse_client = httpx.AsyncClient(transport=transport, base_url="http://in-process", timeout=None)
+        fb_req = fb_sse_client.build_request(
+            method=request.method,
+            url=request.url.path + (f"?{request.url.query}" if request.url.query else ""),
+            headers=dict(request.headers),
+            content=await request.body()
+        )
+        r = await fb_sse_client.send(fb_req, stream=True)
+        return StreamingResponse(
+            r.aiter_raw(),
+            status_code=r.status_code,
+            headers=dict(r.headers),
+            background=BackgroundTask(r.aclose)
         )
 
     scope = request.scope

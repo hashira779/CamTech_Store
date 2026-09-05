@@ -63,9 +63,9 @@ export default function SettingsPage() {
         timezone: orgData.timezone,
         taxRatePct: orgData.taxRatePct,
         businessType: orgData.businessType,
-        enabledModules: orgData.settings.enabledModules ?? ['products', 'customers', 'sales', 'inventory', 'locations'],
-        receiptHeader: orgData.settings.receiptHeader ?? '',
-        receiptFooter: orgData.settings.receiptFooter ?? '',
+        enabledModules: orgData.settings?.enabledModules ?? ['products', 'customers', 'sales', 'inventory', 'locations'],
+        receiptHeader: orgData.settings?.receiptHeader ?? '',
+        receiptFooter: orgData.settings?.receiptFooter ?? '',
       });
     }
   }, [orgData]);

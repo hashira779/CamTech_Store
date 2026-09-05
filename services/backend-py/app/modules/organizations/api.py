@@ -30,7 +30,7 @@ async def get_current_organization(
         timezone=org.timezone,
         taxRatePct=float(org.tax_rate_pct),
         businessType=org.business_type,
-        settings=org.settings
+        settings=org.settings or {}
     )
 
 @router.put("/current", response_model=OrganizationDto)
