@@ -46,11 +46,13 @@ free -h
 echo "--- Disk Space ---"
 df -h /
 
-# Verify Docker is running
+# Verify Docker is running and prune any stopped containers from previous runs
 if ! run_cmd docker info > /dev/null 2>&1; then
     echo "❌ Error: Docker daemon is not running or current user lacks access."
     exit 1
 fi
+echo "🧹 Pruning stopped containers from previous runs..."
+run_cmd docker container prune -f 2>/dev/null || true
 
 # ── 2. Create Safety Snapshot / Backup of Current State ───────────────────────
 if [ -d "$APP_DIR" ]; then
@@ -179,9 +181,11 @@ if [ "$DEPLOY_FAILED" -eq 1 ]; then
     exit 1
 fi
 
-# ── 8. Cleanup & Prune Dangling Build Artifacts ───────────────────────────────
-echo "🧹 Pruning old dangling Docker images..."
+# ── 8. Cleanup & Prune Unused Containers and Build Artifacts ──────────────────
+echo "🧹 Pruning old stopped containers, dangling images, and build caches..."
+run_cmd docker container prune -f 2>/dev/null || true
 run_cmd docker image prune -f 2>/dev/null || true
+run_cmd docker builder prune -af --filter "until=24h" 2>/dev/null || true
 
 echo "========================================================================"
 echo "  🎉 Deployment Succeeded & Verified! MyStore Production is LIVE."
