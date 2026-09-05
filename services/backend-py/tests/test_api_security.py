@@ -62,7 +62,8 @@ def test_jwt_token_generation():
     "/api/v1/developers/keys",
     "/api/v1/developers/webhooks",
     "/api/v1/telegram/bindings",
-    "/api/v1/wms/transfers"
+    "/api/v1/wms/transfers",
+    "/api/v1/workflows/instances",
 ])
 async def test_enterprise_endpoints_require_auth(endpoint):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
