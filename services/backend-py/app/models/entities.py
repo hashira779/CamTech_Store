@@ -590,3 +590,4 @@ class WebhookDelivery(Base):
     attempts = Column(Integer, default=1, nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
 
+from app.modules.automations.models import TelegramBot, TelegramChatBinding

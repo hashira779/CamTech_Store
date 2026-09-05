@@ -139,6 +139,11 @@ import type {
   CreateWebhookSubscriptionInput,
   TelegramChatBindingDto,
   BindTelegramChatInput,
+  UpdateTelegramBindingInput,
+  TelegramBotDto,
+  CreateTelegramBotInput,
+  UpdateTelegramBotInput,
+  TelegramBotTestResult,
   AutomationFlowDto,
   CreateFlowInput,
   UpdateFlowInput,
@@ -1192,6 +1197,49 @@ export const api = {
     }),
 
   // ─── Telegram Platform ──────────────────────────────────────────
+  // ─── Telegram Multi-Bot Platform ─────────────────────────────────
+  listTelegramBots: (token: string) =>
+    request<TelegramBotDto[]>('/telegram/bots', { token }),
+
+  getTelegramBot: (token: string, id: string) =>
+    request<TelegramBotDto>(`/telegram/bots/${id}`, { token }),
+
+  createTelegramBot: (token: string, input: CreateTelegramBotInput) =>
+    request<TelegramBotDto>('/telegram/bots', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateTelegramBot: (token: string, id: string, input: UpdateTelegramBotInput) =>
+    request<TelegramBotDto>(`/telegram/bots/${id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteTelegramBot: (token: string, id: string) =>
+    request<{ success: boolean }>(`/telegram/bots/${id}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  testTelegramBot: (token: string, id: string) =>
+    request<TelegramBotTestResult>(`/telegram/bots/${id}/test`, {
+      method: 'POST',
+      token,
+    }),
+
+  sendTelegramBotBroadcast: (token: string, id: string, message: string) =>
+    request<{ sentCount: number; failedCount: number; totalDestinations: number }>(
+      `/telegram/bots/${id}/broadcast`,
+      {
+        method: 'POST',
+        token,
+        body: JSON.stringify({ message }),
+      }
+    ),
+
   listTelegramBindings: (token: string) =>
     request<TelegramChatBindingDto[]>('/telegram/bindings', { token }),
 
@@ -1202,17 +1250,24 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
+  updateTelegramBinding: (token: string, id: string, input: UpdateTelegramBindingInput) =>
+    request<TelegramChatBindingDto>(`/telegram/bindings/${id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
   deleteTelegramBinding: (token: string, id: string) =>
     request<{ success: boolean }>(`/telegram/bindings/${id}`, {
       method: 'DELETE',
       token,
     }),
 
-  sendTelegramBroadcast: (token: string, message: string) =>
-    request<{ sentCount: number }>('/telegram/broadcast', {
+  sendTelegramBroadcast: (token: string, message: string, botId?: string) =>
+    request<{ sentCount: number; failedCount?: number }>('/telegram/broadcast', {
       method: 'POST',
       token,
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, botId }),
     }),
 
   // ─── Flow Automation Platform (n8n Engine) ───────────────────────

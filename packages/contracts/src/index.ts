@@ -77,6 +77,8 @@ export {
 export * from './telegram';
 export {
   TELEGRAM_COMMANDS,
+  TELEGRAM_BOT_PURPOSES,
+  TELEGRAM_BOT_STATUSES,
 } from './telegram';
 export * from './automations';
 export {

@@ -6,7 +6,7 @@ from app.core.dependencies import get_current_user, TenantUser
 from app.core.database import AsyncSessionLocal
 from sqlalchemy import select, delete
 from app.modules.organizations.models import Organization
-from app.modules.automations.models import DeveloperApp, ApiKey, WebhookSubscription, TelegramChatBinding
+from app.modules.automations.models import DeveloperApp, ApiKey, WebhookSubscription, TelegramChatBinding, TelegramBot
 
 class MockAdminUser:
     def __init__(self, org_id: str):
@@ -129,12 +129,45 @@ async def test_developer_platform_endpoints_flow():
             assert data["data"]["success"] is True
             created_webhook_id = None  # Already deleted
 
-            # 9. Bind Telegram Chat (POST /telegram/bindings)
+            # 9. Multi-Bot Lifecycle (POST /telegram/bots, GET, PATCH, DELETE)
+            bot_payload = {
+                "name": f"Sales Bot {test_run_id}",
+                "botToken": f"123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ_{test_run_id}",
+                "botUsername": f"sales_bot_{test_run_id}",
+                "purpose": "SALES",
+                "defaultChatId": f"-100{test_run_id}",
+                "isPrimary": True,
+            }
+            res_bot = await client.post("/api/v1/telegram/bots", json=bot_payload)
+            assert res_bot.status_code == 200
+            bot_data = res_bot.json()
+            assert bot_data["success"] is True
+            created_bot_id = bot_data["data"]["id"]
+            assert bot_data["data"]["name"] == bot_payload["name"]
+            assert bot_data["data"]["purpose"] == "SALES"
+            assert bot_data["data"]["isPrimary"] is True
+
+            # List bots
+            res_list_bots = await client.get("/api/v1/telegram/bots")
+            assert res_list_bots.status_code == 200
+            assert any(b["id"] == created_bot_id for b in res_list_bots.json()["data"])
+
+            # Update bot
+            res_update_bot = await client.patch(
+                f"/api/v1/telegram/bots/{created_bot_id}",
+                json={"name": f"Updated Bot {test_run_id}", "purpose": "DELIVERY"}
+            )
+            assert res_update_bot.status_code == 200
+            assert res_update_bot.json()["data"]["name"] == f"Updated Bot {test_run_id}"
+            assert res_update_bot.json()["data"]["purpose"] == "DELIVERY"
+
+            # 10. Bind Telegram Chat with botId (POST /telegram/bindings)
             binding_payload = {
                 "chatId": f"-100{test_run_id}",
                 "chatTitle": f"Dev Channel {test_run_id}",
                 "username": "dev_bot",
-                "role": "OPERATOR"
+                "role": "OPERATOR",
+                "botId": created_bot_id,
             }
             res = await client.post("/api/v1/telegram/bindings", json=binding_payload)
             assert res.status_code == 200
@@ -142,6 +175,20 @@ async def test_developer_platform_endpoints_flow():
             assert data["success"] is True
             created_binding_id = data["data"]["id"]
             assert data["data"]["chatId"] == binding_payload["chatId"]
+            assert data["data"]["botId"] == created_bot_id
+
+            # Broadcast via bot
+            res_bcast = await client.post(
+                f"/api/v1/telegram/bots/{created_bot_id}/broadcast",
+                json={"message": f"Test notification from bot {test_run_id}"}
+            )
+            assert res_bcast.status_code == 200
+            assert res_bcast.json()["success"] is True
+
+            # Delete bot
+            res_del_bot = await client.delete(f"/api/v1/telegram/bots/{created_bot_id}")
+            assert res_del_bot.status_code == 200
+            created_bot_id = None
 
     finally:
         app.dependency_overrides.pop(get_current_user, None)
@@ -153,6 +200,8 @@ async def test_developer_platform_endpoints_flow():
                 await session.execute(delete(WebhookSubscription).where(WebhookSubscription.id == created_webhook_id))
             if created_binding_id:
                 await session.execute(delete(TelegramChatBinding).where(TelegramChatBinding.id == created_binding_id))
+            if created_bot_id:
+                await session.execute(delete(TelegramBot).where(TelegramBot.id == created_bot_id))
             if created_app_id:
                 await session.execute(delete(DeveloperApp).where(DeveloperApp.id == created_app_id))
             await session.commit()
