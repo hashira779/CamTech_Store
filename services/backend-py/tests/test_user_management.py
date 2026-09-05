@@ -9,8 +9,8 @@ async def test_user_management_lifecycle():
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Login as Admin
         admin_login = await client.post("/api/v1/auth/login", json={
-            "email": "admin@camtech.cam",
-            "password": "camtechstore@28022002"
+            "email": "admin@demo.test",
+            "password": "Admin123!"
         })
         assert admin_login.status_code == 200
         admin_token = admin_login.json()["data"]["accessToken"]

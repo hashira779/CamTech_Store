@@ -26,7 +26,8 @@ import {
   Zap,
   Award,
   ExternalLink,
-  ArrowRight
+  ArrowRight,
+  Compass
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
@@ -734,7 +735,7 @@ export function App() {
                 <ArrowRight className="w-4 h-4" />
               </a>
               <button
-                onClick={() => setIsTrackingModalOpen(true)}
+                onClick={() => (customer ? setIsHistoryOpen(true) : setIsAuthModalOpen(true))}
                 className="px-5 py-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-bold text-xs sm:text-sm border border-zinc-800 transition flex items-center gap-2"
               >
                 <Compass className="w-4 h-4 text-indigo-400" />
@@ -800,7 +801,7 @@ export function App() {
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">TIER</span>
                   <span className="font-extrabold text-xs text-amber-300">
-                    {customer?.tier || 'Executive Gold'}
+                    {customer?.loyaltyTier || 'Executive Gold'}
                   </span>
                 </div>
                 <div>

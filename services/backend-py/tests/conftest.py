@@ -45,20 +45,17 @@ async def init_test_database():
             org_id = org_row[0] if org_row else "cmtk8h18o0000vkd0etmdacgw"
 
             from app.core.security import hash_password
-            admin_hash = hash_password("camtechstore@28022002")
             demo_hash = hash_password("Admin123!")
             await conn.execute(text("""
                 INSERT INTO users (id, "organizationId", email, name, "passwordHash", roles, "isActive", "createdAt", "updatedAt")
                 VALUES 
-                    ('usr_68851d2c74', :org_id, 'admin@camtech.cam', 'Super Admin', :admin_hash, '["SUPER_ADMIN", "ORG_ADMIN"]', true, NOW(), NOW()),
-                    ('usr_camtechstore_admin', :org_id, 'admin@camtechstore.cam', 'CamTech Super Admin', :admin_hash, '["SUPER_ADMIN", "ORG_ADMIN"]', true, NOW(), NOW()),
-                    ('cmtn25sfi000avk64ixp9mumd', :org_id, 'admin@demo.test', 'Enterprise Admin', :demo_hash, '["ORG_ADMIN"]', true, NOW(), NOW())
+                    ('cmtn25sfi000avk64ixp9mumd', :org_id, 'admin@demo.test', 'Enterprise Admin', :demo_hash, '["SUPER_ADMIN", "ORG_ADMIN"]', true, NOW(), NOW())
                 ON CONFLICT (email) DO UPDATE SET 
                     "passwordHash" = EXCLUDED."passwordHash",
                     roles = EXCLUDED.roles,
                     "organizationId" = EXCLUDED."organizationId",
                     "isActive" = true;
-            """), {"org_id": org_id, "admin_hash": admin_hash, "demo_hash": demo_hash})
+            """), {"org_id": org_id, "demo_hash": demo_hash})
 
         # 4. Seed test database with initial products, locations, and users
         try:

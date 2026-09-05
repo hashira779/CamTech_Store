@@ -25,7 +25,7 @@
     "backend:setup": "pnpm --filter @mystore/backend db:setup",
     "web:dev": "pnpm --filter @mystore/web dev",
     "py:dev": "python -m uvicorn app.main:app --app-dir services/backend-py --port 4000 --reload",
-    "py:test": "python -m pytest -o pythonpath=services/backend-py services/backend-py/tests",
+    "py:test": "python -m pytest services/backend-py/tests",
     "ms:all": "concurrently -n \"gw,auth,catalog,sales,delivery,hr,finance,platform\" -c \"blue,green,yellow,magenta,cyan,white,red,gray\" \"pnpm ms:gateway\" \"pnpm ms:auth\" \"pnpm ms:catalog\" \"pnpm ms:sales\" \"pnpm ms:delivery\" \"pnpm ms:hr\" \"pnpm ms:finance\" \"pnpm ms:platform\"",
     "ms:gateway": "python -m uvicorn app.microservices.gateway:gateway --app-dir services/backend-py --port 4000 --reload",
     "ms:auth": "python -m uvicorn app.microservices.auth_service:app --app-dir services/backend-py --port 4001 --reload",

@@ -1,10 +1,11 @@
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from app.core.config import settings
+from app.microservices.gateway_dashboard import get_gateway_dashboard_html
 
 # The in-process fallback (the full monolith) is imported LAZILY and guarded, so a
 # syntax/import error in ANY single module can never stop the gateway from booting.
@@ -27,9 +28,10 @@ def get_fallback_app():
 
 gateway = FastAPI(
     title="MyStore Universal Enterprise API Gateway (Port 4000)",
-    description="2026–2030 Cloud-Native API Gateway routing traffic to microservices on ports 4001-4006 with fault-tolerant local fallback.",
+    description="2026–2030 Cloud-Native API Gateway routing traffic to microservices on ports 4001-4007 with fault-tolerant local fallback.",
     version="2.0.0",
     docs_url="/docs",
+    redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
 
@@ -76,9 +78,26 @@ ROUTING_MAP = {
 
 http_client = httpx.AsyncClient(timeout=15.0)
 
-@gateway.get("/", include_in_schema=False)
+def custom_openapi():
+    if gateway.openapi_schema:
+        return gateway.openapi_schema
+    fb = get_fallback_app()
+    if fb:
+        schema = dict(fb.openapi())
+        schema["info"] = {
+            "title": "MyStore Universal Enterprise API Gateway (Port 4000)",
+            "description": "2026–2030 Cloud-Native API Gateway routing traffic to 7 microservices with resilient fallback.",
+            "version": "2.0.0",
+        }
+        gateway.openapi_schema = schema
+        return gateway.openapi_schema
+    return super(FastAPI, gateway).openapi()
+
+gateway.openapi = custom_openapi
+
+@gateway.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def gateway_root():
-    return RedirectResponse(url="/docs")
+    return HTMLResponse(content=get_gateway_dashboard_html(), status_code=200)
 
 @gateway.get("/favicon.ico", include_in_schema=False)
 async def gateway_favicon():

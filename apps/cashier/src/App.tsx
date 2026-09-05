@@ -920,8 +920,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLoginEmail('admin@camtechstore');
-                      setLoginPassword('camtechstore@28022002');
+                      setLoginEmail('admin@demo.test');
+                      setLoginPassword('Admin123!');
                     }}
                     className="text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
                   >
