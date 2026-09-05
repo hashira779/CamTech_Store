@@ -78,7 +78,7 @@ class TelegramChatBinding(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
-    bot_id = Column("botId", String, ForeignKey("telegram_bots.id"), nullable=True)
+    bot_id = Column("botId", String, ForeignKey("telegram_bots.id", ondelete="SET NULL"), nullable=True)
     chat_id = Column("chatId", String, nullable=False)
     chat_title = Column("chatTitle", String, nullable=True)
     username = Column(String, nullable=True)

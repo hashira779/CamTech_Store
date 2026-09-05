@@ -475,6 +475,17 @@ async def delete_telegram_bot(
     if not bot:
         raise HTTPException(status_code=404, detail="Telegram bot not found")
 
+    # Unlink any chat bindings referencing this bot before deleting
+    from sqlalchemy import update
+    await db.execute(
+        update(TelegramChatBinding)
+        .where(
+            TelegramChatBinding.bot_id == bot_id,
+            TelegramChatBinding.organization_id == user.organization_id
+        )
+        .values(bot_id=None)
+    )
+
     await db.delete(bot)
     await db.commit()
     return {"success": True}
