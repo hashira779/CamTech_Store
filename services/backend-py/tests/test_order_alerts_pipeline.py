@@ -70,14 +70,26 @@ async def test_notifications_platform_endpoints(mock_pipeline_user):
 
 @pytest.mark.asyncio
 async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
-    # Retrieve a valid seeded variant from DB
-    async with engine.connect() as conn:
+    # Retrieve a valid seeded variant from DB, or seed one dynamically if table is empty
+    async with engine.begin() as conn:
         res = await conn.execute(
             text('SELECT id, sku, name, "sellPrice" FROM product_variants WHERE "organizationId" = :org_id LIMIT 1'),
             {"org_id": TEST_ORG_ID}
         )
         row = res.fetchone()
-        assert row is not None, "A seeded product variant must exist for integration tests"
+        if not row:
+            await conn.execute(text("""
+                INSERT INTO products (id, "organizationId", type, name, description, "isActive", "createdAt", "updatedAt")
+                VALUES ('prod-test-alert', :org_id, 'PHYSICAL'::"ProductType", 'Test Phone Alert', 'Test Phone', true, NOW(), NOW())
+                ON CONFLICT (id) DO NOTHING;
+            """), {"org_id": TEST_ORG_ID})
+            await conn.execute(text("""
+                INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
+                VALUES ('var-test-alert', :org_id, 'prod-test-alert', 'SKU-ALERT-1', '885999001', 'Test Phone 256GB', 400.00, 899.00, 10.00, true, NOW(), NOW())
+                ON CONFLICT (id) DO NOTHING;
+            """), {"org_id": TEST_ORG_ID})
+            row = ('var-test-alert', 'SKU-ALERT-1', 'Test Phone 256GB', 899.00)
+            
         var_id, sku, prod_name, price = row[0], row[1], row[2], float(row[3])
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

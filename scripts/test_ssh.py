@@ -10,9 +10,9 @@ try:
         "10.1.0.11",
         username="ubuntu-server",
         password="pTT!CT01",
-        timeout=15,
-        banner_timeout=30,
-        auth_timeout=30,
+        timeout=30,
+        banner_timeout=90,
+        auth_timeout=90,
     )
     print("SSH Connected successfully!", flush=True)
     _, stdout, stderr = client.exec_command("echo 'pTT!CT01' | sudo -S docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'")

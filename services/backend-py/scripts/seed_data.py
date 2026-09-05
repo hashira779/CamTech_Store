@@ -84,7 +84,7 @@ async def seed():
                 await db.execute(text("""
                     INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
                     VALUES (:id, :oid, :pid, :sku, :barcode, :name, :cost, :sell, 10.00, true, NOW(), NOW())
-                    ON CONFLICT ("organizationId", sku) DO NOTHING;
+                    ON CONFLICT (id) DO NOTHING;
                 """), {
                     "id": vid, "oid": oid, "pid": pid, "sku": sku,
                     "barcode": f"885{vid[-6:]}", "name": vname,

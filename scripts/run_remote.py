@@ -22,7 +22,14 @@ def exec_remote(cmd: str):
     
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, username=user, password=password, timeout=30)
+    client.connect(
+        host,
+        username=user,
+        password=password,
+        timeout=30,
+        banner_timeout=60,
+        auth_timeout=60,
+    )
     
     # We write command to a temporary remote script or execute via bash
     sftp = client.open_sftp()
@@ -32,15 +39,17 @@ def exec_remote(cmd: str):
     sftp.chmod(remote_script, 0o755)
     sftp.close()
     
-    stdin, stdout, stderr = client.exec_command(f"echo '{password}' | sudo -S bash {remote_script}", get_pty=True)
-    out = stdout.read().decode(errors="replace")
-    err = stderr.read().decode(errors="replace")
+    stdin, stdout, stderr = client.exec_command(f"echo '{password}' | sudo -S bash {remote_script}")
+    stdin.close()
     
+    for line in iter(stdout.readline, ""):
+        print(line, end="", flush=True)
+    
+    err = stderr.read().decode(errors="replace")
     client.exec_command(f"rm -f {remote_script}")
     client.close()
     
-    print(out)
-    if err and "password for" not in err:
+    if err and "password for" not in err and "Warning:" not in err:
         print("[stderr]", err, file=sys.stderr)
 
 if __name__ == "__main__":
