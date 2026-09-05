@@ -495,7 +495,7 @@ export function App() {
       notes: `Store Order: ${cart.map((i) => `${i.name} x${i.quantity}`).join(', ')}`
     };
 
-    const loadingToast = toast.loading('Recording official sale in PostgreSQL Data Center...');
+    const loadingToast = toast.loading('Confirming and dispatching order...');
 
     try {
       // 1. Record official Sale, Line Items, and Payment in Central PostgreSQL
@@ -521,7 +521,7 @@ export function App() {
       });
 
       if (!saleRes.ok) {
-        throw new Error(`Data Center Sale failed with status ${saleRes.status}`);
+        throw new Error(`Order checkout failed with status ${saleRes.status}`);
       }
 
       const saleJson = await saleRes.json();
@@ -575,7 +575,7 @@ export function App() {
       } catch {}
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
-      toast.success('🎉 Official Sale & Invoice recorded in PostgreSQL! Dispatched to Fleet!');
+      toast.success('🎉 Order confirmed! Dispatched to delivery fleet.');
       refetchHistory();
     } catch (err: any) {
       toast.dismiss(loadingToast);
@@ -602,12 +602,12 @@ export function App() {
           {isBackendConnected ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              PostgreSQL 16: Connected
+              Online • Express Dispatch
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              Autonomous Container Mode
+              Offline Mode
             </span>
           )}
         </div>
@@ -722,7 +722,7 @@ export function App() {
             </h1>
 
             <p className="text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
-              Next-gen Apple silicon, high-fidelity audio, and artisan roast coffee delivered to your doorstep in Phnom Penh. Powered by native PostgreSQL microservices and instant Bakong KHQR settlement.
+              Next-gen Apple silicon, high-fidelity audio, and artisan roast coffee delivered to your doorstep in Phnom Penh with instant Bakong KHQR settlement.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -734,77 +734,85 @@ export function App() {
                 <ArrowRight className="w-4 h-4" />
               </a>
               <button
-                onClick={() => setIsHistoryOpen(true)}
-                className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 text-xs sm:text-sm font-semibold transition flex items-center gap-2 backdrop-blur-md cursor-pointer"
+                onClick={() => setIsTrackingModalOpen(true)}
+                className="px-5 py-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-bold text-xs sm:text-sm border border-zinc-800 transition flex items-center gap-2"
               >
-                <Truck className="w-4 h-4 text-indigo-400" />
+                <Compass className="w-4 h-4 text-indigo-400" />
                 <span>Track Live Delivery</span>
               </button>
             </div>
 
-            {/* Metrics Ticker Row */}
-            <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-zinc-800/80 text-xs text-zinc-400 font-mono">
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>0.4s Instant KHQR</span>
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-zinc-800/60 max-w-lg">
+              <div>
+                <div className="text-xl sm:text-2xl font-black text-white flex items-center">
+                  <span>0.4s</span>
+                </div>
+                <div className="text-[11px] text-zinc-500 font-medium">Instant KHQR</div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>100% Genuine Warranty</span>
+              <div>
+                <div className="text-xl sm:text-2xl font-black text-white">100%</div>
+                <div className="text-[11px] text-zinc-500 font-medium">Genuine Warranty</div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Navigation className="w-3.5 h-3.5 text-blue-400" />
-                <span>GPS Courier Fleet</span>
+              <div>
+                <div className="text-xl sm:text-2xl font-black text-white">GPS</div>
+                <div className="text-[11px] text-zinc-500 font-medium">Courier Fleet</div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Signature 3D Hanging Lanyard VIP Pass */}
-          <div className="lg:col-span-5 relative flex flex-col items-center justify-center pt-4 lg:pt-0">
-            {/* Suspended Lanyard Cord */}
-            <div className="w-1.5 h-12 bg-gradient-to-b from-indigo-500/30 via-purple-500/60 to-zinc-700 mx-auto -mb-1 rounded-t-full shadow-sm" />
-            {/* Metallic Clasp Clip */}
-            <div className="w-7 h-5 bg-gradient-to-b from-zinc-600 via-zinc-400 to-zinc-700 rounded-md border border-zinc-500 shadow-md mx-auto -mb-2 z-10 relative flex items-center justify-center">
-              <div className="w-3 h-1 bg-zinc-800 rounded-full" />
-            </div>
-            {/* Hanging Pass Container */}
-            <div className="relative w-72 sm:w-80 rounded-[2rem] p-5 bg-zinc-950/85 backdrop-blur-xl border border-zinc-800/90 shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2)] animate-float-lanyard text-left overflow-hidden">
-              {/* Card Header Banner */}
-              <div className="rounded-2xl p-4 bg-gradient-to-tr from-purple-900/90 via-indigo-900/90 to-blue-900/90 border border-white/10 flex items-center justify-between mb-4 relative overflow-hidden">
-                <div className="relative z-10">
-                  <span className="text-[10px] font-mono tracking-wider uppercase text-indigo-200">
+          {/* Right Column: Interactive Digital NFC Member Pass */}
+          <div className="relative flex justify-center items-center">
+            {/* Ambient Background Glow behind pass */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-purple-500/10 to-pink-500/20 blur-3xl rounded-3xl" />
+
+            <div className="relative w-full max-w-[340px] rounded-3xl p-6 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 border border-zinc-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col gap-5">
+              {/* Lanyard Clip Header */}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-3 bg-zinc-700/80 rounded-full border border-zinc-600/60 flex items-center justify-center">
+                <div className="w-8 h-1 bg-zinc-900 rounded-full"></div>
+              </div>
+
+              {/* Pass Top Branding */}
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <span className="text-[9px] font-mono tracking-widest text-indigo-400 uppercase font-semibold block">
                     CAMTECH COMMERCE
                   </span>
-                  <h4 className="text-sm font-extrabold text-white">VIP Member Pass</h4>
+                  <span className="text-xs font-bold text-white tracking-tight">VIP Member Pass</span>
                 </div>
-                <div className="w-10 h-10 rounded-full border-2 border-indigo-400/80 shadow-[0_0_12px_rgba(99,102,241,0.6)] flex items-center justify-center font-black text-sm text-white bg-indigo-950 relative z-10">
-                  {customer ? customer.name.slice(0, 2).toUpperCase() : 'CT'}
+                <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-mono font-bold text-xs">
+                  CT
                 </div>
-                <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-pink-500/20 rounded-full blur-xl pointer-events-none" />
               </div>
 
-              {/* Customer ID */}
-              <div className="space-y-0.5 mb-4">
-                <p className="text-base font-extrabold text-white truncate">
-                  {customer ? customer.name : 'VIP Guest Member'}
-                </p>
-                <p className="text-xs text-indigo-400 font-mono">
-                  {customer ? customer.email : 'guest.vip@camtech.cam'}
+              {/* Member Identification Card */}
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white truncate">
+                  {customer?.name || 'VIP Guest Member'}
+                </h3>
+                <p className="text-xs text-zinc-400 font-mono truncate">
+                  {customer?.email || 'guest.vip@camtech.cam'}
                 </p>
               </div>
 
-              {/* Detail Matrix */}
-              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-[11px] mb-4">
+              {/* Member Tier & Live Loyalty Engine */}
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-zinc-950/60 border border-zinc-800/80">
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">TIER</span>
-                  <span className="font-bold text-white">{customer?.loyaltyTier || 'Executive Gold'}</span>
+                  <span className="font-extrabold text-xs text-amber-300">
+                    {customer?.tier || 'Executive Gold'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">LOYALTY PTS</span>
-                  <span className="font-bold text-emerald-400">
-                    {customer?.loyaltyPoints != null ? `${customer.loyaltyPoints} PTS` : '500 PTS'}
+                  <span className="font-extrabold text-xs text-emerald-400 font-mono">
+                    {customer?.loyaltyPoints ? `${customer.loyaltyPoints.toLocaleString()} PTS` : '500 PTS'}
                   </span>
                 </div>
+              </div>
+
+              {/* Account Code & Live Backend Status */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">ACCOUNT CODE</span>
                   <span className="font-bold text-zinc-300 font-mono">{customer?.code || 'CT-ONLINE'}</span>
@@ -813,7 +821,7 @@ export function App() {
                   <span className="text-zinc-500 text-[10px] block uppercase font-mono">STATUS</span>
                   <span className="font-bold text-indigo-400 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                    {customer?.id ? 'Linked (Postgres)' : (customer ? 'Synced (DB)' : 'Guest')}
+                    {customer?.id ? 'Verified Member' : (customer ? 'Active Member' : 'Guest')}
                   </span>
                 </div>
               </div>
@@ -843,21 +851,21 @@ export function App() {
         <div className="animate-marquee flex items-center gap-3">
           {[
             '⚡ NBC Bakong KHQR Instant Checkout',
-            '🍎 Apple M3 Silicon & Pro Audio',
-            '📦 15-Minute Micro-Warehouse Fleet',
-            '🚀 FastAPI Modular Monolith',
-            '🐘 PostgreSQL 16 Native Database',
-            '🔒 Cloudflare Zero Trust Security',
-            '☕ Artisan Espresso & Daily Essentials',
-            '🐳 Isolated Docker Containers',
+            '🍎 100% Genuine Apple Warranty',
+            '📦 15-Minute Courier Dispatch',
+            '🛡️ Authentic Hardware & Audio',
+            '☕ Artisan Roast Mondulkiri Coffee',
+            '🔒 Secure 256-Bit Encrypted Checkout',
+            '🚀 Same-Day Phnom Penh Delivery',
+            '✨ VIP Member Loyalty Rewards',
             '⚡ NBC Bakong KHQR Instant Checkout',
-            '🍎 Apple M3 Silicon & Pro Audio',
-            '📦 15-Minute Micro-Warehouse Fleet',
-            '🚀 FastAPI Modular Monolith',
-            '🐘 PostgreSQL 16 Native Database',
-            '🔒 Cloudflare Zero Trust Security',
-            '☕ Artisan Espresso & Daily Essentials',
-            '🐳 Isolated Docker Containers',
+            '🍎 100% Genuine Apple Warranty',
+            '📦 15-Minute Courier Dispatch',
+            '🛡️ Authentic Hardware & Audio',
+            '☕ Artisan Roast Mondulkiri Coffee',
+            '🔒 Secure 256-Bit Encrypted Checkout',
+            '🚀 Same-Day Phnom Penh Delivery',
+            '✨ VIP Member Loyalty Rewards',
           ].map((item, idx) => (
             <div
               key={idx}
