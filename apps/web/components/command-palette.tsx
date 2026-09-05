@@ -1,25 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingBag,
-  Users,
-  Boxes,
-  Truck,
-  Building2,
-  Settings,
-  PlusCircle,
-  Sun,
-  Moon,
-  Laptop,
-  ArrowRight,
-  Search,
-  Tag,
-  Percent,
-  Coins,
-  Receipt,
-} from 'lucide-react';
+import { Boxes, Laptop, Moon, PlusCircle, Sun } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -31,15 +12,28 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { useThemeStore } from '@/lib/theme-store';
+import {
+  ADMIN_SECTION_LABELS,
+  type AdminNavigationItem,
+  type AdminNavigationSection,
+} from '@/lib/admin-navigation';
 
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  navigation: AdminNavigationItem[];
 }
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette({ open, onOpenChange, navigation }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { theme, setTheme } = useThemeStore();
+
+  const groupedNavigation = React.useMemo(() => {
+    return navigation.reduce<Partial<Record<AdminNavigationSection, AdminNavigationItem[]>>>((groups, item) => {
+      (groups[item.section] ??= []).push(item);
+      return groups;
+    }, {});
+  }, [navigation]);
 
   const runCommand = React.useCallback(
     (command: () => void) => {
@@ -51,121 +45,62 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search modules..." />
+      <CommandInput placeholder="Search modules, workflows, or settings..." />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        
-        <CommandGroup heading="Quick Actions">
+        <CommandEmpty>No accessible modules match your search.</CommandEmpty>
+
+        <CommandGroup heading="Quick actions">
           <CommandItem
+            value="new sale checkout cashier pos terminal"
             onSelect={() => runCommand(() => navigate('/sales/new'))}
           >
             <PlusCircle className="mr-2 h-4 w-4 text-emerald-500" />
-            <span>Open Point of Sale (POS Terminal)</span>
+            <span>Start a new sale</span>
             <CommandShortcut>F1</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={() => runCommand(() => navigate('/products'))}
-          >
-            <PlusCircle className="mr-2 h-4 w-4 text-blue-500" />
-            <span>Add New Product to Catalog</span>
-            <CommandShortcut>N</CommandShortcut>
-          </CommandItem>
-          <CommandItem
+            value="stock adjustment inventory quantity"
             onSelect={() => runCommand(() => navigate('/inventory'))}
           >
             <Boxes className="mr-2 h-4 w-4 text-amber-500" />
-            <span>Stock Adjustment</span>
+            <span>Adjust inventory</span>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="Navigation">
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/dashboard'))}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Executive Dashboard</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/sales'))}
-          >
-            <ShoppingBag className="mr-2 h-4 w-4" />
-            <span>Sales & Orders Ledger</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/products'))}
-          >
-            <Package className="mr-2 h-4 w-4" />
-            <span>Products Catalog</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/inventory'))}
-          >
-            <Boxes className="mr-2 h-4 w-4" />
-            <span>Inventory Management</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/customers'))}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            <span>Customers & Accounts</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/locations'))}
-          >
-            <Building2 className="mr-2 h-4 w-4" />
-            <span>Locations & Branches</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/procurement'))}
-          >
-            <Truck className="mr-2 h-4 w-4" />
-            <span>Procurement & POs</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/promotions'))}
-          >
-            <Tag className="mr-2 h-4 w-4" />
-            <span>Promotions & Discounts</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/pricing'))}
-          >
-            <Coins className="mr-2 h-4 w-4" />
-            <span>Pricing Matrix</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/taxes'))}
-          >
-            <Percent className="mr-2 h-4 w-4" />
-            <span>Fiscal Rules & Taxes</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/settings'))}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </CommandItem>
-        </CommandGroup>
+        {(Object.keys(groupedNavigation) as AdminNavigationSection[]).map((section) => (
+          <CommandGroup key={section} heading={ADMIN_SECTION_LABELS[section]}>
+            {groupedNavigation[section]?.map((item) => (
+              <CommandItem
+                key={item.href}
+                value={[item.name, section, ...(item.keywords ?? [])].join(' ')}
+                onSelect={() => runCommand(() => navigate(item.href))}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                <span>{item.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ))}
 
         <CommandSeparator />
 
-        <CommandGroup heading="Theme">
+        <CommandGroup heading="Appearance">
           <CommandItem onSelect={() => runCommand(() => setTheme('light'))}>
             <Sun className="mr-2 h-4 w-4" />
-            <span>Light Mode</span>
-            {theme === 'light' && <span className="ml-auto text-xs text-primary font-bold">Active</span>}
+            <span>Use light theme</span>
+            {theme === 'light' && <CommandShortcut>Active</CommandShortcut>}
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => setTheme('dark'))}>
             <Moon className="mr-2 h-4 w-4" />
-            <span>Dark Mode</span>
-            {theme === 'dark' && <span className="ml-auto text-xs text-primary font-bold">Active</span>}
+            <span>Use dark theme</span>
+            {theme === 'dark' && <CommandShortcut>Active</CommandShortcut>}
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => setTheme('system'))}>
             <Laptop className="mr-2 h-4 w-4" />
-            <span>System Preference</span>
-            {theme === 'system' && <span className="ml-auto text-xs text-primary font-bold">Active</span>}
+            <span>Follow system theme</span>
+            {theme === 'system' && <CommandShortcut>Active</CommandShortcut>}
           </CommandItem>
         </CommandGroup>
       </CommandList>

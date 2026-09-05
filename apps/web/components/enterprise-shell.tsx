@@ -5,37 +5,13 @@ import { useAuth } from '@/lib/auth-store';
 import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Store,
-  LayoutDashboard,
-  Package,
   ShoppingBag,
-  Users,
-  Boxes,
   Settings,
-  ShieldCheck,
   LogOut,
   Bell,
   Search,
   Building2,
-  Truck,
-  Navigation,
-  Tag,
-
-  Coins,
-  ArrowLeftRight,
-  Percent,
-  Award,
-  FolderArchive,
-  Wifi,
   WifiOff,
-  BarChart3,
-  Landmark,
-  CheckSquare,
-  Briefcase,
-  FolderKanban,
-  LifeBuoy,
-  Code2,
-  Send,
-  Workflow,
   Sun,
   Moon,
   Laptop,
@@ -44,7 +20,6 @@ import {
   Menu,
   X,
   PlusCircle,
-  Command,
 } from 'lucide-react';
 import { useThemeStore } from '@/lib/theme-store';
 import { CommandPalette } from '@/components/command-palette';
@@ -63,14 +38,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  section: string;
-}
+import {
+  ADMIN_NAVIGATION,
+  ADMIN_SECTION_LABELS,
+  isAdminRouteActive,
+  type AdminNavigationItem,
+  type AdminNavigationSection,
+} from '@/lib/admin-navigation';
 
 export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   const { user, token, clear } = useAuth();
@@ -125,41 +99,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   const { activeExperience } = useExperienceStore();
   const currentExpConfig = EXPERIENCE_CONFIGS[activeExperience] || EXPERIENCE_CONFIGS.EXECUTIVE;
 
-  const allNavigation: NavItem[] = useMemo(
-    () => [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, section: 'Core' },
-      { name: 'Analytics & Reports', href: '/reports', icon: BarChart3, section: 'Core' },
-      { name: 'Sales & Orders', href: '/sales', icon: ShoppingBag, section: 'Commerce' },
-      { name: 'POS Terminal', href: '/sales/new', icon: PlusCircle, section: 'Commerce' },
-      { name: 'Products Catalog', href: '/products', icon: Package, section: 'Commerce' },
-      { name: 'Inventory Ledger', href: '/inventory', icon: Boxes, section: 'Commerce' },
-      { name: 'Stock Transfers & WMS', href: '/transfers', icon: ArrowLeftRight, section: 'Logistics' },
-      { name: 'Procurement & POs', href: '/procurement', icon: Truck, section: 'Logistics' },
-      { name: 'Delivery & Live Fleet', href: '/delivery', icon: Navigation, section: 'Logistics' },
-      { name: 'Driver Dispatch', href: '/driver', icon: Truck, section: 'Logistics' },
-      { name: 'Locations & Branches', href: '/locations', icon: Building2, section: 'Logistics' },
-
-      { name: 'Customers & CRM', href: '/customers', icon: Users, section: 'Customers' },
-      { name: 'Loyalty & Credit', href: '/loyalty', icon: Award, section: 'Customers' },
-      { name: 'Pricing & Price Lists', href: '/pricing', icon: Coins, section: 'Pricing' },
-      { name: 'Promotions & Deals', href: '/promotions', icon: Tag, section: 'Pricing' },
-      { name: 'Tax Rates & Fiscal', href: '/taxes', icon: Percent, section: 'Pricing' },
-      { name: 'Finance & Accounts', href: '/finance', icon: Landmark, section: 'Enterprise' },
-      { name: 'Approvals Inbox', href: '/approvals', icon: CheckSquare, section: 'Enterprise' },
-      { name: 'Fixed Assets', href: '/assets', icon: Coins, section: 'Enterprise' },
-      { name: 'HR & Workforce', href: '/hr', icon: Briefcase, section: 'Enterprise' },
-      { name: 'Projects & Tasks', href: '/projects', icon: FolderKanban, section: 'Enterprise' },
-      { name: 'Service Desk', href: '/tickets', icon: LifeBuoy, section: 'Platform' },
-      { name: 'Documents & Storage', href: '/storage', icon: FolderArchive, section: 'Platform' },
-      { name: 'Notifications & Alerts', href: '/notifications', icon: Bell, section: 'Platform' },
-      { name: 'Developer & API', href: '/developers', icon: Code2, section: 'Platform' },
-      { name: 'Telegram Platform', href: '/telegram', icon: Send, section: 'Platform' },
-      { name: 'Flow Automations', href: '/automations', icon: Workflow, section: 'Platform' },
-      { name: 'Users & Access Control', href: '/users', icon: ShieldCheck, section: 'System' },
-      { name: 'Settings', href: '/settings', icon: Settings, section: 'System' },
-    ],
-    []
-  );
+  const allNavigation = ADMIN_NAVIGATION;
 
   const userRoles = useMemo<string[]>(() => {
     const rawRoles = user?.roles as unknown;
@@ -187,25 +127,14 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   }, [allNavigation, activeExperience, currentExpConfig, isSuperAdmin]);
 
 
-  const sectionLabels: Record<string, string> = {
-    Core: 'Overview & Analytics',
-    Commerce: 'Commercial & Sales',
-    Logistics: 'Supply Chain & Logistics',
-    Customers: 'Customers & CRM',
-    Pricing: 'Pricing & Fiscal',
-    Enterprise: 'Enterprise Governance',
-    Platform: 'Platform & Integrations',
-    System: 'System Administration',
-  };
-
   const groupedNavigation = useMemo(() => {
-    const groups: { section: string; label: string; items: NavItem[] }[] = [];
+    const groups: { section: AdminNavigationSection; label: string; items: AdminNavigationItem[] }[] = [];
     navigation.forEach((item) => {
       let group = groups.find((g) => g.section === item.section);
       if (!group) {
         group = {
           section: item.section,
-          label: sectionLabels[item.section] || item.section,
+          label: ADMIN_SECTION_LABELS[item.section],
           items: [],
         };
         groups.push(group);
@@ -219,9 +148,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     return (
       navigation.find(
         (item) =>
-          pathname === item.href ||
-          (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
-          (item.href === '/sales' && pathname === '/sales')
+          isAdminRouteActive(pathname, item.href)
       ) || navigation[0]
     );
   }, [navigation, pathname]);
@@ -230,7 +157,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} navigation={navigation} />
       <AiCopilotDrawer />
 
       {/* Mobile Drawer Backdrop */}
@@ -306,10 +233,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
                 <div className="border-t border-border/40 my-2 mx-2" />
               )}
               {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
-                  (item.href === '/sales' && pathname === '/sales');
+                const isActive = isAdminRouteActive(pathname, item.href);
 
                 return (
                   <Link
@@ -413,7 +337,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
             {/* Breadcrumb Navigation */}
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium border-l border-border/80 pl-3 ml-1">
-              <span className="text-muted-foreground/70">{sectionLabels[activeItem?.section || 'Core'] || 'Enterprise'}</span>
+              <span className="text-muted-foreground/70">{activeItem ? ADMIN_SECTION_LABELS[activeItem.section] : 'Enterprise'}</span>
               <span className="text-muted-foreground/30">/</span>
               <span className="text-foreground font-semibold flex items-center gap-1.5">
                 {activeItem && <activeItem.icon className="w-3.5 h-3.5 text-primary" />}
