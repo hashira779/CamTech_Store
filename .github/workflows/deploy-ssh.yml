@@ -33,7 +33,7 @@ jobs:
               echo "📥 Pulling latest updates from Git..."
               git fetch origin
               git checkout ${{ github.event.inputs.target_branch || 'main' }}
-              git pull origin ${{ github.event.inputs.target_branch || 'main' }}
+              git reset --hard origin/${{ github.event.inputs.target_branch || 'main' }}
             else
               echo "📦 Cloning repository..."
               git clone https://github.com/hashira779/CamTech_Store.git "$TARGET_DIR"

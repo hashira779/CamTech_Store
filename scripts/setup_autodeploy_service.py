@@ -35,7 +35,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     echo "========================================================================"
     echo "🚀 [$(date)] New commit detected! $LOCAL -> $REMOTE"
     echo "========================================================================"
-    git pull origin main
+    git reset --hard origin/main
     chmod +x ./scripts/*.sh ./scripts/*.py 2>/dev/null || true
     ./scripts/deploy_production.sh >> /var/log/mystore-autodeploy.log 2>&1
     echo "✅ [$(date)] Auto-deployment completed for commit $REMOTE"
