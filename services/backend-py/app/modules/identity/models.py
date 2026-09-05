@@ -14,6 +14,18 @@ from app.core.database import Base
 def gen_id():
     return str(uuid.uuid4())
 
+class Role(Base):
+    __tablename__ = "roles"
+
+    name = Column(String, primary_key=True)
+    description = Column(String, nullable=True)
+
+class UserRole(Base):
+    __tablename__ = "user_roles"
+
+    user_id = Column("userId", String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role_name = Column("roleName", String, ForeignKey("roles.name", ondelete="CASCADE"), primary_key=True)
+
 class User(Base):
     __tablename__ = "users"
 

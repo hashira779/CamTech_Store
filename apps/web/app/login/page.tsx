@@ -8,7 +8,7 @@ import { loginSchema, type LoginInput } from '@mystore/contracts';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { useThemeStore } from '@/lib/theme-store';
-import { useExperienceStore } from '@/lib/experience-store';
+import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon } from 'lucide-react';
 
 export default function LoginPage() {
@@ -34,7 +34,8 @@ export default function LoginPage() {
       setAuth(result.accessToken, result.user);
       const targetExp = resolveDefaultExperience(result.user.roles || []);
       setExperience(targetExp);
-      navigate('/dashboard');
+      const targetRoute = EXPERIENCE_CONFIGS[targetExp]?.defaultRoute || '/dashboard';
+      navigate(targetRoute);
     } catch (err) {
       setServerError(err instanceof ApiClientError ? err.message : 'Login failed');
     }

@@ -40,6 +40,7 @@ class TelegramBindingDto(BaseModel):
 
 class AutomationFlowDto(BaseModel):
     id: str
+    organizationId: Optional[str] = None
     name: str
     description: Optional[str] = None
     isActive: bool
@@ -47,6 +48,7 @@ class AutomationFlowDto(BaseModel):
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
     createdAt: str
+    updatedAt: Optional[str] = None
 
 class CreateFlowInput(BaseModel):
     name: str
@@ -58,11 +60,11 @@ class CreateFlowInput(BaseModel):
 
 class FlowExecutionDto(BaseModel):
     id: str
+    organizationId: Optional[str] = None
     flowId: str
     triggerType: str
     status: str
-    stepsCompleted: int
-    totalSteps: int
+    triggerPayload: Optional[Dict[str, Any]] = None
+    executionTrace: Optional[List[Dict[str, Any]]] = None
     startedAt: str
-    completedAt: Optional[str] = None
-    errorMessage: Optional[str] = None
+    finishedAt: Optional[str] = None

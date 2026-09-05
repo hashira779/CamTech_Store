@@ -128,10 +128,10 @@ export default function PromotionsPage() {
   });
 
   // Summary Metrics
-  const totalCampaigns = promotionsData?.meta.total ?? 0;
-  const activeCount = promotionsData?.items.filter((p) => p.isActive).length ?? 0;
+  const totalCampaigns = promotionsData?.length ?? 0;
+  const activeCount = promotionsData?.filter((p) => p.isActive).length ?? 0;
   const totalRedemptions =
-    promotionsData?.items.reduce((acc, p) => acc + p.currentUses, 0) ?? 0;
+    promotionsData?.reduce((acc, p) => acc + p.currentUses, 0) ?? 0;
 
   return (
     <EnterpriseShell>
@@ -254,19 +254,22 @@ export default function PromotionsPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <TableSkeletonRows rows={5} cols={7} />
-              ) : promotionsData?.items.length === 0 ? (
+              ) : !promotionsData || promotionsData.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     No promotions found. Create your first promotional deal to boost sales!
                   </td>
                 </tr>
               ) : (
-                promotionsData?.items.map((promo) => {
-                  const badge = PROMO_TYPE_BADGES[promo.type];
+                promotionsData.map((promo) => {
+                  const badge = PROMO_TYPE_BADGES[promo.type] || PROMO_TYPE_BADGES.PERCENTAGE;
                   const Icon = badge.icon;
                   const usagePct = promo.usageLimit
                     ? Math.min(100, Math.round((promo.currentUses / promo.usageLimit) * 100))
                     : 0;
+
+                  const rawDiscount = promo.discountValue ?? (promo as any).value ?? 0;
+                  const formattedDiscount = typeof rawDiscount === 'number' ? rawDiscount.toFixed(2) : Number(rawDiscount || 0).toFixed(2);
 
                   return (
                     <tr key={promo.id} className="hover:bg-muted/10 transition-colors">
@@ -291,11 +294,11 @@ export default function PromotionsPage() {
                           </span>
                         </div>
                         <div className="font-mono text-xs font-bold text-foreground mt-1">
-                          {promo.type === 'PERCENTAGE' && `${promo.discountValue}% OFF`}
-                          {promo.type === 'FIXED_AMOUNT' && `$${promo.discountValue.toFixed(2)} OFF`}
+                          {promo.type === 'PERCENTAGE' && `${rawDiscount}% OFF`}
+                          {promo.type === 'FIXED_AMOUNT' && `$${formattedDiscount} OFF`}
                           {promo.type === 'BUY_X_GET_Y' &&
-                            `Buy ${promo.buyQuantity} Get ${promo.getQuantity} Free`}
-                          {promo.type === 'ORDER_THRESHOLD' && `$${promo.discountValue.toFixed(2)} OFF`}
+                            `Buy ${promo.buyQuantity ?? 1} Get ${promo.getQuantity ?? 1} Free`}
+                          {promo.type === 'ORDER_THRESHOLD' && `$${formattedDiscount} OFF`}
                         </div>
                       </td>
 
@@ -307,13 +310,13 @@ export default function PromotionsPage() {
 
                       <td className="p-3.5">
                         <div className="space-y-0.5 text-muted-foreground">
-                          {promo.minOrderAmount && (
-                            <div>Min Spend: ${promo.minOrderAmount.toFixed(2)}</div>
+                          {(promo.minOrderAmount || (promo as any).minSpend) && (
+                            <div>Min Spend: ${Number(promo.minOrderAmount ?? (promo as any).minSpend ?? 0).toFixed(2)}</div>
                           )}
                           {promo.maxDiscountAmount && (
-                            <div>Max Cap: ${promo.maxDiscountAmount.toFixed(2)}</div>
+                            <div>Max Cap: ${Number(promo.maxDiscountAmount).toFixed(2)}</div>
                           )}
-                          {!promo.minOrderAmount && !promo.maxDiscountAmount && '—'}
+                          {!promo.minOrderAmount && !(promo as any).minSpend && !promo.maxDiscountAmount && '—'}
                         </div>
                       </td>
 

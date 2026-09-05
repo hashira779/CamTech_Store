@@ -41,7 +41,8 @@ async def list_inventory(
     for inv, var, prod in rows:
         on_hand = float(inv.stock_on_hand)
         reorder = float(inv.reorder_point) if inv.reorder_point is not None else 0.0
-        if lowStockOnly and on_hand > reorder:
+        is_low = on_hand <= reorder if inv.reorder_point is not None else False
+        if lowStockOnly and not is_low:
             continue
         items.append(InventoryItemDto(
             id=inv.id,
@@ -55,6 +56,8 @@ async def list_inventory(
             variantName=var.name,
             stockOnHand=on_hand,
             availableQty=on_hand,
-            reorderPoint=reorder
+            reorderPoint=reorder,
+            isLowStock=is_low,
+            updatedAt=inv.updated_at.isoformat() if inv.updated_at else None
         ))
     return PaginatedResponse(items=items, meta=PageMeta(page=page, limit=limit, total=len(items), totalPages=1), total=len(items))

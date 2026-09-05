@@ -37,6 +37,7 @@ import { Toaster, toast } from 'sonner';
 
 interface PosItem {
   id: string;
+  variantId: string;
   name: string;
   price: number;
   sku: string;
@@ -156,19 +157,28 @@ export function App() {
     const queue = JSON.parse(localStorage.getItem('mystore_pos_offline_queue') || '[]');
     if (queue.length === 0) return;
 
+    const token = localStorage.getItem('mystore_pos_token');
     let syncedCount = 0;
     const remaining = [];
 
     for (const sale of queue) {
       try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
         const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(sale),
           signal: AbortSignal.timeout(2000),
         });
         if (res.ok) {
           syncedCount++;
+        } else if (res.status >= 400 && res.status < 500) {
+          // Client error (bad payload, auth issues) — drop from queue, don't retry forever
+          console.warn(`Dropping invalid offline sale (HTTP ${res.status}):`, sale.saleNumber);
+          syncedCount++; // Count as handled
         } else {
           remaining.push(sale);
         }
@@ -197,6 +207,7 @@ export function App() {
         if (Array.isArray(items)) {
           const mapped = items.map((p: any) => ({
             id: p.id,
+            variantId: p.variants?.[0]?.id || p.id,
             name: p.name,
             price: Number(p.variants?.[0]?.sellPrice ?? p.sellPrice ?? p.price ?? 0),
             sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.slice(0, 6)}`,
@@ -373,8 +384,8 @@ export function App() {
     const salePayload = {
       saleNumber,
       channel: 'POS',
-      items: cart.map(i => ({ productVariantId: i.id, quantity: i.quantity, unitPrice: i.price, sku: i.sku, productName: i.name })),
-      paymentMethod,
+      items: cart.map(i => ({ variantId: i.variantId, quantity: i.quantity })),
+      payments: [{ method: paymentMethod, amount: total }],
       timestamp: new Date().toISOString(),
       cashierId: cashierUser?.id,
       cashierName: cashierName
@@ -422,15 +433,15 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
+    <div className="flex h-screen text-slate-100 overflow-hidden select-none">
       <Toaster position="top-right" richColors />
 
       {/* Main Terminal Left: Catalog & Quick Actions */}
-      <div className="flex-1 flex flex-col border-r border-slate-800">
+      <div className="flex-1 flex flex-col relative z-10">
         {/* POS Top Header */}
-        <header className="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <header className="h-16 px-6 glass flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-900/30 text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center justify-center font-bold">
               <Store className="w-5 h-5" />
             </div>
             <div>
@@ -568,11 +579,12 @@ export function App() {
               <p className="text-xs font-medium">No items found matching filter</p>
             </div>
           ) : (
-            filteredItems.map((item) => (
+            filteredItems.map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => addToCart(item)}
-                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 flex flex-col justify-between text-left transition transform active:scale-95 group shadow-sm hover:shadow-lg hover:shadow-amber-500/5"
+                style={{ animationDelay: `${index * 50}ms` }}
+                className="product-card animate-fade-in-up p-5 rounded-2xl flex flex-col justify-between text-left cursor-pointer"
               >
                 <div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
@@ -595,9 +607,9 @@ export function App() {
       </div>
 
       {/* Right Register: Cart & Split-Tender Numpad */}
-      <div className="w-96 flex flex-col bg-slate-900/40">
+      <div className="w-[400px] flex flex-col glass-panel z-20 border-l border-white/10 relative shadow-[-20px_0_40px_rgba(0,0,0,0.3)]">
         {/* Register Cart Header */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
+        <div className="h-16 px-6 border-b border-white/5 flex items-center justify-between bg-white/5">
           <h2 className="text-sm font-bold tracking-wide text-white">Active Register Cart</h2>
           <span className="text-xs font-mono text-slate-400">{cart.length} Items</span>
         </div>
@@ -660,7 +672,7 @@ export function App() {
           <button
             disabled={cart.length === 0}
             onClick={() => setIsPaymentOpen(true)}
-            className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition active:scale-98"
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 disabled:opacity-50 disabled:grayscale text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all active:scale-[0.98]"
           >
             <Banknote className="w-5 h-5" />
             Collect Tender (${total.toFixed(2)})

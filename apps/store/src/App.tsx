@@ -358,7 +358,7 @@ export function App() {
           const items = json.data?.items || json.items || json.data || [];
           if (Array.isArray(items) && items.length > 0) {
             return items.map((p: any) => {
-              const categoryName = p.category?.name || p.categoryId || 'UNCATEGORIZED';
+              const categoryName = p.category?.name || (typeof p.category === 'string' ? p.category : '') || p.categoryName || 'GENERAL';
               const firstVariant = p.variants?.[0];
               
               return {
@@ -534,26 +534,6 @@ export function App() {
 
       const saleJson = await saleRes.json();
       const serverSale = saleJson.data || saleJson;
-
-      // 2. Also dispatch delivery courier fleet
-      try {
-        await fetch(`${API_BASE_URL}/api/v1/delivery/orders/public`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipientName: buyerName,
-            recipientPhone: buyerPhone,
-            deliveryAddress: deliveryAddress,
-            destLat: coords?.lat ?? 11.5564,
-            destLng: coords?.lng ?? 104.9282,
-            codAmount: paymentMethod === 'COD' ? cartTotal * 1.1 : 0.0,
-            deliveryFee: 2.50,
-            notes: `Store Order ${serverSale.saleNumber}: ${cart.map((i) => `${i.name} x${i.quantity}`).join(', ')}`,
-          }),
-        });
-      } catch (err) {
-        console.warn('Fleet delivery dispatch non-blocking fallback:', err);
-      }
 
       toast.dismiss(loadingToast);
 

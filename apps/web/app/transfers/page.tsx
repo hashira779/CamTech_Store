@@ -79,7 +79,7 @@ export default function TransfersPage() {
   });
 
   const allVariants = (productsData?.items || []).flatMap((p) =>
-    p.variants.map((v) => ({
+    (p.variants || []).map((v) => ({
       master: p,
       variant: v,
     })),

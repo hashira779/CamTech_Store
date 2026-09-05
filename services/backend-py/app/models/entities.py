@@ -55,6 +55,7 @@ from app.modules.inventory.models import InventoryItem, StockMovement
 from app.modules.customers.models import Customer, CustomerAddress
 
 from app.modules.sales.models import Sale, SaleLineItem, SalePayment
+from app.modules.delivery.models import DeliveryDriver, DeliveryOrder
 
 
 

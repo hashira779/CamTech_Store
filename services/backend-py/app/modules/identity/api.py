@@ -5,7 +5,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.rate_limiter import auth_rate_limiter
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import (
@@ -17,7 +18,7 @@ from app.core.dependencies import get_current_user, TenantUser
 from app.domain.registration_worker import dispatch_user_registered_event
 
 from typing import List
-from .models import User
+from .models import User, Role, UserRole
 from .schemas import (
     LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
     RegisterRequest, RegisterResponse, UserDto, OAuthSyncRequest,
@@ -28,7 +29,7 @@ router = APIRouter(tags=["Auth"])
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(req: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    auth_rate_limiter.check(request)
+    await auth_rate_limiter.check(request)
     """
     Ultra-Low Latency Non-Blocking Registration:
     1. Fast DB check & async threadpool bcrypt hash (never blocks event loop)
@@ -60,8 +61,8 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
         email=req.email,
         name=req.name,
         password_hash=password_hash,
-        roles=json.dumps(roles),
-        is_active=True
+        is_active=True,
+        roles=json.dumps(roles)
     )
     db.add(new_user)
     await db.commit()
@@ -98,13 +99,22 @@ _DUMMY_BCRYPT_HASH = "$2b$12$e8uq5eZ5h5W5w7m7q7m7qu7u7u7u7u7u7u7u7u7u7u7u7u7u7u7
 
 @router.post("/login", response_model=LoginResponse)
 async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    auth_rate_limiter.check(request)
-    result = await db.execute(select(User).where(User.email == req.email))
+    await auth_rate_limiter.check(request)
+    from sqlalchemy import or_, func
+    login_val = req.email.strip().lower()
+    result = await db.execute(
+        select(User).where(
+            or_(
+                func.lower(User.email) == login_val,
+                func.lower(User.name) == login_val
+            )
+        )
+    )
     user = result.scalar_one_or_none()
 
     # Constant-time verification: always perform bcrypt hash check even if user is not found
     hash_to_verify = user.password_hash if user else _DUMMY_BCRYPT_HASH
-    is_valid = verify_password(req.password, hash_to_verify)
+    is_valid = await asyncio.to_thread(verify_password, req.password, hash_to_verify)
 
     if not user or not is_valid:
         raise HTTPException(
@@ -147,7 +157,7 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
 
 @router.post("/oauth-sync", response_model=LoginResponse)
 async def oauth_sync(req: OAuthSyncRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    auth_rate_limiter.check(request)
+    await auth_rate_limiter.check(request)
     if not req.email or "@" not in req.email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -224,7 +234,7 @@ async def oauth_sync(req: OAuthSyncRequest, request: Request, db: AsyncSession =
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(req: RefreshTokenRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    auth_rate_limiter.check(request)
+    await auth_rate_limiter.check(request)
     payload = decode_refresh_token(req.refreshToken)
     if not payload or "sub" not in payload:
         raise HTTPException(
@@ -359,7 +369,7 @@ async def create_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only existing SUPER_ADMIN can grant the SUPER_ADMIN role"
         )
-    
+
     new_user = User(
         id=user_id,
         organization_id=user.organization_id,

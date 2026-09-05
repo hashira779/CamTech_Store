@@ -63,6 +63,16 @@ jobs:
         run: |
           python -c "import asyncio, asyncpg; asyncio.run(asyncpg.connect('postgresql://camtech:camtech123@127.0.0.1:5433/camtechStore'))"
 
+      - name: Schema Drift Audit (Database Architecture Gate)
+        run: |
+          # Fails the build if SQLAlchemy models drift from the live database
+          python scripts/schema_audit.py
+
+      - name: Every Module Imports Check (Feature Architecture Gate)
+        run: |
+          # Ensures no module contains syntax or circular import errors at the top level
+          python -c "from app.models.entities import *; import app.main; import app.microservices.gateway"
+
       - name: Run Pytest Test Suite
         run: |
           python -m pytest -v --tb=short tests

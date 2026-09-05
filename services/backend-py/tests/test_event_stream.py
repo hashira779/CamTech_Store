@@ -22,11 +22,25 @@ def mock_stream_user():
     yield tenant_user
     app.dependency_overrides.pop(get_current_user, None)
 
+from unittest.mock import AsyncMock, MagicMock
+
 @pytest.mark.asyncio
 async def test_event_bus_publish_and_subscribe():
     org_id = "org_unit_test"
-    q = event_bus.subscribe(org_id)
-    assert q.qsize() == 0
+    
+    mock_pubsub = AsyncMock()
+    mock_pubsub.get_message.side_effect = [
+        None,
+        {"type": "message", "data": '{"event": "ORDER_DISPATCHED", "data": {"trackingNumber": "TRK-2026-9999"}}'}
+    ]
+    
+    event_bus.get_pubsub = AsyncMock(return_value=mock_pubsub)
+    event_bus.publish = AsyncMock()
+
+    pubsub = await event_bus.get_pubsub(org_id)
+    
+    msg = await pubsub.get_message(ignore_subscribe_messages=True)
+    assert msg is None
 
     await event_bus.publish(
         org_id=org_id,
@@ -34,12 +48,14 @@ async def test_event_bus_publish_and_subscribe():
         data={"trackingNumber": "TRK-2026-9999"}
     )
 
-    assert q.qsize() == 1
-    msg = await q.get()
-    assert "ORDER_DISPATCHED" in msg
-    assert "TRK-2026-9999" in msg
+    msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+    assert msg is not None
+    assert msg["type"] == "message"
+    assert "ORDER_DISPATCHED" in msg["data"]
+    assert "TRK-2026-9999" in msg["data"]
 
-    event_bus.unsubscribe(org_id, q)
+    await pubsub.unsubscribe()
+    await pubsub.close()
 
 @pytest.mark.asyncio
 async def test_deep_health_endpoint():

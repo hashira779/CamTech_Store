@@ -49,7 +49,13 @@ async def sign_approval(
     if not req:
         raise HTTPException(status_code=404, detail="Approval request not found")
 
-    decision = data.decision or "APPROVED"
+    decision = (data.decision or "APPROVED").upper().strip()
+    valid_decisions = ["APPROVED", "REJECTED", "CANCELLED", "PENDING"]
+    if decision not in valid_decisions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid decision: '{data.decision}'. Allowed: {valid_decisions}"
+        )
     req.status = decision
     await db.commit()
     return {"id": req.id, "status": req.status, "approvedBy": user.id}

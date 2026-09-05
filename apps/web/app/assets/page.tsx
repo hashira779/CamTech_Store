@@ -51,9 +51,9 @@ export default function AssetsPage() {
     onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to depreciate asset'),
   });
 
-  const totalCost = assets.reduce((acc, a) => acc + a.purchaseCost, 0);
-  const totalBookValue = assets.reduce((acc, a) => acc + a.currentBookValue, 0);
-  const totalAccumulated = assets.reduce((acc, a) => acc + a.accumulatedDeprec, 0);
+  const totalCost = assets.reduce((acc, a) => acc + (a.purchaseCost ?? 0), 0);
+  const totalBookValue = assets.reduce((acc, a) => acc + (a.currentBookValue ?? (a as any).bookValue ?? 0), 0);
+  const totalAccumulated = assets.reduce((acc, a) => acc + (a.accumulatedDeprec ?? (a as any).accumulatedDepreciation ?? 0), 0);
 
   if (!token) return null;
 
@@ -136,13 +136,13 @@ export default function AssetsPage() {
                       <div className="text-[10px] text-muted-foreground">{a.usefulLifeMonths} mo · {a.depreciationMethod}</div>
                     </td>
                     <td className="p-3 font-mono text-primary">{a.category}</td>
-                    <td className="p-3 text-right font-mono font-bold text-foreground">${a.purchaseCost.toFixed(2)}</td>
-                    <td className="p-3 text-right font-mono text-rose-400">-${a.accumulatedDeprec.toFixed(2)}</td>
-                    <td className="p-3 text-right font-mono font-bold text-emerald-400">${a.currentBookValue.toFixed(2)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-foreground">${(a.purchaseCost ?? 0).toFixed(2)}</td>
+                    <td className="p-3 text-right font-mono text-rose-400">-${((a.accumulatedDeprec ?? (a as any).accumulatedDepreciation ?? 0)).toFixed(2)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-emerald-400">${((a.currentBookValue ?? (a as any).bookValue ?? 0)).toFixed(2)}</td>
                     <td className="p-3 text-right">
                       <button
                         onClick={() => depreciateMutation.mutate(a.id)}
-                        disabled={depreciateMutation.isPending || a.currentBookValue <= a.salvageValue}
+                        disabled={depreciateMutation.isPending || ((a.currentBookValue ?? (a as any).bookValue ?? 0) <= (a.salvageValue ?? 0))}
                         className="btn py-1 px-2.5 text-[11px] shadow-sm disabled:opacity-50"
                       >
                         Depreciate

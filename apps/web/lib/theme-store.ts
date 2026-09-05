@@ -35,9 +35,17 @@ export const useThemeStore = create<ThemeState>((set) => {
     }
   };
 
-  // Initial apply
+  // Initial apply & OS system preference change listener
   if (typeof window !== 'undefined') {
     applyTheme(saved);
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    mql.addEventListener?.('change', (e) => {
+      if (localStorage.getItem('mystore-theme') === 'system') {
+        const root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(e.matches ? 'dark' : 'light');
+      }
+    });
   }
 
   return {

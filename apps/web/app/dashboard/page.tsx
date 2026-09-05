@@ -88,7 +88,7 @@ export default function DashboardPage() {
   );
 
   const lowStockItems = useMemo(
-    () => (inventoryData?.items ?? []).filter((i) => i.isLowStock),
+    () => (inventoryData?.items ?? []).filter((i) => i.isLowStock ?? (Number(i.stockOnHand) <= Number(i.reorderPoint ?? 0))),
     [inventoryData]
   );
 

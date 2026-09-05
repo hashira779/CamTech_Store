@@ -46,16 +46,31 @@ async def init_test_database():
 
             from app.core.security import hash_password
             demo_hash = hash_password("Admin123!")
+            
+            # Ensure roles exist
+            await conn.execute(text("""
+                INSERT INTO roles (name) VALUES ('SUPER_ADMIN'), ('ORG_ADMIN') ON CONFLICT DO NOTHING;
+            """))
+            
             await conn.execute(text("""
                 INSERT INTO users (id, "organizationId", email, name, "passwordHash", roles, "isActive", "createdAt", "updatedAt")
                 VALUES 
                     ('cmtn25sfi000avk64ixp9mumd', :org_id, 'admin@demo.test', 'Enterprise Admin', :demo_hash, '["SUPER_ADMIN", "ORG_ADMIN"]', true, NOW(), NOW())
                 ON CONFLICT (email) DO UPDATE SET 
                     "passwordHash" = EXCLUDED."passwordHash",
-                    roles = EXCLUDED.roles,
                     "organizationId" = EXCLUDED."organizationId",
                     "isActive" = true;
             """), {"org_id": org_id, "demo_hash": demo_hash})
+            
+            user_row = (await conn.execute(text("SELECT id FROM users WHERE email = 'admin@demo.test';"))).fetchone()
+            actual_user_id = user_row[0]
+            
+            await conn.execute(text("""
+                INSERT INTO user_roles ("userId", "roleName") VALUES 
+                    (:user_id, 'SUPER_ADMIN'),
+                    (:user_id, 'ORG_ADMIN')
+                ON CONFLICT DO NOTHING;
+            """), {"user_id": actual_user_id})
 
         # 4. Seed test database with initial products, locations, and users
         try:

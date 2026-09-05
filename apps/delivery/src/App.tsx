@@ -134,7 +134,7 @@ export function App() {
     authUser &&
     Array.isArray(authUser.roles) &&
     authUser.roles.some((r) =>
-      ['DELIVERY_DRIVER', 'STORE_MANAGER', 'ORG_ADMIN', 'WAREHOUSE_STAFF', 'CEO', 'CASHIER', 'ADMIN'].includes(r)
+      ['DELIVERY_DRIVER', 'STORE_MANAGER', 'BRANCH_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN', 'WAREHOUSE_STAFF', 'WAREHOUSE_MANAGER', 'CEO', 'CASHIER', 'ADMIN', 'STAFF'].includes(r)
     )
   );
 
@@ -175,7 +175,7 @@ export function App() {
       // Check role
       const userRoles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean);
       const authorized = userRoles.some((r: string) =>
-        ['DELIVERY_DRIVER', 'STORE_MANAGER', 'ORG_ADMIN', 'WAREHOUSE_STAFF', 'CEO', 'CASHIER', 'ADMIN'].includes(r)
+        ['DELIVERY_DRIVER', 'STORE_MANAGER', 'BRANCH_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN', 'WAREHOUSE_STAFF', 'WAREHOUSE_MANAGER', 'CEO', 'CASHIER', 'ADMIN', 'STAFF'].includes(r)
       );
 
       if (!authorized) {

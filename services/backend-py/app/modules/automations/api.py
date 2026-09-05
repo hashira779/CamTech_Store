@@ -120,7 +120,7 @@ async def create_api_key(
 
     key_record = ApiKey(
         organization_id=user.organization_id,
-        app_id=data.get("appId"),
+        app_id=data.get("appId") or None,
         name=name,
         key_prefix=key_info["keyPrefix"],
         key_hash=key_info["keyHash"],
@@ -316,6 +316,43 @@ async def bind_telegram_chat(
         "isActive": binding.is_active
     }
 
+@router.delete("/telegram/bindings/{binding_id}")
+async def delete_telegram_binding(
+    binding_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(TelegramChatBinding).where(
+            TelegramChatBinding.id == binding_id,
+            TelegramChatBinding.organization_id == user.organization_id
+        )
+    )
+    binding = result.scalar_one_or_none()
+    if not binding:
+        raise HTTPException(status_code=404, detail="Telegram binding not found")
+    await db.delete(binding)
+    await db.commit()
+    return {"success": True}
+
+@router.post("/telegram/broadcast")
+async def telegram_broadcast(
+    data: Dict[str, Any],
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    message = (data.get("message") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    result = await db.execute(
+        select(TelegramChatBinding).where(
+            TelegramChatBinding.organization_id == user.organization_id,
+            TelegramChatBinding.is_active == True
+        )
+    )
+    bindings = result.scalars().all()
+    return {"sentCount": len(bindings), "message": message}
+
 @router.post("/telegram/command")
 async def execute_telegram_command(
     data: Dict[str, Any],
@@ -338,13 +375,15 @@ async def list_flows(
     return [
         AutomationFlowDto(
             id=f.id,
+            organizationId=f.organization_id,
             name=f.name,
             description=f.description,
             isActive=f.is_active,
             triggerType=f.trigger_type,
             nodes=f.nodes or [],
             edges=f.edges or [],
-            createdAt=f.created_at.isoformat()
+            createdAt=f.created_at.isoformat(),
+            updatedAt=f.updated_at.isoformat() if hasattr(f, 'updated_at') and f.updated_at else None
         ) for f in flows
     ]
 
@@ -369,14 +408,106 @@ async def create_flow(
 
     return AutomationFlowDto(
         id=flow.id,
+        organizationId=flow.organization_id,
         name=flow.name,
         description=flow.description,
         isActive=flow.is_active,
         triggerType=flow.trigger_type,
         nodes=flow.nodes or [],
         edges=flow.edges or [],
-        createdAt=flow.created_at.isoformat()
+        createdAt=flow.created_at.isoformat(),
+        updatedAt=flow.updated_at.isoformat() if hasattr(flow, 'updated_at') and flow.updated_at else None
     )
+
+@router.get("/flows/{flow_id}", response_model=AutomationFlowDto)
+async def get_flow(
+    flow_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AutomationFlow).where(
+            AutomationFlow.id == flow_id,
+            AutomationFlow.organization_id == user.organization_id
+        )
+    )
+    flow = result.scalar_one_or_none()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    return AutomationFlowDto(
+        id=flow.id,
+        organizationId=flow.organization_id,
+        name=flow.name,
+        description=flow.description,
+        isActive=flow.is_active,
+        triggerType=flow.trigger_type,
+        nodes=flow.nodes or [],
+        edges=flow.edges or [],
+        createdAt=flow.created_at.isoformat(),
+        updatedAt=flow.updated_at.isoformat() if hasattr(flow, 'updated_at') and flow.updated_at else None
+    )
+
+@router.patch("/flows/{flow_id}", response_model=AutomationFlowDto)
+async def update_flow(
+    flow_id: str,
+    data: Dict[str, Any],
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AutomationFlow).where(
+            AutomationFlow.id == flow_id,
+            AutomationFlow.organization_id == user.organization_id
+        )
+    )
+    flow = result.scalar_one_or_none()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    if "name" in data:
+        flow.name = data["name"]
+    if "description" in data:
+        flow.description = data["description"]
+    if "isActive" in data:
+        flow.is_active = data["isActive"]
+    if "triggerType" in data:
+        flow.trigger_type = data["triggerType"]
+    if "nodes" in data:
+        flow.nodes = data["nodes"]
+    if "edges" in data:
+        flow.edges = data["edges"]
+    await db.commit()
+    await db.refresh(flow)
+    return AutomationFlowDto(
+        id=flow.id,
+        organizationId=flow.organization_id,
+        name=flow.name,
+        description=flow.description,
+        isActive=flow.is_active,
+        triggerType=flow.trigger_type,
+        nodes=flow.nodes or [],
+        edges=flow.edges or [],
+        createdAt=flow.created_at.isoformat(),
+        updatedAt=flow.updated_at.isoformat() if hasattr(flow, 'updated_at') and flow.updated_at else None
+    )
+
+@router.delete("/flows/{flow_id}")
+async def delete_flow(
+    flow_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(AutomationFlow).where(
+            AutomationFlow.id == flow_id,
+            AutomationFlow.organization_id == user.organization_id
+        )
+    )
+    flow = result.scalar_one_or_none()
+    if not flow:
+        raise HTTPException(status_code=404, detail="Flow not found")
+    await db.delete(flow)
+    await db.commit()
+    return {"success": True}
 
 @router.post("/flows/{flow_id}/execute", response_model=FlowExecutionDto)
 async def execute_flow(
@@ -403,7 +534,7 @@ async def execute_flow(
         trigger_type="MANUAL",
         status=exec_result["status"],
         trigger_payload=payload,
-        execution_trace=exec_result.get("trace", []),
+        execution_trace=exec_result.get("executionTrace", []),
         started_at=datetime.datetime.fromisoformat(exec_result["startedAt"]) if exec_result.get("startedAt") else datetime.datetime.utcnow(),
         finished_at=datetime.datetime.fromisoformat(exec_result["completedAt"]) if exec_result.get("completedAt") else datetime.datetime.utcnow()
     )
@@ -413,6 +544,7 @@ async def execute_flow(
 
     return FlowExecutionDto(
         id=execution.id,
+        organizationId=execution.organization_id,
         flowId=execution.flow_id,
         triggerType=execution.trigger_type,
         status=execution.status,
@@ -441,6 +573,7 @@ async def list_flow_executions(
     return [
         FlowExecutionDto(
             id=e.id,
+            organizationId=e.organization_id,
             flowId=e.flow_id,
             triggerType=e.trigger_type,
             status=e.status,

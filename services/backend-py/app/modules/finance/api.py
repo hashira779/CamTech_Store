@@ -85,6 +85,8 @@ async def list_fixed_assets(
     return [
         {
             "id": a.id,
+            "organizationId": a.organization_id,
+            "assetCode": a.asset_code,
             "assetNumber": a.asset_code,
             "name": a.name,
             "category": a.category,
@@ -92,9 +94,13 @@ async def list_fixed_assets(
             "salvageValue": float(a.salvage_value),
             "usefulLifeMonths": a.useful_life_months,
             "depreciationMethod": a.depreciation_method,
+            "accumulatedDeprec": float(a.accumulated_deprec),
             "accumulatedDepreciation": float(a.accumulated_deprec),
+            "currentBookValue": float(a.current_book_value),
             "bookValue": float(a.current_book_value),
-            "status": a.status
+            "status": a.status,
+            "createdAt": a.created_at.isoformat() if a.created_at else None,
+            "updatedAt": a.updated_at.isoformat() if a.updated_at else None
         } for a in assets
     ]
 

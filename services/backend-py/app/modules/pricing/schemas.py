@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Any
 
 class TaxRateDto(BaseModel):
     id: str
+    code: Optional[str] = None
     name: str
     ratePct: float
     isInclusive: bool

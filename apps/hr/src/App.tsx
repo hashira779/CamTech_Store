@@ -20,6 +20,16 @@ import { Toaster, toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+const getAuthHeaders = (): Record<string, string> => {
+  if (typeof window === 'undefined') return {};
+  const token =
+    localStorage.getItem('mystore_pos_token') ||
+    localStorage.getItem('auth_token') ||
+    localStorage.getItem('token') ||
+    '';
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 interface Employee {
   id: string;
   name: string;
@@ -40,7 +50,7 @@ export function App() {
     queryKey: ['hr-live-employees'],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/hr/employees`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/hr/employees`, { headers: getAuthHeaders() });
         if (!res.ok) throw new Error('API offline');
         const json = await res.json();
         const items = json.data?.items || json.items || json.data || [];

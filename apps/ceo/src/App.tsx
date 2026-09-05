@@ -19,13 +19,23 @@ import { Toaster, toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+const getAuthHeaders = (): Record<string, string> => {
+  if (typeof window === 'undefined') return {};
+  const token =
+    localStorage.getItem('mystore_pos_token') ||
+    localStorage.getItem('auth_token') ||
+    localStorage.getItem('token') ||
+    '';
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export function App() {
   // 1. Fetch live sales history for revenue metrics
   const { data: sales, isLoading: isSalesLoading, refetch: refetchSales } = useQuery({
     queryKey: ['ceo-live-sales'],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/sales`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales`, { headers: getAuthHeaders() });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.items || json.items || json.data || [];
@@ -40,7 +50,7 @@ export function App() {
     queryKey: ['ceo-live-employees'],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/hr/employees`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/hr/employees`, { headers: getAuthHeaders() });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.items || json.items || json.data || [];
@@ -73,7 +83,7 @@ export function App() {
         const res = await fetch(`${API_BASE_URL}/api/v1/apps/registry`);
         if (!res.ok) return [];
         const json = await res.json();
-        return json.applications || [];
+        return json.data?.applications || json.applications || [];
       } catch {
         return [];
       }

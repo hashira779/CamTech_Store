@@ -24,7 +24,7 @@ async def event_stream(
     Pushes live events (sales, deliveries, approvals, stock alerts) with automatic keep-alive.
     """
     org_id = user.organization_id
-    queue = event_bus.subscribe(org_id)
+    pubsub = await event_bus.get_pubsub(org_id)
 
     async def sse_generator():
         # Initial connected frame
@@ -46,19 +46,21 @@ async def event_stream(
                 if await request.is_disconnected():
                     break
 
-                try:
-                    # Wait up to 15s for an event, else send keep-alive heartbeat frame
-                    data = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    yield data
-                except asyncio.TimeoutError:
-                    # Keep-alive heartbeat ping
+                # wait for message up to 15s to keep connection alive
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                if message is not None:
+                    if message["type"] == "message":
+                        yield message["data"]
+                else:
+                    # Timeout reached, send keep-alive heartbeat ping
                     hb = {
                         "event": "HEARTBEAT",
                         "data": {"timestamp": datetime.now(timezone.utc).isoformat()}
                     }
                     yield f"data: {json.dumps(hb)}\n\n"
         finally:
-            event_bus.unsubscribe(org_id, queue)
+            await pubsub.unsubscribe()
+            await pubsub.close()
 
     origin = request.headers.get("origin") or "*"
     return StreamingResponse(

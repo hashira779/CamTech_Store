@@ -8,7 +8,7 @@ class ApprovalRequestDto(BaseModel):
     stepNumber: int
     totalSteps: int
     status: str
-    submittedById: str
+    submittedById: Optional[str] = None
     createdAt: str
 
 class ApprovalDecisionInput(BaseModel):

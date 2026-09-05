@@ -25,5 +25,8 @@ class InventoryItemDto(BaseModel):
     productName: str
     variantName: Optional[str] = None
     stockOnHand: float
+    reservedQty: float = 0.0
     availableQty: float
-    reorderPoint: float
+    reorderPoint: Optional[float] = 0.0
+    isLowStock: bool = False
+    updatedAt: Optional[str] = None

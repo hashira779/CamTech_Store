@@ -522,7 +522,7 @@ export const api = {
     if (params.isActive !== undefined) qs.set('isActive', String(params.isActive));
     if (params.search) qs.set('search', params.search);
     const q = qs.toString();
-    return request<Paginated<PromotionDto>>(`/promotions${q ? `?${q}` : ''}`, { token });
+    return request<PromotionDto[]>(`/promotions${q ? `?${q}` : ''}`, { token });
   },
 
   createPromotion: (token: string, input: CreatePromotionInput) =>
@@ -558,35 +558,35 @@ export const api = {
     if (params.isActive !== undefined) qs.set('isActive', String(params.isActive));
     if (params.search) qs.set('search', params.search);
     const q = qs.toString();
-    return request<Paginated<PriceListDto>>(`/pricing/lists${q ? `?${q}` : ''}`, { token });
+    return request<Paginated<PriceListDto>>(`/pricing${q ? `?${q}` : ''}`, { token });
   },
 
   getPriceList: (token: string, id: string) =>
-    request<PriceListDto>(`/pricing/lists/${id}`, { token }),
+    request<PriceListDto>(`/pricing/${id}`, { token }),
 
   createPriceList: (token: string, input: CreatePriceListInput) =>
-    request<PriceListDto>('/pricing/lists', {
+    request<PriceListDto>('/pricing', {
       method: 'POST',
       token,
       body: JSON.stringify(input),
     }),
 
   updatePriceList: (token: string, id: string, input: UpdatePriceListInput) =>
-    request<PriceListDto>(`/pricing/lists/${id}`, {
+    request<PriceListDto>(`/pricing/${id}`, {
       method: 'PATCH',
       token,
       body: JSON.stringify(input),
     }),
 
   setPriceListItem: (token: string, priceListId: string, input: SetPriceListItemInput) =>
-    request<PriceListItemDto>(`/pricing/lists/${priceListId}/items`, {
+    request<PriceListItemDto>(`/pricing/${priceListId}/items`, {
       method: 'POST',
       token,
       body: JSON.stringify(input),
     }),
 
   deletePriceListItem: (token: string, priceListId: string, itemId: string) =>
-    request<{ success: boolean }>(`/pricing/lists/${priceListId}/items/${itemId}`, {
+    request<{ success: boolean }>(`/pricing/${priceListId}/items/${itemId}`, {
       method: 'DELETE',
       token,
     }),
@@ -701,24 +701,24 @@ export const api = {
 
   // ─── Taxes & Fiscal Rules ──────────────────────────────────────
   listTaxRates: (token: string) =>
-    request<TaxRateDto[]>('/taxes/rates', { token }),
+    request<TaxRateDto[]>('/taxes', { token }),
 
   createTaxRate: (token: string, input: CreateTaxRateInput) =>
-    request<TaxRateDto>('/taxes/rates', {
+    request<TaxRateDto>('/taxes', {
       method: 'POST',
       token,
       body: JSON.stringify(input),
     }),
 
   updateTaxRate: (token: string, id: string, input: UpdateTaxRateInput) =>
-    request<TaxRateDto>(`/taxes/rates/${id}`, {
+    request<TaxRateDto>(`/taxes/${id}`, {
       method: 'PATCH',
       token,
       body: JSON.stringify(input),
     }),
 
   deleteTaxRate: (token: string, id: string) =>
-    request<{ success: boolean }>(`/taxes/rates/${id}`, {
+    request<{ success: boolean }>(`/taxes/${id}`, {
       method: 'DELETE',
       token,
     }),
@@ -742,7 +742,7 @@ export const api = {
     }),
 
   getCustomerLoyaltyProfile: (token: string, customerId: string) =>
-    request<CustomerLoyaltyProfileDto>(`/loyalty/customers/${customerId}`, { token }),
+    request<CustomerLoyaltyProfileDto>(`/loyalty/customer/${customerId}`, { token }),
 
   adjustLoyaltyPoints: (token: string, input: AdjustLoyaltyPointsInput) =>
     request<LoyaltyTransactionDto>('/loyalty/points/adjust', {
@@ -795,11 +795,11 @@ export const api = {
     if (query?.entityType) params.append('entityType', query.entityType);
     if (query?.entityId) params.append('entityId', query.entityId);
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return request<DocumentRecordDto[]>(`/storage/documents${qs}`, { token });
+    return request<DocumentRecordDto[]>(`/storage${qs}`, { token });
   },
 
   deleteDocument: (token: string, id: string) =>
-    request<{ success: boolean }>(`/storage/documents/${id}`, {
+    request<{ success: boolean }>(`/storage/${id}`, {
       method: 'DELETE',
       token,
     }),
@@ -929,27 +929,27 @@ export const api = {
 
   listJournalEntries: (token: string, status?: JournalEntryStatus) => {
     const qs = status ? `?status=${status}` : '';
-    return request<JournalEntryDto[]>(`/finance/journals${qs}`, { token });
+    return request<JournalEntryDto[]>(`/finance/journal-entries${qs}`, { token });
   },
 
   getJournalEntry: (token: string, id: string) =>
-    request<JournalEntryDto>(`/finance/journals/${id}`, { token }),
+    request<JournalEntryDto>(`/finance/journal-entries/${id}`, { token }),
 
   createJournalEntry: (token: string, input: CreateJournalEntryInput) =>
-    request<JournalEntryDto>('/finance/journals', {
+    request<JournalEntryDto>('/finance/journal-entries', {
       method: 'POST',
       token,
       body: JSON.stringify(input),
     }),
 
   postJournalEntry: (token: string, id: string) =>
-    request<JournalEntryDto>(`/finance/journals/${id}/post`, {
+    request<JournalEntryDto>(`/finance/journal-entries/${id}/post`, {
       method: 'POST',
       token,
     }),
 
   voidJournalEntry: (token: string, id: string) =>
-    request<JournalEntryDto>(`/finance/journals/${id}/void`, {
+    request<JournalEntryDto>(`/finance/journal-entries/${id}/void`, {
       method: 'POST',
       token,
     }),

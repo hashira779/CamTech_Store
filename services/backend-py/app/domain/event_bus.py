@@ -1,48 +1,33 @@
-import asyncio
 import json
+import os
 from datetime import datetime, timezone
-from typing import Dict, List, AsyncGenerator, Any
+from typing import Dict, Any
+import redis.asyncio as aioredis
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 class RealtimeEventBus:
     """
     2026–2030 Standard Real-Time Enterprise Event Bus (Spec §109, §110).
     Provides pub/sub broadcasting for Server-Sent Events (SSE) and WebSocket clients.
-    Features:
-    - Zero external dependency in-memory async fan-out queues
-    - Tenant-scoped event channel isolation
-    - Automatic heartbeat / keep-alive frames
-    - Strongly typed enterprise event schemas
+    Backed by Redis to support scaling across multiple microservice processes.
     """
 
     def __init__(self):
-        # org_id -> List[asyncio.Queue]
-        self._subscribers: Dict[str, List[asyncio.Queue]] = {}
+        self.redis_client = aioredis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=1.0)
 
-    def subscribe(self, org_id: str) -> asyncio.Queue:
+    async def get_pubsub(self, org_id: str):
         """
-        Registers a new client stream for the given tenant.
+        Creates and returns a Redis PubSub object subscribed to the tenant's channel.
+        The caller is responsible for calling .unsubscribe() and .close() on it.
         """
-        q = asyncio.Queue(maxsize=100)
-        if org_id not in self._subscribers:
-            self._subscribers[org_id] = []
-        self._subscribers[org_id].append(q)
-        return q
-
-    def unsubscribe(self, org_id: str, q: asyncio.Queue):
-        """
-        Unregisters a client stream upon connection close.
-        """
-        if org_id in self._subscribers:
-            try:
-                self._subscribers[org_id].remove(q)
-                if not self._subscribers[org_id]:
-                    del self._subscribers[org_id]
-            except ValueError:
-                pass
+        pubsub = self.redis_client.pubsub()
+        await pubsub.subscribe(f"mystore:events:{org_id}")
+        return pubsub
 
     async def publish(self, org_id: str, event_type: str, data: Dict[str, Any]):
         """
-        Broadcasts an event payload to all active client streams in the tenant.
+        Broadcasts an event payload to all active client streams in the tenant via Redis.
         """
         payload = {
             "event": event_type,
@@ -51,17 +36,8 @@ class RealtimeEventBus:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         raw = f"data: {json.dumps(payload)}\n\n"
-
-        if org_id in self._subscribers:
-            dead_queues = []
-            for q in list(self._subscribers[org_id]):
-                try:
-                    q.put_nowait(raw)
-                except asyncio.QueueFull:
-                    dead_queues.append(q)
-
-            for dq in dead_queues:
-                self.unsubscribe(org_id, dq)
+        channel_name = f"mystore:events:{org_id}"
+        await self.redis_client.publish(channel_name, raw)
 
 # Global singleton event bus
 event_bus = RealtimeEventBus()

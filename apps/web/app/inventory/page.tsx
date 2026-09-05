@@ -83,7 +83,7 @@ export function InventoryPage() {
   );
 
   const lowStockCount = useMemo(
-    () => inventoryItems.filter((i) => i.isLowStock).length,
+    () => inventoryItems.filter((i) => i.isLowStock ?? (Number(i.stockOnHand) <= Number(i.reorderPoint ?? 0))).length,
     [inventoryItems]
   );
 
@@ -174,7 +174,7 @@ export function InventoryPage() {
         accessorKey: 'isLowStock',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Stock Health" />,
         cell: ({ row }) => {
-          const isLow = row.original.isLowStock;
+          const isLow = row.original.isLowStock ?? (Number(row.original.stockOnHand) <= Number(row.original.reorderPoint ?? 0));
           const isOut = row.original.stockOnHand <= 0;
 
           if (isOut) {
@@ -246,7 +246,7 @@ export function InventoryPage() {
       r.reservedQty,
       r.availableQty,
       r.reorderPoint ?? 0,
-      r.isLowStock ? 'LOW_STOCK' : 'OPTIMAL',
+      (r.isLowStock ?? (Number(r.stockOnHand) <= Number(r.reorderPoint ?? 0))) ? 'LOW_STOCK' : 'OPTIMAL',
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);

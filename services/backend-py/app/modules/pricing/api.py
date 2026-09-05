@@ -29,12 +29,13 @@ async def list_taxes(
     rates = result.scalars().all()
     if not rates:
         return [
-            {"id": "tax_vat_10", "name": "Standard VAT (10%)", "ratePct": 10.0, "isInclusive": False, "isActive": True},
-            {"id": "tax_zero_0", "name": "Zero Rated (0%)", "ratePct": 0.0, "isInclusive": False, "isActive": True}
+            {"id": "tax_vat_10", "code": "VAT_10", "name": "Standard VAT (10%)", "ratePct": 10.0, "isInclusive": False, "isActive": True},
+            {"id": "tax_zero_0", "code": "ZERO_0", "name": "Zero Rated (0%)", "ratePct": 0.0, "isInclusive": False, "isActive": True}
         ]
     return [
         {
             "id": r.id,
+            "code": r.code or "VAT",
             "name": r.name,
             "ratePct": float(r.rate_pct),
             "isInclusive": r.is_inclusive,

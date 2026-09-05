@@ -75,22 +75,23 @@ async def test_enterprise_endpoints_require_auth(endpoint):
 @pytest.mark.asyncio
 async def test_auth_rate_limiter():
     from app.core.rate_limiter import auth_rate_limiter
-    # Test rate limiter logic
     auth_rate_limiter._requests.clear()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # Fire 15 requests (allowed limit)
-        for _ in range(15):
-            res = await client.post("/api/v1/auth/login", json={"email": "nonexistent@test.com", "password": "wrong"})
-            # Should be 401 (invalid credentials) rather than 429
-            assert res.status_code == 401
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            # Fire 15 requests (allowed limit)
+            for _ in range(15):
+                res = await client.post("/api/v1/auth/login", json={"email": "nonexistent@test.com", "password": "wrong"})
+                # Should be 401 (invalid credentials) rather than 429
+                assert res.status_code == 401
 
-        # 16th request should hit 429 Too Many Requests
-        res = await client.post("/api/v1/auth/login", json={"email": "nonexistent@test.com", "password": "wrong"})
-        assert res.status_code == 429
-        data = res.json()
-        assert data["success"] is False
-        assert "Too many requests" in (data.get("message") or data.get("detail", ""))
-        assert "retry-after" in res.headers
-    # Clean up state
-    auth_rate_limiter._requests.clear()
+            # 16th request should hit 429 Too Many Requests
+            res = await client.post("/api/v1/auth/login", json={"email": "nonexistent@test.com", "password": "wrong"})
+            assert res.status_code == 429
+            data = res.json()
+            assert data["success"] is False
+            assert "Too many requests" in (data.get("message") or data.get("detail", ""))
+            assert "retry-after" in res.headers
+    finally:
+        # Always clean up rate limiter state
+        auth_rate_limiter._requests.clear()
 

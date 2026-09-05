@@ -63,21 +63,21 @@ async def export_entity_data(
         )
         customers = res.scalars().all()
         writer = csv.writer(output)
-        writer.writerow(["Name", "Email", "Phone", "Account Type", "Outstanding Balance"])
+        writer.writerow(["Name", "Email", "Phone", "Customer Type", "Store Credit"])
         for c in customers:
-            writer.writerow([c.name, c.email or "", c.phone or "", c.account_type, float(c.balance)])
+            writer.writerow([c.name, c.email or "", c.phone or "", c.type, float(c.store_credit or 0.0)])
 
     elif ent == "inventory":
         res = await db.execute(
             select(InventoryItem, ProductVariant)
-            .join(ProductVariant, InventoryItem.variant_id == ProductVariant.id)
+            .join(ProductVariant, InventoryItem.product_variant_id == ProductVariant.id)
             .where(InventoryItem.organization_id == user.organization_id)
         )
         rows = res.all()
         writer = csv.writer(output)
         writer.writerow(["Location ID", "SKU", "Variant Name", "Stock On Hand", "Reorder Point"])
         for item, var in rows:
-            writer.writerow([item.location_id, var.sku, var.name or "", float(item.quantity), float(item.reorder_point)])
+            writer.writerow([item.location_id, var.sku, var.name or "", float(item.stock_on_hand or 0.0), float(item.reorder_point or 0.0)])
 
     elif ent == "sales":
         res = await db.execute(
@@ -87,7 +87,7 @@ async def export_entity_data(
         writer = csv.writer(output)
         writer.writerow(["Sale Number", "Total Amount", "Tax Amount", "Status", "Date"])
         for s in sales:
-            writer.writerow([s.sale_number, float(s.total_amount), float(s.tax_amount), s.status, s.created_at.isoformat() if s.created_at else ""])
+            writer.writerow([s.sale_number, float(s.grand_total or 0.0), float(s.tax_total or 0.0), s.status, s.created_at.isoformat() if s.created_at else ""])
 
     elif ent == "accounts":
         res = await db.execute(
@@ -95,9 +95,9 @@ async def export_entity_data(
         )
         accs = res.scalars().all()
         writer = csv.writer(output)
-        writer.writerow(["Account Code", "Account Name", "Type", "Balance"])
+        writer.writerow(["Account Code", "Account Name", "Type", "Currency", "Active"])
         for a in accs:
-            writer.writerow([a.code, a.name, a.type, float(a.balance)])
+            writer.writerow([a.code, a.name, a.type, a.currency, "Yes" if a.is_active else "No"])
 
     csv_data = output.getvalue()
     return Response(

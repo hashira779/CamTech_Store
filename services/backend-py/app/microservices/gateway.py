@@ -66,14 +66,19 @@ ROUTING_MAP = {
     "/api/v1/warehouse": CATALOG,
     "/api/v1/pricing": CATALOG,
     "/api/v1/taxes": CATALOG,
+    "/api/v1/promotions": CATALOG,
+    "/api/v1/wms": CATALOG,
     "/api/v1/sales": SALES,
     "/api/v1/customers": SALES,
-    "/api/v1/loyalty": SALES,
+    "/api/v1/loyalty": CATALOG,
     "/api/v1/delivery": os.getenv("DELIVERY_SERVICE_URL", "http://127.0.0.1:4004"),
     "/api/v1/hr": os.getenv("HR_SERVICE_URL", "http://127.0.0.1:4005"),
     "/api/v1/finance": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
     "/api/v1/accounts": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
     "/api/v1/assets": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
+    "/api/v1/developers": PLATFORM_SERVICE_URL,
+    "/api/v1/flows": PLATFORM_SERVICE_URL,
+    "/api/v1/telegram": PLATFORM_SERVICE_URL,
 }
 
 http_client = httpx.AsyncClient(timeout=15.0)

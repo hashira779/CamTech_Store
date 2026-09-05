@@ -4,9 +4,10 @@ from fastapi import Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.modules.identity.models import User
+from app.modules.identity.models import User, Role
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -55,7 +56,7 @@ async def get_current_user(
         )
 
     try:
-        roles_list = json.loads(user.roles) if isinstance(user.roles, str) else user.roles
+        roles_list = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
     except Exception:
         roles_list = [user.roles] if user.roles else ["CASHIER"]
 
@@ -80,7 +81,7 @@ async def get_optional_user(
         if not user:
             return None
         try:
-            roles_list = json.loads(user.roles) if isinstance(user.roles, str) else user.roles
+            roles_list = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
         except Exception:
             roles_list = [user.roles] if user.roles else ["CASHIER"]
         return TenantUser(user=user, roles=roles_list)

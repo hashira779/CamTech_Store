@@ -79,7 +79,7 @@ export function ProductsPage() {
   const tableData: FlattenedProductRow[] = useMemo(() => {
     if (!data?.items) return [];
     return data.items.flatMap((product) =>
-      product.variants.map((v) => {
+      (product.variants || []).map((v) => {
         const cost = v.costPrice ?? 0;
         const price = v.sellPrice ?? 0;
         const marginPct = v.marginPct ?? (price > 0 ? ((price - cost) / price) * 100 : 0);

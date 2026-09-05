@@ -136,6 +136,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
       { name: 'Stock Transfers & WMS', href: '/transfers', icon: ArrowLeftRight, section: 'Logistics' },
       { name: 'Procurement & POs', href: '/procurement', icon: Truck, section: 'Logistics' },
       { name: 'Delivery & Live Fleet', href: '/delivery', icon: Navigation, section: 'Logistics' },
+      { name: 'Driver Dispatch', href: '/driver', icon: Truck, section: 'Logistics' },
       { name: 'Locations & Branches', href: '/locations', icon: Building2, section: 'Logistics' },
 
       { name: 'Customers & CRM', href: '/customers', icon: Users, section: 'Customers' },

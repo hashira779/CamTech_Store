@@ -17,7 +17,7 @@ export function PosPage() {
   });
 
   const availableVariants = (productsData?.items ?? []).flatMap((p) =>
-    p.variants.map((v) => ({ master: p, variant: v }))
+    (p.variants || []).map((v) => ({ master: p, variant: v }))
   );
 
   const addToCart = (item: any) => {

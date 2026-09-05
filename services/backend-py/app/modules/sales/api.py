@@ -255,9 +255,17 @@ async def create_sale(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Payment amount must be positive",
             )
+        raw_method = (p_in.method or "CASH").upper().strip()
+        if "QR" in raw_method or "KHQR" in raw_method or "BAKONG" in raw_method:
+            norm_method = "QR"
+        elif raw_method in ["CASH", "CARD", "BANK_TRANSFER", "WALLET", "CREDIT", "OTHER"]:
+            norm_method = raw_method
+        else:
+            norm_method = "OTHER"
+
         payment_entities.append(SalePayment(
             amount=pay_amount,
-            method=p_in.method,
+            method=norm_method,
             status="COMPLETED",
             reference=p_in.reference
         ))
@@ -656,7 +664,7 @@ async def store_checkout(
                     channel="IN_APP",
                     type="LOW_STOCK_ALERT",
                     title="⚠️ Low Stock Alert",
-                    message=f"Stock for '{it.name}' dropped to {bal} (reorder threshold: {inv_rec.reorder_point}).",
+                    message=f"Stock for '{r_item.get('name', 'Product')}' dropped to {bal} (reorder threshold: {inv_rec.reorder_point}).",
                     status="SENT",
                     is_read=False,
                     sent_at=now,
@@ -798,9 +806,15 @@ async def get_customer_orders(
     if not customer:
         return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
 
+    sale_filters = [Sale.customer_id == customer.id]
+    if user and user.organization_id:
+        sale_filters.append(Sale.organization_id == user.organization_id)
+    elif customer.organization_id:
+        sale_filters.append(Sale.organization_id == customer.organization_id)
+
     stmt = (
         select(Sale)
-        .where(Sale.customer_id == customer.id)
+        .where(*sale_filters)
         .options(selectinload(Sale.line_items), selectinload(Sale.payments))
         .order_by(desc(Sale.created_at))
         .limit(50)
