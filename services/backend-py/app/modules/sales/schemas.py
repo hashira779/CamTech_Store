@@ -28,6 +28,23 @@ class SalePaymentInput(BaseModel):
     method: str  # CASH, KHQR, CARD, CREDIT
     reference: Optional[str] = None
 
+class StoreCheckoutItemInput(BaseModel):
+    id: str
+    name: str
+    price: float
+    quantity: float
+    sku: Optional[str] = None
+    category: Optional[str] = None
+
+class StoreCheckoutInput(BaseModel):
+    customerEmail: str
+    customerName: str
+    customerPhone: Optional[str] = None
+    deliveryAddress: Optional[str] = None
+    paymentMethod: str = "KHQR"  # KHQR, COD, CASH, CARD, QR
+    items: List[StoreCheckoutItemInput]
+    notes: Optional[str] = None
+
 class CreateSaleInput(BaseModel):
     idempotencyKey: Optional[str] = None
     locationId: Optional[str] = None

@@ -382,12 +382,14 @@ export function App() {
   });
 
   // 2. Fetch customer orders from Central Data Center API (only when signed in)
+  // 2. Fetch customer orders directly from Central PostgreSQL Database
   const { data: orderHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['store-order-history', customer?.email],
     queryFn: async () => {
-      if (!customer) return [];
+      const email = customer?.email || (typeof window !== 'undefined' ? localStorage.getItem('camtech_customer_email') : null);
+      if (!email) return [];
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/sales`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales/customer-orders?email=${encodeURIComponent(email)}`);
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.items || json.items || json.data || [];
@@ -395,7 +397,7 @@ export function App() {
         return [];
       }
     },
-    enabled: !!customer
+    enabled: !!customer?.email
   });
 
   const products: ProductItem[] = serverProducts || [];
@@ -493,38 +495,74 @@ export function App() {
       notes: `Store Order: ${cart.map((i) => `${i.name} x${i.quantity}`).join(', ')}`
     };
 
-    const loadingToast = toast.loading('Submitting order to Fleet Dispatch...');
+    const loadingToast = toast.loading('Recording official sale in PostgreSQL Data Center...');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders/public`, {
+      // 1. Record official Sale, Line Items, and Payment in Central PostgreSQL
+      const saleRes = await fetch(`${API_BASE_URL}/api/v1/sales/store-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify({
+          customerEmail: buyerEmail,
+          customerName: buyerName,
+          customerPhone: buyerPhone,
+          deliveryAddress: deliveryAddress,
+          paymentMethod: paymentMethod,
+          items: cart.map((i) => ({
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            quantity: i.quantity,
+            sku: i.sku,
+            category: i.category,
+          })),
+          notes: `Store Order for ${buyerName}`,
+        }),
       });
+
+      if (!saleRes.ok) {
+        throw new Error(`Data Center Sale failed with status ${saleRes.status}`);
+      }
+
+      const saleJson = await saleRes.json();
+      const serverSale = saleJson.data || saleJson;
+
+      // 2. Also dispatch delivery courier fleet
+      try {
+        await fetch(`${API_BASE_URL}/api/v1/delivery/orders/public`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientName: buyerName,
+            recipientPhone: buyerPhone,
+            deliveryAddress: deliveryAddress,
+            destLat: coords?.lat ?? 11.5564,
+            destLng: coords?.lng ?? 104.9282,
+            codAmount: paymentMethod === 'COD' ? cartTotal * 1.1 : 0.0,
+            deliveryFee: 2.50,
+            notes: `Store Order ${serverSale.saleNumber}: ${cart.map((i) => `${i.name} x${i.quantity}`).join(', ')}`,
+          }),
+        });
+      } catch (err) {
+        console.warn('Fleet delivery dispatch non-blocking fallback:', err);
+      }
 
       toast.dismiss(loadingToast);
 
-      if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
-      }
-
-      const json = await res.json();
-      const serverOrder = json.data || json;
-
       const newOrder = {
-        orderNumber: serverOrder.trackingNumber || (serverOrder.id ? `ORD-${serverOrder.id.slice(-6).toUpperCase()}` : 'ORD-2026-ONLINE'),
-        id: serverOrder.id,
+        orderNumber: serverSale.saleNumber || (serverSale.id ? `ORD-${serverSale.id.slice(-6).toUpperCase()}` : 'ORD-2026-ONLINE'),
+        id: serverSale.id,
         items: [...cart],
-        total: (serverOrder.codAmount && serverOrder.codAmount > 0) ? serverOrder.codAmount : cartTotal * 1.1,
+        total: serverSale.grandTotal || cartTotal * 1.1,
         paymentMethod,
         customer: {
           name: buyerName,
           email: buyerEmail,
-          phone: buyerPhone
+          phone: buyerPhone,
         },
         address: deliveryAddress,
-        date: serverOrder.createdAt || new Date().toISOString(),
-        status: serverOrder.status || 'CONFIRMED'
+        date: serverSale.createdAt || new Date().toISOString(),
+        status: serverSale.status || 'COMPLETED',
       };
 
       setConfirmedOrder(newOrder);
@@ -537,11 +575,11 @@ export function App() {
       } catch {}
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
-      toast.success(customer ? '🎉 Order Placed & Dispatched to Fleet!' : '🎉 Guest Order Placed & Dispatched to Fleet!');
+      toast.success('🎉 Official Sale & Invoice recorded in PostgreSQL! Dispatched to Fleet!');
       refetchHistory();
     } catch (err: any) {
       toast.dismiss(loadingToast);
-      toast.error(`Order failed: ${err.message || 'Dispatch Center unreachable'}`);
+      toast.error(`Checkout failed: ${err.message || 'Central Data Center unreachable'}`);
     }
   };
 

@@ -1,20 +1,26 @@
 import datetime
+import json
+import uuid
 import secrets
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser
+from app.core.config import settings
+from app.modules.organizations.models import Organization
+from app.modules.customers.models import Customer
+from app.modules.identity.models import User
 from app.modules.catalog.models import ProductVariant
 from app.modules.locations.models import Location
 
 from .models import Sale, SaleLineItem, SalePayment
 from .schemas import (
-    SaleDto, CreateSaleInput, SaleLineItemDto, SalePaymentDto,
+    SaleDto, CreateSaleInput, StoreCheckoutInput, SaleLineItemDto, SalePaymentDto,
     PaginatedResponse, PageMeta
 )
 
@@ -314,3 +320,276 @@ async def create_sale(
             ) for p in sale.payments
         ]
     )
+
+
+@router.post("/sales/store-checkout", response_model=SaleDto)
+@router.post("/sales/public-checkout", response_model=SaleDto)
+async def store_checkout(
+    payload: StoreCheckoutInput,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Storefront Online Customer Checkout Endpoint.
+    Records a completed Sale, Line Items, and Payment directly in PostgreSQL,
+    linked to the customer account, and resets active shopping cart.
+    """
+    if not payload.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot checkout with an empty cart."
+        )
+
+    email_clean = payload.customerEmail.strip().lower()
+    name_clean = payload.customerName.strip() or email_clean.split("@")[0]
+    phone_clean = payload.customerPhone.strip() if payload.customerPhone else None
+
+    # Resolve Target Organization
+    target_org = user.organization_id if user else None
+    if not target_org:
+        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
+        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+
+    # 1. Resolve or provision Customer record
+    cust_result = await db.execute(
+        select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+    )
+    customer = cust_result.scalar_one_or_none()
+    if not customer:
+        customer = Customer(
+            organization_id=target_org,
+            code=f"CUST-{uuid.uuid4().hex[:8].upper()}",
+            name=name_clean,
+            email=email_clean,
+            phone=phone_clean,
+            type="INDIVIDUAL",
+            loyalty_points=500,
+            loyalty_tier="Executive Gold",
+            store_credit=0.0,
+            notes=json.dumps({"notes": "Store Customer via Online Checkout", "cart": []}),
+            is_active=True
+        )
+        db.add(customer)
+        await db.flush()
+
+    # 2. Resolve or provision User record for Foreign Key constraint
+    user_result = await db.execute(
+        select(User.id).where(func.lower(User.email) == email_clean).limit(1)
+    )
+    sale_user_id = user_result.scalar_one_or_none()
+    if not sale_user_id:
+        org_user_res = await db.execute(
+            select(User.id).where(User.organization_id == target_org).limit(1)
+        )
+        sale_user_id = org_user_res.scalar_one_or_none()
+        if not sale_user_id:
+            any_user_res = await db.execute(select(User.id).limit(1))
+            sale_user_id = any_user_res.scalar_one_or_none() or "system-store-checkout"
+
+    # 3. Calculate Totals & Build Line Items
+    subtotal = Decimal("0.0")
+    tax_total = Decimal("0.0")
+    sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+    sale_id = str(uuid.uuid4())
+
+    line_entities = []
+    for it in payload.items:
+        qty = Decimal(str(it.quantity))
+        price = Decimal(str(it.price))
+        line_sub = (qty * price).quantize(Decimal("0.01"))
+        tax_pct = Decimal("10.0")  # 10% VAT standard
+        tax_amt = (line_sub * (tax_pct / Decimal("100.0"))).quantize(Decimal("0.01"))
+        line_tot = line_sub + tax_amt
+
+        subtotal += line_sub
+        tax_total += tax_amt
+
+        line_entities.append(SaleLineItem(
+            id=str(uuid.uuid4()),
+            sale_id=sale_id,
+            product_variant_id=it.id or str(uuid.uuid4()),
+            sku=it.sku or f"SKU-{it.id[:6] if len(it.id)>=6 else it.id}",
+            product_name=it.name,
+            variant_name=it.category or "Standard",
+            quantity=qty,
+            unit_price=price,
+            discount=Decimal("0.0"),
+            tax_rate_pct=tax_pct,
+            tax_amount=tax_amt,
+            line_total=line_tot
+        ))
+
+    grand_total = subtotal + tax_total
+
+    # 4. Create Sale Record
+    notes_dict = {
+        "customerName": name_clean,
+        "customerEmail": email_clean,
+        "customerPhone": phone_clean,
+        "deliveryAddress": payload.deliveryAddress,
+        "storeNotes": payload.notes or "Online Store Checkout",
+    }
+
+    sale = Sale(
+        id=sale_id,
+        organization_id=target_org,
+        location_id=None,
+        customer_id=customer.id,
+        user_id=sale_user_id,
+        sale_number=sale_num,
+        channel="STORE",
+        status="COMPLETED",
+        subtotal=subtotal,
+        discount_total=Decimal("0.0"),
+        tax_total=tax_total,
+        grand_total=grand_total,
+        currency="USD",
+        notes=json.dumps(notes_dict),
+        completed_at=datetime.datetime.utcnow(),
+    )
+    db.add(sale)
+
+    for li in line_entities:
+        db.add(li)
+
+    # 5. Create Payment Record
+    pay_method = "QR" if "QR" in payload.paymentMethod.upper() else "CASH"
+    payment = SalePayment(
+        id=str(uuid.uuid4()),
+        sale_id=sale_id,
+        method=pay_method,
+        status="COMPLETED",
+        provider="Bakong KHQR" if pay_method == "QR" else "Cash on Delivery",
+        amount=grand_total,
+        reference=f"TXN-{secrets.token_hex(4).upper()}",
+        paid_at=datetime.datetime.utcnow(),
+    )
+    db.add(payment)
+
+    # 6. Reset Customer Cart in PostgreSQL
+    cust_notes = {}
+    if customer.notes:
+        try:
+            parsed = json.loads(customer.notes)
+            if isinstance(parsed, dict):
+                cust_notes = parsed
+            else:
+                cust_notes["notes"] = str(customer.notes)
+        except Exception:
+            cust_notes["notes"] = str(customer.notes)
+    cust_notes["cart"] = []
+    customer.notes = json.dumps(cust_notes)
+
+    await db.commit()
+
+    return SaleDto(
+        id=sale.id,
+        idempotencyKey=sale.idempotency_key,
+        saleNumber=sale.sale_number,
+        channel=sale.channel,
+        status=sale.status,
+        subtotal=float(sale.subtotal),
+        taxTotal=float(sale.tax_total),
+        discountTotal=float(sale.discount_total),
+        grandTotal=float(sale.grand_total),
+        currency=sale.currency,
+        itemCount=len(line_entities),
+        customerName=name_clean,
+        paymentStatus="PAID",
+        createdAt=sale.created_at.isoformat(),
+        lineItems=[
+            SaleLineItemDto(
+                id=li.id,
+                variantId=li.product_variant_id,
+                sku=li.sku,
+                name=li.product_name,
+                quantity=float(li.quantity),
+                unitPrice=float(li.unit_price),
+                taxRatePct=float(li.tax_rate_pct),
+                lineTotal=float(li.line_total)
+            ) for li in line_entities
+        ],
+        payments=[
+            SalePaymentDto(
+                id=payment.id,
+                amount=float(payment.amount),
+                method=payment.method,
+                status=payment.status,
+                reference=payment.reference
+            )
+        ]
+    )
+
+
+@router.get("/sales/customer-orders", response_model=PaginatedResponse[SaleDto])
+@router.get("/customers/orders", response_model=PaginatedResponse[SaleDto])
+async def get_customer_orders(
+    email: str,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Fetches past sales orders and invoices for a customer directly from PostgreSQL.
+    """
+    email_clean = email.strip().lower()
+
+    # Find customer
+    cust_res = await db.execute(
+        select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+    )
+    customer = cust_res.scalar_one_or_none()
+
+    if not customer:
+        return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
+
+    stmt = (
+        select(Sale)
+        .where(Sale.customer_id == customer.id)
+        .options(selectinload(Sale.line_items), selectinload(Sale.payments))
+        .order_by(desc(Sale.created_at))
+        .limit(50)
+    )
+    result = await db.execute(stmt)
+    sales = result.scalars().all()
+
+    out = []
+    for s in sales:
+        out.append(SaleDto(
+            id=s.id,
+            saleNumber=s.sale_number,
+            channel=s.channel,
+            status=s.status,
+            subtotal=float(s.subtotal),
+            taxTotal=float(s.tax_total),
+            discountTotal=float(s.discount_total),
+            grandTotal=float(s.grand_total),
+            currency=s.currency,
+            itemCount=len(s.line_items),
+            customerName=customer.name,
+            paymentStatus=_derive_payment_status(s.payments, s.grand_total),
+            createdAt=s.created_at.isoformat(),
+            lineItems=[
+                SaleLineItemDto(
+                    id=li.id,
+                    variantId=li.product_variant_id,
+                    sku=li.sku,
+                    name=li.product_name,
+                    quantity=float(li.quantity),
+                    unitPrice=float(li.unit_price),
+                    taxRatePct=float(li.tax_rate_pct),
+                    lineTotal=float(li.line_total)
+                ) for li in s.line_items
+            ],
+            payments=[
+                SalePaymentDto(
+                    id=p.id,
+                    amount=float(p.amount),
+                    method=p.method,
+                    status=p.status,
+                    reference=p.reference
+                ) for p in s.payments
+            ]
+        ))
+
+    return PaginatedResponse(items=out, meta=PageMeta(page=1, limit=50, total=len(out), totalPages=1), total=len(out))
+
