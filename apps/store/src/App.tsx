@@ -763,11 +763,11 @@ export function App() {
           </div>
 
           {/* Right Column: Interactive Digital NFC Member Pass */}
-          <div className="relative flex justify-center items-center">
+          <div className="lg:col-span-5 relative flex justify-center items-center w-full">
             {/* Ambient Background Glow behind pass */}
             <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-purple-500/10 to-pink-500/20 blur-3xl rounded-3xl" />
 
-            <div className="relative w-full max-w-[340px] rounded-3xl p-6 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 border border-zinc-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col gap-5">
+            <div className="relative w-full max-w-[350px] rounded-3xl p-6 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 border border-zinc-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col gap-5">
               {/* Lanyard Clip Header */}
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-3 bg-zinc-700/80 rounded-full border border-zinc-600/60 flex items-center justify-center">
                 <div className="w-8 h-1 bg-zinc-900 rounded-full"></div>
