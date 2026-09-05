@@ -114,6 +114,9 @@ fi
 echo "🚀 Deploying updated containers..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
+# Ensure mystore-admin-app is reachable by external Cloudflare tunnel expecting admin-web
+docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
+
 # ── 6. Smoke Tests & Health Check Loop ───────────────────────────────────────
 echo "🔍 Running health verification checks..."
 MAX_RETRIES=30
