@@ -4,10 +4,15 @@
 #  Target Host: Ubuntu Server (10.1.0.11)
 # ══════════════════════════════════════════════════════════════════════════════
 
-set -euo pipefail
-
-APP_DIR="${APP_DIR:-$HOME/CamTech_Store}"
-BACKUP_DIR="${BACKUP_DIR:-$HOME/CamTech_Store_backup}"
+if [ -d "/home/ubuntu-server/CamTech_Store" ]; then
+    DEFAULT_APP_DIR="/home/ubuntu-server/CamTech_Store"
+    DEFAULT_BACKUP_DIR="/home/ubuntu-server/CamTech_Store_backup"
+else
+    DEFAULT_APP_DIR="$HOME/CamTech_Store"
+    DEFAULT_BACKUP_DIR="$HOME/CamTech_Store_backup"
+fi
+APP_DIR="${APP_DIR:-$DEFAULT_APP_DIR}"
+BACKUP_DIR="${BACKUP_DIR:-$DEFAULT_BACKUP_DIR}"
 COMPOSE_FILE="docker-compose.prod.yml"
 
 # ── Credentials & Environment Setup ──────────────────────────────────────────
@@ -95,7 +100,7 @@ fi
 # ── 4. Build Images First (WITHOUT Stopping Active Containers) ────────────────
 echo "🔨 Pre-building Docker images for zero-downtime transition (COMPOSE_PARALLEL_LIMIT=1)..."
 export COMPOSE_PARALLEL_LIMIT=1
-if ! run_cmd COMPOSE_PARALLEL_LIMIT=1 docker compose -f "$COMPOSE_FILE" build; then
+if ! run_cmd docker compose -f "$COMPOSE_FILE" build; then
     echo "========================================================================"
     echo "❌ Docker build failed! Aborting without affecting live services."
     echo "--- System Diagnostics ---"
