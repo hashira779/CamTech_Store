@@ -80,6 +80,10 @@ http_client = httpx.AsyncClient(timeout=15.0)
 async def gateway_root():
     return RedirectResponse(url="/docs")
 
+@gateway.get("/favicon.ico", include_in_schema=False)
+async def gateway_favicon():
+    return Response(status_code=204)
+
 @gateway.get("/health")
 async def gateway_health():
     return {

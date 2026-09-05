@@ -233,6 +233,10 @@ app.include_router(outbox_router, prefix="/api/v1")
 async def root_redirect():
     return RedirectResponse(url="/docs")
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def root_favicon():
+    return Response(status_code=204)
+
 @app.get("/health")
 async def health_check():
     return {
