@@ -28,6 +28,9 @@ import {
   X,
   RefreshCw,
   LogOut,
+  BellRing,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -130,9 +133,58 @@ export default function DriverAppPage() {
     },
   });
 
+  const acceptOrderMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.updateDeliveryStatus(token!, id, { status: 'DISPATCHED' }),
+    onSuccess: (updated) => {
+      toast.success(`🚀 Order #${updated.trackingNumber} claimed! Added to your route.`);
+      queryClient.invalidateQueries({ queryKey: ['driver-deliveries'] });
+      setOrderTab('ACTIVE');
+    },
+    onError: () => {
+      toast.error('Failed to claim delivery order');
+    },
+  });
+
+  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const prevPendingRef = React.useRef<number>(0);
+
+  const pendingOrders = orders.filter((o) => o.status === 'PENDING');
   const activeOrders = orders.filter((o) => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
   const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
   const totalCodToCollect = activeOrders.reduce((sum, o) => sum + (Number(o.codAmount) > 0 ? Number(o.codAmount) : 0), 0);
+
+  function playDeliveryChime() {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch {
+      // Ignore audio error
+    }
+  }
+
+  useEffect(() => {
+    if (pendingOrders.length > prevPendingRef.current && prevPendingRef.current > 0) {
+      if (soundEnabled) playDeliveryChime();
+      toast.info(`🔔 New Delivery Order Available! (${pendingOrders.length} unassigned)`, {
+        description: `Order #${pendingOrders[0]?.trackingNumber || ''} is ready for pickup.`,
+      });
+      setOrderTab('AVAILABLE');
+    }
+    prevPendingRef.current = pendingOrders.length;
+  }, [pendingOrders.length, soundEnabled]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center">
@@ -341,92 +393,249 @@ export default function DriverAppPage() {
             </div>
           </section>
 
+          {/* Real-time Incoming Order Alert Banner */}
+          {pendingOrders.length > 0 && orderTab !== 'AVAILABLE' && (
+            <div
+              onClick={() => setOrderTab('AVAILABLE')}
+              className="mx-4 mt-3 p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-500/40 flex items-center justify-between cursor-pointer animate-pulse shadow-md"
+            >
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                <BellRing className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{pendingOrders.length} New Customer Order(s) Ready to Claim!</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-950 bg-amber-400 px-2.5 py-1 rounded-lg shrink-0">
+                Claim Now &rarr;
+              </span>
+            </div>
+          )}
+
+          {/* Tab Switcher */}
+          <div className="px-4 pt-3">
+            <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+              <button
+                onClick={() => setOrderTab('AVAILABLE')}
+                className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  orderTab === 'AVAILABLE'
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Available</span>
+                {pendingOrders.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      orderTab === 'AVAILABLE' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500 text-slate-950'
+                    }`}
+                  >
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setOrderTab('ACTIVE')}
+                className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  orderTab === 'ACTIVE'
+                    ? 'bg-sky-600 text-white font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>My Route ({activeOrders.length})</span>
+              </button>
+
+              <button
+                onClick={() => setOrderTab('COMPLETED')}
+                className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  orderTab === 'COMPLETED'
+                    ? 'bg-slate-800 text-white font-bold border border-slate-700'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Done ({completedOrders.length})</span>
+              </button>
+            </div>
+          </div>
+
           {/* Delivery Tasks List */}
           <main className="flex-1 p-4 space-y-3 overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Assigned Dispatch Queue</h2>
-              <span className="text-[11px] text-slate-500">{activeOrders.length} pending</span>
-            </div>
-
             {isLoading ? (
-              <div className="text-center py-12 text-xs text-slate-500">Loading your route...</div>
-            ) : activeOrders.length === 0 ? (
-              <div className="text-center py-16 px-4 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
-                <h3 className="text-sm font-semibold text-slate-200">All Deliveries Complete!</h3>
-                <p className="text-xs text-slate-400 mt-1">Stand by for new dispatch assignments from central warehouse.</p>
-              </div>
-            ) : (
-              activeOrders.map((order, idx) => (
-                <div
-                  key={order.id}
-                  className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all shadow-md space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] font-bold">
-                          {idx + 1}
-                        </span>
-                        <span className="text-xs font-mono font-bold text-slate-200">{order.trackingNumber}</span>
+              <div className="text-center py-12 text-xs text-slate-500">Loading delivery tasks...</div>
+            ) : orderTab === 'AVAILABLE' ? (
+              /* ─── AVAILABLE / UNASSIGNED INCOMING ORDERS ─── */
+              pendingOrders.length === 0 ? (
+                <div className="text-center py-16 px-4 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-200">No Orders in Available Queue</h3>
+                  <p className="text-xs text-slate-400 mt-1">All customer orders have been claimed. Stay tuned for new alerts.</p>
+                </div>
+              ) : (
+                pendingOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-amber-950/20 border border-amber-500/30 hover:border-amber-500/60 transition-all shadow-lg space-y-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="text-[10px] bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse">
+                            Ready to Claim
+                          </Badge>
+                          <span className="text-xs font-mono font-bold text-slate-300">{order.trackingNumber}</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white mt-1.5">{order.recipientName}</h4>
                       </div>
-                      <h4 className="text-sm font-bold text-white mt-1">{order.recipientName}</h4>
-                    </div>
-                    <Badge
-                      className={`text-[10px] ${
-                        order.status === 'IN_TRANSIT'
-                          ? 'bg-sky-500/20 text-sky-400 border-sky-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                      }`}
-                    >
-                      {order.status === 'IN_TRANSIT' ? 'On The Way' : 'Dispatched'}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-xs text-slate-300">
-                    <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <p className="line-clamp-2 leading-relaxed">{order.deliveryAddress}</p>
-                  </div>
-
-                  {Number(order.codAmount) > 0 && (
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
-                      <span className="font-semibold flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5" /> Collect Cash (COD)
+                      <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
+                        +${(order.deliveryFee || 2.5).toFixed(2)} Fee
                       </span>
-                      <span className="font-mono font-bold text-sm">${Number(order.codAmount).toFixed(2)}</span>
                     </div>
-                  )}
 
-                  <div className="grid grid-cols-3 gap-2 pt-1">
-                    <a
-                      href={`tel:${order.recipientPhone}`}
-                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-emerald-400" /> Call
-                    </a>
+                    <div className="flex items-start gap-2 text-xs text-slate-300">
+                      <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <p className="line-clamp-2 leading-relaxed">{order.deliveryAddress}</p>
+                    </div>
 
-                    {order.status === 'DISPATCHED' ? (
-                      <Button
-                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' })}
-                        disabled={updateStatusMutation.isPending}
-                        className="col-span-2 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold"
+                    {Number(order.codAmount) > 0 && (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+                        <span className="font-semibold flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5" /> Collect COD
+                        </span>
+                        <span className="font-mono font-bold text-sm">${Number(order.codAmount).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="pt-1 flex items-center gap-2">
+                      <a
+                        href={`tel:${order.recipientPhone}`}
+                        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 flex items-center justify-center shrink-0"
+                        title="Call recipient"
                       >
-                        <Navigation className="w-3.5 h-3.5 mr-1" /> Start Route
-                      </Button>
-                    ) : (
+                        <Phone className="w-4 h-4 text-emerald-400" />
+                      </a>
+
                       <Button
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setIsPodOpen(true);
-                        }}
-                        className="col-span-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30"
+                        onClick={() => acceptOrderMutation.mutate(order.id)}
+                        disabled={acceptOrderMutation.isPending}
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md flex items-center justify-center gap-1.5"
                       >
-                        <FileSignature className="w-3.5 h-3.5 mr-1" /> Deliver & Sign
+                        <Truck className="w-4 h-4" />
+                        Accept Delivery & Add to Route
                       </Button>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : orderTab === 'ACTIVE' ? (
+              /* ─── ACTIVE DISPATCHED ORDERS ─── */
+              activeOrders.length === 0 ? (
+                <div className="text-center py-16 px-4 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-200">No Active Deliveries</h3>
+                  <p className="text-xs text-slate-400 mt-1">Check the "Available" tab to claim new customer orders.</p>
+                </div>
+              ) : (
+                activeOrders.map((order, idx) => (
+                  <div
+                    key={order.id}
+                    className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all shadow-md space-y-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="text-xs font-mono font-bold text-slate-200">{order.trackingNumber}</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white mt-1">{order.recipientName}</h4>
+                      </div>
+                      <Badge
+                        className={`text-[10px] ${
+                          order.status === 'IN_TRANSIT'
+                            ? 'bg-sky-500/20 text-sky-400 border-sky-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        }`}
+                      >
+                        {order.status === 'IN_TRANSIT' ? 'On The Way' : 'Dispatched'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-xs text-slate-300">
+                      <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <p className="line-clamp-2 leading-relaxed">{order.deliveryAddress}</p>
+                    </div>
+
+                    {Number(order.codAmount) > 0 && (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+                        <span className="font-semibold flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5" /> Collect Cash (COD)
+                        </span>
+                        <span className="font-mono font-bold text-sm">${Number(order.codAmount).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <a
+                        href={`tel:${order.recipientPhone}`}
+                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-emerald-400" /> Call
+                      </a>
+
+                      {order.status === 'DISPATCHED' ? (
+                        <Button
+                          onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' })}
+                          disabled={updateStatusMutation.isPending}
+                          className="col-span-2 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold"
+                        >
+                          <Navigation className="w-3.5 h-3.5 mr-1" /> Start Route
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsPodOpen(true);
+                          }}
+                          className="col-span-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30"
+                        >
+                          <FileSignature className="w-3.5 h-3.5 mr-1" /> Deliver & Sign
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              /* ─── COMPLETED ORDERS ─── */
+              completedOrders.length === 0 ? (
+                <div className="text-center py-16 px-4 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+                  <Package className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-300">No Completed Deliveries Yet</h3>
+                  <p className="text-xs text-slate-500 mt-1">Completed orders will appear here with POD signature receipts.</p>
+                </div>
+              ) : (
+                completedOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2 opacity-80 hover:opacity-100 transition"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-xs font-mono font-bold text-slate-400">{order.trackingNumber}</span>
+                        <h4 className="text-sm font-bold text-white mt-0.5">{order.recipientName}</h4>
+                      </div>
+                      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                        Delivered
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-400">{order.deliveryAddress}</p>
+                    {order.proofOfDelivery && (
+                      <span className="text-[10px] text-emerald-400 block font-mono">
+                        POD: {order.proofOfDelivery}
+                      </span>
                     )}
                   </div>
-                </div>
-              ))
+                ))
+              )
             )}
           </main>
         </div>

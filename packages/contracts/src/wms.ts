@@ -165,3 +165,32 @@ export interface StockTransferDto {
   updatedAt: string;
   lines: StockTransferLineDto[];
 }
+
+export interface PickingOrderItemDto {
+  id: string;
+  variantId: string;
+  sku: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  zone?: string;
+  bin?: string;
+}
+
+export interface PickingOrderDto {
+  id: string;
+  saleNumber: string;
+  customerName: string;
+  customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  itemCount: number;
+  wmsStatus: string;
+  createdAt: string;
+  items: PickingOrderItemDto[];
+}
+
+export interface FulfillPickingInput {
+  notes?: string;
+  packerName?: string;
+}
+

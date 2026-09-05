@@ -58,6 +58,8 @@ import type {
   CreateWarehouseZoneInput,
   CreateWarehouseBinInput,
   CreateProductBatchInput,
+  PickingOrderDto,
+  FulfillPickingInput,
   StockTransferStatus,
   TaxRateDto,
   CreateTaxRateInput,
@@ -651,6 +653,16 @@ export const api = {
 
   receiveTransfer: (token: string, id: string, input: ReceiveStockTransferInput) =>
     request<StockTransferDto>(`/wms/transfers/${id}/receive`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  listPickingOrders: (token: string) =>
+    request<PickingOrderDto[]>('/wms/picking-orders', { token }),
+
+  fulfillPickingOrder: (token: string, saleId: string, input: FulfillPickingInput = {}) =>
+    request<PickingOrderDto>(`/wms/picking-orders/${saleId}/fulfill`, {
       method: 'POST',
       token,
       body: JSON.stringify(input),

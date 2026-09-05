@@ -1,19 +1,30 @@
 import React from 'react';
 import { useAuth } from '@/lib/auth-store';
 import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
-import { Boxes, Package, LogOut, ArrowRightLeft } from 'lucide-react';
+import { Boxes, Package, LogOut, ArrowRightLeft, ClipboardCheck } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 
 export function WarehouseLayout({ children }: { children: React.ReactNode }) {
-  const { user, clear } = useAuth();
+  const { user, token, clear } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { data: pickingOrders = [] } = useQuery({
+    queryKey: ['wms-picking-badge'],
+    queryFn: () => api.listPickingOrders(token!),
+    enabled: Boolean(token),
+    refetchInterval: 5000,
+  });
+  const pendingCount = pickingOrders.filter((o) => o.wmsStatus === 'PENDING_PICKING').length;
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const tabs = [
+    { name: 'Order Picking', path: '/wms/picking', icon: ClipboardCheck, badge: pendingCount },
     { name: 'Inventory Ledger', path: '/inventory', icon: Package },
     { name: 'Transfers & WMS', path: '/transfers', icon: ArrowRightLeft },
   ];
@@ -50,7 +61,12 @@ export function WarehouseLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {tab.name}
+                  <span>{tab.name}</span>
+                  {Boolean(tab.badge && tab.badge > 0) && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-zinc-950 animate-pulse">
+                      {tab.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

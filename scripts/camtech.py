@@ -43,7 +43,7 @@ def get_config(args):
 
 # --- SSH Execution Helper ---
 
-def ssh_run(host, user, password, key_path, commands, timeout=30, max_output=8000):
+def ssh_run(host, user, password, key_path, commands, timeout=300, max_output=8000):
     try:
         import paramiko
     except ImportError:
@@ -52,7 +52,7 @@ def ssh_run(host, user, password, key_path, commands, timeout=30, max_output=800
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    connect_kwargs = {"username": user, "timeout": timeout}
+    connect_kwargs = {"username": user, "timeout": 30, "banner_timeout": 60, "auth_timeout": 60}
     if key_path:
         connect_kwargs["key_filename"] = os.path.expanduser(key_path)
     else:
@@ -62,19 +62,20 @@ def ssh_run(host, user, password, key_path, commands, timeout=30, max_output=800
         client.connect(host, **connect_kwargs)
         for cmd in commands:
             header = f"─── [{host}] {cmd} "
-            print(f"\n{header}{'─' * max(0, 60 - len(header))}")
+            print(f"\n{header}{'─' * max(0, 60 - len(header))}", flush=True)
             full_cmd = f"echo '{password}' | sudo -S bash -c {repr(cmd)}" if password else f"bash -c {repr(cmd)}"
-            _, stdout, stderr = client.exec_command(full_cmd, timeout=timeout, get_pty=True)
-            out = stdout.read().decode(errors="replace").strip()
-            err = stderr.read().decode(errors="replace").strip()
-            if out:
-                filtered_out = "\n".join(l for l in out.splitlines() if "[sudo]" not in l and "password for" not in l)
-                if filtered_out:
-                    print(filtered_out[:max_output])
-            if err:
-                filtered_err = "\n".join(l for l in err.splitlines() if "[sudo]" not in l and "password for" not in l)
-                if filtered_err:
-                    print("[stderr]", filtered_err[:1000])
+            stdin, stdout, stderr = client.exec_command(full_cmd, timeout=timeout)
+            for line in iter(stdout.readline, ""):
+                filtered = line.rstrip()
+                if "[sudo]" not in filtered and "password for" not in filtered and filtered:
+                    print(filtered, flush=True)
+            for err_line in iter(stderr.readline, ""):
+                filtered_err = err_line.rstrip()
+                if "[sudo]" not in filtered_err and "password for" not in filtered_err and filtered_err:
+                    print(filtered_err, flush=True)
+            exit_code = stdout.channel.recv_exit_status()
+            if exit_code != 0:
+                print(f"⚠️ Command exited with code {exit_code}", flush=True)
     finally:
         client.close()
 

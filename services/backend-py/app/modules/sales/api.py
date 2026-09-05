@@ -17,6 +17,10 @@ from app.modules.customers.models import Customer
 from app.modules.identity.models import User
 from app.modules.catalog.models import ProductVariant
 from app.modules.locations.models import Location
+from app.modules.inventory.models import InventoryItem, StockMovement
+from app.models.entities import NotificationRecord
+from app.services.delivery_service import delivery_service
+from app.schemas.dto import CreateDeliveryOrderInput
 
 from .models import Sale, SaleLineItem, SalePayment
 from .schemas import (
@@ -277,6 +281,54 @@ async def create_sale(
     )
 
     db.add(sale)
+
+    # Deduct inventory & record stock movement
+    now = datetime.datetime.utcnow()
+    for item in sale_in.items:
+        qty_num = Decimal(str(item.quantity))
+        inv_stmt = (
+            select(InventoryItem)
+            .where(
+                InventoryItem.organization_id == user.organization_id,
+                InventoryItem.product_variant_id == item.variantId
+            )
+            .limit(1)
+        )
+        inv_res = await db.execute(inv_stmt)
+        inv_rec = inv_res.scalar_one_or_none()
+        if inv_rec:
+            inv_rec.stock_on_hand = Decimal(str(inv_rec.stock_on_hand)) - qty_num
+            inv_rec.updated_at = now
+            bal = inv_rec.stock_on_hand
+            mv = StockMovement(
+                id=str(uuid.uuid4()),
+                organization_id=user.organization_id,
+                inventory_item_id=inv_rec.id,
+                type="SALE",
+                quantity=qty_num,
+                balance_after=bal,
+                reference_type="SALE",
+                reference_id=sale.id,
+                notes=f"Sale {sale_num}",
+                user_id=user.id,
+                created_at=now,
+            )
+            db.add(mv)
+            if inv_rec.reorder_point is not None and inv_rec.stock_on_hand <= Decimal(str(inv_rec.reorder_point)):
+                db.add(NotificationRecord(
+                    id=str(uuid.uuid4()),
+                    organization_id=user.organization_id,
+                    user_id=None,
+                    channel="IN_APP",
+                    type="LOW_STOCK_ALERT",
+                    title="⚠️ Low Stock Alert",
+                    message=f"Stock for variant {item.variantId} dropped to {bal} (reorder point: {inv_rec.reorder_point}).",
+                    status="SENT",
+                    is_read=False,
+                    sent_at=now,
+                    created_at=now,
+                ))
+
     await db.commit()
     # No refresh(): ids/timestamps use Python-side defaults already set during
     # flush, and line_items/payments are the in-memory lists we built. Calling
@@ -479,6 +531,129 @@ async def store_checkout(
             cust_notes["notes"] = str(customer.notes)
     cust_notes["cart"] = []
     customer.notes = json.dumps(cust_notes)
+
+    now = datetime.datetime.utcnow()
+
+    # 7. Deduct Inventory & Log Stock Movements for Stocker
+    for it in payload.items:
+        qty_num = Decimal(str(it.quantity))
+        inv_stmt = (
+            select(InventoryItem)
+            .where(
+                InventoryItem.organization_id == target_org,
+                InventoryItem.product_variant_id == it.id
+            )
+            .limit(1)
+        )
+        inv_res = await db.execute(inv_stmt)
+        inv_rec = inv_res.scalar_one_or_none()
+        if inv_rec:
+            inv_rec.stock_on_hand = Decimal(str(inv_rec.stock_on_hand)) - qty_num
+            inv_rec.updated_at = now
+            bal = inv_rec.stock_on_hand
+
+            mv = StockMovement(
+                id=str(uuid.uuid4()),
+                organization_id=target_org,
+                inventory_item_id=inv_rec.id,
+                type="SALE",
+                quantity=qty_num,
+                balance_after=bal,
+                reference_type="SALE",
+                reference_id=sale_id,
+                notes=f"Online Store Checkout {sale_num}",
+                user_id=sale_user_id or "system",
+                created_at=now,
+            )
+            db.add(mv)
+
+            if inv_rec.reorder_point is not None and inv_rec.stock_on_hand <= Decimal(str(inv_rec.reorder_point)):
+                low_stock_note = NotificationRecord(
+                    id=str(uuid.uuid4()),
+                    organization_id=target_org,
+                    user_id=None,
+                    channel="IN_APP",
+                    type="LOW_STOCK_ALERT",
+                    title="⚠️ Low Stock Alert",
+                    message=f"Stock for '{it.name}' dropped to {bal} (reorder threshold: {inv_rec.reorder_point}).",
+                    status="SENT",
+                    is_read=False,
+                    sent_at=now,
+                    created_at=now,
+                )
+                db.add(low_stock_note)
+
+    # 8. Auto-Dispatch Delivery Task
+    dest_lat = payload.destLat if payload.destLat is not None else 11.5564
+    dest_lng = payload.destLng if payload.destLng is not None else 104.9282
+    deliv_addr = (payload.deliveryAddress or "Customer Address, Phnom Penh").strip()
+
+    deliv_input = CreateDeliveryOrderInput(
+        recipientName=name_clean,
+        recipientPhone=phone_clean or "N/A",
+        deliveryAddress=deliv_addr,
+        destLat=dest_lat,
+        destLng=dest_lng,
+        codAmount=float(grand_total) if pay_method == "CASH" else 0.0,
+        deliveryFee=2.50,
+        saleId=sale_id,
+        notes=f"Storefront Order {sale_num} ({len(line_entities)} items)"
+    )
+    deliv_order = delivery_service.create_order(org_id=target_org, inp=deliv_input)
+
+    # 9. Real-Time Alert to Delivery Couriers & Fleet
+    deliv_alert = NotificationRecord(
+        id=str(uuid.uuid4()),
+        organization_id=target_org,
+        user_id=None,
+        channel="IN_APP",
+        type="ORDER_CREATED",
+        title=f"🚚 New Delivery Order #{sale_num}",
+        message=f"Customer {name_clean} ordered {len(line_entities)} items for delivery to {deliv_addr}. Tracking: {deliv_order.trackingNumber}.",
+        status="SENT",
+        is_read=False,
+        sent_at=now,
+        created_at=now,
+        metadata_={
+            "saleId": sale_id,
+            "saleNumber": sale_num,
+            "trackingNumber": deliv_order.trackingNumber,
+            "deliveryOrderId": deliv_order.id,
+            "recipientName": name_clean,
+            "recipientPhone": phone_clean,
+            "deliveryAddress": deliv_addr,
+            "targetAudience": "DELIVERY",
+        }
+    )
+    db.add(deliv_alert)
+
+    # 10. Real-Time Alert to Warehouse Stocker (Picking & Packing)
+    items_summary = ", ".join([f"{li.quantity}x {li.product_name}" for li in line_entities[:3]])
+    if len(line_entities) > 3:
+        items_summary += f" +{len(line_entities) - 3} more"
+
+    stocker_alert = NotificationRecord(
+        id=str(uuid.uuid4()),
+        organization_id=target_org,
+        user_id=None,
+        channel="IN_APP",
+        type="ORDER_CREATED",
+        title=f"📦 Customer Order Ready to Pick #{sale_num}",
+        message=f"Order #{sale_num} requires warehouse stock picking: {items_summary}. Destination: {deliv_addr}.",
+        status="SENT",
+        is_read=False,
+        sent_at=now,
+        created_at=now,
+        metadata_={
+            "saleId": sale_id,
+            "saleNumber": sale_num,
+            "customerName": name_clean,
+            "itemCount": len(line_entities),
+            "targetAudience": "STOCKER",
+            "wmsStatus": "PENDING_PICKING",
+        }
+    )
+    db.add(stocker_alert)
 
     await db.commit()
 
