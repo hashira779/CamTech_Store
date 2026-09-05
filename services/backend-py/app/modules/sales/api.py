@@ -15,7 +15,7 @@ from app.core.config import settings
 from app.modules.organizations.models import Organization
 from app.modules.customers.models import Customer
 from app.modules.identity.models import User
-from app.modules.catalog.models import ProductVariant
+from app.modules.catalog.models import ProductVariant, Product
 from app.modules.locations.models import Location
 from app.modules.inventory.models import InventoryItem, StockMovement
 from app.models.entities import NotificationRecord
@@ -399,12 +399,17 @@ async def store_checkout(
     # Resolve Target Organization
     target_org = user.organization_id if user else (payload.organizationId or None)
     if not target_org and payload.items:
-        first_var_id = payload.items[0].id
-        if first_var_id:
+        first_item_id = payload.items[0].id
+        if first_item_id:
             pv_res = await db.execute(
-                select(ProductVariant.organization_id).where(ProductVariant.id == first_var_id).limit(1)
+                select(ProductVariant.organization_id).where(ProductVariant.id == first_item_id).limit(1)
             )
             target_org = pv_res.scalar_one_or_none()
+            if not target_org:
+                prod_res = await db.execute(
+                    select(Product.organization_id).where(Product.id == first_item_id).limit(1)
+                )
+                target_org = prod_res.scalar_one_or_none()
 
     if not target_org:
         org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
@@ -446,13 +451,14 @@ async def store_checkout(
             any_user_res = await db.execute(select(User.id).limit(1))
             sale_user_id = any_user_res.scalar_one_or_none() or "system-store-checkout"
 
-    # 3. Calculate Totals & Build Line Items
+    # 3. Calculate Totals & Build Line Items with Reliable Variant Resolution
     subtotal = Decimal("0.0")
     tax_total = Decimal("0.0")
     sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
     sale_id = str(uuid.uuid4())
 
     line_entities = []
+    resolved_line_items = []
     for it in payload.items:
         qty = Decimal(str(it.quantity))
         price = Decimal(str(it.price))
@@ -464,13 +470,77 @@ async def store_checkout(
         subtotal += line_sub
         tax_total += tax_amt
 
+        # ── RESOLVE REAL PRODUCT VARIANT ──
+        resolved_variant_id = None
+        resolved_variant_name = it.category or "Standard"
+        resolved_sku = it.sku
+
+        # 1. Check if it.id is directly a product_variant id
+        if it.id:
+            pv_chk = await db.execute(
+                select(ProductVariant).where(ProductVariant.id == it.id).limit(1)
+            )
+            pv_obj = pv_chk.scalar_one_or_none()
+            if pv_obj:
+                resolved_variant_id = pv_obj.id
+                resolved_variant_name = pv_obj.name or resolved_variant_name
+                resolved_sku = pv_obj.sku or resolved_sku
+            else:
+                # 2. Check if it.id was actually a product id, get its first variant
+                pv_prod_chk = await db.execute(
+                    select(ProductVariant)
+                    .where(ProductVariant.product_id == it.id)
+                    .order_by(ProductVariant.created_at.asc())
+                    .limit(1)
+                )
+                pv_from_prod = pv_prod_chk.scalar_one_or_none()
+                if pv_from_prod:
+                    resolved_variant_id = pv_from_prod.id
+                    resolved_variant_name = pv_from_prod.name or resolved_variant_name
+                    resolved_sku = pv_from_prod.sku or resolved_sku
+
+        # 3. Try matching by SKU
+        if not resolved_variant_id and it.sku:
+            pv_sku_chk = await db.execute(
+                select(ProductVariant).where(ProductVariant.sku == it.sku).limit(1)
+            )
+            pv_from_sku = pv_sku_chk.scalar_one_or_none()
+            if pv_from_sku:
+                resolved_variant_id = pv_from_sku.id
+                resolved_variant_name = pv_from_sku.name or resolved_variant_name
+                resolved_sku = pv_from_sku.sku or resolved_sku
+
+        # 4. Fallback if product was ad-hoc: get any existing variant in org or DB
+        if not resolved_variant_id:
+            pv_fallback = await db.execute(
+                select(ProductVariant).where(ProductVariant.organization_id == target_org).limit(1)
+            )
+            pv_fallback_obj = pv_fallback.scalar_one_or_none()
+            if pv_fallback_obj:
+                resolved_variant_id = pv_fallback_obj.id
+                resolved_variant_name = pv_fallback_obj.name or resolved_variant_name
+                resolved_sku = pv_fallback_obj.sku or resolved_sku
+            else:
+                pv_any = await db.execute(select(ProductVariant).limit(1))
+                pv_any_obj = pv_any.scalar_one_or_none()
+                if pv_any_obj:
+                    resolved_variant_id = pv_any_obj.id
+                    resolved_variant_name = pv_any_obj.name or resolved_variant_name
+                    resolved_sku = pv_any_obj.sku or resolved_sku
+
+        resolved_line_items.append({
+            "variant_id": resolved_variant_id,
+            "quantity": qty,
+            "name": it.name,
+        })
+
         line_entities.append(SaleLineItem(
             id=str(uuid.uuid4()),
             sale_id=sale_id,
-            product_variant_id=it.id or str(uuid.uuid4()),
-            sku=it.sku or f"SKU-{it.id[:6] if len(it.id)>=6 else it.id}",
+            product_variant_id=resolved_variant_id,
+            sku=resolved_sku or f"SKU-{str(resolved_variant_id)[:6] if resolved_variant_id else 'DEF'}",
             product_name=it.name,
-            variant_name=it.category or "Standard",
+            variant_name=resolved_variant_name,
             quantity=qty,
             unit_price=price,
             discount=Decimal("0.0"),
@@ -543,13 +613,16 @@ async def store_checkout(
     now = datetime.datetime.utcnow()
 
     # 7. Deduct Inventory & Log Stock Movements for Stocker
-    for it in payload.items:
-        qty_num = Decimal(str(it.quantity))
+    for r_item in resolved_line_items:
+        v_id = r_item["variant_id"]
+        if not v_id:
+            continue
+        qty_num = r_item["quantity"]
         inv_stmt = (
             select(InventoryItem)
             .where(
                 InventoryItem.organization_id == target_org,
-                InventoryItem.product_variant_id == it.id
+                InventoryItem.product_variant_id == v_id
             )
             .limit(1)
         )

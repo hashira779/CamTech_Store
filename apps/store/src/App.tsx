@@ -72,6 +72,8 @@ interface ProductItem {
   price: number;
   sku: string;
   category: string;
+  variantId?: string;
+  variantName?: string;
 }
 
 export function App() {
@@ -357,13 +359,16 @@ export function App() {
           if (Array.isArray(items) && items.length > 0) {
             return items.map((p: any) => {
               const categoryName = p.category?.name || p.categoryId || 'UNCATEGORIZED';
+              const firstVariant = p.variants?.[0];
               
               return {
                 id: p.id,
+                variantId: firstVariant?.id,
+                variantName: firstVariant?.name || 'Standard',
                 name: p.name,
                 description: p.description || '',
-                price: Number(p.variants?.[0]?.sellPrice || p.sellPrice || p.price || 0),
-                sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.substring(0,6)}`,
+                price: Number(firstVariant?.sellPrice || p.sellPrice || p.price || 0),
+                sku: firstVariant?.sku || p.sku || `SKU-${p.id.substring(0,6)}`,
                 category: categoryName.toUpperCase()
               };
             });
@@ -510,12 +515,14 @@ export function App() {
           deliveryAddress: deliveryAddress,
           paymentMethod: paymentMethod,
           items: cart.map((i) => ({
-            id: i.id,
+            id: i.variantId || i.id,
+            variantId: i.variantId || i.id,
+            productId: i.id,
             name: i.name,
             price: i.price,
             quantity: i.quantity,
             sku: i.sku,
-            category: i.category,
+            category: i.variantName || i.category,
           })),
           notes: `Store Order for ${buyerName}`,
         }),
