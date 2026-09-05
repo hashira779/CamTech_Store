@@ -184,9 +184,10 @@ async def get_customer_cart(
     email_clean = email.strip().lower()
     target_org = user.organization_id if user else None
     if not target_org:
-        org_result = await db.execute(select(Organization.id).limit(1))
+        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
         target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
 
+    # 1. Try finding within target organization
     cust_result = await db.execute(
         select(Customer).where(
             Customer.organization_id == target_org,
@@ -194,6 +195,14 @@ async def get_customer_cart(
         )
     )
     customer = cust_result.scalar_one_or_none()
+
+    # 2. Fallback to global search by email across organizations if not found
+    if not customer:
+        cust_global = await db.execute(
+            select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+        )
+        customer = cust_global.scalar_one_or_none()
+
     if not customer or not customer.notes:
         return CustomerCartDto(email=email_clean, items=[])
 
@@ -222,9 +231,10 @@ async def sync_customer_cart(
     email_clean = payload.email.strip().lower()
     target_org = user.organization_id if user else None
     if not target_org:
-        org_result = await db.execute(select(Organization.id).limit(1))
+        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
         target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
 
+    # 1. Try finding within target organization
     cust_result = await db.execute(
         select(Customer).where(
             Customer.organization_id == target_org,
@@ -232,6 +242,15 @@ async def sync_customer_cart(
         )
     )
     customer = cust_result.scalar_one_or_none()
+
+    # 2. Fallback to global search by email
+    if not customer:
+        cust_global = await db.execute(
+            select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+        )
+        customer = cust_global.scalar_one_or_none()
+
+    # 3. If still not found, provision customer record
     if not customer:
         customer = Customer(
             organization_id=target_org,
@@ -253,14 +272,16 @@ async def sync_customer_cart(
             if isinstance(parsed, dict):
                 existing_meta = parsed
             else:
-                existing_meta["notes"] = customer.notes
+                existing_meta["notes"] = str(customer.notes)
         except Exception:
-            existing_meta["notes"] = customer.notes
+            existing_meta["notes"] = str(customer.notes)
 
     existing_meta["cart"] = payload.items
     customer.notes = json.dumps(existing_meta)
+    customer.updated_at = datetime.datetime.utcnow()
 
     await db.commit()
+    await db.refresh(customer)
     return CustomerCartDto(email=email_clean, items=payload.items)
 
 

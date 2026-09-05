@@ -77,11 +77,27 @@ export function App() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [cart, setCart] = useState<Array<ProductItem & { quantity: number }>>([]);
+  const [cart, setCart] = useState<Array<ProductItem & { quantity: number }>>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('camtech_store_cart') : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
+
+  // Automatically keep localStorage in sync with cart state
+  useEffect(() => {
+    try {
+      localStorage.setItem('camtech_store_cart', JSON.stringify(cart));
+    } catch {
+      // ignore
+    }
+  }, [cart]);
 
   // Customer session state (null = Guest)
   const [customer, setCustomer] = useState<{
@@ -185,19 +201,62 @@ export function App() {
     }
   };
 
-  const loadCartFromDatabase = async (email: string) => {
+  // Smart Merge local cart with database cart following global e-commerce standard
+  const mergeAndSyncCart = async (email: string) => {
     if (!email) return;
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/customers/cart?email=${encodeURIComponent(email)}`);
+      let serverItems: Array<ProductItem & { quantity: number }> = [];
       if (res.ok) {
         const json = await res.json();
-        const serverItems = json.data?.items || json.items || [];
-        if (Array.isArray(serverItems) && serverItems.length > 0) {
-          setCart(serverItems);
+        serverItems = json.data?.items || json.items || [];
+      }
+
+      // Read current local storage items
+      let localItems: Array<ProductItem & { quantity: number }> = [];
+      try {
+        const saved = localStorage.getItem('camtech_store_cart');
+        localItems = saved ? JSON.parse(saved) : cart;
+      } catch {
+        localItems = cart;
+      }
+
+      // If local items exist and server items exist, merge them
+      const itemMap = new Map<string, ProductItem & { quantity: number }>();
+
+      // 1. Put server items (the cloud database cart for this account)
+      for (const item of serverItems) {
+        if (item && item.id) {
+          itemMap.set(item.id, { ...item });
         }
       }
+
+      // 2. Merge local items (guest items added before sign in)
+      for (const item of localItems) {
+        if (item && item.id) {
+          if (itemMap.has(item.id)) {
+            const existing = itemMap.get(item.id)!;
+            itemMap.set(item.id, { ...existing, quantity: Math.max(existing.quantity, item.quantity) });
+          } else {
+            itemMap.set(item.id, { ...item });
+          }
+        }
+      }
+
+      const merged = Array.from(itemMap.values());
+      setCart(merged);
+      try {
+        localStorage.setItem('camtech_store_cart', JSON.stringify(merged));
+      } catch {}
+
+      // Keep database in sync with merged cart
+      await syncCartWithDatabase(email, merged);
+
+      if (merged.length > 0) {
+        toast.success(`🛒 Cart synchronized with your account (${merged.length} item${merged.length > 1 ? 's' : ''})`);
+      }
     } catch (err) {
-      console.warn('Central DB customer cart load fallback:', err);
+      console.warn('Central DB customer cart merge fallback:', err);
     }
   };
 
@@ -226,7 +285,7 @@ export function App() {
         phone,
         avatarUrl: metadata.avatar_url,
       }).then(() => {
-        loadCartFromDatabase(email);
+        mergeAndSyncCart(email);
       });
     };
 
@@ -264,7 +323,8 @@ export function App() {
     setCustomer(null);
     setCart([]);
 
-    // Clear local storage customer data & auth tokens
+    // Clear local storage customer session & local cart (account cart is safely retained in PostgreSQL)
+    localStorage.removeItem('camtech_store_cart');
     localStorage.removeItem('camtech_customer_phone');
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('sb-') || key.startsWith('camtech_')) {
@@ -276,7 +336,7 @@ export function App() {
     sessionStorage.clear();
     queryClient.clear();
 
-    toast.info('Signed out. Refreshing session...');
+    toast.info('Signed out. Your cart is preserved in your cloud account.');
 
     // Hard refresh/reload the page to ensure completely clean cache and memory
     window.location.href = window.location.origin + window.location.pathname;
@@ -360,6 +420,9 @@ export function App() {
       const newCart = existing
         ? prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
         : [...prev, { ...product, quantity: 1 }];
+      try {
+        localStorage.setItem('camtech_store_cart', JSON.stringify(newCart));
+      } catch {}
       if (customer?.email) {
         syncCartWithDatabase(customer.email, newCart);
       }
@@ -373,11 +436,28 @@ export function App() {
       const newCart = prev
         .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
         .filter((i) => i.quantity > 0);
+      try {
+        localStorage.setItem('camtech_store_cart', JSON.stringify(newCart));
+      } catch {}
       if (customer?.email) {
         syncCartWithDatabase(customer.email, newCart);
       }
       return newCart;
     });
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart((prev) => {
+      const newCart = prev.filter((i) => i.id !== id);
+      try {
+        localStorage.setItem('camtech_store_cart', JSON.stringify(newCart));
+      } catch {}
+      if (customer?.email) {
+        syncCartWithDatabase(customer.email, newCart);
+      }
+      return newCart;
+    });
+    toast.info('Item removed from cart');
   };
 
   const handleCheckout = async () => {
@@ -452,6 +532,9 @@ export function App() {
         syncCartWithDatabase(customer.email, []);
       }
       setCart([]);
+      try {
+        localStorage.removeItem('camtech_store_cart');
+      } catch {}
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
       toast.success(customer ? '🎉 Order Placed & Dispatched to Fleet!' : '🎉 Guest Order Placed & Dispatched to Fleet!');
@@ -986,7 +1069,13 @@ export function App() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-lg text-white">Your Shopping Cart</h3>
+                <div>
+                  <h3 className="font-bold text-base text-white">Your Shopping Cart</h3>
+                  <p className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {customer ? '☁️ Cloud Synced with Account' : '💾 Saved to Device Storage'}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
@@ -1012,19 +1101,28 @@ export function App() {
                       <p className="text-sm font-semibold text-white truncate">{item.name}</p>
                       <p className="text-xs text-emerald-400 font-mono">${item.price.toFixed(2)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => updateQuantity(item.id, -1)}
-                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200"
+                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
+                        title="Decrease"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="text-xs font-bold w-4 text-center text-white">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, 1)}
-                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200"
+                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
+                        title="Increase"
                       >
                         <Plus className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1 rounded hover:bg-rose-950/40 text-slate-500 hover:text-rose-400 text-xs ml-1 cursor-pointer transition"
+                        title="Remove"
+                      >
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1455,6 +1553,8 @@ export function App() {
                     name: newName,
                     email: newEmail,
                     phone: newPhone,
+                  }).then(() => {
+                    mergeAndSyncCart(newEmail);
                   });
                   setIsAuthModalOpen(false);
                   toast.success(`Welcome, ${newName}!`);
