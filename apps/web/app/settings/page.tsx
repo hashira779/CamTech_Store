@@ -58,14 +58,26 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (orgData) {
+      let rawSettings: any = orgData.settings;
+      if (typeof rawSettings === 'string') {
+        try {
+          rawSettings = JSON.parse(rawSettings);
+        } catch {
+          rawSettings = {};
+        }
+      }
+      const s = rawSettings || {};
+
       setFormData({
-        currency: orgData.currency,
-        timezone: orgData.timezone,
-        taxRatePct: orgData.taxRatePct,
-        businessType: orgData.businessType,
-        enabledModules: orgData.settings?.enabledModules ?? ['products', 'customers', 'sales', 'inventory', 'locations'],
-        receiptHeader: orgData.settings?.receiptHeader ?? '',
-        receiptFooter: orgData.settings?.receiptFooter ?? '',
+        currency: orgData.currency || s.currency || 'USD',
+        timezone: orgData.timezone || s.timezone || 'UTC',
+        taxRatePct: orgData.taxRatePct ?? s.taxRatePct ?? 10,
+        businessType: orgData.businessType || s.businessType || 'RETAIL',
+        enabledModules: Array.isArray(s.enabledModules)
+          ? s.enabledModules
+          : ['products', 'customers', 'sales', 'inventory', 'locations'],
+        receiptHeader: s.receiptHeader ?? '',
+        receiptFooter: s.receiptFooter ?? '',
       });
     }
   }, [orgData]);
