@@ -19,8 +19,9 @@ ARG VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
-# Compile and optimize all production frontend bundles
-RUN pnpm build
+# Compile and optimize all production frontend bundles with controlled concurrency to protect host RAM
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+RUN pnpm turbo run build --concurrency=1
 
 # Base Nginx runtime with custom SPA routing configuration
 FROM nginx:1.27-alpine AS runner

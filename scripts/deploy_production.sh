@@ -91,8 +91,9 @@ if [ ! -f .env ]; then
 fi
 
 # ── 4. Build Images First (WITHOUT Stopping Active Containers) ────────────────
-echo "🔨 Pre-building Docker images for zero-downtime transition..."
-if ! run_cmd docker compose -f "$COMPOSE_FILE" build; then
+echo "🔨 Pre-building Docker images for zero-downtime transition (COMPOSE_PARALLEL_LIMIT=1)..."
+export COMPOSE_PARALLEL_LIMIT=1
+if ! run_cmd COMPOSE_PARALLEL_LIMIT=1 docker compose -f "$COMPOSE_FILE" build; then
     echo "========================================================================"
     echo "❌ Docker build failed! Aborting without affecting live services."
     echo "--- System Diagnostics ---"
