@@ -3,7 +3,7 @@ from sqlalchemy import text
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.core.database import engine
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser
 from app.services.delivery_service import delivery_service
 
 TEST_ORG_ID = "cmtk8h18o0000vkd0etmdacgw"
@@ -22,8 +22,10 @@ def mock_pipeline_user():
     user = MockUser()
     tenant_user = TenantUser(user=user, roles=["ORG_ADMIN", "WAREHOUSE_STAFF", "DELIVERY_DRIVER"])
     app.dependency_overrides[get_current_user] = lambda: tenant_user
+    app.dependency_overrides[get_optional_user] = lambda: tenant_user
     yield tenant_user
     app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.pop(get_optional_user, None)
 
 @pytest.mark.asyncio
 async def test_notifications_platform_endpoints(mock_pipeline_user):
@@ -112,7 +114,8 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
                     "category": "Electronics"
                 }
             ],
-            "notes": "Please deliver to office reception on 3rd floor"
+            "notes": "Please deliver to office reception on 3rd floor",
+            "organizationId": TEST_ORG_ID
         }
 
         res_checkout = await client.post("/api/v1/sales/store-checkout", json=checkout_payload)

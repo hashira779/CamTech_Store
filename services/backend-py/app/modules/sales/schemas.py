@@ -46,6 +46,7 @@ class StoreCheckoutInput(BaseModel):
     paymentMethod: str = "KHQR"  # KHQR, COD, CASH, CARD, QR
     items: List[StoreCheckoutItemInput]
     notes: Optional[str] = None
+    organizationId: Optional[str] = None
 
 class CreateSaleInput(BaseModel):
     idempotencyKey: Optional[str] = None

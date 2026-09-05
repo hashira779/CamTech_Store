@@ -397,7 +397,15 @@ async def store_checkout(
     phone_clean = payload.customerPhone.strip() if payload.customerPhone else None
 
     # Resolve Target Organization
-    target_org = user.organization_id if user else None
+    target_org = user.organization_id if user else (payload.organizationId or None)
+    if not target_org and payload.items:
+        first_var_id = payload.items[0].id
+        if first_var_id:
+            pv_res = await db.execute(
+                select(ProductVariant.organization_id).where(ProductVariant.id == first_var_id).limit(1)
+            )
+            target_org = pv_res.scalar_one_or_none()
+
     if not target_org:
         org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
         target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
