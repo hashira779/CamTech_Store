@@ -109,6 +109,8 @@ export default function TelegramPage() {
   const [botDefaultChatId, setBotDefaultChatId] = useState('');
   const [botDescription, setBotDescription] = useState('');
   const [botIsPrimary, setBotIsPrimary] = useState(false);
+  const [testTokenResult, setTestTokenResult] = useState<TelegramBotTestResult | null>(null);
+  const [isTestingToken, setIsTestingToken] = useState(false);
 
   // Edit Bot Form
   const [editName, setEditName] = useState('');
@@ -118,6 +120,8 @@ export default function TelegramPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editIsPrimary, setEditIsPrimary] = useState(false);
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editTestTokenResult, setEditTestTokenResult] = useState<TelegramBotTestResult | null>(null);
+  const [isTestingEditToken, setIsTestingEditToken] = useState(false);
 
   // Chat Binding Form
   const [bindChatId, setBindChatId] = useState('');
@@ -290,6 +294,7 @@ export default function TelegramPage() {
     setBotDefaultChatId('');
     setBotDescription('');
     setBotIsPrimary(false);
+    setTestTokenResult(null);
   };
 
   const handleOpenEdit = (bot: TelegramBotDto) => {
@@ -301,6 +306,73 @@ export default function TelegramPage() {
     setEditDescription(bot.description || '');
     setEditIsPrimary(bot.isPrimary);
     setEditIsActive(bot.isActive);
+    setEditTestTokenResult(null);
+  };
+
+  const handleTestToken = async () => {
+    const trimmed = botToken.trim();
+    if (!trimmed) {
+      toast.error('Please enter a bot token first');
+      return;
+    }
+    setIsTestingToken(true);
+    setTestTokenResult(null);
+    try {
+      console.log('[Telegram] Testing unsaved bot token with Telegram getMe API...');
+      const res = await api.testTelegramToken(token!, trimmed);
+      setTestTokenResult(res);
+      if (res.success) {
+        toast.success(`Verified: @${res.botUsername || 'Online'}!`);
+        if (!botName.trim() && res.botName) {
+          setBotName(res.botName);
+          toast.info(`Bot friendly name auto-filled as "${res.botName}"`);
+        }
+      } else {
+        toast.error(res.botName || 'Verification Failed');
+      }
+    } catch (err: any) {
+      console.error('[Telegram] Token test error:', err);
+      const msg = err instanceof ApiClientError ? err.message : (err.message || 'Connection error');
+      setTestTokenResult({
+        success: false,
+        status: 'ERROR',
+        botName: `Failed: ${msg}`,
+      });
+      toast.error(msg);
+    } finally {
+      setIsTestingToken(false);
+    }
+  };
+
+  const handleTestEditToken = async () => {
+    const trimmed = editToken.trim();
+    if (!trimmed) {
+      toast.error('Please enter a new bot token to test');
+      return;
+    }
+    setIsTestingEditToken(true);
+    setEditTestTokenResult(null);
+    try {
+      console.log('[Telegram] Testing updated bot token...');
+      const res = await api.testTelegramToken(token!, trimmed);
+      setEditTestTokenResult(res);
+      if (res.success) {
+        toast.success(`Verified: @${res.botUsername || 'Online'}!`);
+      } else {
+        toast.error(res.botName || 'Verification Failed');
+      }
+    } catch (err: any) {
+      console.error('[Telegram] Token test error:', err);
+      const msg = err instanceof ApiClientError ? err.message : (err.message || 'Connection error');
+      setEditTestTokenResult({
+        success: false,
+        status: 'ERROR',
+        botName: `Failed: ${msg}`,
+      });
+      toast.error(msg);
+    } finally {
+      setIsTestingEditToken(false);
+    }
   };
 
   const handleTestBot = (id: string) => {
@@ -832,20 +904,79 @@ export default function TelegramPage() {
                 </div>
 
                 <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Telegram Bot Token (from @BotFather) *
-                  </label>
-                  <input
-                    required
-                    type="password"
-                    value={botToken}
-                    onChange={(e) => setBotToken(e.target.value)}
-                    placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
-                  />
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block uppercase font-bold text-muted-foreground text-[11px]">
+                      Telegram Bot Token (from @BotFather) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleTestToken}
+                      disabled={!botToken.trim() || isTestingToken}
+                      className="text-[11px] text-primary hover:text-primary/80 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isTestingToken ? 'animate-spin' : ''}`} />
+                      {isTestingToken ? 'Testing API...' : 'Test & Verify Token'}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      required
+                      type="password"
+                      value={botToken}
+                      onChange={(e) => {
+                        setBotToken(e.target.value);
+                        setTestTokenResult(null);
+                      }}
+                      placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTestToken}
+                      disabled={!botToken.trim() || isTestingToken}
+                      className="shrink-0 px-3.5 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                      title="Verify token live with Telegram getMe API before saving"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingToken ? 'animate-spin' : ''}`} />
+                      {isTestingToken ? 'Testing...' : 'Test Bot'}
+                    </button>
+                  </div>
                   <span className="text-[10px] text-muted-foreground mt-1 block">
                     Tokens are securely encrypted in the PostgreSQL database.
                   </span>
+
+                  {/* Live Verification Feedback Card */}
+                  {testTokenResult && (
+                    <div
+                      className={`mt-2 p-3 rounded-xl text-xs border ${
+                        testTokenResult.success
+                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                          : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                      }`}
+                    >
+                      {testTokenResult.success ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>Telegram Bot Online & Verified!</span>
+                          </div>
+                          <div className="text-[11px] font-mono text-emerald-200/90 pl-5 space-y-0.5">
+                            <div>Username: <span className="font-bold">@{testTokenResult.botUsername || 'N/A'}</span></div>
+                            <div>Bot Title: <span className="font-bold">{testTokenResult.botName}</span></div>
+                            <div>Group Access: {testTokenResult.canJoinGroups ? '✅ Allowed' : '⚠️ Restricted'}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-bold text-rose-400">Token Verification Failed</div>
+                            <div className="text-[11px] text-rose-300/90 mt-0.5">{testTokenResult.botName}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -969,16 +1100,75 @@ export default function TelegramPage() {
                 </div>
 
                 <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Update Bot Token (Leave blank to keep current token)
-                  </label>
-                  <input
-                    type="password"
-                    value={editToken}
-                    onChange={(e) => setEditToken(e.target.value)}
-                    placeholder="Enter new token only if rotating credentials..."
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
-                  />
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block uppercase font-bold text-muted-foreground text-[11px]">
+                      Update Bot Token (Leave blank to keep current token)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleTestEditToken}
+                      disabled={!editToken.trim() || isTestingEditToken}
+                      className="text-[11px] text-primary hover:text-primary/80 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isTestingEditToken ? 'animate-spin' : ''}`} />
+                      {isTestingEditToken ? 'Testing API...' : 'Test & Verify Token'}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={editToken}
+                      onChange={(e) => {
+                        setEditToken(e.target.value);
+                        setEditTestTokenResult(null);
+                      }}
+                      placeholder="Enter new token only if rotating credentials..."
+                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTestEditToken}
+                      disabled={!editToken.trim() || isTestingEditToken}
+                      className="shrink-0 px-3.5 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                      title="Verify new token live with Telegram getMe API before saving"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingEditToken ? 'animate-spin' : ''}`} />
+                      {isTestingEditToken ? 'Testing...' : 'Test Bot'}
+                    </button>
+                  </div>
+
+                  {/* Live Verification Feedback Card */}
+                  {editTestTokenResult && (
+                    <div
+                      className={`mt-2 p-3 rounded-xl text-xs border ${
+                        editTestTokenResult.success
+                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                          : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                      }`}
+                    >
+                      {editTestTokenResult.success ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>Telegram Bot Online & Verified!</span>
+                          </div>
+                          <div className="text-[11px] font-mono text-emerald-200/90 pl-5 space-y-0.5">
+                            <div>Username: <span className="font-bold">@{editTestTokenResult.botUsername || 'N/A'}</span></div>
+                            <div>Bot Title: <span className="font-bold">{editTestTokenResult.botName}</span></div>
+                            <div>Group Access: {editTestTokenResult.canJoinGroups ? '✅ Allowed' : '⚠️ Restricted'}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-bold text-rose-400">Token Verification Failed</div>
+                            <div className="text-[11px] text-rose-300/90 mt-0.5">{editTestTokenResult.botName}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

@@ -1230,6 +1230,13 @@ export const api = {
       token,
     }),
 
+  testTelegramToken: (token: string, botToken: string) =>
+    request<TelegramBotTestResult>('/telegram/bots/test-token', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ botToken }),
+    }),
+
   sendTelegramBotBroadcast: (token: string, id: string, message: string) =>
     request<{ sentCount: number; failedCount: number; totalDestinations: number }>(
       `/telegram/bots/${id}/broadcast`,

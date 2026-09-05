@@ -490,6 +490,49 @@ async def delete_telegram_bot(
     await db.commit()
     return {"success": True}
 
+@router.post("/telegram/bots/test-token")
+async def test_telegram_token(
+    data: Dict[str, Any],
+    user: TenantUser = Depends(get_current_user),
+):
+    raw_token = (data.get("botToken") or data.get("token") or "").strip()
+    if not raw_token:
+        raise HTTPException(status_code=400, detail="Bot token is required")
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(f"https://api.telegram.org/bot{raw_token}/getMe")
+            if resp.is_success and resp.json().get("ok"):
+                bot_info = resp.json().get("result", {})
+                return {
+                    "success": True,
+                    "status": "CONNECTED",
+                    "botUsername": bot_info.get("username"),
+                    "botName": bot_info.get("first_name", "Telegram Bot"),
+                    "canJoinGroups": bot_info.get("can_join_groups", True),
+                    "canReadAllGroupMessages": bot_info.get("can_read_all_group_messages", False),
+                }
+            else:
+                err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                err_desc = err_data.get("description", "Unauthorized or invalid bot token")
+                return {
+                    "success": False,
+                    "status": "ERROR",
+                    "botUsername": None,
+                    "botName": f"Verification Failed: {err_desc}",
+                    "canJoinGroups": False,
+                    "canReadAllGroupMessages": False,
+                }
+    except Exception as e:
+        return {
+            "success": False,
+            "status": "ERROR",
+            "botUsername": None,
+            "botName": f"Connection error: {str(e)}",
+            "canJoinGroups": False,
+            "canReadAllGroupMessages": False,
+        }
+
 @router.post("/telegram/bots/{bot_id}/test")
 async def test_telegram_bot(
     bot_id: str,
