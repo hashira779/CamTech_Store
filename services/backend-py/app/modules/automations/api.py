@@ -1,16 +1,28 @@
 import datetime
 import uuid
 from typing import Dict, Any, List
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sqlalchemy.exc import IntegrityError
 
+from app.core.crypto import EncryptionService
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
 from app.domain.enterprise_engines import TelegramCommandRouter, ApiKeyGenerator, FlowExecutionEngine
+from app.models.entities import NotificationConfig
 
 from .models import DeveloperApp, ApiKey, WebhookSubscription, TelegramChatBinding, AutomationFlow, FlowExecution
 from .schemas import DeveloperAppDto, ApiKeyDto, AutomationFlowDto, CreateFlowInput, FlowExecutionDto
+from .telegram_schemas import (
+    TelegramBindingDto,
+    TelegramBindingInput,
+    TelegramConfigDto,
+    UpdateTelegramBindingInput,
+    UpdateTelegramConfigInput,
+)
 
 router = APIRouter(tags=["Automations & Integrations"])
 
@@ -267,54 +279,177 @@ async def delete_webhook(
 
 # ─── Telegram Integrations ──────────────────────────────────────────────────
 
-@router.get("/telegram/bindings")
+
+def _telegram_config_dto(config: NotificationConfig) -> TelegramConfigDto:
+    token_preview = None
+    if config.telegram_bot_token:
+        try:
+            token = EncryptionService.decrypt(config.telegram_bot_token)
+            token_preview = f"••••••{token[-6:]}"
+        except ValueError:
+            token_preview = "••••••"
+    return TelegramConfigDto(
+        enabled=config.telegram_enabled,
+        hasToken=bool(config.telegram_bot_token),
+        tokenPreview=token_preview,
+        defaultChatId=config.telegram_chat_id,
+        updatedAt=config.updated_at.isoformat() if config.updated_at else None,
+    )
+
+
+def _telegram_binding_dto(binding: TelegramChatBinding) -> TelegramBindingDto:
+    return TelegramBindingDto(
+        id=binding.id,
+        organizationId=binding.organization_id,
+        chatId=binding.chat_id,
+        chatTitle=binding.chat_title,
+        username=binding.username,
+        bindingType=binding.binding_type,
+        role=binding.role,
+        isActive=binding.is_active,
+        boundByUserId=binding.bound_by_user_id,
+        createdAt=binding.created_at.isoformat() if binding.created_at else None,
+        updatedAt=binding.updated_at.isoformat() if binding.updated_at else None,
+    )
+
+
+async def _get_or_create_telegram_config(db: AsyncSession, organization_id: str) -> NotificationConfig:
+    result = await db.execute(
+        select(NotificationConfig).where(NotificationConfig.organization_id == organization_id)
+    )
+    config = result.scalar_one_or_none()
+    if config:
+        return config
+    config = NotificationConfig(organization_id=organization_id)
+    db.add(config)
+    await db.flush()
+    return config
+
+
+@router.get("/telegram/config", response_model=TelegramConfigDto)
+async def get_telegram_config(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    config = await _get_or_create_telegram_config(db, user.organization_id)
+    await db.commit()
+    return _telegram_config_dto(config)
+
+
+@router.patch("/telegram/config", response_model=TelegramConfigDto)
+async def update_telegram_config(
+    data: UpdateTelegramConfigInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    config = await _get_or_create_telegram_config(db, user.organization_id)
+    if data.enabled is not None:
+        config.telegram_enabled = data.enabled
+    if data.clearToken:
+        config.telegram_bot_token = None
+    elif data.botToken:
+        config.telegram_bot_token = EncryptionService.encrypt(data.botToken)
+    if data.defaultChatId is not None:
+        config.telegram_chat_id = data.defaultChatId or None
+    config.updated_at = datetime.datetime.now(datetime.timezone.utc)
+    await db.commit()
+    await db.refresh(config)
+    return _telegram_config_dto(config)
+
+
+@router.post("/telegram/config/test")
+async def test_telegram_config(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(NotificationConfig).where(NotificationConfig.organization_id == user.organization_id)
+    )
+    config = result.scalar_one_or_none()
+    if not config or not config.telegram_bot_token:
+        raise HTTPException(status_code=400, detail="Configure a Telegram bot token first")
+    try:
+        token = EncryptionService.decrypt(config.telegram_bot_token)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"https://api.telegram.org/bot{token}/getMe")
+        payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="Unable to reach Telegram with this token") from exc
+    if not response.is_success or not payload.get("ok"):
+        raise HTTPException(status_code=400, detail="Telegram rejected the configured bot token")
+    return {
+        "success": True,
+        "botUsername": payload.get("result", {}).get("username"),
+        "botName": payload.get("result", {}).get("first_name"),
+    }
+
+
+@router.get("/telegram/bindings", response_model=List[TelegramBindingDto])
 async def list_telegram_bindings(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(TelegramChatBinding).where(TelegramChatBinding.organization_id == user.organization_id)
+        select(TelegramChatBinding)
+        .where(TelegramChatBinding.organization_id == user.organization_id)
+        .order_by(TelegramChatBinding.created_at.desc())
     )
-    bindings = result.scalars().all()
-    return [
-        {
-            "id": b.id,
-            "chatId": b.chat_id,
-            "chatTitle": b.chat_title,
-            "role": b.role,
-            "isActive": b.is_active
-        } for b in bindings
-    ]
+    return [_telegram_binding_dto(binding) for binding in result.scalars().all()]
 
-@router.post("/telegram/bindings")
+
+@router.post("/telegram/bindings", response_model=TelegramBindingDto)
 async def bind_telegram_chat(
-    data: Dict[str, Any],
+    data: TelegramBindingInput,
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    chat_id = str(data.get("chatId", "")).strip()
-    if not chat_id:
-        raise HTTPException(status_code=400, detail="chatId is required")
-
     binding = TelegramChatBinding(
         organization_id=user.organization_id,
-        chat_id=chat_id,
-        chat_title=data.get("chatTitle"),
-        username=data.get("username"),
-        role=data.get("role", "OPERATOR"),
+        chat_id=data.chatId,
+        chat_title=data.chatTitle,
+        username=data.username,
+        binding_type=data.bindingType,
+        role=data.role,
         is_active=True,
         bound_by_user_id=user.id
     )
     db.add(binding)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="This Telegram destination is already bound") from exc
+    await db.refresh(binding)
+    return _telegram_binding_dto(binding)
+
+
+@router.patch("/telegram/bindings/{binding_id}", response_model=TelegramBindingDto)
+async def update_telegram_binding(
+    binding_id: str,
+    data: UpdateTelegramBindingInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(TelegramChatBinding).where(
+            TelegramChatBinding.id == binding_id,
+            TelegramChatBinding.organization_id == user.organization_id,
+        )
+    )
+    binding = result.scalar_one_or_none()
+    if not binding:
+        raise HTTPException(status_code=404, detail="Telegram binding not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(binding, {
+            "chatTitle": "chat_title",
+            "bindingType": "binding_type",
+            "isActive": "is_active",
+        }.get(field, field), value)
+    binding.updated_at = datetime.datetime.now(datetime.timezone.utc)
     await db.commit()
     await db.refresh(binding)
-    return {
-        "id": binding.id,
-        "chatId": binding.chat_id,
-        "chatTitle": binding.chat_title,
-        "role": binding.role,
-        "isActive": binding.is_active
-    }
+    return _telegram_binding_dto(binding)
+
 
 @router.delete("/telegram/bindings/{binding_id}")
 async def delete_telegram_binding(
@@ -335,6 +470,7 @@ async def delete_telegram_binding(
     await db.commit()
     return {"success": True}
 
+
 @router.post("/telegram/broadcast")
 async def telegram_broadcast(
     data: Dict[str, Any],
@@ -344,14 +480,36 @@ async def telegram_broadcast(
     message = (data.get("message") or "").strip()
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
+    config_result = await db.execute(
+        select(NotificationConfig).where(NotificationConfig.organization_id == user.organization_id)
+    )
+    config = config_result.scalar_one_or_none()
+    if not config or not config.telegram_enabled or not config.telegram_bot_token:
+        raise HTTPException(status_code=400, detail="Telegram bot is not enabled or configured")
     result = await db.execute(
         select(TelegramChatBinding).where(
             TelegramChatBinding.organization_id == user.organization_id,
-            TelegramChatBinding.is_active == True
+            TelegramChatBinding.is_active == True,
         )
     )
     bindings = result.scalars().all()
-    return {"sentCount": len(bindings), "message": message}
+    token = EncryptionService.decrypt(config.telegram_bot_token)
+    sent_count = 0
+    failed_count = 0
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for binding in bindings:
+            try:
+                response = await client.post(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    json={"chat_id": binding.chat_id, "text": message},
+                )
+                if response.is_success and response.json().get("ok"):
+                    sent_count += 1
+                else:
+                    failed_count += 1
+            except httpx.HTTPError:
+                failed_count += 1
+    return {"sentCount": sent_count, "failedCount": failed_count, "message": message}
 
 @router.post("/telegram/command")
 async def execute_telegram_command(
