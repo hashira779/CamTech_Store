@@ -84,8 +84,8 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
                 ON CONFLICT (id) DO NOTHING;
             """), {"org_id": TEST_ORG_ID})
             await conn.execute(text("""
-                INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
-                VALUES ('var-test-alert', :org_id, 'prod-test-alert', 'SKU-ALERT-1', '885999001', 'Test Phone 256GB', 400.00, 899.00, 10.00, true, NOW(), NOW())
+                INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, unit, currency, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
+                VALUES ('var-test-alert', :org_id, 'prod-test-alert', 'SKU-ALERT-1', '885999001', 'Test Phone 256GB', 'piece', 'USD', 400.00, 899.00, 10.00, true, NOW(), NOW())
                 ON CONFLICT (id) DO NOTHING;
             """), {"org_id": TEST_ORG_ID})
             row = ('var-test-alert', 'SKU-ALERT-1', 'Test Phone 256GB', 899.00)

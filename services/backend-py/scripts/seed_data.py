@@ -82,8 +82,8 @@ async def seed():
 
             for vid, sku, vname, cost, sell, stock in variants:
                 await db.execute(text("""
-                    INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
-                    SELECT :id, :oid, :pid, :sku, :barcode, :name, :cost, :sell, 10.00, true, NOW(), NOW()
+                    INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, unit, currency, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
+                    SELECT :id, :oid, :pid, :sku, :barcode, :name, 'piece', 'USD', :cost, :sell, 10.00, true, NOW(), NOW()
                     WHERE NOT EXISTS (
                         SELECT 1 FROM product_variants WHERE "organizationId" = :oid AND (id = :id OR sku = :sku)
                     );
