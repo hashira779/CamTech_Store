@@ -83,8 +83,10 @@ async def seed():
             for vid, sku, vname, cost, sell, stock in variants:
                 await db.execute(text("""
                     INSERT INTO product_variants (id, "organizationId", "productId", sku, barcode, name, "costPrice", "sellPrice", "taxRatePct", "isActive", "createdAt", "updatedAt")
-                    VALUES (:id, :oid, :pid, :sku, :barcode, :name, :cost, :sell, 10.00, true, NOW(), NOW())
-                    ON CONFLICT (id) DO NOTHING;
+                    SELECT :id, :oid, :pid, :sku, :barcode, :name, :cost, :sell, 10.00, true, NOW(), NOW()
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM product_variants WHERE "organizationId" = :oid AND (id = :id OR sku = :sku)
+                    );
                 """), {
                     "id": vid, "oid": oid, "pid": pid, "sku": sku,
                     "barcode": f"885{vid[-6:]}", "name": vname,
@@ -109,9 +111,11 @@ async def seed():
         ]
         for cid, oid, name, email, phone, tier, pts in customers:
             await db.execute(text("""
-                INSERT INTO customers (id, "organizationId", name, email, phone, "loyaltyTier", "loyaltyPoints", "createdAt", "updatedAt")
-                VALUES (:id, :oid, :name, :email, :phone, :tier, :pts, NOW(), NOW())
-                ON CONFLICT (id) DO NOTHING;
+                INSERT INTO customers (id, "organizationId", name, email, phone, type, "loyaltyTier", "loyaltyPoints", "createdAt", "updatedAt")
+                SELECT :id, :oid, :name, :email, :phone, 'INDIVIDUAL'::"CustomerType", :tier, :pts, NOW(), NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM customers WHERE "organizationId" = :oid AND (id = :id OR email = :email)
+                );
             """), {"id": cid, "oid": oid, "name": name, "email": email, "phone": phone, "tier": tier, "pts": pts})
 
         # 5. HR Departments & Employees
@@ -124,8 +128,10 @@ async def seed():
         for did, oid, name, code in depts:
             await db.execute(text("""
                 INSERT INTO departments (id, "organizationId", name, code, "createdAt", "updatedAt")
-                VALUES (:id, :oid, :name, :code, NOW(), NOW())
-                ON CONFLICT (id) DO NOTHING;
+                SELECT :id, :oid, :name, :code, NOW(), NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM departments WHERE "organizationId" = :oid AND (id = :id OR code = :code)
+                );
             """), {"id": did, "oid": oid, "name": name, "code": code})
 
         employees = [
@@ -137,8 +143,10 @@ async def seed():
         for eid, oid, did, fn, ln, email, pos, salary, stat in employees:
             await db.execute(text("""
                 INSERT INTO employees (id, "organizationId", "departmentId", "firstName", "lastName", email, position, "baseSalary", status, "createdAt", "updatedAt")
-                VALUES (:id, :oid, :did, :fn, :ln, :email, :pos, :sal, CAST(:stat AS "EmploymentStatus"), NOW(), NOW())
-                ON CONFLICT (id) DO NOTHING;
+                SELECT :id, :oid, :did, :fn, :ln, :email, :pos, :sal, CAST(:stat AS "EmploymentStatus"), NOW(), NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM employees WHERE "organizationId" = :oid AND (id = :id OR email = :email)
+                );
             """), {"id": eid, "oid": oid, "did": did, "fn": fn, "ln": ln, "email": email, "pos": pos, "sal": salary, "stat": stat})
 
         # 6. Sales History for Live Revenue Charts
