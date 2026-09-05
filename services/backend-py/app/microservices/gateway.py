@@ -1,6 +1,7 @@
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from app.core.config import settings
@@ -74,6 +75,10 @@ ROUTING_MAP = {
 }
 
 http_client = httpx.AsyncClient(timeout=15.0)
+
+@gateway.get("/", include_in_schema=False)
+async def gateway_root():
+    return RedirectResponse(url="/docs")
 
 @gateway.get("/health")
 async def gateway_health():

@@ -5,7 +5,7 @@ import secrets
 from fastapi import FastAPI, Request, Response, status
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import text
@@ -228,6 +228,10 @@ app.include_router(outbox_router, prefix="/api/v1")
 # ==============================================================================
 # OPS & 2026-2030 HEALTH MONITORING & DEEP TELEMETRY
 # ==============================================================================
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse(url="/docs")
 
 @app.get("/health")
 async def health_check():
