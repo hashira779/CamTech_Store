@@ -88,6 +88,7 @@ import type {
   UpdateNotificationConfigInput,
   ListNotificationsQuery,
   ExecutiveReportSummaryDto,
+  BusinessDashboardDto,
   ReportDateRangeQuery,
   ExportReportQuery,
   AccountDto,
@@ -890,6 +891,9 @@ export const api = {
     }),
 
   // ─── Reporting & BI Analytics ──────────────────────────────────
+  getBusinessDashboard: (token: string, rangeDays: 7 | 30 = 30) =>
+    request<BusinessDashboardDto>(`/reports/dashboard?rangeDays=${rangeDays}`, { token }),
+
   getExecutiveReport: (token: string, query?: ReportDateRangeQuery) => {
     const params = new URLSearchParams();
     if (query?.startDate) params.append('startDate', query.startDate);

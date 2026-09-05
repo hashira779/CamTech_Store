@@ -88,3 +88,43 @@ export interface ExecutiveReportSummaryDto {
   inventory: InventoryHealthDto;
   branches: BranchPerformanceDto[];
 }
+
+export interface DashboardMetricDto {
+  value: number;
+  previousValue: number;
+  changePct: number | null;
+}
+
+export type DashboardAlertSeverity = 'critical' | 'warning' | 'info';
+
+export interface DashboardAlertDto {
+  id: string;
+  severity: DashboardAlertSeverity;
+  title: string;
+  description: string;
+  count: number;
+  href: string;
+}
+
+export interface BusinessDashboardDto {
+  period: {
+    startDate: string;
+    endDate: string;
+    previousStartDate: string;
+    previousEndDate: string;
+    label: string;
+  };
+  generatedAt: string;
+  currency: string;
+  timezone: string;
+  metrics: {
+    revenue: DashboardMetricDto;
+    orders: DashboardMetricDto;
+    averageOrderValue: DashboardMetricDto;
+    customers: DashboardMetricDto;
+  };
+  inventory: InventoryHealthDto;
+  timeSeries: TimeSeriesPointDto[];
+  branches: BranchPerformanceDto[];
+  alerts: DashboardAlertDto[];
+}

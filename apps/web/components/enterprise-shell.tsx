@@ -5,46 +5,21 @@ import { useAuth } from '@/lib/auth-store';
 import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Store,
-  LayoutDashboard,
-  Package,
   ShoppingBag,
-  Users,
-  Boxes,
   Settings,
-  ShieldCheck,
   LogOut,
   Bell,
   Search,
   Building2,
-  Truck,
-  Navigation,
-  Tag,
-
-  Coins,
-  ArrowLeftRight,
-  Percent,
-  Award,
-  FolderArchive,
-  Wifi,
   WifiOff,
-  BarChart3,
-  Landmark,
-  CheckSquare,
-  Briefcase,
-  FolderKanban,
-  LifeBuoy,
-  Code2,
-  Send,
-  Workflow,
   Sun,
   Moon,
   Laptop,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
-  PlusCircle,
-  Command,
 } from 'lucide-react';
 import { useThemeStore } from '@/lib/theme-store';
 import { CommandPalette } from '@/components/command-palette';
@@ -52,7 +27,12 @@ import { AiCopilotDrawer } from '@/components/ai-copilot-drawer';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { Button } from '@/components/ui/button';
-
+import {
+  NAVIGATION_ITEMS,
+  SECTION_LABELS,
+  routeIsActive,
+  type NavigationItem,
+} from '@/lib/navigation';
 
 import {
   DropdownMenu,
@@ -64,13 +44,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  section: string;
-}
 
 export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   const { user, token, clear } = useAuth();
@@ -125,41 +98,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   const { activeExperience } = useExperienceStore();
   const currentExpConfig = EXPERIENCE_CONFIGS[activeExperience] || EXPERIENCE_CONFIGS.EXECUTIVE;
 
-  const allNavigation: NavItem[] = useMemo(
-    () => [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, section: 'Core' },
-      { name: 'Analytics & Reports', href: '/reports', icon: BarChart3, section: 'Core' },
-      { name: 'Sales & Orders', href: '/sales', icon: ShoppingBag, section: 'Commerce' },
-      { name: 'POS Terminal', href: '/sales/new', icon: PlusCircle, section: 'Commerce' },
-      { name: 'Products Catalog', href: '/products', icon: Package, section: 'Commerce' },
-      { name: 'Inventory Ledger', href: '/inventory', icon: Boxes, section: 'Commerce' },
-      { name: 'Stock Transfers & WMS', href: '/transfers', icon: ArrowLeftRight, section: 'Logistics' },
-      { name: 'Procurement & POs', href: '/procurement', icon: Truck, section: 'Logistics' },
-      { name: 'Delivery & Live Fleet', href: '/delivery', icon: Navigation, section: 'Logistics' },
-      { name: 'Driver Dispatch', href: '/driver', icon: Truck, section: 'Logistics' },
-      { name: 'Locations & Branches', href: '/locations', icon: Building2, section: 'Logistics' },
-
-      { name: 'Customers & CRM', href: '/customers', icon: Users, section: 'Customers' },
-      { name: 'Loyalty & Credit', href: '/loyalty', icon: Award, section: 'Customers' },
-      { name: 'Pricing & Price Lists', href: '/pricing', icon: Coins, section: 'Pricing' },
-      { name: 'Promotions & Deals', href: '/promotions', icon: Tag, section: 'Pricing' },
-      { name: 'Tax Rates & Fiscal', href: '/taxes', icon: Percent, section: 'Pricing' },
-      { name: 'Finance & Accounts', href: '/finance', icon: Landmark, section: 'Enterprise' },
-      { name: 'Approvals Inbox', href: '/approvals', icon: CheckSquare, section: 'Enterprise' },
-      { name: 'Fixed Assets', href: '/assets', icon: Coins, section: 'Enterprise' },
-      { name: 'HR & Workforce', href: '/hr', icon: Briefcase, section: 'Enterprise' },
-      { name: 'Projects & Tasks', href: '/projects', icon: FolderKanban, section: 'Enterprise' },
-      { name: 'Service Desk', href: '/tickets', icon: LifeBuoy, section: 'Platform' },
-      { name: 'Documents & Storage', href: '/storage', icon: FolderArchive, section: 'Platform' },
-      { name: 'Notifications & Alerts', href: '/notifications', icon: Bell, section: 'Platform' },
-      { name: 'Developer & API', href: '/developers', icon: Code2, section: 'Platform' },
-      { name: 'Telegram Platform', href: '/telegram', icon: Send, section: 'Platform' },
-      { name: 'Flow Automations', href: '/automations', icon: Workflow, section: 'Platform' },
-      { name: 'Users & Access Control', href: '/users', icon: ShieldCheck, section: 'System' },
-      { name: 'Settings', href: '/settings', icon: Settings, section: 'System' },
-    ],
-    []
-  );
+  const allNavigation = NAVIGATION_ITEMS;
 
   const userRoles = useMemo<string[]>(() => {
     const rawRoles = user?.roles as unknown;
@@ -186,26 +125,14 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     return filtered.length > 0 ? filtered : allNavigation;
   }, [allNavigation, activeExperience, currentExpConfig, isSuperAdmin]);
 
-
-  const sectionLabels: Record<string, string> = {
-    Core: 'Overview & Analytics',
-    Commerce: 'Commercial & Sales',
-    Logistics: 'Supply Chain & Logistics',
-    Customers: 'Customers & CRM',
-    Pricing: 'Pricing & Fiscal',
-    Enterprise: 'Enterprise Governance',
-    Platform: 'Platform & Integrations',
-    System: 'System Administration',
-  };
-
   const groupedNavigation = useMemo(() => {
-    const groups: { section: string; label: string; items: NavItem[] }[] = [];
+    const groups: { section: NavigationItem['section']; label: string; items: NavigationItem[] }[] = [];
     navigation.forEach((item) => {
       let group = groups.find((g) => g.section === item.section);
       if (!group) {
         group = {
           section: item.section,
-          label: sectionLabels[item.section] || item.section,
+          label: SECTION_LABELS[item.section],
           items: [],
         };
         groups.push(group);
@@ -219,17 +146,50 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
     return (
       navigation.find(
         (item) =>
-          pathname === item.href ||
-          (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
-          (item.href === '/sales' && pathname === '/sales')
+          routeIsActive(pathname, item.href)
       ) || navigation[0]
     );
   }, [navigation, pathname]);
+
+  // Collapsible section state for organized, clutter-free sidebar
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    Core: true,
+    Commerce: true,
+    Logistics: true,
+    Customers: false,
+    Pricing: false,
+    Enterprise: false,
+    Platform: false,
+    System: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  // Automatically expand section containing current active route
+  useEffect(() => {
+    if (activeItem?.section) {
+      setOpenSections((prev) => ({
+        ...prev,
+        [activeItem.section]: true,
+      }));
+    }
+  }, [activeItem?.section]);
 
   if (!token || !user) return <Navigate to="/login" replace />;
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
+      <a
+        href="#main-content"
+        className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0"
+      >
+        Skip to main content
+      </a>
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
       <AiCopilotDrawer />
 
@@ -243,17 +203,17 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-200 lg:static ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card/95 backdrop-blur-md border-r border-border/80 transition-all duration-300 lg:static ${
           collapsed ? 'w-18' : 'w-64'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border/80 shrink-0">
           <Link
             to="/dashboard"
             className="flex items-center gap-2.5 font-bold text-base tracking-tight text-foreground overflow-hidden group"
           >
-            <div className="bg-primary p-2 rounded-xl text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="bg-primary p-2 rounded-xl text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
               <Store className="w-5 h-5" />
             </div>
             {!collapsed && (
@@ -267,7 +227,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
           </Link>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="hidden lg:flex p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -285,62 +245,88 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
           <Button
             onClick={() => navigate('/pos')}
             size="sm"
-            className={`w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs transition-all ${
-              collapsed ? 'px-0 justify-center' : 'justify-start gap-2'
+            variant="outline"
+            className={`w-full border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-semibold shadow-2xs transition-all ${
+              collapsed ? 'px-0 justify-center' : 'justify-start gap-2.5'
             }`}
           >
-            <ShoppingBag className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Open POS Terminal</span>}
+            <div className="w-5 h-5 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </div>
+            {!collapsed && <span className="text-xs">Open POS Terminal</span>}
           </Button>
         </div>
 
-        {/* Grouped Navigation List */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
-          {groupedNavigation.map((group) => (
-            <div key={group.section} className="space-y-0.5">
-              {!collapsed ? (
-                <div className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
-                  {group.label}
-                </div>
-              ) : (
-                <div className="border-t border-border/40 my-2 mx-2" />
-              )}
-              {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/dashboard' && item.href !== '/sales' && pathname.startsWith(item.href)) ||
-                  (item.href === '/sales' && pathname === '/sales');
+        {/* Grouped Navigation List with Accordion Sections */}
+        <nav className="flex-1 overflow-y-auto py-2.5 px-2 space-y-2 select-none">
+          {groupedNavigation.map((group) => {
+            const isSectionOpen = openSections[group.section] ?? true;
+            const hasActiveItem = group.items.some((item) => routeIsActive(pathname, item.href));
 
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    title={collapsed ? item.name : undefined}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
-                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                    } ${collapsed ? 'justify-center px-2' : ''}`}
+            return (
+              <div key={group.section} className="space-y-0.5">
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(group.section)}
+                    className="flex w-full items-center justify-between px-2.5 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors cursor-pointer group/sec"
                   >
-                    <item.icon className="w-4 h-4 shrink-0" />
-                    {!collapsed && <span className="truncate">{item.name}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                    <span className={hasActiveItem ? 'text-primary font-bold' : ''}>{group.label}</span>
+                    <ChevronDown
+                      className={`w-3 h-3 text-muted-foreground/40 transition-transform duration-200 group-hover/sec:text-foreground ${
+                        isSectionOpen ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                  </button>
+                ) : (
+                  <div className="border-t border-border/40 my-2 mx-2" />
+                )}
+
+                {/* Section Items */}
+                {(!collapsed ? isSectionOpen : true) && (
+                  <div className="space-y-0.5 animate-fade-in">
+                    {group.items.map((item) => {
+                      const isActive = routeIsActive(pathname, item.href);
+
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          title={collapsed ? item.name : undefined}
+                          className={`group/item flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                            isActive
+                              ? 'bg-primary/15 text-primary font-semibold shadow-2xs border-l-[3px] border-primary pl-2'
+                              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                          } ${collapsed ? 'justify-center px-2' : ''}`}
+                        >
+                          <item.icon
+                            className={`w-4 h-4 shrink-0 transition-colors ${
+                              isActive ? 'text-primary' : 'text-muted-foreground group-hover/item:text-foreground'
+                            }`}
+                          />
+                          {!collapsed && <span className="truncate">{item.name}</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* User Context & Branch Footer */}
-        <div className="p-3 border-t border-border shrink-0 bg-card">
+        <div className="p-3 border-t border-border/80 shrink-0 bg-card/60 backdrop-blur-sm">
           {!collapsed && (
-            <div className="flex items-center gap-2 mb-3 p-2 rounded-lg border border-border/80 bg-background/50 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <div className="flex items-center gap-2 mb-2.5 p-2 rounded-xl border border-border/70 bg-muted/30 text-xs">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Building2 className="w-3.5 h-3.5" />
+              </div>
               <div className="truncate flex-1">
                 <p className="font-semibold text-foreground truncate">
-                  {isSuperAdmin ? 'Global Headquarters (Super Admin)' : 'Branch Store #1'}
+                  {isSuperAdmin ? 'Global Headquarters (Admin)' : 'Branch Store #1'}
                 </p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Workspace</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">Active Location</p>
               </div>
             </div>
           )}
@@ -349,24 +335,24 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2.5 overflow-hidden text-left hover:opacity-80 transition-opacity cursor-pointer">
-                  <Avatar className="h-8 w-8 shrink-0 border border-border">
-                    <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                  <Avatar className="h-8 w-8 shrink-0 border border-border/80 shadow-2xs">
+                    <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
                       {user.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   {!collapsed && (
                     <div className="truncate">
-                      <p className="text-xs font-medium text-foreground truncate">{user.name}</p>
+                      <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                     </div>
                   )}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/80 bg-card/95 backdrop-blur-md shadow-xl">
+                <DropdownMenuLabel className="text-xs">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
+                <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -375,7 +361,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
                     clear();
                     navigate('/login');
                   }}
-                  className="text-destructive focus:text-destructive"
+                  className="text-destructive focus:text-destructive cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
@@ -389,7 +375,7 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
                   clear();
                   navigate('/login');
                 }}
-                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
                 title="Sign out"
               >
                 <LogOut className="w-4 h-4" />
@@ -400,20 +386,20 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col min-w-0 overflow-hidden outline-none">
         {/* Top Header */}
-        <header className="h-16 border-b border-border bg-card/60 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shrink-0">
+        <header className="h-16 border-b border-border/80 bg-card/70 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shrink-0 shadow-2xs">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+              className="lg:hidden p-2 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             {/* Breadcrumb Navigation */}
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium border-l border-border/80 pl-3 ml-1">
-              <span className="text-muted-foreground/70">{sectionLabels[activeItem?.section || 'Core'] || 'Enterprise'}</span>
+              <span className="text-muted-foreground/70">{SECTION_LABELS[activeItem?.section || 'Core']}</span>
               <span className="text-muted-foreground/30">/</span>
               <span className="text-foreground font-semibold flex items-center gap-1.5">
                 {activeItem && <activeItem.icon className="w-3.5 h-3.5 text-primary" />}
@@ -424,13 +410,13 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
             {/* Quick Command Palette Launcher */}
             <button
               onClick={() => setCmdOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-input bg-background/50 hover:bg-accent/70 text-xs text-muted-foreground hover:text-foreground transition-all w-44 sm:w-64 justify-between cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/70 text-xs text-muted-foreground hover:text-foreground transition-all w-44 sm:w-60 justify-between cursor-pointer shadow-2xs group"
             >
               <span className="flex items-center gap-2 truncate">
-                <Search className="w-3.5 h-3.5 shrink-0" />
+                <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                 <span className="truncate">Search or Cmd+K...</span>
               </span>
-              <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-muted/80 px-1.5 py-0.5 rounded border border-border">
+              <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-background/80 px-1.5 py-0.5 rounded-md border border-border/80 text-muted-foreground">
                 <span>⌘</span>K
               </kbd>
             </button>

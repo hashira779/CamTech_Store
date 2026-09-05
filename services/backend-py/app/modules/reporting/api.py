@@ -7,7 +7,7 @@ from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
@@ -16,6 +16,10 @@ from app.modules.sales.models import Sale, SaleLineItem, SalePayment
 from app.modules.catalog.models import Product, ProductVariant, Category
 from app.modules.inventory.models import InventoryItem
 from app.modules.locations.models import Location
+from app.modules.customers.models import Customer
+from app.modules.organizations.models import Organization
+from app.models.entities import ApprovalRequest
+from app.modules.service_desk.models import ServiceTicket
 
 router = APIRouter(tags=["BI Reporting & Analytics"])
 
@@ -326,31 +330,129 @@ async def export_report_csv(
     return {"filename": filename, "csv": buf.getvalue()}
 
 
-@router.get("/reports/dashboard")
-async def get_dashboard_kpis(
-    user: TenantUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Compact dashboard KPI widget fed from the executive summary (last 30 days)."""
-    end = datetime.datetime.utcnow()
-    start = end - datetime.timedelta(days=30)
-    sales, line_items, payments, variants, products, categories, inventory, locations = \
-        await _load_report_data(db, user.organization_id, start, end, None)
-    summary = _build_summary(sales, line_items, payments, variants, products, categories, inventory, locations)
-    s = summary["sales"]
+def _dashboard_metric(value: float, previous_value: float) -> dict:
+    change_pct = None
+    if previous_value:
+        change_pct = round(((value - previous_value) / previous_value) * 100.0, 2)
+    elif value == 0:
+        change_pct = 0.0
     return {
-        "kpi": {
-            "grossSales": s["grossRevenue"],
-            "orderCount": s["orderCount"],
-            "averageOrderValue": s["averageOrderValue"],
-            "netProfit": s["grossMargin"],
-            "currency": "USD",
+        "value": round(value, 2),
+        "previousValue": round(previous_value, 2),
+        "changePct": change_pct,
+    }
+
+
+@router.get("/reports/dashboard")
+async def get_business_dashboard(
+    rangeDays: int = Query(30, ge=7, le=90),
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Decision-grade dashboard with comparison periods and operational alerts."""
+    end = datetime.datetime.utcnow()
+    start = end - datetime.timedelta(days=rangeDays)
+    previous_start = start - datetime.timedelta(days=rangeDays)
+
+    current_data = await _load_report_data(db, user.organization_id, start, end, None)
+    previous_data = await _load_report_data(db, user.organization_id, previous_start, start, None)
+    current = _build_summary(*current_data)
+    previous = _build_summary(*previous_data)
+
+    organization = await db.get(Organization, user.organization_id)
+    currency = organization.currency if organization else "USD"
+    timezone = organization.timezone if organization else "UTC"
+
+    current_customer_count = await db.scalar(
+        select(func.count(Customer.id)).where(
+            Customer.organization_id == user.organization_id,
+            Customer.is_active.is_(True),
+            Customer.created_at <= end,
+        )
+    ) or 0
+    previous_customer_count = await db.scalar(
+        select(func.count(Customer.id)).where(
+            Customer.organization_id == user.organization_id,
+            Customer.is_active.is_(True),
+            Customer.created_at <= start,
+        )
+    ) or 0
+
+    pending_approvals = await db.scalar(
+        select(func.count(ApprovalRequest.id)).where(
+            ApprovalRequest.organization_id == user.organization_id,
+            ApprovalRequest.status == "PENDING",
+        )
+    ) or 0
+    unresolved_tickets = await db.scalar(
+        select(func.count(ServiceTicket.id)).where(
+            ServiceTicket.organization_id == user.organization_id,
+            ServiceTicket.status.in_(["OPEN", "IN_PROGRESS", "WAITING"]),
+        )
+    ) or 0
+
+    alerts = []
+    inventory = current["inventory"]
+    if inventory["outOfStockCount"]:
+        alerts.append({
+            "id": "out-of-stock",
+            "severity": "critical",
+            "title": "Products out of stock",
+            "description": "Restore availability for products with no remaining stock.",
+            "count": inventory["outOfStockCount"],
+            "href": "/inventory",
+        })
+    if inventory["lowStockItemCount"]:
+        alerts.append({
+            "id": "low-stock",
+            "severity": "warning",
+            "title": "Replenishment required",
+            "description": "Inventory items have reached their reorder threshold.",
+            "count": inventory["lowStockItemCount"],
+            "href": "/inventory",
+        })
+    if pending_approvals:
+        alerts.append({
+            "id": "pending-approvals",
+            "severity": "warning",
+            "title": "Approvals awaiting review",
+            "description": "Business workflows are waiting for an approval decision.",
+            "count": pending_approvals,
+            "href": "/approvals",
+        })
+    if unresolved_tickets:
+        alerts.append({
+            "id": "unresolved-tickets",
+            "severity": "info",
+            "title": "Open service requests",
+            "description": "Customer and internal service tickets remain unresolved.",
+            "count": unresolved_tickets,
+            "href": "/tickets",
+        })
+
+    current_sales = current["sales"]
+    previous_sales = previous["sales"]
+    return {
+        "period": {
+            "startDate": start.isoformat() + "Z",
+            "endDate": end.isoformat() + "Z",
+            "previousStartDate": previous_start.isoformat() + "Z",
+            "previousEndDate": start.isoformat() + "Z",
+            "label": f"Last {rangeDays} days",
         },
-        "salesByChannel": [
-            {"channel": b["locationName"], "total": b["revenue"], "count": b["orderCount"]}
-            for b in summary["branches"]
-        ] if summary["branches"] else [
-            {"channel": "Storefront & Digital Channels", "total": s["grossRevenue"], "count": s["orderCount"]}
-        ],
-        "inventoryAlerts": [],
+        "generatedAt": end.isoformat() + "Z",
+        "currency": currency,
+        "timezone": timezone,
+        "metrics": {
+            "revenue": _dashboard_metric(current_sales["grossRevenue"], previous_sales["grossRevenue"]),
+            "orders": _dashboard_metric(current_sales["orderCount"], previous_sales["orderCount"]),
+            "averageOrderValue": _dashboard_metric(
+                current_sales["averageOrderValue"], previous_sales["averageOrderValue"]
+            ),
+            "customers": _dashboard_metric(current_customer_count, previous_customer_count),
+        },
+        "inventory": inventory,
+        "timeSeries": current["timeSeries"],
+        "branches": current["branches"],
+        "alerts": alerts,
     }

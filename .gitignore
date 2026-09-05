@@ -46,6 +46,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/
 
 # Coverage
 coverage/
@@ -56,4 +57,5 @@ htmlcov/
 backups/
 *.sql.gz
 
-
+# Scratch scripts
+patch.py

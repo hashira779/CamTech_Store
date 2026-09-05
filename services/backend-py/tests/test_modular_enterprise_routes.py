@@ -110,6 +110,15 @@ async def test_reporting_dashboard_modular_route(mock_tenant_user):
         body = resp.json()
         assert body["success"] is True
         data = body["data"]
-        assert "kpi" in data
-        assert data["kpi"]["currency"] == "USD"
-        assert len(data["salesByChannel"]) > 0
+        assert data["period"]["label"] == "Last 30 days"
+        assert data["currency"] == "USD"
+        assert data["timezone"] == "UTC"
+        assert set(data["metrics"]) == {"revenue", "orders", "averageOrderValue", "customers"}
+        assert data["metrics"]["orders"]["value"] >= 0
+        assert "previousValue" in data["metrics"]["revenue"]
+        assert "changePct" in data["metrics"]["revenue"]
+        assert "lowStockItemCount" in data["inventory"]
+        assert isinstance(data["timeSeries"], list)
+        assert isinstance(data["branches"], list)
+        assert isinstance(data["alerts"], list)
+        assert data["generatedAt"].endswith("Z")

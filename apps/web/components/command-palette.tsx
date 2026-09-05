@@ -1,24 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingBag,
-  Users,
   Boxes,
-  Truck,
-  Building2,
-  Settings,
   PlusCircle,
   Sun,
   Moon,
   Laptop,
-  ArrowRight,
-  Search,
-  Tag,
-  Percent,
-  Coins,
-  Receipt,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -31,6 +18,7 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { useThemeStore } from '@/lib/theme-store';
+import { NAVIGATION_ITEMS } from '@/lib/navigation';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -81,72 +69,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandSeparator />
 
         <CommandGroup heading="Navigation">
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/dashboard'))}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Executive Dashboard</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/sales'))}
-          >
-            <ShoppingBag className="mr-2 h-4 w-4" />
-            <span>Sales & Orders Ledger</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/products'))}
-          >
-            <Package className="mr-2 h-4 w-4" />
-            <span>Products Catalog</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/inventory'))}
-          >
-            <Boxes className="mr-2 h-4 w-4" />
-            <span>Inventory Management</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/customers'))}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            <span>Customers & Accounts</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/locations'))}
-          >
-            <Building2 className="mr-2 h-4 w-4" />
-            <span>Locations & Branches</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/procurement'))}
-          >
-            <Truck className="mr-2 h-4 w-4" />
-            <span>Procurement & POs</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/promotions'))}
-          >
-            <Tag className="mr-2 h-4 w-4" />
-            <span>Promotions & Discounts</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/pricing'))}
-          >
-            <Coins className="mr-2 h-4 w-4" />
-            <span>Pricing Matrix</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/taxes'))}
-          >
-            <Percent className="mr-2 h-4 w-4" />
-            <span>Fiscal Rules & Taxes</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => navigate('/settings'))}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </CommandItem>
+          {NAVIGATION_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <CommandItem
+                key={item.href}
+                value={[item.name, item.section, ...(item.keywords ?? [])].join(' ')}
+                onSelect={() => runCommand(() => navigate(item.href))}
+              >
+                <Icon className="mr-2 h-4 w-4" />
+                <span>{item.name}</span>
+                <CommandShortcut>{item.section}</CommandShortcut>
+              </CommandItem>
+            );
+          })}
         </CommandGroup>
 
         <CommandSeparator />
