@@ -7,7 +7,11 @@ Makes NO changes to the database. Exit code is non-zero when critical drift is
 found, so it can be wired into CI as a guard against model/DB divergence.
 """
 import asyncio
+import os
 import sys
+
+# Ensure services/backend-py root is in sys.path when run as a standalone script
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncpg
 
