@@ -343,10 +343,21 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
     }
   }, [setNodes, selectedNode]);
 
+  const handleAddNode = useCallback((nodeType: string, label: string) => {
+    const yOffset = nodes.length * 100;
+    const newNode: Node = {
+      id: `${nodeType}-${Date.now()}`,
+      type: 'botNode',
+      position: { x: 200, y: 80 + (yOffset % 400) },
+      data: { label: label || nodeType, nodeType, config: {} },
+    };
+    setNodes(nds => [...nds, newNode]);
+  }, [nodes.length, setNodes]);
+
   return (
     <div style={{ display: 'flex', height: '100%' }}>
       {/* Left: Node Library */}
-      <NodeLibrary />
+      <NodeLibrary onAddNode={handleAddNode} />
 
       {/* Center: Canvas */}
       <div ref={reactFlowWrapper} style={{ flex: 1 }} onDragOver={onDragOver} onDrop={onDrop}>
@@ -380,6 +391,34 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
             maskColor="rgba(15,23,42,0.8)"
             style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 10 }}
           />
+
+          {/* Empty Canvas Guide */}
+          {nodes.length === 0 && (
+            <Panel position="top-center">
+              <div style={{
+                marginTop: 80,
+                textAlign: 'center',
+                padding: '24px 32px',
+                background: 'rgba(30,41,59,0.92)',
+                borderRadius: 16,
+                border: '1px dashed rgba(129,140,248,0.4)',
+                backdropFilter: 'blur(12px)',
+                maxWidth: 440,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                pointerEvents: 'none',
+              }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🚀</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
+                  Your Canvas is Empty
+                </div>
+                <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
+                  1. Click <strong>+ Add</strong> on <strong>Bot Started</strong> (left panel).<br />
+                  2. Open <strong>Telegram</strong> tab and click <strong>Show Inline Keyboard</strong>.<br />
+                  3. Drag from bottom dot of <em>Bot Started</em> to top dot of <em>Show Inline Keyboard</em>!
+                </div>
+              </div>
+            </Panel>
+          )}
 
           {/* Helpful connection guide */}
           <Panel position="bottom-center">

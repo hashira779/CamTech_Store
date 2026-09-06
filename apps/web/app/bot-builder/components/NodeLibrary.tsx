@@ -12,7 +12,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   Data: '#06b6d4',
 };
 
-export function NodeLibrary() {
+interface NodeLibraryProps {
+  onAddNode?: (nodeType: string, label: string) => void;
+}
+
+export function NodeLibrary({ onAddNode }: NodeLibraryProps = {}) {
   const [search, setSearch] = useState('');
   const [expandedCat, setExpandedCat] = useState<string | null>('Triggers');
 
@@ -88,28 +92,40 @@ export function NodeLibrary() {
                       key={node.type}
                       draggable
                       onDragStart={e => onDragStart(e, node.type, node.label)}
+                      onClick={() => onAddNode?.(node.type, node.label)}
+                      title="Click to add to canvas (or drag & drop)"
                       style={{
                         padding: '8px 10px', marginBottom: 3, borderRadius: 8,
                         background: 'rgba(30,41,59,0.5)',
                         border: '1px solid transparent',
-                        cursor: 'grab', fontSize: 12,
-                        display: 'flex', alignItems: 'center', gap: 8,
+                        cursor: 'pointer', fontSize: 12,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         transition: 'border-color 0.15s, background 0.15s',
+                        userSelect: 'none',
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.borderColor = `${color}40`;
-                        e.currentTarget.style.background = 'rgba(30,41,59,0.8)';
+                        e.currentTarget.style.borderColor = `${color}60`;
+                        e.currentTarget.style.background = 'rgba(30,41,59,0.85)';
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.borderColor = 'transparent';
                         e.currentTarget.style.background = 'rgba(30,41,59,0.5)';
                       }}
                     >
-                      <span style={{ fontSize: 14, width: 22, textAlign: 'center' }}>{node.icon}</span>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: 12 }}>{node.label}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>{node.description}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 14, width: 22, textAlign: 'center', flexShrink: 0 }}>{node.icon}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.label}</div>
+                          <div style={{ fontSize: 10, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.description}</div>
+                        </div>
                       </div>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, color,
+                        padding: '2px 6px', borderRadius: 4, background: `${color}15`,
+                        marginLeft: 4, flexShrink: 0,
+                      }}>
+                        + Add
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -122,9 +138,9 @@ export function NodeLibrary() {
       {/* Help */}
       <div style={{
         padding: '12px 16px', borderTop: '1px solid rgba(148,163,184,0.06)',
-        fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 1.4,
+        fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 1.4,
       }}>
-        💡 Drag nodes to canvas, then connect bottom dot to top dot
+        💡 <strong>Click</strong> or <strong>drag</strong> any node to add it to canvas
       </div>
     </div>
   );
