@@ -199,16 +199,29 @@ export class ApiClientError extends Error {
   }
 }
 
+export function getStoredAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('mystore-auth');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.state?.token) return parsed.state.token;
+    }
+  } catch {}
+  return localStorage.getItem('token') || null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = options;
+  const authToken = token || getStoredAuthToken();
   const res = await fetch(`${API}${path}`, {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...headers,
     },
   });
@@ -1330,6 +1343,13 @@ export const api = {
   getBotWorkflow: (token: string, id: string) =>
     request<BotWorkflowDto>(`/bot-builder/workflows/${id}`, { token }),
 
+  createBotWorkflowForBot: (token: string, botId: string, input: { name: string; description?: string }) =>
+    request<BotWorkflowDto>(`/bot-builder/bots/${botId}/workflows`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
   createBotWorkflow: (token: string, input: CreateBotWorkflowInput) =>
     request<BotWorkflowDto>('/bot-builder/workflows', {
       method: 'POST',
@@ -1381,8 +1401,28 @@ export const api = {
   listBotCommands: (token: string, botId: string) =>
     request<BotCommandDto[]>(`/bot-builder/bots/${botId}/commands`, { token }),
 
+  createBotCommand: (token: string, botId: string, input: CreateBotCommandInput) =>
+    request<BotCommandDto>(`/bot-builder/bots/${botId}/commands`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateBotCommand: (token: string, commandId: string, input: UpdateBotCommandInput) =>
+    request<BotCommandDto>(`/bot-builder/commands/${commandId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteBotCommand: (token: string, commandId: string) =>
+    request<{ success: boolean }>(`/bot-builder/commands/${commandId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
   syncBotCommands: (token: string, botId: string) =>
-    request<any>(`/bot-builder/bots/${botId}/commands/sync-telegram`, {
+    request<any>(`/bot-builder/bots/${botId}/commands/sync`, {
       method: 'POST',
       token,
     }),

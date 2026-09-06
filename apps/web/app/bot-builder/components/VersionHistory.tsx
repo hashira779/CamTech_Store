@@ -4,9 +4,8 @@ import {
   User, Layers, FileText, AlertCircle, Eye,
 } from 'lucide-react';
 import type { BotWorkflowVersionDto } from '@mystore/contracts';
-
-const token = () => localStorage.getItem('token') || '';
-const API = 'http://localhost:4000/api/v1';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 
 interface Props {
   workflowId: string;
@@ -15,6 +14,7 @@ interface Props {
 }
 
 export function VersionHistory({ workflowId, currentVersion, onRollback }: Props) {
+  const { token } = useAuth();
   const [versions, setVersions] = useState<BotWorkflowVersionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [rollingBack, setRollingBack] = useState<number | null>(null);
@@ -23,23 +23,24 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
   const [error, setError] = useState<string | null>(null);
 
   const fetchVersions = useCallback(async () => {
+    const activeToken = token || useAuth.getState().token || '';
+    if (!activeToken) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/bot-builder/workflows/${workflowId}/versions`, {
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      });
-      const body = await res.json();
-      const list = body.success ? body.data : (Array.isArray(body) ? body : []);
-      setVersions(list);
-      if (list.length > 0 && !selectedVersion) {
+      const list = await api.listWorkflowVersions(activeToken, workflowId);
+      setVersions(list || []);
+      if (list && list.length > 0 && !selectedVersion) {
         setSelectedVersion(list[0]);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load version history');
     }
     setLoading(false);
-  }, [workflowId, selectedVersion]);
+  }, [workflowId, selectedVersion, token]);
 
   useEffect(() => {
     fetchVersions();
@@ -49,18 +50,11 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
     setRollingBack(versionNumber);
     setError(null);
     try {
-      const res = await fetch(`${API}/bot-builder/workflows/${workflowId}/rollback/${versionNumber}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      });
-      const body = await res.json();
-      if (body.success !== false) {
-        setConfirmVersion(null);
-        onRollback();
-        await fetchVersions();
-      } else {
-        setError(body.message || 'Rollback failed');
-      }
+      const activeToken = token || useAuth.getState().token || '';
+      await api.rollbackBotWorkflow(activeToken, workflowId, versionNumber);
+      setConfirmVersion(null);
+      onRollback();
+      await fetchVersions();
     } catch (e: any) {
       setError(e.message || 'Rollback failed');
     }

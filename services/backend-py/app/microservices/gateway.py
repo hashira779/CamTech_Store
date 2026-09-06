@@ -79,6 +79,7 @@ ROUTING_MAP = {
     "/api/v1/developers": PLATFORM_SERVICE_URL,
     "/api/v1/flows": PLATFORM_SERVICE_URL,
     "/api/v1/telegram": PLATFORM_SERVICE_URL,
+    "/api/v1/bot-builder": PLATFORM_SERVICE_URL,
     "/api/v1/workflows": PLATFORM_SERVICE_URL,
     "/api/v1/approvals": PLATFORM_SERVICE_URL,
     "/api/v1/tickets": PLATFORM_SERVICE_URL,

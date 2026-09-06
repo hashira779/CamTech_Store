@@ -11,12 +11,11 @@ import {
   AlertTriangle, Play, Eye,
 } from 'lucide-react';
 import type { BotWorkflowDto } from '@mystore/contracts';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 import { NodeLibrary } from './NodeLibrary';
 import { NodeConfigPanel } from './NodeConfigPanel';
 import { TelegramPreview } from './TelegramPreview';
-
-const token = () => localStorage.getItem('token') || '';
-const API = 'http://localhost:4000/api/v1';
 
 // ─── Custom Node Component ──────────────────────────────────────────────────
 
@@ -185,6 +184,7 @@ function toStoredEdges(flowEdges: Edge[]): any[] {
 // ─── Visual Builder ─────────────────────────────────────────────────────────
 
 function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpdate: () => void }) {
+  const { token } = useAuth();
   const [nodes, setNodes, onNodesChange] = useNodesState(toFlowNodes(workflow.draftNodes));
   const [edges, setEdges, onEdgesChange] = useEdgesState(toFlowEdges(workflow.draftEdges));
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -244,13 +244,10 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`${API}/bot-builder/workflows/${workflow.id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          draftNodes: toStoredNodes(nodes),
-          draftEdges: toStoredEdges(edges),
-        }),
+      const activeToken = token || useAuth.getState().token || '';
+      await api.updateBotWorkflow(activeToken, workflow.id, {
+        draftNodes: toStoredNodes(nodes),
+        draftEdges: toStoredEdges(edges),
       });
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -264,15 +261,9 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
     await handleSave();
     setPublishing(true);
     try {
-      const res = await fetch(`${API}/bot-builder/workflows/${workflow.id}/publish`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: '' }),
-      });
-      const body = await res.json();
-      if (body.success !== false) {
-        onUpdate();
-      }
+      const activeToken = token || useAuth.getState().token || '';
+      await api.publishBotWorkflow(activeToken, workflow.id, { notes: '' });
+      onUpdate();
     } catch (e) { console.error(e); }
     setPublishing(false);
   };

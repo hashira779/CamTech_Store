@@ -5,15 +5,15 @@ import {
   AlertTriangle, Filter, CornerDownRight, Database,
 } from 'lucide-react';
 import type { BotExecutionDto, BotExecutionTraceItemDto } from '@mystore/contracts';
-
-const token = () => localStorage.getItem('token') || '';
-const API = 'http://localhost:4000/api/v1';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 
 interface Props {
   botId: string;
 }
 
 export function ExecutionDebugger({ botId }: Props) {
+  const { token } = useAuth();
   const [executions, setExecutions] = useState<BotExecutionDto[]>([]);
   const [selectedExecution, setSelectedExecution] = useState<BotExecutionDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,42 +27,42 @@ export function ExecutionDebugger({ botId }: Props) {
   } | null>(null);
 
   const fetchExecutions = useCallback(async () => {
+    const activeToken = token || useAuth.getState().token || '';
+    if (!activeToken) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      let url = `${API}/bot-builder/bots/${botId}/executions?page=${page}&limit=30`;
-      if (statusFilter !== 'ALL') {
-        url += `&status=${statusFilter}`;
-      }
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      });
-      const body = await res.json();
-      const list = body.success ? body.data : (Array.isArray(body) ? body : []);
-      setExecutions(list);
-      if (list.length > 0 && !selectedExecution) {
+      const list = await api.listBotExecutions(
+        activeToken,
+        botId,
+        page,
+        30,
+        statusFilter !== 'ALL' ? statusFilter : undefined,
+      );
+      setExecutions(list || []);
+      if (list && list.length > 0 && !selectedExecution) {
         setSelectedExecution(list[0]);
       }
     } catch (e) {
       console.error('Failed to load executions:', e);
     }
     setLoading(false);
-  }, [botId, page, statusFilter, selectedExecution]);
+  }, [botId, page, statusFilter, selectedExecution, token]);
 
   const fetchAnalytics = useCallback(async () => {
+    const activeToken = token || useAuth.getState().token || '';
+    if (!activeToken) return;
     try {
-      const res = await fetch(`${API}/bot-builder/bots/${botId}/analytics`, {
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      });
-      const body = await res.json();
-      if (body.success && body.data) {
-        setAnalytics(body.data);
-      } else if (body.totalExecutions !== undefined) {
-        setAnalytics(body);
+      const data = await api.getBotAnalytics(activeToken, botId);
+      if (data) {
+        setAnalytics(data);
       }
     } catch (e) {
       console.error('Failed to fetch analytics:', e);
     }
-  }, [botId]);
+  }, [botId, token]);
 
   useEffect(() => {
     fetchExecutions();

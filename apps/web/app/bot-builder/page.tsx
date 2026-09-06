@@ -6,6 +6,7 @@ import {
   BarChart3, Activity,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 import type {
   TelegramBotDto, BotWorkflowDto, CreateBotWorkflowInput,
 } from '@mystore/contracts';
@@ -16,7 +17,7 @@ import { VersionHistory } from './components/VersionHistory';
 import { ExecutionDebugger } from './components/ExecutionDebugger';
 import { CommandBuilder } from './components/CommandBuilder';
 
-const token = () => localStorage.getItem('token') || '';
+const getAuthToken = () => useAuth.getState().token || '';
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function Dashboard() {
   const nav = useNavigate();
+  const { token } = useAuth();
   const [bots, setBots] = useState<TelegramBotDto[]>([]);
   const [workflows, setWorkflows] = useState<Record<string, BotWorkflowDto[]>>({});
   const [search, setSearch] = useState('');
@@ -49,21 +51,26 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
+    const activeToken = token || useAuth.getState().token;
+    if (!activeToken) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const b = await api.listTelegramBots(token());
+      const b = await api.listTelegramBots(activeToken);
       setBots(b);
       const wfMap: Record<string, BotWorkflowDto[]> = {};
       for (const bot of b) {
         try {
-          const list = await api.listBotWorkflows(token(), bot.id);
+          const list = await api.listBotWorkflows(activeToken, bot.id);
           wfMap[bot.id] = list || [];
         } catch { wfMap[bot.id] = []; }
       }
       setWorkflows(wfMap);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, []);
+  }, [token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -238,18 +245,21 @@ function Dashboard() {
 function WorkflowEditorPage() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const nav = useNavigate();
+  const { token } = useAuth();
   const [tab, setTab] = useState<'builder' | 'commands' | 'versions' | 'executions'>('builder');
   const [workflow, setWorkflow] = useState<BotWorkflowDto | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchWorkflow = useCallback(async () => {
     if (!workflowId) return;
+    const activeToken = token || useAuth.getState().token;
+    if (!activeToken) return;
     try {
-      const data = await api.getBotWorkflow(token(), workflowId);
+      const data = await api.getBotWorkflow(activeToken, workflowId);
       setWorkflow(data);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [workflowId]);
+  }, [workflowId, token]);
 
   useEffect(() => { fetchWorkflow(); }, [fetchWorkflow]);
 

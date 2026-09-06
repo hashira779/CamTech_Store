@@ -3,9 +3,8 @@ import {
   Plus, Trash2, RefreshCw, Command, CheckCircle2,
   AlertCircle, Zap, ToggleLeft, ToggleRight,
 } from 'lucide-react';
-
-const token = () => localStorage.getItem('token') || '';
-const API = 'http://localhost:4000/api/v1';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 
 interface BotCommandItem {
   id: string; command: string; description: string | null;
@@ -18,6 +17,7 @@ interface Props {
 }
 
 export function CommandBuilder({ botId, workflowId }: Props) {
+  const { token } = useAuth();
   const [commands, setCommands] = useState<BotCommandItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -25,30 +25,29 @@ export function CommandBuilder({ botId, workflowId }: Props) {
   const [newDesc, setNewDesc] = useState('');
 
   const fetchCommands = useCallback(async () => {
+    const activeToken = token || useAuth.getState().token || '';
+    if (!activeToken) {
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await fetch(`${API}/bot-builder/bots/${botId}/commands`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      const body = await res.json();
-      setCommands(body.success ? body.data : (Array.isArray(body) ? body : []));
+      const list = await api.listBotCommands(activeToken, botId);
+      setCommands((list as any) || []);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [botId]);
+  }, [botId, token]);
 
   useEffect(() => { fetchCommands(); }, [fetchCommands]);
 
   const addCommand = async () => {
     if (!newCmd.trim()) return;
     try {
-      await fetch(`${API}/bot-builder/bots/${botId}/commands`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: newCmd.trim(),
-          description: newDesc.trim() || undefined,
-          workflowId,
-          isActive: true,
-        }),
+      const activeToken = token || useAuth.getState().token || '';
+      await api.createBotCommand(activeToken, botId, {
+        command: newCmd.trim(),
+        description: newDesc.trim() || undefined,
+        workflowId,
+        isActive: true,
       });
       setNewCmd(''); setNewDesc('');
       fetchCommands();
@@ -57,10 +56,8 @@ export function CommandBuilder({ botId, workflowId }: Props) {
 
   const deleteCommand = async (id: string) => {
     try {
-      await fetch(`${API}/bot-builder/commands/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token()}` },
-      });
+      const activeToken = token || useAuth.getState().token || '';
+      await api.deleteBotCommand(activeToken, id);
       fetchCommands();
     } catch (e) { console.error(e); }
   };
@@ -68,10 +65,8 @@ export function CommandBuilder({ botId, workflowId }: Props) {
   const syncToTelegram = async () => {
     setSyncing(true);
     try {
-      await fetch(`${API}/bot-builder/bots/${botId}/commands/sync`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-      });
+      const activeToken = token || useAuth.getState().token || '';
+      await api.syncBotCommands(activeToken, botId);
     } catch (e) { console.error(e); }
     setSyncing(false);
   };

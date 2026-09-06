@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { X, Bot, ChevronRight } from 'lucide-react';
 import type { TelegramBotDto, BotWorkflowDto } from '@mystore/contracts';
-
-const token = () => localStorage.getItem('token') || '';
-const API = 'http://localhost:4000/api/v1';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-store';
 
 interface Props {
   bots: TelegramBotDto[];
@@ -13,6 +12,7 @@ interface Props {
 }
 
 export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreated }: Props) {
+  const { token } = useAuth();
   const [step, setStep] = useState(preselectedBotId ? 2 : 1);
   const [botId, setBotId] = useState(preselectedBotId || '');
   const [name, setName] = useState('');
@@ -25,13 +25,11 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
     if (!botId || !name.trim()) return;
     setCreating(true);
     try {
-      const res = await fetch(`${API}/bot-builder/bots/${botId}/workflows`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
+      const activeToken = token || useAuth.getState().token || '';
+      const wf = await api.createBotWorkflowForBot(activeToken, botId, {
+        name: name.trim(),
+        description: description.trim() || undefined,
       });
-      const body = await res.json();
-      const wf = body.success ? body.data : body;
       onCreated(wf);
     } catch (e) {
       console.error(e);
