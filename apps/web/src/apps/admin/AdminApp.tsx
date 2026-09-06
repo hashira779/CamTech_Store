@@ -36,13 +36,20 @@ const SettingsPage = lazy(() => import('@/app/settings/page'));
 const UsersPage = lazy(() => import('@/app/users/page'));
 
 import { PageSkeleton } from '@/components/page-skeleton';
+import { EnterpriseShell } from '@/components/enterprise-shell';
 
 export function AdminApp() {
   return (
-    <Suspense fallback={<PageSkeleton variant="table" />}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
+    <Routes>
+      <Route path="/login" element={
+        <Suspense fallback={<PageSkeleton variant="cards" />}>
+          <LoginPage />
+        </Suspense>
+      } />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      
+      {/* Persistent Enterprise Shell Layout Route (Zero layout thrashing, persistent sidebar) */}
+      <Route element={<EnterpriseShell />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/locations" element={<LocationsPage />} />
@@ -74,9 +81,9 @@ export function AdminApp() {
         <Route path="/automations" element={<AutomationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/users" element={<UsersPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 

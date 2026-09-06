@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, createContext, useContext, Suspense } from 'react';
 import { useAuth } from '@/lib/auth-store';
-import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link, Navigate, Outlet } from 'react-router-dom';
+import { PageSkeleton } from '@/components/page-skeleton';
 import {
   Store,
   ShoppingBag,
@@ -45,7 +46,56 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
-export function EnterpriseShell({ children }: { children: React.ReactNode }) {
+// Dynamic code-splitting prefetch cache
+const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
+  '/dashboard': () => import('@/app/dashboard/page'),
+  '/products': () => import('@/app/products/page'),
+  '/locations': () => import('@/app/locations/page'),
+  '/inventory': () => import('@/app/inventory/page'),
+  '/transfers': () => import('@/app/transfers/page'),
+  '/pricing': () => import('@/app/pricing/page'),
+  '/taxes': () => import('@/app/taxes/page'),
+  '/promotions': () => import('@/app/promotions/page'),
+  '/sales': () => import('@/app/sales/page'),
+  '/sales/new': () => import('@/app/sales/new/page'),
+  '/customers': () => import('@/app/customers/page'),
+  '/loyalty': () => import('@/app/loyalty/page'),
+  '/storage': () => import('@/app/storage/page'),
+  '/notifications': () => import('@/app/notifications/page'),
+  '/reports': () => import('@/app/reports/page'),
+  '/approvals': () => import('@/app/approvals/page'),
+  '/finance': () => import('@/app/finance/page'),
+  '/procurement': () => import('@/app/procurement/page'),
+  '/delivery': () => import('@/app/delivery/page'),
+  '/driver': () => import('@/app/driver/page'),
+  '/shop': () => import('@/app/shop/page'),
+  '/customer': () => import('@/app/customer/page'),
+  '/hr': () => import('@/app/hr/page'),
+  '/projects': () => import('@/app/projects/page'),
+  '/tickets': () => import('@/app/tickets/page'),
+  '/assets': () => import('@/app/assets/page'),
+  '/developers': () => import('@/app/developers/page'),
+  '/telegram': () => import('@/app/telegram/page'),
+  '/automations': () => import('@/app/automations/page'),
+  '/settings': () => import('@/app/settings/page'),
+  '/users': () => import('@/app/users/page'),
+};
+
+export function prefetchRoute(href: string) {
+  const loader = ROUTE_PREFETCH_MAP[href];
+  if (loader) {
+    loader().catch(() => {});
+  }
+}
+
+export const EnterpriseShellContext = createContext<boolean>(false);
+
+export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
+  const isNested = useContext(EnterpriseShellContext);
+  if (isNested) {
+    return <>{children}</>;
+  }
+
   const { user, token, clear } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -183,7 +233,8 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
   if (!token || !user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <EnterpriseShellContext.Provider value={true}>
+      <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <a
         href="#main-content"
         className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0"
@@ -292,6 +343,8 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
                         <Link
                           key={item.name}
                           to={item.href}
+                          onMouseEnter={() => prefetchRoute(item.href)}
+                          onFocus={() => prefetchRoute(item.href)}
                           title={collapsed ? item.name : undefined}
                           className={`group/item flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                             isActive
@@ -488,9 +541,14 @@ export function EnterpriseShell({ children }: { children: React.ReactNode }) {
 
         {/* Page Content Viewport */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+          <div className="mx-auto max-w-7xl">
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              {children || <Outlet />}
+            </Suspense>
+          </div>
         </div>
       </main>
     </div>
+    </EnterpriseShellContext.Provider>
   );
 }
