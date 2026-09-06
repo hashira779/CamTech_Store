@@ -1,9 +1,9 @@
 # MyStore Platform — Universal Enterprise Business Platform (2026–2030)
 
 > **Platform Status:** All Enterprise Specifications (§1–§116, §151–§197, §198–§199, §228–§258) Implemented & Verified  
-> **Canonical Backend:** Python/FastAPI (`services/backend-py`) — Modular Monolith with 18 Decoupled Domain Modules (**76/76 Tests Passing 100%**)  
+> **Canonical Backend:** Python/FastAPI (`services/backend-py`) — Modular Monolith with 18 Decoupled Domain Modules (**97/97 Tests Passing 100%**)  
 > **Canonical Frontend:** Multi-Experience Vite 6 SPA (`apps/web`) — 11 Subdomain Experiences & Dedicated Shells  
-> **Architecture Guides:** [docs/architecture/module-map.md](docs/architecture/module-map.md) · [docs/architecture/multi-experience-ux.md](docs/architecture/multi-experience-ux.md) · [docs/audits/master-spec-compliance-matrix.md](docs/audits/master-spec-compliance-matrix.md)
+> **Architecture Guides:** [docs/architecture/module-map.md](docs/architecture/module-map.md) · [docs/architecture/multi-experience-ux.md](docs/architecture/multi-experience-ux.md) · [docs/audits/session-2026-09-06.md](docs/audits/session-2026-09-06.md)
 
 ---
 
@@ -15,14 +15,17 @@ MyStore/
 │   ├── web/            # ⭐ CANONICAL MULTI-EXPERIENCE SPA (Powers all 11 subdomains dynamically)
 │   ├── cashier/        # Standalone terminal build target (Retail POS)
 │   ├── delivery/       # Standalone terminal build target (Driver Dispatch)
-│   └── store/          # Standalone terminal build target (Public Storefront)
+│   ├── store/          # Standalone terminal build target (Public Storefront)
+│   ├── hr/             # Standalone terminal build target (HR Workforce)
+│   └── ceo/            # Standalone terminal build target (CEO Command Center)
 ├── services/
-│   ├── backend-py/     # ⭐ CANONICAL PYTHON/FASTAPI BACKEND (18 modular domains, 76 tests)
+│   ├── backend-py/     # ⭐ CANONICAL PYTHON/FASTAPI BACKEND (18 modular domains, 97 tests)
 │   └── backend/        # Legacy NestJS backend (retained for architectural reference)
 ├── packages/
 │   └── contracts/      # TypeScript DTOs, interfaces, and App Registry (@mystore/contracts)
-├── docs/               # Architecture specs, compliance audits, ADRs, and guidelines
-└── scripts/            # Database backups and management scripts
+├── infra/              # OpenTelemetry Collector configs, telemetry pipelines
+├── docs/               # Architecture specs, compliance audits, ADRs, and playbooks
+└── scripts/            # Database backups, schema audits, and management CLI
 ```
 
 ---
@@ -129,15 +132,29 @@ docker compose down
 
 ---
 
-## Quality Verification
+## Quality Verification & CI/CD Gates
 
 ```bash
-# Run canonical backend test suite (100% green)
+# Run unified quality gate (schema drift audit, 97 pytests, monorepo typecheck)
+pnpm audit:check
+
+# Run backend test suite (97 tests passed, 0 warnings)
 pnpm py:test
+
+# Run full monorepo typecheck across all 8 packages (Turborepo)
+pnpm typecheck
 
 # Build canonical multi-experience frontend (Vite 6)
 pnpm --filter @mystore/web build
-
-# Run typecheck across contracts and web
-pnpm typecheck
 ```
+
+> 🛡️ **Automated Pre-Push Gate**: Installed via `.git/hooks/pre-push`. Any attempt to push code with database drift, test regressions, or TypeScript errors is automatically caught and blocked locally before reaching remote repositories.
+
+---
+
+## Distributed Observability & Telemetry
+
+- **W3C Traceparent (`traceparent: 00-{traceId}-{spanId}-01`):** Propagated from edge Gateway through domain microservices to database queries.
+- **Structured JSON Logging:** Emits JSON log lines correlated with `requestId`, `traceId`, and `spanId`.
+- **OpenTelemetry Collector & Jaeger:** Runs locally via Docker Compose (`otel-collector` on `:4317/:4318`, Jaeger UI on `http://localhost:16686`).
+- **Connection Resilience (PgBouncer):** Transaction pooling proxy on port `6432` guarding PostgreSQL connection limits under high concurrency.

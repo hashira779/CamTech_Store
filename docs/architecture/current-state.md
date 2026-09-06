@@ -1,11 +1,18 @@
 # Current State — Universal Enterprise Business Platform
 
-> **Document Version:** 4.0.0  
-> **Last Verified:** 2026-09-04  
-> **Status:** Python canonical backend — **schema drift resolved, all write paths live**. Runs as a single monolith *or* as 7 microservices behind a resilient gateway. Frontend Modernization Complete.
+> **Document Version:** 5.0.0  
+> **Last Verified:** 2026-09-06  
+> **Status:** Python canonical backend — **Enterprise Architecture Modernization Complete**. 97/97 tests passing (0 warnings). Relational RBAC normalized, God-routers decomposed, OpenTelemetry distributed tracing integrated, PgBouncer deployed, automated pre-push gate active.
 
 > [!NOTE]
-> **What changed in 4.0.0 (2026-09-04):** the systemic enum-binding bug is fixed (all writes work), `POST/PATCH /customers` added, a real `/reports/summary` (+ `/reports/export`) replaced the missing/hardcoded reporting, the `/customers` routing bug is fixed, the backend can now run fully split into 7 microservices (added a Platform & Experience service + made the gateway boot resiliently), and the Admin super-app gained a crash-containing error boundary. Full detail: [`docs/audits/session-2026-09-04.md`](../audits/session-2026-09-04.md).
+> **What changed in 5.0.0 (2026-09-06):**
+> 1. **Datetime Deprecation Swept:** Migrated `datetime.utcnow()` across 25 files to `utc_now()`, eliminating all 58 Pytest deprecation warnings.
+> 2. **REST Auth Hardened:** Isolated `?token=` parameter strictly to SSE and WebSocket streaming; standard REST mandates `Authorization: Bearer <token>`.
+> 3. **Relational RBAC Normalization:** Populated `user_roles` table across 853 users with 876 assignments; added dual-write and dual-read via `selectinload`.
+> 4. **God-Router Decomposition:** Decomposed 1,007-line `automations/api.py` (4 sub-controllers) and 867-line `sales/api.py` (3 sub-controllers + helpers).
+> 5. **Distributed Observability:** Implemented OpenTelemetry W3C traceparent propagation and structured JSON logging (`app/core/telemetry.py`), verified via `test_telemetry.py`.
+> 6. **Infrastructure Resilience:** Added PgBouncer connection pooling, OTLP Collector, and Jaeger to Docker Compose.
+> 7. **CI/CD Quality Gate:** Installed `pnpm audit:check` and `.git/hooks/pre-push` blocking schema drift, test failures, or typecheck errors. Full detail: [`docs/audits/session-2026-09-06.md`](../audits/session-2026-09-06.md).
 
 ---
 
@@ -16,17 +23,20 @@ The project is structured as a TypeScript + Python monorepo using **pnpm workspa
 ```
 d:\Project\MyStore/
 ├── apps/
-│   └── web/                     # Vite 6 + React 19 Enterprise Dashboard
+│   ├── web/                     # ⭐ Vite 6 + React 19 Enterprise Multi-Experience SPA
+│   ├── cashier/                 # Retail POS Terminal
+│   ├── delivery/                # Driver Delivery Dispatch
+│   ├── store/                   # Public Online Storefront
+│   ├── hr/                      # HR & Workforce Management
+│   └── ceo/                     # CEO Executive Command Center
 ├── services/
-│   ├── backend-py/              # ⭐ CANONICAL — FastAPI + SQLAlchemy backend
-│   └── backend/                 # ⚠️ LEGACY — NestJS 10 Modular Monolith
+│   ├── backend-py/              # ⭐ CANONICAL — FastAPI + SQLAlchemy 2.0 backend (97 tests)
+│   └── backend/                 # ⚠️ LEGACY — NestJS 10 (retained for reference)
 ├── packages/
 │   └── contracts/               # Shared Zod schemas, DTOs, and Permission constants
-├── docs/
-│   ├── architecture/            # Architectural blueprints & roadmap
-│   ├── audits/                  # Schema drift audit & remediation tracking
-│   └── adr/                     # Architecture Decision Records
-├── docker-compose.yml           # Dev infrastructure (Postgres 16, Redis 7, MinIO)
+├── infra/                       # OpenTelemetry Collector & telemetry configurations
+├── docs/                        # Architectural blueprints, playbooks, audits
+├── docker-compose.yml           # Dev infrastructure (Postgres 16, Redis 7, PgBouncer, Jaeger)
 ├── package.json                 # Root package manager & workspace orchestrator
 ├── pnpm-workspace.yaml          # Workspace packages configuration
 └── turbo.json                   # Pipeline caching & task definitions
@@ -38,7 +48,7 @@ d:\Project\MyStore/
 |---|---|---|---|---|
 | **Root Workspace** | `/` | pnpm 11, Turbo 2.3 | ✅ Active | Scripts: `dev`, `build`, `test`, `typecheck`, `lint` |
 | **Web Application** | `apps/web/` | Vite 6, React 19, react-router-dom 7, Tailwind, TanStack Query | ✅ Active | 28 routes via react-router, enterprise UI with design system |
-| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 62/62 tables mapped, 0 schema drift, 34/34 tests passing. See [audit](../audits/python-backend-schema-drift.md). |
+| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 68 tables mapped, 0 schema drift, 97/97 tests passing (0 warnings). See [audit](../audits/session-2026-09-06.md). |
 | **Backend (Legacy)** | `services/backend/` | NestJS 10.4, Express, Prisma 6 | ⚠️ Legacy | 28 modules implemented. Retained for reference; not actively developed. |
 | **Shared Contracts** | `packages/contracts/` | TypeScript, Zod 3.24 | ✅ Active | Single source of truth for DTOs & contracts (used by web app) |
 | **Dev Infrastructure** | `docker-compose.yml` | Docker Compose v3.8 | ✅ Active | PostgreSQL 16, Redis 7 Alpine, MinIO S3 |
@@ -55,10 +65,11 @@ d:\Project\MyStore/
 
 The Python backend is the canonical API server. The previous schema drift has been **100% resolved**:
 
-- **62 of 62 database tables are mapped 1:1 to SQLAlchemy models** in `app/models/entities.py`
+- **68 database tables are mapped to SQLAlchemy models** in `app/models/entities.py`
 - **0 critical write-breaking mismatches**; **0 warnings**
-- Automated schema audit guard tool: `python -m scripts.schema_audit`
-- Automated pytest test suite: **34/34 tests passing**
+- Automated schema audit guard tool: `python services/backend-py/scripts/schema_audit.py`
+- Automated quality gate: `pnpm audit:check`
+- Automated pytest test suite: **97/97 tests passing (0 warnings)**
 - Multi-tenancy isolation (`where organization_id == user.organization_id`) enforced on all queries
 - Server-side pricing recalculations and idempotency key protection on sales/POS checkout
 - JWT authentication with refresh token rotation and RFC 6238 TOTP Multi-Factor Authentication
