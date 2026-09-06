@@ -97,7 +97,7 @@ async def handle_telegram_webhook(
 
     token = _decrypt_token(bot)
     adapter = TelegramAdapter(token)
-    executor = NodeExecutor(adapter)
+    executor = NodeExecutor(adapter, db=db, organization_id=bot.organization_id)
 
     # ── 2. Extract update info ──
     message = update.get("message") or update.get("edited_message")

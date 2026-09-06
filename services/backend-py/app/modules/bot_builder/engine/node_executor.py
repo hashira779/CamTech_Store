@@ -53,11 +53,21 @@ class NodeExecutionResult:
         self.updated_variables = updated_variables or {}
 
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from .node_handlers.business_handlers import BusinessNodeHandlers
+
 class NodeExecutor:
     """Executes a single workflow node and returns the result."""
 
-    def __init__(self, adapter: TelegramAdapter):
+    def __init__(
+        self,
+        adapter: TelegramAdapter,
+        db: Optional[AsyncSession] = None,
+        organization_id: Optional[str] = None,
+    ):
         self._adapter = adapter
+        self._db = db
+        self._org_id = organization_id
 
     async def execute_node(
         self,
@@ -73,8 +83,11 @@ class NodeExecutor:
         params = node.get("data", {}).get("config", {}) or node.get("data", {})
 
         try:
-            if node_type in ("start", "command_received", "message_received",
-                             "callback_query", "webhook_received"):
+            if node_type in (
+                "start", "command_received", "message_received",
+                "callback_query", "webhook_received", "order_created_trigger",
+                "payment_received_trigger", "delivery_update_trigger",
+            ):
                 return self._resolve_next(node_id, edges)
 
             elif node_type == "send_message":
@@ -92,26 +105,101 @@ class NodeExecutor:
             elif node_type == "answer_callback":
                 return await self._handle_answer_callback(node_id, params, edges, context, callback_query_id)
 
-            elif node_type == "wait_input":
+            elif node_type == "wait_input" or node_type == "wait_choice":
                 return NodeExecutionResult(
                     success=True,
                     wait_for_input=True,
                     input_node_id=node_id,
                 )
 
-            elif node_type == "wait_choice":
-                # Wait for a callback_query from an inline keyboard
+            # ─── Store & Catalog Nodes ──────────────────────────────
+            elif node_type in ("search_products", "list_categories", "get_product", "check_stock"):
+                out = await BusinessNodeHandlers.search_products(
+                    self._db, self._org_id, params, context, self._adapter, chat_id
+                )
                 return NodeExecutionResult(
                     success=True,
-                    wait_for_input=True,
-                    input_node_id=node_id,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                    updated_variables={"products": out.get("products", [])},
                 )
 
+            # ─── Orders & Checkout Nodes ────────────────────────────
+            elif node_type in ("get_order_status", "list_recent_orders"):
+                out = await BusinessNodeHandlers.get_order_status(
+                    self._db, self._org_id, params, context, self._adapter, chat_id
+                )
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                )
+
+            # ─── Payments & Bakong KHQR Nodes ───────────────────────
+            elif node_type in ("generate_khqr", "check_payment", "confirm_cod"):
+                out = await BusinessNodeHandlers.generate_khqr(
+                    self._db, self._org_id, params, context, self._adapter, chat_id
+                )
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                    updated_variables={"payment": out},
+                )
+
+            # ─── Delivery & Logistics Nodes ─────────────────────────
+            elif node_type in ("track_delivery", "estimate_delivery", "dispatch_courier"):
+                out = await BusinessNodeHandlers.track_delivery(
+                    self._db, self._org_id, params, context, self._adapter, chat_id
+                )
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                )
+
+            # ─── CRM & Customer Nodes ───────────────────────────────
+            elif node_type in ("lookup_customer", "register_customer", "update_loyalty_points"):
+                out = await BusinessNodeHandlers.lookup_customer(
+                    self._db, self._org_id, params, context, self._adapter, chat_id
+                )
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                    updated_variables={"customer": out},
+                )
+
+            # ─── Support & Admin Nodes ──────────────────────────────
+            elif node_type in ("alert_admin", "agent_handoff", "create_support_ticket"):
+                out = await BusinessNodeHandlers.alert_admin(
+                    params, context, self._adapter
+                )
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=self._find_next(node_id, edges),
+                    output_data=out,
+                )
+
+            # ─── Logic & Data ───────────────────────────────────────
             elif node_type == "condition":
                 return self._handle_condition(node_id, params, edges, context)
 
             elif node_type == "switch":
                 return self._handle_switch(node_id, params, edges, context)
+
+            elif node_type == "business_hours":
+                is_open = BusinessNodeHandlers.check_business_hours(params)
+                handle = "true" if is_open else "false"
+                next_id = self._find_next(node_id, edges, handle)
+                return NodeExecutionResult(
+                    success=True,
+                    next_node_id=next_id,
+                    output_data={"is_open": is_open},
+                )
+
+            elif node_type == "format_currency":
+                return self._handle_format_currency(node_id, params, edges, context)
 
             elif node_type == "set_variable":
                 return self._handle_set_variable(node_id, params, edges, context)
@@ -126,7 +214,6 @@ class NodeExecutor:
                 return await self._handle_send_location(node_id, params, edges, context, chat_id)
 
             elif node_type == "delay":
-                # For now, delays are a no-op pass-through (real async delay requires queue)
                 return self._resolve_next(node_id, edges)
 
             else:
@@ -368,6 +455,26 @@ class NodeExecutor:
                 next_node_id=self._find_next(node_id, edges, "false"),
                 error=str(exc),
             )
+
+    def _handle_format_currency(
+        self, node_id: str, params: Dict, edges: List, context: Dict,
+    ) -> NodeExecutionResult:
+        val_raw = resolve_template(str(params.get("value", "0")), context)
+        currency = params.get("currency", "USD").upper()
+        try:
+            val = float(val_raw)
+            if currency == "KHR":
+                formatted = f"{int(val):,} ៛"
+            else:
+                formatted = f"${val:,.2f}"
+        except Exception:
+            formatted = str(val_raw)
+        out_var = params.get("outputVariable", "formattedPrice")
+        return NodeExecutionResult(
+            success=True,
+            next_node_id=self._find_next(node_id, edges),
+            updated_variables={out_var: formatted},
+        )
 
     # ─── Edge Resolution ────────────────────────────────────────────
 
