@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mystore-gateway
+  namespace: mystore
+  labels:
+    app: mystore-gateway
+    tier: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mystore-gateway
+  template:
+    metadata:
+      labels:
+        app: mystore-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: mystore/backend-py:latest
+          command: ["python", "-m", "uvicorn", "app.microservices.gateway:gateway", "--host", "0.0.0.0", "--port", "4000"]
+          ports:
+            - containerPort: 4000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+          envFrom:
+            - configMapRef:
+                name: mystore-config
+            - secretRef:
+                name: mystore-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mystore-gateway
+  namespace: mystore
+spec:
+  type: ClusterIP
+  selector:
+    app: mystore-gateway
+  ports:
+    - port: 4000
+      targetPort: 4000
+      protocol: TCP
+      name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mystore-gateway-hpa
+  namespace: mystore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mystore-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

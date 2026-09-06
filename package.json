@@ -13,6 +13,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter @mystore/web test:e2e",
     "typecheck": "turbo run typecheck --filter=!@mystore/backend --concurrency=2",
     "audit:check": "python services/backend-py/scripts/schema_audit.py && pnpm py:test && pnpm typecheck",
     "store:dev": "pnpm --filter @mystore/store dev",
