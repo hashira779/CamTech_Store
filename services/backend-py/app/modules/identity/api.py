@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.rate_limiter import auth_rate_limiter
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, func, delete
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -65,6 +65,13 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
         roles=json.dumps(roles)
     )
     db.add(new_user)
+    # Synchronize relational user_roles
+    for r in roles:
+        r_obj = await db.get(Role, r)
+        if not r_obj:
+            db.add(Role(name=r, description=f"{r} role"))
+            await db.flush()
+        db.add(UserRole(user_id=user_id, role_name=r))
     await db.commit()
 
     # 4. Asynchronous Event-Driven Decoupling: Drop event into Redis & Queue
@@ -319,13 +326,16 @@ async def list_users(
             detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
         )
     
-    stmt = select(User).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
+    stmt = select(User).options(selectinload(User.user_roles)).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
     res = await db.execute(stmt)
     users = res.scalars().all()
     
     out = []
     for u in users:
-        roles_list = json.loads(u.roles) if isinstance(u.roles, str) else (u.roles or [])
+        if u.user_roles:
+            roles_list = [ur.role_name for ur in u.user_roles]
+        else:
+            roles_list = json.loads(u.roles) if isinstance(u.roles, str) else (u.roles or [])
         out.append(UserDetailDto(
             id=u.id,
             organizationId=u.organization_id,
@@ -381,6 +391,13 @@ async def create_user(
         is_active=True
     )
     db.add(new_user)
+    # Synchronize relational user_roles
+    for r in roles:
+        r_obj = await db.get(Role, r)
+        if not r_obj:
+            db.add(Role(name=r, description=f"{r} role"))
+            await db.flush()
+        db.add(UserRole(user_id=user_id, role_name=r))
     await db.commit()
     await db.refresh(new_user)
     
@@ -423,6 +440,14 @@ async def update_user(
                 detail="Only existing SUPER_ADMIN can grant the SUPER_ADMIN role"
             )
         target.roles = json.dumps(roles)
+        # Synchronize relational user_roles
+        await db.execute(delete(UserRole).where(UserRole.user_id == target.id))
+        for r in roles:
+            r_obj = await db.get(Role, r)
+            if not r_obj:
+                db.add(Role(name=r, description=f"{r} role"))
+                await db.flush()
+            db.add(UserRole(user_id=target.id, role_name=r))
     if req.isActive is not None:
         target.is_active = req.isActive
     if req.locationId is not None:

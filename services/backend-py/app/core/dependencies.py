@@ -23,6 +23,15 @@ class TenantUser:
     def has_role(self, role: str) -> bool:
         return role in self.roles or "ORG_ADMIN" in self.roles
 
+def extract_user_roles(user: User) -> List[str]:
+    """Dual-read: prioritize relational user_roles, fallback to legacy JSON string."""
+    if getattr(user, "user_roles", None):
+        return [ur.role_name for ur in user.user_roles]
+    try:
+        return json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
+    except Exception:
+        return [user.roles] if user.roles else ["CASHIER"]
+
 async def get_current_user(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),
@@ -45,7 +54,9 @@ async def get_current_user(
         )
 
     user_id = payload["sub"]
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
+    )
     user = result.scalar_one_or_none()
 
     if not user:
@@ -54,11 +65,7 @@ async def get_current_user(
             detail="User not found",
         )
 
-    try:
-        roles_list = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
-    except Exception:
-        roles_list = [user.roles] if user.roles else ["CASHIER"]
-
+    roles_list = extract_user_roles(user)
     return TenantUser(user=user, roles=roles_list)
 
 
@@ -89,7 +96,9 @@ async def get_streaming_user(
         )
 
     user_id = payload["sub"]
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(
+        select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
+    )
     user = result.scalar_one_or_none()
 
     if not user:
@@ -98,11 +107,7 @@ async def get_streaming_user(
             detail="User not found",
         )
 
-    try:
-        roles_list = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
-    except Exception:
-        roles_list = [user.roles] if user.roles else ["CASHIER"]
-
+    roles_list = extract_user_roles(user)
     return TenantUser(user=user, roles=roles_list)
 
 
@@ -118,14 +123,13 @@ async def get_optional_user(
         if not payload or "sub" not in payload:
             return None
         user_id = payload["sub"]
-        result = await db.execute(select(User).where(User.id == user_id))
+        result = await db.execute(
+            select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
+        )
         user = result.scalar_one_or_none()
         if not user:
             return None
-        try:
-            roles_list = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
-        except Exception:
-            roles_list = [user.roles] if user.roles else ["CASHIER"]
+        roles_list = extract_user_roles(user)
         return TenantUser(user=user, roles=roles_list)
     except Exception:
         return None

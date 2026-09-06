@@ -27,6 +27,9 @@ class UserRole(Base):
     user_id = Column("userId", String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role_name = Column("roleName", String, ForeignKey("roles.name", ondelete="CASCADE"), primary_key=True)
 
+    user = relationship("User", back_populates="user_roles")
+    role = relationship("Role")
+
 class User(Base):
     __tablename__ = "users"
 
@@ -35,10 +38,11 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     password_hash = Column("passwordHash", String, nullable=False)
-    roles = Column(Text, default='["STAFF"]', nullable=False)  # JSON-encoded array string
+    roles = Column(Text, default='["STAFF"]', nullable=False)  # JSON-encoded array string (backward-compatible)
     location_id = Column("locationId", String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     organization = relationship("Organization", back_populates="users")
+    user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
