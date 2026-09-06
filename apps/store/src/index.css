@@ -86,3 +86,45 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
+
+/* Print Styles for Official Tax Invoice */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-invoice,
+  #printable-invoice * {
+    visibility: visible !important;
+  }
+  #printable-invoice {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  #printable-invoice .text-white,
+  #printable-invoice .text-slate-100,
+  #printable-invoice .text-slate-200,
+  #printable-invoice .text-slate-300 {
+    color: #0f172a !important;
+  }
+  #printable-invoice .text-slate-400,
+  #printable-invoice .text-slate-500 {
+    color: #475569 !important;
+  }
+  #printable-invoice .bg-slate-950,
+  #printable-invoice .bg-slate-900 {
+    background: #f8fafc !important;
+  }
+  #printable-invoice .border-slate-800,
+  #printable-invoice .border-slate-700 {
+    border-color: #cbd5e1 !important;
+  }
+}

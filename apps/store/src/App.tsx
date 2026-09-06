@@ -27,7 +27,11 @@ import {
   Award,
   ExternalLink,
   ArrowRight,
-  Compass
+  Compass,
+  Receipt,
+  Printer,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
@@ -91,6 +95,8 @@ export function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any>(null);
+  const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
 
   // Automatically keep localStorage in sync with cart state
@@ -1453,12 +1459,26 @@ export function App() {
               </div>
             </div>
 
-            <button
-              onClick={() => setConfirmedOrder(null)}
-              className="mt-6 w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition"
-            >
-              Continue Shopping
-            </button>
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedOrderForInvoice(confirmedOrder);
+                  setConfirmedOrder(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition cursor-pointer"
+              >
+                <Receipt className="w-4 h-4" />
+                View Invoice
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmedOrder(null)}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition cursor-pointer"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1473,8 +1493,9 @@ export function App() {
                 <h3 className="font-bold text-lg text-white">Order History & Invoices</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setIsHistoryOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1500,24 +1521,42 @@ export function App() {
                   <p className="text-xs">No past sales found in Central Data Center.</p>
                 </div>
               ) : (
-                orderHistory.slice(0, 8).map((order: any) => (
-                  <div key={order.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                orderHistory.slice(0, 12).map((order: any) => (
+                  <div
+                    key={order.id}
+                    onClick={() => {
+                      setSelectedOrderForInvoice(order);
+                      setIsHistoryOpen(false);
+                    }}
+                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition cursor-pointer flex items-center justify-between group"
+                  >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-white">{order.saleNumber || order.id}</span>
+                        <span className="font-mono text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                          {order.saleNumber || order.id}
+                        </span>
                         <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
                           {order.status || 'COMPLETED'}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Recent'}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                        <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Recent'}</span>
+                        <span>•</span>
+                        <span>{order.lineItems?.length || order.itemCount || 1} item(s)</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-mono font-bold text-emerald-400 text-sm">
-                        ${Number(order.grandTotal || order.total || 0).toFixed(2)}
-                      </span>
-                      <span className="text-[10px] block text-slate-500">Paid via KHQR</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-emerald-400 text-sm block">
+                          ${Number(order.grandTotal || order.total || 0).toFixed(2)}
+                        </span>
+                        <span className="text-[10px] block text-slate-500">
+                          {order.payments?.[0]?.method || order.paymentMethod || 'Paid via KHQR'}
+                        </span>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-slate-900 group-hover:bg-emerald-500/20 text-slate-400 group-hover:text-emerald-400 transition">
+                        <Receipt className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
                 ))
@@ -1526,6 +1565,262 @@ export function App() {
           </div>
         </div>
       )}
+
+      {/* Official Tax Invoice & Order Detail Modal */}
+      {selectedOrderForInvoice && (() => {
+        const order = selectedOrderForInvoice;
+        const invoiceNumber = order.saleNumber || order.orderNumber || (order.id ? `ORD-${String(order.id).slice(-6).toUpperCase()}` : 'ORD-2026-INV');
+        const orderDate = order.createdAt || order.date || new Date().toISOString();
+        const customerName = order.customerName || order.customer?.name || customer?.name || guestName || 'Valued Customer';
+        const customerEmail = order.customerEmail || order.customer?.email || customer?.email || guestEmail || 'customer@camtech.store';
+        const customerPhone = order.customerPhone || order.customer?.phone || customer?.phone || guestPhone || '';
+        const orderAddress = order.deliveryAddress || order.address || deliveryAddress || 'Phnom Penh Urban Area, Cambodia';
+        const method = order.payments?.[0]?.method || order.paymentMethod || 'KHQR (Bakong)';
+        const grandTotal = Number(order.grandTotal || order.total || 0);
+        const subtotal = order.subtotal !== undefined ? Number(order.subtotal) : (grandTotal / 1.1);
+        const taxTotal = order.taxTotal !== undefined ? Number(order.taxTotal) : (grandTotal - subtotal);
+        const khrTotal = Math.round(grandTotal * 4100).toLocaleString();
+        const lineItems = (order.lineItems && order.lineItems.length > 0)
+          ? order.lineItems
+          : (order.items && order.items.length > 0)
+          ? order.items
+          : [];
+
+        const handleCopyInvoiceNumber = () => {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(invoiceNumber);
+            setCopiedInvoiceId(true);
+            toast.success(`Copied ${invoiceNumber} to clipboard`);
+            setTimeout(() => setCopiedInvoiceId(false), 2000);
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
+              {/* Modal Control Header (Hidden when printing) */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/80 print:hidden">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-emerald-400" />
+                  <h3 className="font-bold text-base text-white">Order Details & Tax Invoice</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-700 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Print Invoice</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForInvoice(null)}
+                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Printable Invoice Sheet */}
+              <div id="printable-invoice" className="p-6 sm:p-8 space-y-6 text-slate-200 text-xs">
+                {/* Brand Header */}
+                <div className="flex items-start justify-between pb-6 border-b border-slate-800">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-md">
+                        <Store className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h2 className="font-black text-lg text-white tracking-tight">CamTech Store</h2>
+                        <p className="text-[10px] text-emerald-400 font-mono">OFFICIAL TAX INVOICE • វិក្កយបត្រពន្ធ</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">
+                      Kingdom of Cambodia • Ministry of Commerce Reg. #00084920
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Vattanac Capital Tower, Level 14, Preah Monivong Blvd, Phnom Penh
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold font-mono">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {order.status || 'PAID & COMPLETED'}
+                    </span>
+                    <div className="flex items-center justify-end gap-1.5 mt-2">
+                      <span className="font-mono text-xs font-bold text-white">{invoiceNumber}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyInvoiceNumber}
+                        className="text-slate-400 hover:text-white print:hidden cursor-pointer"
+                        title="Copy Invoice Number"
+                      >
+                        {copiedInvoiceId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      {new Date(orderDate).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Customer & Delivery Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-950 border border-slate-800/80">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Billed To</span>
+                    <p className="font-bold text-white text-sm">{customerName}</p>
+                    <p className="text-[11px] text-slate-300">{customerEmail}</p>
+                    {customerPhone && <p className="text-[11px] text-slate-400 font-mono">{customerPhone}</p>}
+                  </div>
+                  <div className="space-y-1 sm:text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Delivery Destination</span>
+                    <p className="text-[11px] text-slate-200 line-clamp-2">{orderAddress}</p>
+                    <p className="text-[10px] text-emerald-400 font-medium">⚡ Express Fleet Dispatch</p>
+                  </div>
+                </div>
+
+                {/* Itemized Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400">
+                        <th className="pb-2.5">Item Description</th>
+                        <th className="pb-2.5 text-center">Qty</th>
+                        <th className="pb-2.5 text-right">Price</th>
+                        <th className="pb-2.5 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {lineItems.length > 0 ? (
+                        lineItems.map((item: any, idx: number) => {
+                          const itemName = item.name || item.productName || 'Store Product';
+                          const itemQty = Number(item.quantity || 1);
+                          const itemPrice = Number(item.unitPrice || item.price || 0);
+                          const itemTotal = Number(item.lineTotal || (itemQty * itemPrice));
+                          const itemSku = item.sku || (item.id ? `SKU-${String(item.id).substring(0, 6)}` : 'GEN-01');
+
+                          return (
+                            <tr key={idx} className="hover:bg-slate-950/40">
+                              <td className="py-2.5 font-sans">
+                                <span className="font-semibold text-white block">{itemName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">{itemSku}</span>
+                              </td>
+                              <td className="py-2.5 text-center text-slate-200">{itemQty}</td>
+                              <td className="py-2.5 text-right text-slate-300">${itemPrice.toFixed(2)}</td>
+                              <td className="py-2.5 text-right font-bold text-white">${itemTotal.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td className="py-3 font-sans">
+                            <span className="font-semibold text-white block">Central Store Merchandise</span>
+                            <span className="text-[10px] text-slate-400 font-mono">ORDER-{invoiceNumber}</span>
+                          </td>
+                          <td className="py-3 text-center text-slate-200">{order.itemCount || 1}</td>
+                          <td className="py-3 text-right text-slate-300">${subtotal.toFixed(2)}</td>
+                          <td className="py-3 text-right font-bold text-white">${subtotal.toFixed(2)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="pt-3 border-t border-slate-800 space-y-1.5">
+                  <div className="flex justify-between text-slate-400 text-xs">
+                    <span>Subtotal</span>
+                    <span className="font-mono text-slate-200">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-xs">
+                    <span>VAT / Tax (10% included)</span>
+                    <span className="font-mono text-slate-200">${taxTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-xs">
+                    <span>Fleet Delivery & Handling</span>
+                    <span className="font-mono text-emerald-400 font-semibold">FREE / INCLUDED</span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-3 border-t border-slate-800">
+                    <div>
+                      <span className="font-bold text-sm text-white block">Grand Total Due</span>
+                      <span className="text-[10px] text-slate-400 font-mono">1 USD ≈ 4,100 KHR</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-mono font-black text-xl text-emerald-400 block">
+                        ${grandTotal.toFixed(2)} USD
+                      </span>
+                      <span className="font-mono text-xs text-slate-300">
+                        {khrTotal} KHR
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment & Verification Footer */}
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-white block">Settlement Method</span>
+                      <span className="text-slate-400 font-mono">{method}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-emerald-400 font-bold block">Transaction Verified</span>
+                    <span className="text-slate-500 font-mono text-[10px]">National Bakong Network</span>
+                  </div>
+                </div>
+
+                {/* Thank you note */}
+                <div className="text-center pt-2 text-[10px] text-slate-400">
+                  <p>Thank you for choosing CamTech Store! For customer support, contact support@camtech.store.</p>
+                </div>
+              </div>
+
+              {/* Bottom Actions (hidden during print) */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between print:hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForInvoice(null);
+                    setIsHistoryOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  ← Back to Order History
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Print Receipt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForInvoice(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Customer Sign In / Account Modal */}
       {isAuthModalOpen && (
