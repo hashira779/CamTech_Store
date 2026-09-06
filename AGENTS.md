@@ -6,6 +6,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 
 > Orientation first: [`README.md`](README.md) · [`docs/architecture/current-state.md`](docs/architecture/current-state.md) ·
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
+> [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
 > latest change log [`docs/audits/session-2026-09-04.md`](docs/audits/session-2026-09-04.md).
 
 ---
@@ -43,6 +44,9 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
    `KeyError: '<Model>'` 500s.
 8. **The gateway must boot even if a module is broken.** Its fallback import is lazy/guarded (`get_fallback_app()`).
    Don't move `from app.main import app` back to module top level — that recouples gateway health to every file compiling.
+9. **Strictly adhere to the 90 Engineering & Architecture Principles Playbook ([`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md)).**
+   All contributions must satisfy core flow, OOP/DDD invariants, DRY/KISS, native enum data integrity, tenant isolation,
+   statelessness, security-by-design, observability, and backward-compatible contract evolution.
 
 ---
 
