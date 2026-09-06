@@ -10,6 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 
 def gen_id():
     return str(uuid.uuid4())
@@ -37,7 +38,7 @@ class User(Base):
     roles = Column(Text, default='["STAFF"]', nullable=False)  # JSON-encoded array string
     location_id = Column("locationId", String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     organization = relationship("Organization", back_populates="users")

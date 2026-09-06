@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import TaxRate, PriceList, Promotion, LoyaltyTransaction
 from app.domain.commerce_engines import (
@@ -170,8 +171,8 @@ async def create_promotion(
         get_quantity=input_data.getQuantity,
         usage_limit=input_data.usageLimit,
         is_active=input_data.isActive if input_data.isActive is not None else True,
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow(),
+        created_at=utc_now(),
+        updated_at=utc_now(),
     )
     if input_data.startDate:
         try:
@@ -226,7 +227,7 @@ async def update_promotion(
     if input_data.isActive is not None:
         promo.is_active = input_data.isActive
 
-    promo.updated_at = datetime.datetime.utcnow()
+    promo.updated_at = utc_now()
     await db.commit()
     await db.refresh(promo)
     return _promo_to_dto(promo)

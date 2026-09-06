@@ -14,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
 
 def gen_id():
@@ -38,7 +39,7 @@ class AuditLog(Base):
     metadata_ = Column("metadata", String, nullable=True)  # JSON-encoded metadata
     ip = Column(String, nullable=True)
     result = Column(String, default="SUCCESS", nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 # ==============================================================================
 # 2. CATALOG & INVENTORY
@@ -92,8 +93,8 @@ class TaxRate(Base):
     is_inclusive = Column("isInclusive", Boolean, default=False, nullable=False)
     is_compound = Column("isCompound", Boolean, default=False, nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class PriceList(Base):
     __tablename__ = "price_lists"
@@ -107,8 +108,8 @@ class PriceList(Base):
     is_default = Column("isDefault", Boolean, default=False, nullable=False)
     customer_type = Column("customerType", pg_enum("CustomerType"), nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class PriceListItem(Base):
     __tablename__ = "price_list_items"
@@ -118,8 +119,8 @@ class PriceListItem(Base):
     product_variant_id = Column("productVariantId", String, ForeignKey("product_variants.id"), nullable=False)
     unit_price = Column("unitPrice", Numeric(14, 4), nullable=False)
     min_quantity = Column("minQuantity", Numeric(14, 4), default=1.0, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class Promotion(Base):
     __tablename__ = "promotions"
@@ -144,8 +145,8 @@ class Promotion(Base):
     target_variant_ids = Column("targetVariantIds", String, nullable=True)
     target_category_ids = Column("targetCategoryIds", String, nullable=True)
     customer_types = Column("customerTypes", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class LoyaltyProgramConfig(Base):
     __tablename__ = "loyalty_program_configs"
@@ -156,8 +157,8 @@ class LoyaltyProgramConfig(Base):
     redeem_rate = Column("redeemRate", Numeric(8, 4), default=0.01, nullable=False)
     min_points_redeem = Column("minPointsRedeem", Integer, default=50, nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class LoyaltyTransaction(Base):
     __tablename__ = "loyalty_transactions"
@@ -172,7 +173,7 @@ class LoyaltyTransaction(Base):
     reference_id = Column("referenceId", String, nullable=True)
     notes = Column(String, nullable=True)
     actor_id = Column("actorId", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
     # Removed: reference (not in Prisma — Prisma uses referenceType + referenceId)
 
@@ -189,7 +190,7 @@ class StoreCreditTransaction(Base):
     reference_id = Column("referenceId", String, nullable=True)
     notes = Column(String, nullable=True)
     actor_id = Column("actorId", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 class DocumentRecord(Base):
     __tablename__ = "document_records"  # FIXED: was 'documents'
@@ -206,8 +207,8 @@ class DocumentRecord(Base):
     entity_type = Column("entityType", String, nullable=True)
     entity_id = Column("entityId", String, nullable=True)
     uploaded_by_id = Column("uploadedById", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class NotificationConfig(Base):
     __tablename__ = "notification_configs"
@@ -220,8 +221,8 @@ class NotificationConfig(Base):
     email_enabled = Column("emailEnabled", Boolean, default=False, nullable=False)
     email_recipient = Column("emailRecipient", String, nullable=True)
     in_app_enabled = Column("inAppEnabled", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class NotificationRecord(Base):
     __tablename__ = "notification_records"  # FIXED: was 'notifications'
@@ -238,7 +239,7 @@ class NotificationRecord(Base):
     is_read = Column("isRead", Boolean, default=False, nullable=False)
     sent_at = Column("sentAt", DateTime, nullable=True)
     read_at = Column("readAt", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 class StockTransfer(Base):
     __tablename__ = "stock_transfers"
@@ -256,8 +257,8 @@ class StockTransfer(Base):
     shipped_at = Column("shippedAt", DateTime, nullable=True)
     received_at = Column("receivedAt", DateTime, nullable=True)
     notes = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 # ==============================================================================
 # 8. HR, PAYROLL, PROJECTS, TIMESHEETS
@@ -271,8 +272,8 @@ class Department(Base):
     name = Column(String, nullable=False)
     code = Column(String, nullable=True)
     description = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class Employee(Base):
     __tablename__ = "employees"
@@ -287,9 +288,9 @@ class Employee(Base):
     position = Column(String, nullable=False)  # FIXED: was missing (NOT NULL)
     status = Column(pg_enum("EmploymentStatus"), default="FULL_TIME", nullable=False)
     base_salary = Column("baseSalary", Numeric(14, 4), default=0.0, nullable=False)
-    hire_date = Column("hireDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    hire_date = Column("hireDate", DateTime, default=utc_now, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class LeaveRequest(Base):
     __tablename__ = "leave_requests"
@@ -304,8 +305,8 @@ class LeaveRequest(Base):
     reason = Column(String, nullable=True)
     status = Column(pg_enum("LeaveStatus"), default="PENDING", nullable=False)
     approved_by_id = Column("approvedById", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class PayrollRun(Base):
     __tablename__ = "payroll_runs"
@@ -319,8 +320,8 @@ class PayrollRun(Base):
     total_gross = Column("totalGross", Numeric(14, 4), default=0.0, nullable=False)
     total_net = Column("totalNet", Numeric(14, 4), default=0.0, nullable=False)
     journal_entry_id = Column("journalEntryId", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class PayrollItem(Base):
     __tablename__ = "payroll_items"
@@ -345,8 +346,8 @@ class Project(Base):
     status = Column(pg_enum("ProjectStatus"), default="PLANNING", nullable=False)  # FIXED: was 'ACTIVE'
     start_date = Column("startDate", DateTime, nullable=True)
     end_date = Column("endDate", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)  # FIXED: was missing
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)  # FIXED: was missing
 
 class ProjectTask(Base):
     __tablename__ = "project_tasks"
@@ -359,8 +360,8 @@ class ProjectTask(Base):
     assigned_to_id = Column("assignedToId", String, nullable=True)
     estimated_hours = Column("estimatedHours", Numeric(8, 2), default=0.0, nullable=False)
     actual_hours = Column("actualHours", Numeric(8, 2), default=0.0, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class TimesheetEntry(Base):
     __tablename__ = "timesheet_entries"  # FIXED: was 'timesheets'
@@ -369,9 +370,9 @@ class TimesheetEntry(Base):
     task_id = Column("taskId", String, ForeignKey("project_tasks.id"), nullable=False)
     worker_id = Column("workerId", String, nullable=True)
     hours = Column(Numeric(8, 2), nullable=False)
-    date = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    date = Column(DateTime, default=utc_now, nullable=False)
     notes = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 # ==============================================================================
 # 9. PROCUREMENT (models for DB tables that exist)
@@ -392,8 +393,8 @@ class Supplier(Base):
     payment_terms = Column("paymentTerms", pg_enum("PaymentTerm"), default="NET_30", nullable=False)
     notes = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
@@ -403,7 +404,7 @@ class PurchaseOrder(Base):
     location_id = Column("locationId", String, nullable=False)
     supplier_id = Column("supplierId", String, nullable=False)
     po_number = Column("poNumber", String, nullable=False)
-    order_date = Column("orderDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    order_date = Column("orderDate", DateTime, default=utc_now, nullable=False)
     expected_delivery_date = Column("expectedDeliveryDate", DateTime, nullable=True)
     status = Column(pg_enum("PurchaseOrderStatus"), default="DRAFT", nullable=False)
     currency = Column(String, default="USD", nullable=False)
@@ -411,8 +412,8 @@ class PurchaseOrder(Base):
     tax_total = Column("taxTotal", Numeric(14, 4), nullable=False)
     grand_total = Column("grandTotal", Numeric(14, 4), nullable=False)
     notes = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 # ==============================================================================
 # 10. WORKFLOW (models for DB tables that exist)
@@ -427,8 +428,8 @@ class WorkflowDefinition(Base):
     entity_type = Column("entityType", pg_enum("WorkflowEntityType"), nullable=False)
     description = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class WorkflowInstance(Base):
     __tablename__ = "workflow_instances"
@@ -444,8 +445,8 @@ class WorkflowInstance(Base):
     current_step = Column("currentStep", Integer, default=1, nullable=False)
     total_steps = Column("totalSteps", Integer, default=1, nullable=False)
     metadata_ = Column("metadata", JSON, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 # ==============================================================================
 # COMPATIBILITY ALIASES
@@ -480,7 +481,7 @@ class WorkflowLog(Base):
     actor_id = Column("actorId", String, nullable=True)
     action = Column(String, nullable=False)
     comment = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 # ==============================================================================
 # 11. WAREHOUSE (models for DB tables that exist)
@@ -495,8 +496,8 @@ class WarehouseZone(Base):
     name = Column(String, nullable=False)
     type = Column(pg_enum("WarehouseZoneType"), default="STORAGE", nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class WarehouseBin(Base):
     __tablename__ = "warehouse_bins"
@@ -508,8 +509,8 @@ class WarehouseBin(Base):
     max_weight_kg = Column("maxWeightKg", Numeric(10, 2), nullable=True)
     max_volume_cbm = Column("maxVolumeCbm", Numeric(10, 2), nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class ProductBatch(Base):
     __tablename__ = "product_batches"
@@ -523,8 +524,8 @@ class ProductBatch(Base):
     expires_at = Column("expiresAt", DateTime, nullable=False)
     quantity_on_hand = Column("quantityOnHand", Numeric(14, 4), default=0.0, nullable=False)
     cost_price = Column("costPrice", Numeric(14, 4), nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class PurchaseOrderLineItem(Base):
     __tablename__ = "purchase_order_line_items"
@@ -548,11 +549,11 @@ class GoodsReceipt(Base):
     purchase_order_id = Column("purchaseOrderId", String, ForeignKey("purchase_orders.id"), nullable=False)
     supplier_id = Column("supplierId", String, ForeignKey("suppliers.id"), nullable=False)
     grn_number = Column("grnNumber", String, nullable=False)
-    received_date = Column("receivedDate", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    received_date = Column("receivedDate", DateTime, default=utc_now, nullable=False)
     status = Column(pg_enum("GoodsReceiptStatus"), default="COMPLETED", nullable=False)
     notes = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class GoodsReceiptLineItem(Base):
     __tablename__ = "goods_receipt_line_items"
@@ -588,6 +589,6 @@ class WebhookDelivery(Base):
     response_body = Column("responseBody", Text, nullable=True)
     success = Column(Boolean, default=False, nullable=False)
     attempts = Column(Integer, default=1, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 from app.modules.automations.models import TelegramBot, TelegramChatBinding

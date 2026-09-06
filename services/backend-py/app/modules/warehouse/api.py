@@ -8,6 +8,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import StockTransfer, NotificationRecord
 from app.modules.sales.models import Sale, SaleLineItem
@@ -150,7 +151,7 @@ async def fulfill_picking_order(
     if not sale:
         raise HTTPException(status_code=404, detail="Sale order not found")
 
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     notes_dict = _parse_sale_notes(sale.notes)
     notes_dict["wmsStatus"] = "PICKED"
     notes_dict["packedAt"] = now.isoformat()

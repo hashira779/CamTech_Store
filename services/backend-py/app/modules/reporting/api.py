@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 
 from app.modules.sales.models import Sale, SaleLineItem, SalePayment
@@ -161,14 +162,14 @@ def _build_summary(sales, line_items, payments, variants, products, categories, 
         s = sale_by_id.get(li.sale_id)
         if not s:
             continue
-        day = (s.created_at or datetime.datetime.utcnow()).date().isoformat()
+        day = (s.created_at or utc_now()).date().isoformat()
         v = variant_by_id.get(li.product_variant_id)
         cost = _f(v.cost_price) if v else 0.0
         cogs_by_day[day] += cost * _f(li.quantity)
 
     ts_agg = defaultdict(lambda: {"revenue": 0.0, "orders": 0, "net": 0.0})
     for s in sales:
-        day = (s.created_at or datetime.datetime.utcnow()).date().isoformat()
+        day = (s.created_at or utc_now()).date().isoformat()
         ts_agg[day]["revenue"] += _f(s.grand_total)
         ts_agg[day]["orders"] += 1
         ts_agg[day]["net"] += _f(s.subtotal) - _f(s.discount_total)
@@ -350,7 +351,7 @@ async def get_business_dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     """Decision-grade dashboard with comparison periods and operational alerts."""
-    end = datetime.datetime.utcnow()
+    end = utc_now()
     start = end - datetime.timedelta(days=rangeDays)
     previous_start = start - datetime.timedelta(days=rangeDays)
 

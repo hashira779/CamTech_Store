@@ -10,6 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
 
 def gen_id():
@@ -31,8 +32,8 @@ class ServiceTicket(Base):
     customer_id = Column("customerId", String, nullable=True)
     resolution = Column(String, nullable=True)
     resolved_at = Column("resolvedAt", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     comments = relationship("TicketComment", back_populates="ticket", cascade="all, delete-orphan")
 
@@ -45,6 +46,6 @@ class TicketComment(Base):
     author_name = Column("authorName", String, nullable=False)
     comment = Column(Text, nullable=False)
     is_internal = Column("isInternal", Boolean, default=False, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
     ticket = relationship("ServiceTicket", back_populates="comments")

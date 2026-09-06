@@ -10,6 +10,7 @@ from sqlalchemy import (
     Integer
 )
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
 
 def gen_id():
@@ -32,8 +33,8 @@ class Customer(Base):
     store_credit = Column("storeCredit", Numeric(14, 4), default=0.0, nullable=False)
     notes = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class CustomerAddress(Base):
     __tablename__ = "customer_addresses"

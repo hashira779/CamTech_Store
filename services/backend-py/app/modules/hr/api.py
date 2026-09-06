@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.core.db_enums import ENUM_LABELS
 from app.models.entities import Employee, Department, LeaveRequest
@@ -50,8 +51,8 @@ def _leave_to_dto(l: LeaveRequest, emp_name: Optional[str] = None) -> LeaveReque
         employeeId=l.employee_id,
         employeeName=emp_name,
         type=l.type,
-        startDate=l.start_date.isoformat() if l.start_date else datetime.datetime.utcnow().isoformat(),
-        endDate=l.end_date.isoformat() if l.end_date else datetime.datetime.utcnow().isoformat(),
+        startDate=l.start_date.isoformat() if l.start_date else utc_now().isoformat(),
+        endDate=l.end_date.isoformat() if l.end_date else utc_now().isoformat(),
         daysCount=l.days_count or 1,
         reason=l.reason,
         status=l.status,
@@ -92,8 +93,8 @@ async def create_department(
         name=input_data.name.strip(),
         code=input_data.code.strip().upper() if input_data.code else None,
         description=input_data.description,
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow(),
+        created_at=utc_now(),
+        updated_at=utc_now(),
     )
     db.add(dept)
     await db.commit()
@@ -162,12 +163,12 @@ async def create_employee(
     if emp_status not in _EMPLOYMENT_STATUSES:
         emp_status = "FULL_TIME"
 
-    hire_date = datetime.datetime.utcnow()
+    hire_date = utc_now()
     if input_data.hireDate:
         try:
             hire_date = datetime.datetime.fromisoformat(input_data.hireDate.replace("Z", "+00:00"))
         except Exception:
-            hire_date = datetime.datetime.utcnow()
+            hire_date = utc_now()
 
     # Validate department if provided
     dept_name = None
@@ -193,8 +194,8 @@ async def create_employee(
         status=emp_status,
         base_salary=Decimal(str(input_data.baseSalary or 0.0)),
         hire_date=hire_date,
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow(),
+        created_at=utc_now(),
+        updated_at=utc_now(),
     )
     db.add(emp)
     await db.commit()
@@ -241,8 +242,8 @@ async def create_leave_request(
     if not emp:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
-    start_date = datetime.datetime.utcnow()
-    end_date = datetime.datetime.utcnow()
+    start_date = utc_now()
+    end_date = utc_now()
     try:
         start_date = datetime.datetime.fromisoformat(input_data.startDate.replace("Z", "+00:00"))
         end_date = datetime.datetime.fromisoformat(input_data.endDate.replace("Z", "+00:00"))
@@ -258,8 +259,8 @@ async def create_leave_request(
         days_count=max(1, input_data.daysCount),
         reason=input_data.reason,
         status="PENDING",
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow(),
+        created_at=utc_now(),
+        updated_at=utc_now(),
     )
     db.add(lr)
     await db.commit()
@@ -288,7 +289,7 @@ async def approve_leave_request(
 
     lr.status = "APPROVED"
     lr.approved_by_id = user.id
-    lr.updated_at = datetime.datetime.utcnow()
+    lr.updated_at = utc_now()
     await db.commit()
     await db.refresh(lr)
     return _leave_to_dto(lr, f"{emp.first_name} {emp.last_name}".strip())
@@ -315,7 +316,7 @@ async def reject_leave_request(
 
     lr.status = "REJECTED"
     lr.approved_by_id = user.id
-    lr.updated_at = datetime.datetime.utcnow()
+    lr.updated_at = utc_now()
     await db.commit()
     await db.refresh(lr)
     return _leave_to_dto(lr, f"{emp.first_name} {emp.last_name}".strip())

@@ -8,6 +8,7 @@ from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.core.db_enums import ENUM_LABELS
 from app.domain.enterprise_engines import DepreciationCalculator
@@ -46,7 +47,7 @@ def _journal_to_dto(e: JournalEntry) -> JournalEntryDto:
     return JournalEntryDto(
         id=e.id,
         entryNumber=e.entry_number,
-        date=e.posting_date.isoformat() if e.posting_date else datetime.datetime.utcnow().isoformat(),
+        date=e.posting_date.isoformat() if e.posting_date else utc_now().isoformat(),
         memo=e.description,
         status=e.status,
         lines=[
@@ -234,14 +235,14 @@ async def create_journal_entry(
                 detail=f"Account '{line.accountId}' not found in organization"
             )
 
-    posting_date = datetime.datetime.utcnow()
+    posting_date = utc_now()
     if input_data.postingDate:
         try:
             posting_date = datetime.datetime.fromisoformat(input_data.postingDate.replace("Z", "+00:00"))
         except Exception:
-            posting_date = datetime.datetime.utcnow()
+            posting_date = utc_now()
 
-    entry_num = f"JE-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+    entry_num = f"JE-{utc_now().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
     source_type = input_data.sourceType.upper() if input_data.sourceType and input_data.sourceType.upper() in _JOURNAL_SOURCES else "MANUAL"
 
     entry = JournalEntry(
@@ -305,7 +306,7 @@ async def post_journal_entry(
         )
 
     entry.status = "POSTED"
-    entry.updated_at = datetime.datetime.utcnow()
+    entry.updated_at = utc_now()
     await db.commit()
     await db.refresh(entry)
     return _journal_to_dto(entry)
@@ -331,7 +332,7 @@ async def void_journal_entry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal entry not found")
 
     entry.status = "VOID"
-    entry.updated_at = datetime.datetime.utcnow()
+    entry.updated_at = utc_now()
     await db.commit()
     await db.refresh(entry)
     return _journal_to_dto(entry)

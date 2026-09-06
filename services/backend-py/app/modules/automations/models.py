@@ -11,6 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 
 def gen_id():
     return str(uuid.uuid4())
@@ -23,8 +24,8 @@ class DeveloperApp(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     homepage_url = Column("homepageUrl", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class ApiKey(Base):
     __tablename__ = "api_keys"
@@ -40,7 +41,7 @@ class ApiKey(Base):
     expires_at = Column("expiresAt", DateTime, nullable=True)
     last_used_at = Column("lastUsedAt", DateTime, nullable=True)
     revoked_at = Column("revokedAt", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 class WebhookSubscription(Base):
     __tablename__ = "webhook_subscriptions"
@@ -52,8 +53,8 @@ class WebhookSubscription(Base):
     description = Column(String, nullable=True)
     events = Column("events", PG_ARRAY(String), nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class TelegramBot(Base):
     __tablename__ = "telegram_bots"
@@ -70,8 +71,8 @@ class TelegramBot(Base):
     is_primary = Column("isPrimary", Boolean, default=False, nullable=False)
     status = Column(String, default="CONNECTED", nullable=False)
     last_tested_at = Column("lastTestedAt", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class TelegramChatBinding(Base):
     __tablename__ = "telegram_chat_bindings"
@@ -86,8 +87,8 @@ class TelegramChatBinding(Base):
     role = Column(String, default="OPERATOR", nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     bound_by_user_id = Column("boundByUserId", String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class AutomationFlow(Base):
     __tablename__ = "automation_flows"
@@ -100,8 +101,8 @@ class AutomationFlow(Base):
     trigger_type = Column("triggerType", String, default="MANUAL", nullable=False)
     nodes = Column(JSON, default=list, nullable=False)
     edges = Column(JSON, default=list, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class FlowExecution(Base):
     __tablename__ = "flow_executions"
@@ -113,5 +114,5 @@ class FlowExecution(Base):
     status = Column(String, default="RUNNING", nullable=False)
     trigger_payload = Column("triggerPayload", JSON, default=dict, nullable=False)
     execution_trace = Column("executionTrace", JSON, default=list, nullable=False)
-    started_at = Column("startedAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    started_at = Column("startedAt", DateTime, default=utc_now, nullable=False)
     finished_at = Column("finishedAt", DateTime, nullable=True)

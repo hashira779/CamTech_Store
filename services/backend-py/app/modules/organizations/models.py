@@ -9,6 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 
 def gen_id():
     return str(uuid.uuid4())
@@ -24,7 +25,7 @@ class Organization(Base):
     tax_rate_pct = Column("taxRatePct", Numeric(14, 4), default=10, server_default=text("10"), nullable=False)
     business_type = Column("businessType", String, default="RETAIL", server_default=text("'RETAIL'"), nullable=False)
     settings = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     users = relationship("User", back_populates="organization")

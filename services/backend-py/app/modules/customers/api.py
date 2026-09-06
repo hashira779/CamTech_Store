@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser
 from app.core.config import settings
 from app.core.db_enums import ENUM_LABELS
@@ -279,7 +280,7 @@ async def sync_customer_cart(
 
     existing_meta["cart"] = payload.items
     customer.notes = json.dumps(existing_meta)
-    customer.updated_at = datetime.datetime.utcnow()
+    customer.updated_at = utc_now()
 
     await db.commit()
     await db.refresh(customer)

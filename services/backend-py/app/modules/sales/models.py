@@ -10,6 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 
 def gen_id():
     return str(uuid.uuid4())
@@ -52,8 +53,8 @@ class Sale(Base):
     promotion_id = Column("promotionId", String, nullable=True)
     promotion_code = Column("promotionCode", String, nullable=True)
     completed_at = Column("completedAt", DateTime, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     line_items = relationship("SaleLineItem", back_populates="sale", cascade="all, delete-orphan")
     payments = relationship("SalePayment", back_populates="sale", cascade="all, delete-orphan")
@@ -88,6 +89,6 @@ class SalePayment(Base):
     reference = Column(String, nullable=True)
     external_id = Column("externalId", String, nullable=True)
     qr_string = Column("qrString", String, nullable=True)
-    paid_at = Column("paidAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    paid_at = Column("paidAt", DateTime, default=utc_now, nullable=False)
 
     sale = relationship("Sale", back_populates="payments")

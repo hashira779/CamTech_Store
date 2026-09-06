@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
 
 def gen_id():
@@ -25,7 +26,7 @@ class InventoryItem(Base):
     minimum_stock = Column("minimumStock", Numeric(14, 4), default=0.0, nullable=False)
     maximum_stock = Column("maximumStock", Numeric(14, 4), nullable=True)
     reorder_point = Column("reorderPoint", Numeric(14, 4), nullable=True)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class StockMovement(Base):
     __tablename__ = "stock_movements"
@@ -40,4 +41,4 @@ class StockMovement(Base):
     reference_id = Column("referenceId", String, nullable=True)
     notes = Column(String, nullable=True)
     user_id = Column("userId", String, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, update, or_
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.core.crypto import EncryptionService
 from app.domain.enterprise_engines import TelegramCommandRouter, ApiKeyGenerator, FlowExecutionEngine
@@ -124,7 +125,7 @@ async def create_api_key(
     expires_at = None
     if expires_in_days:
         try:
-            expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=int(expires_in_days))
+            expires_at = utc_now() + datetime.timedelta(days=int(expires_in_days))
         except (ValueError, TypeError):
             expires_at = None
 
@@ -172,7 +173,7 @@ async def revoke_api_key(
     if not key_record:
         raise HTTPException(status_code=404, detail="API Key not found")
 
-    key_record.revoked_at = datetime.datetime.utcnow()
+    key_record.revoked_at = utc_now()
     await db.commit()
     await db.refresh(key_record)
 
@@ -380,7 +381,7 @@ async def create_telegram_bot(
         is_active=data.isActive,
         is_primary=is_primary,
         status=status,
-        last_tested_at=datetime.datetime.utcnow(),
+        last_tested_at=utc_now(),
     )
     db.add(bot)
     await db.commit()
@@ -452,9 +453,9 @@ async def update_telegram_bot(
         except Exception:
             pass
         bot.bot_token = EncryptionService.encrypt(data.botToken)
-        bot.last_tested_at = datetime.datetime.utcnow()
+        bot.last_tested_at = utc_now()
 
-    bot.updated_at = datetime.datetime.utcnow()
+    bot.updated_at = utc_now()
     await db.commit()
     await db.refresh(bot)
     return _telegram_bot_dto(bot)
@@ -570,7 +571,7 @@ async def test_telegram_bot(
         bot.status = "ERROR"
         status = "ERROR"
 
-    bot.last_tested_at = datetime.datetime.utcnow()
+    bot.last_tested_at = utc_now()
     await db.commit()
     await db.refresh(bot)
 
@@ -716,7 +717,7 @@ async def update_telegram_binding(
     if data.isActive is not None:
         binding.is_active = data.isActive
 
-    binding.updated_at = datetime.datetime.utcnow()
+    binding.updated_at = utc_now()
     await db.commit()
     await db.refresh(binding)
     return _telegram_binding_dto(binding)
@@ -955,8 +956,8 @@ async def execute_flow(
         status=exec_result["status"],
         trigger_payload=payload,
         execution_trace=exec_result.get("executionTrace", []),
-        started_at=datetime.datetime.fromisoformat(exec_result["startedAt"]) if exec_result.get("startedAt") else datetime.datetime.utcnow(),
-        finished_at=datetime.datetime.fromisoformat(exec_result["completedAt"]) if exec_result.get("completedAt") else datetime.datetime.utcnow()
+        started_at=datetime.datetime.fromisoformat(exec_result["startedAt"]) if exec_result.get("startedAt") else utc_now(),
+        finished_at=datetime.datetime.fromisoformat(exec_result["completedAt"]) if exec_result.get("completedAt") else utc_now()
     )
     db.add(execution)
     await db.commit()

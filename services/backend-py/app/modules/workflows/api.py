@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import (
     WorkflowInstance,
@@ -50,7 +51,7 @@ def _build_log_dto(l: WorkflowLog) -> WorkflowLogDto:
         actorId=l.actor_id,
         action=l.action,
         comment=l.comment,
-        createdAt=l.created_at.isoformat() if l.created_at else datetime.datetime.utcnow().isoformat(),
+        createdAt=l.created_at.isoformat() if l.created_at else utc_now().isoformat(),
     )
 
 def _build_instance_dto(
@@ -80,8 +81,8 @@ def _build_instance_dto(
         metadata=meta if isinstance(meta, dict) else {},
         steps=[_build_step_dto(s) for s in sorted(steps, key=lambda s: s.step_order)],
         logs=[_build_log_dto(l) for l in sorted(logs, key=lambda l: l.created_at or datetime.datetime.min, reverse=True)],
-        createdAt=i.created_at.isoformat() if i.created_at else datetime.datetime.utcnow().isoformat(),
-        updatedAt=i.updated_at.isoformat() if i.updated_at else datetime.datetime.utcnow().isoformat(),
+        createdAt=i.created_at.isoformat() if i.created_at else utc_now().isoformat(),
+        updatedAt=i.updated_at.isoformat() if i.updated_at else utc_now().isoformat(),
     )
 
 # ─── Workflow Instances Endpoints (Spec §51) ───────────────────────────────
@@ -165,7 +166,7 @@ async def submit_workflow_instance(
         CreateWorkflowStepInput(stepOrder=2, name="Executive Approval", assignedRole="SUPER_ADMIN"),
     ]
 
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     instance_id = gen_id()
     instance = WorkflowInstance(
         id=instance_id,
@@ -245,7 +246,7 @@ async def review_workflow_step(
     if action not in ["APPROVE", "REJECT"]:
         raise HTTPException(status_code=400, detail=f"Invalid review action: '{data.action}'. Must be APPROVE or REJECT.")
 
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     target_step.status = "APPROVED" if action == "APPROVE" else "REJECTED"
     target_step.decision_by = user.id
     target_step.decision_at = now
@@ -318,7 +319,7 @@ async def list_approvals(
             "totalSteps": r.total_steps,
             "status": r.status,
             "submittedById": r.submitted_by_id,
-            "createdAt": r.created_at.isoformat() if r.created_at else datetime.datetime.utcnow().isoformat()
+            "createdAt": r.created_at.isoformat() if r.created_at else utc_now().isoformat()
         } for r in reqs
     ]
 

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.modules.catalog.models import ProductVariant, Product
 from app.modules.locations.models import Location
@@ -146,7 +147,7 @@ async def adjust_inventory(
         new_qty = current_qty
 
     inv.stock_on_hand = new_qty
-    inv.updated_at = datetime.datetime.utcnow()
+    inv.updated_at = utc_now()
 
     # 4. Create StockMovement audit record
     movement = StockMovement(
@@ -157,7 +158,7 @@ async def adjust_inventory(
         balance_after=new_qty,
         notes=input_data.notes,
         user_id=user.id,
-        created_at=datetime.datetime.utcnow()
+        created_at=utc_now()
     )
     db.add(movement)
     await db.commit()

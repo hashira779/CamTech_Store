@@ -13,6 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 
 def gen_id():
     return str(uuid.uuid4())
@@ -33,8 +34,8 @@ class DeliveryDriver(Base):
     battery_level = Column("batteryLevel", Integer, default=100, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     last_ping_at = Column("lastPingAt", DateTime(timezone=True), nullable=True)
-    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
     orders = relationship("DeliveryOrder", back_populates="driver")
 
@@ -60,7 +61,7 @@ class DeliveryOrder(Base):
     notes = Column(Text, nullable=True)
     dispatched_at = Column("dispatchedAt", DateTime(timezone=True), nullable=True)
     delivered_at = Column("deliveredAt", DateTime(timezone=True), nullable=True)
-    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
     driver = relationship("DeliveryDriver", back_populates="orders")

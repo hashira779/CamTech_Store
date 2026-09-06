@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, update
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import NotificationRecord, NotificationConfig
 from app.modules.identity.models import User
@@ -149,7 +150,7 @@ async def update_notification_config(
     if input_data.inAppEnabled is not None:
         cfg.in_app_enabled = input_data.inAppEnabled
 
-    cfg.updated_at = datetime.datetime.utcnow()
+    cfg.updated_at = utc_now()
     await db.commit()
     await db.refresh(cfg)
 
@@ -200,7 +201,7 @@ async def send_notification(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     target_user_id = None
     desired_id = data.recipientUserId or (user.id if user else None)
     if desired_id:
@@ -244,7 +245,7 @@ async def mark_notification_read(
         raise HTTPException(status_code=404, detail="Notification not found")
 
     note.is_read = True
-    note.read_at = datetime.datetime.utcnow()
+    note.read_at = utc_now()
     note.status = "READ"
     await db.commit()
     await db.refresh(note)
@@ -256,7 +257,7 @@ async def mark_all_notifications_read(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     stmt = (
         update(NotificationRecord)
         .where(
@@ -275,7 +276,7 @@ async def send_test_notification(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     target_user_id = None
     if user and user.id:
         u_chk = await db.execute(select(User.id).where(User.id == user.id))

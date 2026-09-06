@@ -10,6 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
 
 def gen_id():
@@ -23,8 +24,8 @@ class Category(Base):
     parent_id = Column("parentId", String, nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class Brand(Base):
     __tablename__ = "brands"
@@ -33,8 +34,8 @@ class Brand(Base):
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 class Product(Base):
     __tablename__ = "products"
@@ -47,8 +48,8 @@ class Product(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
 
@@ -68,7 +69,7 @@ class ProductVariant(Base):
     tax_rate_pct = Column("taxRatePct", Numeric(14, 4), default=0.0, server_default="0.0", nullable=False)
     tax_rate_id = Column("taxRateId", String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, server_default="true", nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column("updatedAt", DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     product = relationship("Product", back_populates="variants")

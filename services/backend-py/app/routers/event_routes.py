@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, get_streaming_user, TenantUser
 from app.domain.event_bus import event_bus
 
 router = APIRouter(prefix="/events", tags=["2026-2030 Real-Time Event Stream (SSE)"])
@@ -17,7 +17,7 @@ class BroadcastEventInput(BaseModel):
 @router.get("/stream")
 async def event_stream(
     request: Request,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(get_streaming_user)
 ):
     """
     State-of-the-Art 2026–2030 Real-Time Server-Sent Events (SSE) Stream.

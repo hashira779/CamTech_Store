@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 
 from .models import Organization
@@ -138,7 +139,7 @@ async def update_current_organization_settings(
         current_settings.update(settings_in.settings)
 
     org.settings = json.dumps(current_settings)
-    org.updated_at = datetime.utcnow()
+    org.updated_at = utc_now()
 
     await db.commit()
     await db.refresh(org)
@@ -203,7 +204,7 @@ async def update_current_organization(
             current_settings.update(org_in.settings)
 
     org.settings = json.dumps(current_settings)
-    org.updated_at = datetime.utcnow()
+    org.updated_at = utc_now()
 
     await db.commit()
     await db.refresh(org)

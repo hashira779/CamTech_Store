@@ -151,7 +151,7 @@ async def seed():
 
         # 6. Sales History for Live Revenue Charts
         if branch_id and user_id:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             for i in range(1, 15):
                 sale_id = f"sale-live-{i:03d}"
                 sale_num = f"POS-2026-{1000 + i}"

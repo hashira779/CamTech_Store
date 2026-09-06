@@ -10,6 +10,7 @@ from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser
 from app.core.config import settings
 from app.modules.organizations.models import Organization
@@ -163,7 +164,7 @@ async def create_sale(
                 ]
             )
 
-    sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+    sale_num = f"ORD-{utc_now().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
 
     # Location is optional (nullable FK). Use the request's, else the user's
     # scope, else NULL — never a hardcoded id that would violate the FK. A
@@ -291,7 +292,7 @@ async def create_sale(
     db.add(sale)
 
     # Deduct inventory & record stock movement
-    now = datetime.datetime.utcnow()
+    now = utc_now()
     for item in sale_in.items:
         qty_num = Decimal(str(item.quantity))
         inv_stmt = (
@@ -462,7 +463,7 @@ async def store_checkout(
     # 3. Calculate Totals & Build Line Items with Reliable Variant Resolution
     subtotal = Decimal("0.0")
     tax_total = Decimal("0.0")
-    sale_num = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+    sale_num = f"ORD-{utc_now().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
     sale_id = str(uuid.uuid4())
 
     line_entities = []
@@ -583,7 +584,7 @@ async def store_checkout(
         grand_total=grand_total,
         currency="USD",
         notes=json.dumps(notes_dict),
-        completed_at=datetime.datetime.utcnow(),
+        completed_at=utc_now(),
     )
     db.add(sale)
 
@@ -600,7 +601,7 @@ async def store_checkout(
         provider="Bakong KHQR" if pay_method == "QR" else "Cash on Delivery",
         amount=grand_total,
         reference=f"TXN-{secrets.token_hex(4).upper()}",
-        paid_at=datetime.datetime.utcnow(),
+        paid_at=utc_now(),
     )
     db.add(payment)
 
@@ -618,7 +619,7 @@ async def store_checkout(
     cust_notes["cart"] = []
     customer.notes = json.dumps(cust_notes)
 
-    now = datetime.datetime.utcnow()
+    now = utc_now()
 
     # 7. Deduct Inventory & Log Stock Movements for Stocker
     for r_item in resolved_line_items:
