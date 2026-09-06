@@ -43,6 +43,52 @@ services:
     networks:
       - mystore-net
 
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: mystore-pgbouncer
+    restart: unless-stopped
+    environment:
+      - DB_USER=mystore
+      - DB_PASSWORD=mystore_dev
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mystore
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=50
+      - RESERVE_POOL_SIZE=10
+      - LISTEN_PORT=6432
+      - AUTH_TYPE=scram-sha-256
+    ports:
+      - '6432:6432'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: mystore-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infra/telemetry/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+    networks:
+      - mystore-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: mystore-jaeger
+    restart: unless-stopped
+    ports:
+      - '16686:16686'
+    networks:
+      - mystore-net
+
   # ==============================================================================
   # API GATEWAY (PORT 4000)
   # ==============================================================================

@@ -21,6 +21,14 @@ from sqlalchemy.orm import configure_mappers as _configure_mappers
 # Paths that must pass through untouched (docs, health/ops probes).
 _RAW_PATHS = {"/docs", "/redoc", "/openapi.json", "/health", "/ready", "/metrics"}
 
+from app.core.telemetry import (
+    setup_structured_logging, current_trace_id, current_span_id,
+    current_request_id, get_logger
+)
+
+setup_structured_logging()
+logger = get_logger("mystore.microservice")
+
 
 def apply_enterprise_layer(app: FastAPI) -> None:
     """Give a microservice the SAME error envelope + response wrapping the monolith
@@ -61,6 +69,7 @@ def apply_enterprise_layer(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+        logger.error(f"Microservice internal error in {request.method} {request.url.path}: {exc}", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
@@ -86,6 +95,10 @@ def apply_enterprise_layer(app: FastAPI) -> None:
         span_id = secrets.token_hex(8)
         traceparent = f"00-{trace_id}-{span_id}-01"
         request.state.trace_id = trace_id
+        request.state.span_id = span_id
+        current_trace_id.set(trace_id)
+        current_span_id.set(span_id)
+        current_request_id.set(req_id)
 
         path = request.url.path
         if path in _RAW_PATHS:
@@ -101,6 +114,12 @@ def apply_enterprise_layer(app: FastAPI) -> None:
         response.headers["X-Request-Id"] = req_id
         response.headers["X-Trace-Id"] = trace_id
         response.headers["traceparent"] = traceparent
+
+        if path not in ["/favicon.ico"]:
+            logger.info(
+                f"{request.method} {path} {response.status_code} ({process_time:.2f}ms)",
+                extra={"durationMs": round(process_time, 2), "statusCode": response.status_code}
+            )
 
         content_type = response.headers.get("content-type", "")
         if response.status_code < 400 and "application/json" in content_type:

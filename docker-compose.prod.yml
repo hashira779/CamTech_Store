@@ -45,6 +45,54 @@ services:
     networks:
       - mystore-net
 
+  # ── CONNECTION POOLING (PGBOUNCER) ──────────────────────────────────────────
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: mystore-pgbouncer
+    restart: always
+    environment:
+      - DB_USER=${POSTGRES_USER:-camtech}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-camtech123}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-camtechStore}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=100
+      - RESERVE_POOL_SIZE=20
+      - LISTEN_PORT=6432
+      - AUTH_TYPE=scram-sha-256
+    ports:
+      - '6432:6432'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  # ── DISTRIBUTED TELEMETRY & TRACING (OPENTELEMETRY & JAEGER) ────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: mystore-otel-collector
+    restart: always
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infra/telemetry/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+    networks:
+      - mystore-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: mystore-jaeger
+    restart: always
+    ports:
+      - '16686:16686'
+    networks:
+      - mystore-net
+
   # ── EDGE API GATEWAY (PORT 4000) ─────────────────────────────────────────────
   api-gateway:
     build:

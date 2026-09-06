@@ -19,8 +19,13 @@ from app.routers.event_routes import router as event_router
 from app.routers.app_registry_routes import router as app_registry_router
 from app.routers.outbox_routes import router as outbox_router
 from app.core.database import engine
+from app.core.telemetry import (
+    setup_structured_logging, current_trace_id, current_span_id,
+    current_request_id, get_logger
+)
 
-
+setup_structured_logging()
+logger = get_logger("mystore.api")
 
 SERVER_START_TIME = time.time()
 
@@ -89,6 +94,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    logger.error(f"Internal server error handling {request.method} {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -124,6 +130,9 @@ async def response_envelope_middleware(request: Request, call_next):
 
     request.state.trace_id = trace_id
     request.state.span_id = span_id
+    current_trace_id.set(trace_id)
+    current_span_id.set(span_id)
+    current_request_id.set(req_id)
 
     # Raw pass-through for Swagger docs, openapi.json, and internal ops health
     path = request.url.path
@@ -142,6 +151,12 @@ async def response_envelope_middleware(request: Request, call_next):
     response.headers["X-Request-Id"] = req_id
     response.headers["X-Trace-Id"] = trace_id
     response.headers["traceparent"] = traceparent
+
+    if path not in ["/favicon.ico"]:
+        logger.info(
+            f"{request.method} {path} {response.status_code} ({process_time:.2f}ms)",
+            extra={"durationMs": round(process_time, 2), "statusCode": response.status_code}
+        )
 
 
     # Automatically wrap 2xx JSON responses in { success: True, data: ..., requestId: ... }
