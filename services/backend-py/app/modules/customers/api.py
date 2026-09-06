@@ -38,6 +38,7 @@ def _to_dto(c: Customer) -> CustomerDto:
         name=c.name,
         email=c.email,
         phone=c.phone,
+        taxId=c.tax_id,
         type=c.type,
         loyaltyPoints=c.loyalty_points or 0,
         loyaltyTier=c.loyalty_tier or "BRONZE",
@@ -327,6 +328,7 @@ async def create_customer(
         name=input_data.name,
         email=input_data.email,
         phone=input_data.phone,
+        tax_id=input_data.taxId,
         type=input_data.type,
         notes=input_data.notes,
     )
@@ -365,6 +367,8 @@ async def update_customer(
         customer.email = input_data.email
     if input_data.phone is not None:
         customer.phone = input_data.phone
+    if input_data.taxId is not None:
+        customer.tax_id = input_data.taxId
     if input_data.notes is not None:
         customer.notes = input_data.notes
     if input_data.isActive is not None:

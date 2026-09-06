@@ -141,7 +141,7 @@ async def create_product(
             organization_id=user.organization_id,
             product_id=product.id,
             sku=v_in.sku,
-            name=v_in.name,
+            name=v_in.name or input_data.name,
             barcode=v_in.barcode,
             cost_price=Decimal(str(v_in.costPrice)),
             sell_price=Decimal(str(v_in.sellPrice)),

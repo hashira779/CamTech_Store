@@ -30,3 +30,23 @@ class InventoryItemDto(BaseModel):
     reorderPoint: Optional[float] = 0.0
     isLowStock: bool = False
     updatedAt: Optional[str] = None
+
+class AdjustInventoryInput(BaseModel):
+    productVariantId: str
+    locationId: str
+    type: str  # ADJUSTMENT_IN, ADJUSTMENT_OUT, DAMAGE, EXPIRED, COUNT
+    quantity: float
+    notes: Optional[str] = None
+
+class StockMovementDto(BaseModel):
+    id: str
+    organizationId: str
+    inventoryItemId: str
+    type: str
+    quantity: float
+    balanceAfter: float
+    referenceType: Optional[str] = None
+    referenceId: Optional[str] = None
+    notes: Optional[str] = None
+    userId: str
+    createdAt: Optional[str] = None

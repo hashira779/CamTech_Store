@@ -45,11 +45,14 @@ class ProductDto(BaseModel):
 
 class CreateVariantInput(BaseModel):
     sku: str
-    name: str
+    name: Optional[str] = None
     barcode: Optional[str] = None
+    unit: str = "piece"
+    currency: str = "USD"
     costPrice: float = 0.0
     sellPrice: float = 0.0
     taxRatePct: float = 0.0
+    isActive: bool = True
 
 class CreateProductInput(BaseModel):
     name: str

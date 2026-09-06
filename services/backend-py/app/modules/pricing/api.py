@@ -1,5 +1,6 @@
+import datetime
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -12,10 +13,40 @@ from app.domain.commerce_engines import (
 )
 from .schemas import (
     TaxRateDto, TaxCalculateInput, PriceListDto, PriceResolveInput,
-    PromotionDto, PromotionEvaluateInput, LoyaltySummaryDto
+    PromotionDto, CreatePromotionInput, UpdatePromotionInput,
+    PromotionEvaluateInput, LoyaltySummaryDto
 )
 
 router = APIRouter(tags=["Pricing, Taxes & Promotions"])
+
+
+def _promo_to_dto(p: Promotion) -> PromotionDto:
+    disc_val = float(p.discount_value)
+    min_ord = float(p.min_order_amount or 0.0)
+    return PromotionDto(
+        id=p.id,
+        organizationId=p.organization_id,
+        name=p.name,
+        code=p.code,
+        description=p.description,
+        type=p.type,
+        scope=p.scope if hasattr(p, 'scope') and p.scope else "ORDER",
+        discountValue=disc_val,
+        value=disc_val,
+        minOrderAmount=min_ord,
+        minSpend=min_ord,
+        maxDiscountAmount=float(p.max_discount_amount) if p.max_discount_amount is not None else None,
+        buyQuantity=p.buy_quantity,
+        getQuantity=p.get_quantity,
+        startDate=p.start_date.isoformat() if p.start_date else None,
+        endDate=p.end_date.isoformat() if p.end_date else None,
+        usageLimit=p.usage_limit,
+        currentUses=p.current_uses or 0,
+        isActive=bool(p.is_active),
+        createdAt=p.created_at.isoformat() if p.created_at else None,
+        updatedAt=p.updated_at.isoformat() if p.updated_at else None,
+    )
+
 
 # --- TAXES ---
 @router.get("/taxes", response_model=List[TaxRateDto])
@@ -96,20 +127,131 @@ async def list_promotions(
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(Promotion).where(Promotion.organization_id == user.organization_id)
+        select(Promotion)
+        .where(Promotion.organization_id == user.organization_id)
+        .order_by(Promotion.created_at.desc())
     )
     promos = result.scalars().all()
-    return [
-        {
-            "id": p.id,
-            "name": p.name,
-            "code": p.code,
-            "type": p.type,
-            "value": float(p.discount_value),
-            "minSpend": float(p.min_order_amount or 0.0),
-            "isActive": p.is_active
-        } for p in promos
-    ]
+    return [_promo_to_dto(p) for p in promos]
+
+
+@router.post("/promotions", response_model=PromotionDto, status_code=status.HTTP_201_CREATED)
+async def create_promotion(
+    input_data: CreatePromotionInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    valid_types = {"PERCENTAGE", "FIXED_AMOUNT", "BUY_X_GET_Y", "ORDER_THRESHOLD"}
+    promo_type = input_data.type.upper() if input_data.type else "PERCENTAGE"
+    if promo_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid promotion type '{input_data.type}'. Allowed: {sorted(valid_types)}"
+        )
+    valid_scopes = {"ORDER", "CATEGORY", "PRODUCT"}
+    promo_scope = input_data.scope.upper() if input_data.scope else "ORDER"
+    if promo_scope not in valid_scopes:
+        promo_scope = "ORDER"
+
+    discount_val = Decimal(str(input_data.discountValue if input_data.discountValue is not None else (input_data.value or 0.0)))
+    min_order = Decimal(str(input_data.minOrderAmount if input_data.minOrderAmount is not None else (input_data.minSpend or 0.0)))
+
+    promo = Promotion(
+        organization_id=user.organization_id,
+        name=input_data.name.strip(),
+        code=input_data.code.strip().upper() if input_data.code else None,
+        description=input_data.description,
+        type=promo_type,
+        scope=promo_scope,
+        discount_value=discount_val,
+        min_order_amount=min_order,
+        max_discount_amount=Decimal(str(input_data.maxDiscountAmount)) if input_data.maxDiscountAmount is not None else None,
+        buy_quantity=input_data.buyQuantity,
+        get_quantity=input_data.getQuantity,
+        usage_limit=input_data.usageLimit,
+        is_active=input_data.isActive if input_data.isActive is not None else True,
+        created_at=datetime.datetime.utcnow(),
+        updated_at=datetime.datetime.utcnow(),
+    )
+    if input_data.startDate:
+        try:
+            promo.start_date = datetime.datetime.fromisoformat(input_data.startDate.replace("Z", "+00:00"))
+        except Exception:
+            pass
+    if input_data.endDate:
+        try:
+            promo.end_date = datetime.datetime.fromisoformat(input_data.endDate.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    db.add(promo)
+    await db.commit()
+    await db.refresh(promo)
+    return _promo_to_dto(promo)
+
+
+@router.patch("/promotions/{promo_id}", response_model=PromotionDto)
+async def update_promotion(
+    promo_id: str,
+    input_data: UpdatePromotionInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(Promotion).where(
+            Promotion.id == promo_id,
+            Promotion.organization_id == user.organization_id
+        )
+    )
+    promo = res.scalar_one_or_none()
+    if not promo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion not found")
+
+    if input_data.name is not None:
+        promo.name = input_data.name.strip()
+    if input_data.code is not None:
+        promo.code = input_data.code.strip().upper() if input_data.code else None
+    if input_data.description is not None:
+        promo.description = input_data.description
+    if input_data.type is not None:
+        promo.type = input_data.type.upper()
+    if input_data.scope is not None:
+        promo.scope = input_data.scope.upper()
+    if input_data.discountValue is not None or input_data.value is not None:
+        val = input_data.discountValue if input_data.discountValue is not None else input_data.value
+        promo.discount_value = Decimal(str(val))
+    if input_data.minOrderAmount is not None or input_data.minSpend is not None:
+        spend = input_data.minOrderAmount if input_data.minOrderAmount is not None else input_data.minSpend
+        promo.min_order_amount = Decimal(str(spend))
+    if input_data.isActive is not None:
+        promo.is_active = input_data.isActive
+
+    promo.updated_at = datetime.datetime.utcnow()
+    await db.commit()
+    await db.refresh(promo)
+    return _promo_to_dto(promo)
+
+
+@router.delete("/promotions/{promo_id}")
+async def delete_promotion(
+    promo_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(Promotion).where(
+            Promotion.id == promo_id,
+            Promotion.organization_id == user.organization_id
+        )
+    )
+    promo = res.scalar_one_or_none()
+    if not promo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion not found")
+
+    await db.delete(promo)
+    await db.commit()
+    return {"success": True, "message": "Promotion deleted successfully"}
+
 
 @router.post("/promotions/evaluate")
 async def evaluate_promotion(

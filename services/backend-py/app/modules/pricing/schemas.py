@@ -28,12 +28,62 @@ class PriceResolveInput(BaseModel):
 
 class PromotionDto(BaseModel):
     id: str
+    organizationId: Optional[str] = None
     name: str
-    code: str
-    type: str
-    value: float
-    minSpend: float
-    isActive: bool
+    code: Optional[str] = None
+    description: Optional[str] = None
+    type: str = "PERCENTAGE"
+    scope: str = "ORDER"
+    discountValue: float = 0.0
+    value: float = 0.0
+    minOrderAmount: Optional[float] = 0.0
+    minSpend: Optional[float] = 0.0
+    maxDiscountAmount: Optional[float] = None
+    buyQuantity: Optional[int] = None
+    getQuantity: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    usageLimit: Optional[int] = None
+    currentUses: int = 0
+    isActive: bool = True
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+
+class CreatePromotionInput(BaseModel):
+    name: str
+    code: Optional[str] = None
+    description: Optional[str] = None
+    type: str = "PERCENTAGE"
+    scope: Optional[str] = "ORDER"
+    discountValue: Optional[float] = None
+    value: Optional[float] = None
+    minOrderAmount: Optional[float] = None
+    minSpend: Optional[float] = None
+    maxDiscountAmount: Optional[float] = None
+    buyQuantity: Optional[int] = None
+    getQuantity: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    usageLimit: Optional[int] = None
+    isActive: Optional[bool] = True
+
+class UpdatePromotionInput(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    scope: Optional[str] = None
+    discountValue: Optional[float] = None
+    value: Optional[float] = None
+    minOrderAmount: Optional[float] = None
+    minSpend: Optional[float] = None
+    maxDiscountAmount: Optional[float] = None
+    buyQuantity: Optional[int] = None
+    getQuantity: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    usageLimit: Optional[int] = None
+    isActive: Optional[bool] = None
 
 class PromotionEvaluateInput(BaseModel):
     type: str = "PERCENTAGE"

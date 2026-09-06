@@ -21,6 +21,7 @@ class CustomerDto(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
+    taxId: Optional[str] = None
     type: str
     loyaltyPoints: Optional[int] = 0
     loyaltyTier: Optional[str] = "BRONZE"
@@ -51,6 +52,7 @@ class CreateCustomerInput(BaseModel):
     code: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    taxId: Optional[str] = None
     type: str = "INDIVIDUAL"
     notes: Optional[str] = None
 
@@ -60,6 +62,7 @@ class UpdateCustomerInput(BaseModel):
     code: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    taxId: Optional[str] = None
     type: Optional[str] = None
     notes: Optional[str] = None
     isActive: Optional[bool] = None
