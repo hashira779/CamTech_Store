@@ -156,3 +156,114 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
   in the same session and confirm the revert.
 - **Don't develop `services/backend` (NestJS)** — it's legacy/retired.
 - **Keep this file and `docs/audits/session-*.md` current** when you make structural changes, so the next agent inherits the truth.
+
+---
+
+## 7. The 90 Engineering & Architecture Principles Matrix
+
+All contributions must strictly comply with the authoritative standard in [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md).
+
+### Part I: Core Software Design, Paradigms & Clean Code (1–20)
+1. **Core System Flow:** Unidirectional request → gateway → domain engine → storage → event bus pipeline.
+2. **OOP Principles:** Domain nouns modeled with encapsulated behavior and state lifecycles.
+3. **SOLID Principles:** Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
+4. **DRY Principles:** Single source of truth across contracts (`packages/contracts`) and schemas.
+5. **KISS Principles:** Simplest maintainable solution; avoid premature distributed complexity.
+6. **YAGNI Principles:** Implement verified requirements only; no speculative abstractions.
+7. **Clean Code Principles:** Intent-revealing names, small functions, side-effect-aware routines.
+8. **Clean Architecture Principles:** Framework-independent domain core; peripheral transport/DB adapters.
+9. **Separation of Concerns:** Distinct presentation, routing, domain logic, persistence, and telemetry.
+10. **Modularity Principles:** 18 decoupled domain modules with explicit public interfaces.
+11. **Reusability Principles:** Reusable UI components, token verifiers, and native enum helpers.
+12. **Extensibility Principles:** Event hooks and workflow engine for non-invasive feature additions.
+13. **Maintainability Principles:** Full TypeScript & Python typecheck compliance with regression tests.
+14. **Scalability Principles:** Async I/O, connection pooling (`asyncpg`), and Redis background queues.
+15. **Flexibility Principles:** Dual-deployment: unified monolith on `:4000` or 7 microservices on `:4000–:4007`.
+16. **Loose Coupling:** Services communicate via contracts, gateway routes, and Redis pub/sub.
+17. **High Cohesion:** Co-locate domain operations and entities within bounded module directories.
+18. **Composition Over Inheritance:** Modular composition of services and UI components over deep class trees.
+19. **Dependency Inversion:** Depend on abstractions injected via FastAPI `Depends(...)`.
+20. **Interface Segregation:** Specialized, lightweight client contracts per frontend app target.
+
+### Part II: Domain Modeling, State & API Architecture (21–30)
+21. **Domain-Driven Design (DDD):** Ubiquitous language, bounded contexts, aggregate roots.
+22. **Design Pattern Principles:** Judicious use of factory, outbox, strategy, and adapter patterns.
+23. **Encapsulation Principles:** Hide internal state; mutate through verified domain methods.
+24. **Abstraction Principles:** Clean contract interfaces hiding low-level protocol complexities.
+25. **Immutability Principles:** Immutable audit trails, ledger transactions, and event payloads.
+26. **Stateless Design:** Stateless application containers; session state verified via JWT tokens.
+27. **API-First Principles:** Define endpoints, contracts, and envelopes before writing client UI.
+28. **Contract-First Principles:** Canonical TypeScript DTOs in `packages/contracts` drive schemas.
+29. **Backward Compatibility:** Additive schema evolution without breaking existing client apps.
+30. **Versioning Principles:** Explicit URI versioning (`/api/v1`) and event topic versioning.
+
+### Part III: Data Integrity, Persistence & Distributed Systems (31–42)
+31. **Database Evolution:** Explicit camelCase column mappings; native PostgreSQL enum bindings.
+32. **Schema Migration:** Verified Alembic migrations preserving foreign keys and constraints.
+33. **Data Ownership:** Strict tenant isolation (`where organization_id == user.organization_id`).
+34. **Transaction Integrity:** Atomicity across operations; double-entry balance in financial ledgers.
+35. **Event-Driven Architecture:** SSE + WebSocket realtime streaming with Redis Pub/Sub backend.
+36. **Asynchronous Processing:** Non-blocking async hashing and queue-based event dispatch.
+37. **Idempotency Principles:** Unique transaction/order keys prevent duplicate processing on retries.
+38. **Fault-Tolerance:** Process crashes isolated; gateway fallback preserves system availability.
+39. **Resilience Principles:** Circuit breakers and timeouts protect external network dependencies.
+40. **Retry & Recovery:** Exponential backoff on transient network and webhook deliveries.
+41. **Error Handling Principles:** Enveloped error responses (`{ success: false, code, message }`).
+42. **Validation Principles:** Client-side Zod and server-side Pydantic validation on all inputs.
+
+### Part IV: Security, Reliability, Observability & Performance (43–52)
+43. **Security-by-Design:** Encrypted bot tokens, authenticated requests, secure headers.
+44: **Least Privilege:** Granular RBAC (`SUPER_ADMIN`, `ORG_ADMIN`, `MANAGER`, `CASHIER`, etc.).
+45. **Zero-Trust Principles:** Never trust incoming client prices or tenant IDs; derive from JWT.
+46. **Auditability Principles:** Immutable logs in `stock_movements`, `journal_entries`, and audits.
+47. **Observability Principles:** W3C `traceparent` headers propagate through gateway to DB.
+48. **Logging Principles:** Structured JSON logs correlated by `requestId`.
+49. **Monitoring Principles:** Deep health probes (`/health/deep`) measuring database ping latency.
+50. **Performance Principles:** Sub-50ms API responses through asyncpg and indexed queries.
+51. **Caching Principles:** Cache static lookups and invalidate reactively on mutation events.
+52. **Concurrency Principles:** Async event loops without blocking synchronous CPU calls.
+
+### Part V: Quality Assurance, DevOps & Infrastructure (53–70)
+53. **Testing Principles:** Unit tests, integration tests, and live DB verification loops.
+54. **Testability Principles:** Injectable database sessions and decoupled mockable interfaces.
+55. **CI/CD Principles:** Automated gates running schema audits, typecheck, and pytests.
+56. **Infrastructure-as-Code:** Docker Compose and container manifests mirroring Kubernetes.
+57. **Configuration Management:** Centralized Pydantic `BaseSettings` reading environment variables.
+58. **Environment Separation:** Strict isolation of development, staging, and production databases.
+59. **Feature Flag Principles:** Decouple code deployment from feature exposure via runtime flags.
+60. **Progressive Rollout:** Canary and staged deployments for major architecture transitions.
+61. **Documentation Principles:** Self-documenting code with comprehensive guides in `docs/architecture/`.
+62. **Code Ownership:** Clear playbooks (`AGENTS.md`) preventing architectural regressions.
+63. **Standardization Principles:** Consistent naming conventions, casing, and folder structures.
+64. **Convention-over-Configuration:** Predictable module paths (`models.py`, `schemas.py`, `api.py`).
+65. **Backward-Compatible Changes:** Add optional fields; never delete or rename active columns.
+66. **Graceful Degradation:** Offline-first caching in POS shells when network drops.
+67. **Disaster Recovery:** Automated PostgreSQL backup procedures and point-in-time recovery.
+68. **High Availability:** Multi-replica gateway containers and PgBouncer connection pooling.
+69. **Horizontal Scaling:** Stateless worker processes scaling out behind reverse proxies.
+70. **Migration-Friendly Architecture:** Smooth incremental refactoring without full-system freezes.
+
+### Part VI: Microservices, Integration & Evolution (71–86)
+71. **Vendor Independence:** Standard PostgreSQL, Redis, Docker, and Linux VPS compatibility.
+72. **Technology-Agnostic Domain:** Core business rules expressed in standard Python logic.
+73. **Microservices Evolution:** Modular monolith decomposes into 7 standalone microservices.
+74. **Service Boundaries:** Service slicing aligned with business domains (Auth, Catalog, Sales, etc.).
+75. **Domain Isolation:** Cross-domain data access mediated through public interfaces or events.
+76. **Shared Kernel:** Minimal shared contracts library in `packages/contracts`.
+77. **Anti-Corruption Layer:** External Telegram and payment webhooks translated to domain DTOs.
+78. **Integration Boundary:** Single entrypoint via gateway on port `:4000`.
+79. **Message Contracts:** Strictly typed event schemas with standard envelope metadata.
+80. **Event Versioning:** Additive event evolutions supporting multiple consumer versions.
+81. **Dependency Management:** Pinned versions, workspace overrides, and Dependabot security scans.
+82. **Technical Debt Management:** Continuous tracking and elimination of retired legacy code.
+83. **Refactoring Principles:** Safe refactoring governed by automated test coverage.
+84. **Incremental Development:** Small, verifiable end-to-end increments tested on live DB.
+85. **Progressive Architecture:** Evolution from single database to read-replicas as load demands.
+86. **Future-Proofing Principles:** Durable standards: PostgreSQL 16, React 19, FastAPI, TypeScript.
+
+### Part VII: User Experience, Internationalization & Global Reach (87–90)
+87. **UX/UI Consistency:** Unified `EnterpriseShell`, Inter typography, and Radix design tokens.
+88. **Accessibility Principles:** Semantic HTML, ARIA attributes, keyboard navigation, and focus rings.
+89. **Internationalization (i18n):** Multi-currency support (USD, KHR), UTC storage, localized formats.
+90. **Localization (l10n):** Locale-aware currency formatting, date formatting, and regional phone codes.
+
