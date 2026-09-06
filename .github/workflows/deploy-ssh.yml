@@ -42,3 +42,25 @@ jobs:
             
             chmod +x ./scripts/*.sh ./scripts/*.py 2>/dev/null || true
             ./scripts/deploy_production.sh
+
+      - name: Notify Telegram on SSH Deploy Success
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "🎉 *MyStore SSH Remote Deploy Ready!*\n\n• *Target Server:* `10.1.0.11`\n• *Branch:* `${{ github.event.inputs.target_branch || '\''main'\'' }}`\n• *Actor:* `${{ github.actor }}`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* ✅ SSH deployment succeeded & verified",
+              "parse_mode": "Markdown"
+            }' || true
+
+      - name: Notify Telegram on SSH Deploy Failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "❌ *MyStore SSH Remote Deploy FAILED!*\n\n• *Target Server:* `10.1.0.11`\n• *Branch:* `${{ github.event.inputs.target_branch || '\''main'\'' }}`\n• *Actor:* `${{ github.actor }}`\n• *Status:* ⚠️ Error executing remote deploy",
+              "parse_mode": "Markdown"
+            }' || true

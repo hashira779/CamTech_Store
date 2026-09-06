@@ -158,3 +158,20 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 14
 
+  notify-telegram:
+    name: Telegram CI Pipeline Notification
+    runs-on: ubuntu-latest
+    needs: [python-backend, typescript-monorepo, e2e-playwright]
+    if: always()
+    steps:
+      - name: Send CI/CD Pipeline Summary
+        run: |
+          STATUS="${{ (contains(needs.python-backend.result, 'failure') || contains(needs.typescript-monorepo.result, 'failure') || contains(needs.e2e-playwright.result, 'failure')) && 'FAILED ❌' || 'PASSED ✅' }}"
+          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"chat_id\": \"7673456476\",
+              \"text\": \"🧪 *MyStore CI Pipeline: ${STATUS}*\n\n• *Commit:* \`${{ github.sha }}\`\n• *Branch:* \`${{ github.ref_name }}\`\n• *Actor:* \`${{ github.actor }}\`\n• *Backend Tests:* \`${{ needs.python-backend.result }}\`\n• *Typescript Build:* \`${{ needs.typescript-monorepo.result }}\`\n• *E2E Playwright:* \`${{ needs.e2e-playwright.result }}\`\",
+              \"parse_mode\": \"Markdown\"
+            }" || true
+

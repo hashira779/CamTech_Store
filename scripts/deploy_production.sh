@@ -209,9 +209,10 @@ TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2
 TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
 if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
     echo "🔔 Sending deployment readiness alert to Telegram..."
-    curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
+    TG_RES=$(curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
         -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TG_CHAT}\",\"text\":\"🎉 *MyStore Production Deployment Succeeded!*\n\n• *Host:* \`$(hostname -I | awk '{print $1}')\`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* All systems verified healthy.\n• *Time:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')\",\"parse_mode\":\"Markdown\"}" >/dev/null 2>&1 || true
+        -d "{\"chat_id\":\"${TG_CHAT}\",\"text\":\"🎉 *MyStore Production Deployment Succeeded!*\n\n• *Host:* \`$(hostname -I | awk '{print $1}')\`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* All systems verified healthy.\n• *Time:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')\",\"parse_mode\":\"Markdown\"}" 2>&1 || true)
+    echo "   Telegram Alert Response: $TG_RES"
 fi
 
 echo "========================================================================"

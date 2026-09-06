@@ -41,3 +41,25 @@ jobs:
 
       - name: Safe Deploy with Automated Rollback
         run: ./scripts/deploy_production.sh
+
+      - name: Notify Telegram on Deployment Ready
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "🎉 *MyStore CI/CD Deployment Ready in Production!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* ✅ All services live & healthy",
+              "parse_mode": "Markdown"
+            }' || true
+
+      - name: Notify Telegram on Deployment Failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "❌ *MyStore CI/CD Deployment FAILED!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Status:* ⚠️ Rollback initiated on production server",
+              "parse_mode": "Markdown"
+            }' || true
