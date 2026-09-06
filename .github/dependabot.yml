@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # 1. Monorepo Web Apps & Contracts (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # 2. Canonical Backend: FastAPI (Python)
+  - package-ecosystem: "pip"
+    directory: "/services/backend-py"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # 3. GitHub Actions CI/CD Workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
