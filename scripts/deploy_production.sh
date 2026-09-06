@@ -179,6 +179,15 @@ if [ "$DEPLOY_FAILED" -eq 1 ]; then
     echo "📋 Dumping recent container failure logs:"
     run_cmd docker compose -f "$COMPOSE_FILE" logs --tail=40 || true
 
+    # Notify Telegram on failure
+    TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA}"
+    TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
+    if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
+        curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\":\"${TG_CHAT}\",\"text\":\"⚠️ *MyStore Production Deployment FAILED!*\n\nHost: \`$(hostname -I | awk '{print $1}')\`\nRollback initiated.\",\"parse_mode\":\"Markdown\"}" >/dev/null 2>&1 || true
+    fi
+
     if [ -d "$BACKUP_DIR" ]; then
         echo "🔄 Restoring stable state from backup..."
         run_cmd rsync -aq --delete "$BACKUP_DIR/" "$APP_DIR/"
@@ -194,6 +203,16 @@ echo "🧹 Pruning old stopped containers, dangling images, and build caches..."
 run_cmd docker container prune -f 2>/dev/null || true
 run_cmd docker image prune -f 2>/dev/null || true
 run_cmd docker builder prune -af --filter "until=24h" 2>/dev/null || true
+
+# ── 9. Send Telegram Deployment Success Alert ─────────────────────────────────
+TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA}"
+TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
+if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
+    echo "🔔 Sending deployment readiness alert to Telegram..."
+    curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
+        -H "Content-Type: application/json" \
+        -d "{\"chat_id\":\"${TG_CHAT}\",\"text\":\"🎉 *MyStore Production Deployment Succeeded!*\n\n• *Host:* \`$(hostname -I | awk '{print $1}')\`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* All systems verified healthy.\n• *Time:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')\",\"parse_mode\":\"Markdown\"}" >/dev/null 2>&1 || true
+fi
 
 echo "========================================================================"
 echo "  🎉 Deployment Succeeded & Verified! MyStore Production is LIVE."
