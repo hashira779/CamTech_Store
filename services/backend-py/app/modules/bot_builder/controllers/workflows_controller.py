@@ -270,6 +270,27 @@ async def publish_workflow(
 
     await db.commit()
     await db.refresh(version)
+
+    # Auto-register webhook with Telegram so the workflow is immediately live
+    try:
+        from app.modules.automations.models import TelegramBot
+        from ..engine.telegram_adapter import TelegramAdapter
+        from app.core.crypto import EncryptionService
+        bot_res = await db.execute(
+            select(TelegramBot).where(TelegramBot.id == wf.bot_id)
+        )
+        bot_entity = bot_res.scalar_one_or_none()
+        if bot_entity and bot_entity.bot_token:
+            try:
+                decrypted_token = EncryptionService.decrypt(bot_entity.bot_token)
+            except Exception:
+                decrypted_token = bot_entity.bot_token
+            adapter = TelegramAdapter(decrypted_token)
+            webhook_url = f"https://admin.camtech.cam/api/v1/bot-builder/webhook/{wf.bot_id}"
+            await adapter.set_webhook(webhook_url)
+    except Exception as exc:
+        logger.warning("Auto webhook registration skipped or failed on publish: %s", exc)
+
     return _version_dto(version)
 
 
