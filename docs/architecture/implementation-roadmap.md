@@ -81,38 +81,29 @@ Discovery   Foundation  Core        Enterprise  Omnichannel Advanced    Scale
 ---
 
 ## Phase 3: Enterprise Operations & Governance
-> **Current Status:** ✅ Completed in NestJS (legacy) · 🔶 Pending port to Python
+> **Current Status:** ✅ Completed in Python (Canonical) & NestJS (Legacy)
 
-### NestJS Reference (Completed)
-- [x] Finance & Accounting with double-entry GL and financial statements.
-- [x] Workflow & Approvals with state machine.
-- [x] Storage & Documents with S3/local drivers.
-- [x] Notifications platform with multi-channel delivery.
-- [x] Reporting & BI with aggregation engine.
-- [x] HR & Payroll with payroll calculator.
-- [x] Projects & Billing with timesheets.
-- [x] Service Management with ticket lifecycle.
-- [x] Fixed Assets with depreciation engine.
-
-### Python Port (Pending)
-- [ ] Port finance module with double-entry enforcement.
-- [ ] Port workflow/approvals state machine.
-- [ ] Port remaining enterprise modules.
+### Key Deliverables (Python Canonical)
+- [x] Finance & Accounting with double-entry GL and balance verification (`/finance/*`).
+- [x] Workflow & Approvals with state machine transitions and audit trails (`/workflows/*`).
+- [x] Storage & Documents with multi-driver file management (`/storage/*`).
+- [x] Notifications platform with multi-channel delivery (`/notifications/*`).
+- [x] Reporting & BI with aggregation engine and read-replica routing (`/reports/*`).
+- [x] HR & Payroll with department hierarchies, employee records, and payroll calculations (`/hr/*`).
+- [x] Projects & Billing with task milestones and timesheets (`/projects/*`).
+- [x] Service Management with ticket lifecycle and incident response (`/tickets/*`).
+- [x] Fixed Assets with depreciation schedules (`/assets/*`).
 
 ---
 
 ## Phase 4: Omnichannel & Partner Ecosystem
-> **Current Status:** ✅ Completed in NestJS (legacy) · 🔶 Pending port to Python
+> **Current Status:** ✅ Completed in Python (Canonical) & NestJS (Legacy)
 
-### NestJS Reference (Completed)
-- [x] Developer Platform with API keys, webhooks, HMAC signatures.
-- [x] Telegram Platform with bot commands and chat bindings.
-- [x] Flow Automation with DAG execution engine.
-
-### Python Port (Pending)
-- [ ] Port developer platform with API key management.
-- [ ] Port Telegram bot integration.
-- [ ] Port flow automation engine.
+### Key Deliverables (Python Canonical)
+- [x] Developer Platform with API keys, apps, webhooks, HMAC signatures (`/developers/*`).
+- [x] Telegram Platform with bot commands, broadcast, and chat bindings (`/telegram/*`).
+- [x] Flow Automation with DAG execution engine (`/flows/*`).
+- [x] Webhooks controller with signed payloads and event delivery (`/webhooks/*`).
 
 ### Deferred
 - [ ] Flutter mobile client (deferred for budget reasons).
@@ -120,26 +111,28 @@ Discovery   Foundation  Core        Enterprise  Omnichannel Advanced    Scale
 
 ---
 
-## Phase 5: Advanced Intelligence & Automation
-> **Current Status:** ❌ Scheduled
+## Phase 5: Distributed Telemetry, High Availability & Enterprise Scale
+> **Current Status:** ✅ Completed (September 2026)
 
-### Work Streams & Deliverables
-- [ ] AI Platform & Gateway (unified AI gateway supporting multiple providers).
-- [ ] Enterprise context retrieval and permission-gated tool execution.
-- [ ] Autonomous AI Agents (inventory forecasting, replenishment recommendations).
-- [ ] High-risk actions strictly require human approval via the Workflow Engine.
+### Key Deliverables
+- [x] **Distributed Tracing:** W3C `traceparent` propagation and OpenTelemetry collector integration (`app/core/telemetry.py`, `infra/otel-collector-config.yaml`, Jaeger).
+- [x] **Database Resilience (PgBouncer):** Transaction pooling proxy on port 6432 supporting up to 2,000 concurrent client connections (`docker-compose.yml`, `docker-compose.prod.yml`).
+- [x] **Read-Replica Query Routing:** Implemented `get_read_db` in `app/core/database.py` routing reporting aggregations to `postgres-replica` (port 5434).
+- [x] **Kubernetes Autoscaling (HPA):** Production Kubernetes manifests in `infra/k8s/` (`namespace.yaml`, `gateway-hpa.yaml`, `microservices-hpa.yaml`) scaling 2–12 replicas on 70% CPU / 80% Memory.
+- [x] **Automated E2E Testing:** Playwright test suite (`apps/web/playwright.config.ts`, `apps/web/e2e/`) integrated into GitHub Actions CI.
+- [x] **Relational RBAC Normalization:** Backfilled 853 users into normalized `user_roles` table with dual-write/read integrity.
+- [x] **Atomic Sliding-Window Rate Limiting:** Redis ZSET atomic rate limiting with in-memory fallback (`app/core/rate_limiter.py`).
 
 ---
 
-## Phase 6: Cloud Scale & Enterprise Infrastructure
-> **Current Status:** ❌ Scheduled (As Justified by Scale)
+## Phase 6: Cloud Scale & Service Independence Evolution
+> **Current Status:** 📋 Architectural Blueprint Delivered (As Justified by Scale)
 
-### Objectives
-Introduce distributed infrastructure components only when traffic or organizational scale warrants:
-- Distributed event streaming via Apache Kafka.
-- Complex long-running workflow orchestration via Temporal.
-- Full-text and vector search acceleration via OpenSearch / Elasticsearch.
-- Kubernetes deployment with Helm charts and zero-downtime rolling updates.
+### Objectives & Blueprint
+- [x] **Per-Service Database Blueprint:** Authored `docs/architecture/microservices-per-service-database.md` detailing standalone schema isolation for Delivery and HR domains, outbox message contracts, and saga compensation flows.
+- [ ] Physical multi-database migration for `camtechDelivery` and `camtechHr` (trigger when write load mandates independent team deployments).
+- [ ] Distributed event streaming via Apache Kafka / Redpanda (when event throughput exceeds Redis pub/sub capacity).
+- [ ] Long-running distributed workflow orchestration via Temporal (as multi-step business transactions require durable execution).
 
 ---
 

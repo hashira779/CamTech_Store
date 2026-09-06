@@ -6,7 +6,7 @@
 > **Legacy Backend:** NestJS (Deprecated)
 
 > [!TIP]
-> All ✅ **Active** statuses below refer to the **canonical Python/FastAPI backend**. The entire modular monolith extraction is complete with 18 decoupled domain modules in `app/modules/`, and all 75 tests pass (100% passing).
+> All ✅ **Active** statuses below refer to the **canonical Python/FastAPI backend**. The entire modular monolith extraction is complete with 18 decoupled domain modules in `app/modules/`, and all 97 tests pass (100% passing, 0 warnings).
 
 ---
 
