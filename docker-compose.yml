@@ -152,8 +152,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -170,8 +173,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -188,8 +194,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -206,8 +215,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -224,8 +236,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -242,8 +257,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_dev_jwt_secret_key_change_in_production
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -260,8 +278,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net

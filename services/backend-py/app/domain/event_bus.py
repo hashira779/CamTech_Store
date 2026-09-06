@@ -1,10 +1,21 @@
 import json
+import logging
 import os
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import redis.asyncio as aioredis
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+logger = logging.getLogger(__name__)
+
+def _get_redis_url() -> str:
+    url = os.getenv("REDIS_URL")
+    if url:
+        return url
+    if os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
+        return "redis://redis:6379/0"
+    return "redis://localhost:6379/0"
+
+REDIS_URL = _get_redis_url()
 
 class RealtimeEventBus:
     """
@@ -14,16 +25,32 @@ class RealtimeEventBus:
     """
 
     def __init__(self):
-        self.redis_client = aioredis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=1.0)
+        self._url = REDIS_URL
+        try:
+            self.redis_client = aioredis.from_url(self._url, decode_responses=True, socket_connect_timeout=1.5)
+        except Exception as e:
+            logger.warning(f"Failed to initialize Redis client with URL {self._url}: {e}")
+            self.redis_client = None
 
     async def get_pubsub(self, org_id: str):
         """
         Creates and returns a Redis PubSub object subscribed to the tenant's channel.
         The caller is responsible for calling .unsubscribe() and .close() on it.
+        Returns None if Redis is unreachable or subscription fails.
         """
-        pubsub = self.redis_client.pubsub()
-        await pubsub.subscribe(f"mystore:events:{org_id}")
-        return pubsub
+        if not self.redis_client:
+            try:
+                self.redis_client = aioredis.from_url(self._url, decode_responses=True, socket_connect_timeout=1.5)
+            except Exception:
+                return None
+
+        try:
+            pubsub = self.redis_client.pubsub()
+            await pubsub.subscribe(f"mystore:events:{org_id}")
+            return pubsub
+        except Exception as e:
+            logger.warning(f"Redis PubSub subscription failed for org {org_id}: {e}")
+            return None
 
     async def publish(self, org_id: str, event_type: str, data: Dict[str, Any]):
         """
@@ -37,7 +64,16 @@ class RealtimeEventBus:
         }
         raw = f"data: {json.dumps(payload)}\n\n"
         channel_name = f"mystore:events:{org_id}"
-        await self.redis_client.publish(channel_name, raw)
+        if not self.redis_client:
+            try:
+                self.redis_client = aioredis.from_url(self._url, decode_responses=True, socket_connect_timeout=1.5)
+            except Exception:
+                return
+
+        try:
+            await self.redis_client.publish(channel_name, raw)
+        except Exception as e:
+            logger.warning(f"Failed to publish event {event_type} to Redis: {e}")
 
 # Global singleton event bus
 event_bus = RealtimeEventBus()

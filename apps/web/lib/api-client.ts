@@ -157,6 +157,15 @@ import type {
   IndustryConfigDto,
   TableDto,
   KDSTicketDto,
+  BotWorkflowDto,
+  CreateBotWorkflowInput,
+  UpdateBotWorkflowInput,
+  BotWorkflowVersionDto,
+  PublishWorkflowInput,
+  BotCommandDto,
+  CreateBotCommandInput,
+  UpdateBotCommandInput,
+  BotExecutionDto,
 } from '@mystore/contracts';
 
 
@@ -1313,6 +1322,70 @@ export const api = {
 
   listFlowExecutions: (token: string, id: string) =>
     request<FlowExecutionDto[]>(`/flows/${id}/executions`, { token }),
+
+  // ─── Visual Bot Builder & Workflow Automation ─────────────────────
+  listBotWorkflows: (token: string, botId: string) =>
+    request<BotWorkflowDto[]>(`/bot-builder/bots/${botId}/workflows`, { token }),
+
+  getBotWorkflow: (token: string, id: string) =>
+    request<BotWorkflowDto>(`/bot-builder/workflows/${id}`, { token }),
+
+  createBotWorkflow: (token: string, input: CreateBotWorkflowInput) =>
+    request<BotWorkflowDto>('/bot-builder/workflows', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateBotWorkflow: (token: string, id: string, input: UpdateBotWorkflowInput) =>
+    request<BotWorkflowDto>(`/bot-builder/workflows/${id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteBotWorkflow: (token: string, id: string) =>
+    request<{ success: boolean }>(`/bot-builder/workflows/${id}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  publishBotWorkflow: (token: string, id: string, input: PublishWorkflowInput) =>
+    request<BotWorkflowVersionDto>(`/bot-builder/workflows/${id}/publish`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  rollbackBotWorkflow: (token: string, id: string, versionNumber: number) =>
+    request<BotWorkflowDto>(`/bot-builder/workflows/${id}/rollback/${versionNumber}`, {
+      method: 'POST',
+      token,
+    }),
+
+  listWorkflowVersions: (token: string, id: string) =>
+    request<BotWorkflowVersionDto[]>(`/bot-builder/workflows/${id}/versions`, { token }),
+
+  listBotExecutions: (token: string, botId: string, page = 1, limit = 20, status?: string) => {
+    let url = `/bot-builder/bots/${botId}/executions?page=${page}&limit=${limit}`;
+    if (status) url += `&status=${status}`;
+    return request<BotExecutionDto[]>(url, { token });
+  },
+
+  getBotExecution: (token: string, id: string) =>
+    request<BotExecutionDto>(`/bot-builder/executions/${id}`, { token }),
+
+  getBotAnalytics: (token: string, botId: string) =>
+    request<any>(`/bot-builder/bots/${botId}/analytics`, { token }),
+
+  listBotCommands: (token: string, botId: string) =>
+    request<BotCommandDto[]>(`/bot-builder/bots/${botId}/commands`, { token }),
+
+  syncBotCommands: (token: string, botId: string) =>
+    request<any>(`/bot-builder/bots/${botId}/commands/sync-telegram`, {
+      method: 'POST',
+      token,
+    }),
 
   // ─── Delivery & Fleet Dispatch (Spec §45) ─────────────────────────
   listDeliveryOrders: (token: string, params: { status?: string; search?: string } = {}) => {

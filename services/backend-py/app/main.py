@@ -206,6 +206,7 @@ from app.modules.documents.api import router as documents_router
 from app.modules.notifications.api import router as notifications_router
 from app.modules.workflows.api import router as workflows_router
 from app.modules.reporting.api import router as reporting_router
+from app.modules.bot_builder.api import router as bot_builder_router
 
 # Mount Modular Domain Routers (Spec §198, §199 Modular Monolith)
 app.include_router(auth_router, prefix="/api/v1/auth")
@@ -226,6 +227,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(workflows_router, prefix="/api/v1")
 app.include_router(reporting_router, prefix="/api/v1")
+app.include_router(bot_builder_router, prefix="/api/v1")
 
 # Mount Supporting API Routers
 app.include_router(delivery_router, prefix="/api/v1")

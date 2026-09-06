@@ -158,8 +158,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -176,8 +179,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -194,8 +200,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -212,8 +221,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -230,8 +242,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -248,8 +263,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net
@@ -266,8 +284,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - mystore-net

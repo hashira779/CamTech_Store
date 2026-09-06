@@ -31,6 +31,7 @@ const TicketsPage = lazy(() => import('@/app/tickets/page'));
 const AssetsPage = lazy(() => import('@/app/assets/page'));
 const DevelopersPage = lazy(() => import('@/app/developers/page'));
 const TelegramPage = lazy(() => import('@/app/telegram/page'));
+const BotBuilderPage = lazy(() => import('@/app/bot-builder/page'));
 const AutomationsPage = lazy(() => import('@/app/automations/page'));
 const SettingsPage = lazy(() => import('@/app/settings/page'));
 const UsersPage = lazy(() => import('@/app/users/page'));
@@ -78,6 +79,7 @@ export function AdminApp() {
         <Route path="/assets" element={<AssetsPage />} />
         <Route path="/developers" element={<DevelopersPage />} />
         <Route path="/telegram" element={<TelegramPage />} />
+        <Route path="/bot-builder/*" element={<BotBuilderPage />} />
         <Route path="/automations" element={<AutomationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/users" element={<UsersPage />} />

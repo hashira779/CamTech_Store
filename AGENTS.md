@@ -47,6 +47,10 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 9. **Strictly adhere to the 90 Engineering & Architecture Principles Playbook ([`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md)).**
    All contributions must satisfy core flow, OOP/DDD invariants, DRY/KISS, native enum data integrity, tenant isolation,
    statelessness, security-by-design, observability, and backward-compatible contract evolution.
+10. **Strict prohibition on auto-seeding or mock data scripts in production.** Never write or execute scripts that
+    generate mock data, dummy sales, fake customers, or automated test records against the remote production database.
+    Automated seeding and test fixtures are **STRICTLY CONFINED TO LOCAL DEVELOPMENT (`localhost`) ON YOUR PC**.
+    Production data may only be altered via verified DDL migrations or explicit, direct user instructions.
 
 ---
 
@@ -156,8 +160,11 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
 
 - **Verify before claiming done** (Flow D). "Imports clean" is necessary, not sufficient.
 - **Never hardcode data** to make an endpoint "work" — compute it, or say it's not implemented.
-- **This is a live DB.** Delete any rows you create while testing. If you inject a fault to test isolation, **revert it**
-  in the same session and confirm the revert.
+- **STRICT RESTRICTION: No automated data scripts in production.** You are NEVER permitted to write or execute
+  automated data generation, auto-seeding, mock insertion, or test transaction scripts against the remote production
+  database (`10.1.0.11` / `adminconsol.camtech.cam`). Automated data scripts can **ONLY** be run locally on the user's PC (`localhost`).
+- **This is a live DB.** When testing locally or fixing bugs, delete any rows you create while testing. If you inject a fault
+  to test isolation, **revert it** in the same session and confirm the revert.
 - **Don't develop `services/backend` (NestJS)** — it's legacy/retired.
 - **Keep this file and `docs/audits/session-*.md` current** when you make structural changes, so the next agent inherits the truth.
 

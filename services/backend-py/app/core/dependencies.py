@@ -32,6 +32,19 @@ def extract_user_roles(user: User) -> List[str]:
     except Exception:
         return [user.roles] if user.roles else ["CASHIER"]
 
+async def _fetch_user_with_roles(db: AsyncSession, user_id: str) -> Optional[User]:
+    try:
+        result = await db.execute(
+            select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
+        )
+        return result.scalar_one_or_none()
+    except Exception:
+        result = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+
 async def get_current_user(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),
@@ -54,10 +67,7 @@ async def get_current_user(
         )
 
     user_id = payload["sub"]
-    result = await db.execute(
-        select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
-    )
-    user = result.scalar_one_or_none()
+    user = await _fetch_user_with_roles(db, user_id)
 
     if not user:
         raise HTTPException(
@@ -96,10 +106,7 @@ async def get_streaming_user(
         )
 
     user_id = payload["sub"]
-    result = await db.execute(
-        select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
-    )
-    user = result.scalar_one_or_none()
+    user = await _fetch_user_with_roles(db, user_id)
 
     if not user:
         raise HTTPException(
@@ -123,10 +130,7 @@ async def get_optional_user(
         if not payload or "sub" not in payload:
             return None
         user_id = payload["sub"]
-        result = await db.execute(
-            select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
-        )
-        user = result.scalar_one_or_none()
+        user = await _fetch_user_with_roles(db, user_id)
         if not user:
             return None
         roles_list = extract_user_roles(user)

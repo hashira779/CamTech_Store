@@ -46,21 +46,32 @@ async def event_stream(
                 if await request.is_disconnected():
                     break
 
-                # wait for message up to 15s to keep connection alive
-                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
-                if message is not None:
-                    if message["type"] == "message":
-                        yield message["data"]
+                if pubsub:
+                    try:
+                        # wait for message up to 15s to keep connection alive
+                        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                        if message is not None:
+                            if message["type"] == "message":
+                                yield message["data"]
+                                continue
+                    except Exception:
+                        await asyncio.sleep(15.0)
                 else:
-                    # Timeout reached, send keep-alive heartbeat ping
-                    hb = {
-                        "event": "HEARTBEAT",
-                        "data": {"timestamp": datetime.now(timezone.utc).isoformat()}
-                    }
-                    yield f"data: {json.dumps(hb)}\n\n"
+                    await asyncio.sleep(15.0)
+
+                # Timeout reached or fallback mode, send keep-alive heartbeat ping
+                hb = {
+                    "event": "HEARTBEAT",
+                    "data": {"timestamp": datetime.now(timezone.utc).isoformat()}
+                }
+                yield f"data: {json.dumps(hb)}\n\n"
         finally:
-            await pubsub.unsubscribe()
-            await pubsub.close()
+            if pubsub:
+                try:
+                    await pubsub.unsubscribe()
+                    await pubsub.close()
+                except Exception:
+                    pass
 
     origin = request.headers.get("origin") or "*"
     return StreamingResponse(

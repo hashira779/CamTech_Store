@@ -592,3 +592,9 @@ class WebhookDelivery(Base):
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 from app.modules.automations.models import TelegramBot, TelegramChatBinding
+
+# Bot Builder — Visual No-Code Telegram Bot Engine
+from app.modules.bot_builder.models import (
+    BotWorkflow, BotWorkflowVersion, BotCommand,
+    BotConversationState, BotExecution,
+)
