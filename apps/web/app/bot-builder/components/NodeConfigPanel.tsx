@@ -552,6 +552,8 @@ function ButtonsEditor({
     { label: '💬 Support', data: 'contact_support' },
     { label: '🇰🇭 Bakong KHQR', data: 'pay_khqr' },
     { label: '🛵 Track Courier', data: 'track_courier' },
+    { label: '🛒 View Cart', data: 'view_cart' },
+    { label: '🔙 Back to Menu', data: 'back' },
   ];
 
   return (

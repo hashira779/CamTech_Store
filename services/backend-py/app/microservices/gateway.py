@@ -54,6 +54,8 @@ SALES = os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003")
 # Platform & Experience service owns every domain not carved into a core service.
 PLATFORM_SERVICE_URL = os.getenv("PLATFORM_SERVICE_URL", "http://127.0.0.1:4007")
 
+BOT_BUILDER_SERVICE_URL = os.getenv("BOT_BUILDER_SERVICE_URL", "http://127.0.0.1:4008")
+
 ROUTING_MAP = {
     "/api/v1/auth": AUTH,
     "/api/v1/organizations": AUTH,
@@ -79,7 +81,7 @@ ROUTING_MAP = {
     "/api/v1/developers": PLATFORM_SERVICE_URL,
     "/api/v1/flows": PLATFORM_SERVICE_URL,
     "/api/v1/telegram": PLATFORM_SERVICE_URL,
-    "/api/v1/bot-builder": PLATFORM_SERVICE_URL,
+    "/api/v1/bot-builder": BOT_BUILDER_SERVICE_URL,
     "/api/v1/workflows": PLATFORM_SERVICE_URL,
     "/api/v1/approvals": PLATFORM_SERVICE_URL,
     "/api/v1/tickets": PLATFORM_SERVICE_URL,

@@ -7,6 +7,7 @@ from app.microservices.sales_service import app as sales_app
 from app.microservices.delivery_service import app as delivery_app
 from app.microservices.hr_service import app as hr_app
 from app.microservices.finance_service import app as finance_app
+from app.microservices.bot_builder_service import app as bot_builder_app
 from app.microservices.gateway import gateway
 
 @pytest.mark.asyncio
@@ -57,6 +58,15 @@ async def test_finance_microservice_health():
         assert res.status_code == 200
         data = res.json()
         assert data["port"] == 4006
+
+@pytest.mark.asyncio
+async def test_bot_builder_microservice_health():
+    async with AsyncClient(transport=ASGITransport(app=bot_builder_app), base_url="http://test") as ac:
+        res = await ac.get("/health")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["port"] == 4008
+        assert "Bot Builder" in data["service"]
 
 @pytest.mark.asyncio
 async def test_api_gateway_health():

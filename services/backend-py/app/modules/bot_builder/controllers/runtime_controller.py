@@ -390,14 +390,24 @@ def _find_node(nodes: list, node_id: str) -> Optional[Dict]:
 def _find_callback_edge(
     source_id: str, edges: list, callback_data: str,
 ) -> Optional[str]:
-    """Find an edge whose sourceHandle matches the callback data."""
+    """Find an edge whose sourceHandle or label matches the callback data."""
+    cb_clean = (callback_data or "").strip().lower()
+
+    # 1. Exact or normalized sourceHandle match
     for edge in edges:
         if edge.get("source") == source_id:
-            handle = edge.get("sourceHandle", "")
-            if handle == callback_data:
+            handle = (edge.get("sourceHandle") or "").strip().lower()
+            if handle and handle == cb_clean:
                 return edge.get("target")
 
-    # Fallback: first outgoing edge
+    # 2. Match on edge label (e.g. button display text)
+    for edge in edges:
+        if edge.get("source") == source_id:
+            label = (edge.get("label") or "").strip().lower()
+            if label and (label == cb_clean or cb_clean in label):
+                return edge.get("target")
+
+    # 3. Fallback: first outgoing edge
     for edge in edges:
         if edge.get("source") == source_id:
             return edge.get("target")

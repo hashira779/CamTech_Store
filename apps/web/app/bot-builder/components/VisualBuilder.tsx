@@ -78,12 +78,14 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
   const color = NODE_COLORS[data.nodeType] || '#818cf8';
   const icon = NODE_ICONS[data.nodeType] || '⚡';
   const isCondition = data.nodeType === 'condition';
+  const isInlineKeyboard = data.nodeType === 'show_inline_keyboard';
+  const buttons = (data.config?.buttons as any[]) || [];
 
   return (
     <div style={{
       background: '#1e293b',
       border: `2px solid ${selected ? color : 'rgba(148,163,184,0.18)'}`,
-      borderRadius: 12, minWidth: 190, overflow: 'visible', position: 'relative',
+      borderRadius: 12, minWidth: 200, overflow: 'visible', position: 'relative',
       boxShadow: selected ? `0 0 22px ${color}50` : '0 4px 14px rgba(0,0,0,0.35)',
       transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
     }}>
@@ -132,14 +134,86 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
             {data.config.command}
           </div>
         )}
-        {data.config?.buttons && data.config.buttons.length > 0 && (
-          <div style={{ fontSize: 10, color: '#a5b4fc', marginTop: 4 }}>
-            🔘 {data.config.buttons.length} button{data.config.buttons.length > 1 ? 's' : ''} configured
+        {isInlineKeyboard && buttons.length === 0 && (
+          <div style={{ fontSize: 10, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>
+            No buttons configured yet. Click to configure.
           </div>
         )}
       </div>
 
-      {isCondition ? (
+      {/* Button Branches for show_inline_keyboard */}
+      {isInlineKeyboard && buttons.length > 0 ? (
+        <div style={{
+          padding: '8px 12px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          borderTop: '1px solid rgba(148,163,184,0.12)',
+          background: 'rgba(15,23,42,0.4)',
+        }}>
+          <div style={{
+            fontSize: 9,
+            fontWeight: 800,
+            color: '#94a3b8',
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+            marginBottom: 2,
+          }}>
+            Button Branches (Drag dot to connect):
+          </div>
+          {buttons.map((btn: any, idx: number) => {
+            const btnKey = btn.callbackData || btn.text || `btn_${idx}`;
+            const isBack = (btn.text || '').toLowerCase().includes('back') || btnKey === 'back';
+            const btnColor = isBack ? '#94a3b8' : '#818cf8';
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '5px 10px',
+                  borderRadius: 8,
+                  background: isBack ? 'rgba(148,163,184,0.08)' : 'rgba(129,140,248,0.12)',
+                  border: `1px solid ${isBack ? 'rgba(148,163,184,0.2)' : 'rgba(129,140,248,0.25)'}`,
+                  position: 'relative',
+                }}
+              >
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: isBack ? '#cbd5e1' : '#c7d2fe',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 130,
+                }}>
+                  {btn.text || 'Button'}
+                </span>
+                <span style={{ fontSize: 9, color: btnColor, fontWeight: 700, paddingRight: 4 }}>
+                  ●
+                </span>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={btnKey}
+                  title={`Connect: When user clicks "${btn.text}"`}
+                  style={{
+                    right: -7,
+                    background: btnColor,
+                    width: 14,
+                    height: 14,
+                    border: '2px solid #0f172a',
+                    cursor: 'crosshair',
+                    zIndex: 10,
+                    boxShadow: `0 0 8px ${btnColor}90`,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : isCondition ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 14px 8px', fontSize: 10, fontWeight: 700 }}>
           <span style={{ color: '#22c55e', position: 'relative' }}>
             TRUE
@@ -224,9 +298,13 @@ function toFlowEdges(stored: any[]): Edge[] {
     target: e.target,
     sourceHandle: e.sourceHandle || undefined,
     targetHandle: e.targetHandle || undefined,
+    label: e.label || undefined,
     animated: true,
     style: { stroke: '#818cf8', strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+    labelStyle: { fill: '#c7d2fe', fontWeight: 600, fontSize: 10 },
+    labelBgStyle: { fill: '#1e293b', fillOpacity: 0.9, rx: 6, ry: 6 },
+    labelBgPadding: [6, 4] as [number, number],
   }));
 }
 
@@ -249,6 +327,7 @@ function toStoredEdges(flowEdges: Edge[]): any[] {
     target: e.target,
     sourceHandle: e.sourceHandle || null,
     targetHandle: e.targetHandle || null,
+    label: (e.label as string) || null,
   }));
 }
 
@@ -270,13 +349,32 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
 
   const onConnect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target || connection.source === connection.target) return;
+
+    // Detect if this connection came from a condition branch or a button branch
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    let edgeLabel: string | undefined = undefined;
+
+    if (sourceNode?.data?.nodeType === 'condition') {
+      edgeLabel = connection.sourceHandle === 'true' ? 'TRUE' : 'FALSE';
+    } else if (sourceNode?.data?.nodeType === 'show_inline_keyboard') {
+      const btns = (sourceNode.data?.config as any)?.buttons || [];
+      const matchedBtn = btns.find((b: any) => (b.callbackData || b.text) === connection.sourceHandle);
+      if (matchedBtn) {
+        edgeLabel = matchedBtn.text || matchedBtn.callbackData;
+      }
+    }
+
     setEdges(eds => addEdge({
       ...connection,
+      label: edgeLabel,
       animated: true,
       style: { stroke: '#818cf8', strokeWidth: 2 },
       markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+      labelStyle: { fill: '#c7d2fe', fontWeight: 600, fontSize: 10 },
+      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.9, rx: 6, ry: 6 },
+      labelBgPadding: [6, 4] as [number, number],
     }, eds));
-  }, [setEdges]);
+  }, [nodes, setEdges]);
 
   const handleDeleteNode = useCallback((nodeId: string) => {
     setNodes(nds => nds.filter(n => n.id !== nodeId));
