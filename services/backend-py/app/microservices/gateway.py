@@ -84,6 +84,7 @@ ROUTING_MAP = {
     "/api/v1/tickets": PLATFORM_SERVICE_URL,
     "/api/v1/projects": PLATFORM_SERVICE_URL,
     "/api/v1/documents": PLATFORM_SERVICE_URL,
+    "/api/v1/storage": PLATFORM_SERVICE_URL,
     "/api/v1/notifications": PLATFORM_SERVICE_URL,
     "/api/v1/reports": PLATFORM_SERVICE_URL,
     "/api/v1/dashboard": PLATFORM_SERVICE_URL,

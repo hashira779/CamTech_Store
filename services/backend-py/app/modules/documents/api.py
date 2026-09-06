@@ -1,13 +1,14 @@
+import os
 import secrets
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import DocumentRecord
-from .schemas import DocumentRecordDto, UploadIntentInput, UploadIntentResponse
+from .schemas import DocumentRecordDto, UploadIntentInput, UploadIntentResponse, StorageStatsDto
 
 router = APIRouter(tags=["Documents & Storage"])
 
@@ -31,6 +32,30 @@ async def list_documents(
         } for d in docs
     ]
 
+@router.get("/storage/stats", response_model=StorageStatsDto)
+async def get_storage_stats(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(
+            func.count(DocumentRecord.id),
+            func.coalesce(func.sum(DocumentRecord.byte_size), 0)
+        ).where(
+            DocumentRecord.organization_id == user.organization_id,
+            DocumentRecord.status != "DELETED"
+        )
+    )
+    row = result.one()
+    total_files = row[0] or 0
+    total_bytes = int(row[1] or 0)
+    driver_name = os.getenv("STORAGE_DRIVER", "LOCAL_S3_COMPATIBLE")
+    return {
+        "totalFiles": total_files,
+        "totalBytes": total_bytes,
+        "activeStorageDriver": driver_name
+    }
+
 @router.post("/storage/upload-intent", response_model=UploadIntentResponse)
 async def create_upload_intent(
     data: UploadIntentInput,
@@ -43,3 +68,4 @@ async def create_upload_intent(
         "fileKey": f"tenant/{user.organization_id}/{token}_{filename}",
         "expiresIn": 3600
     }
+

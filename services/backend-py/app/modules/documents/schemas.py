@@ -16,3 +16,9 @@ class UploadIntentResponse(BaseModel):
     uploadUrl: str
     fileKey: str
     expiresIn: int
+
+class StorageStatsDto(BaseModel):
+    totalFiles: int
+    totalBytes: int
+    activeStorageDriver: str
+

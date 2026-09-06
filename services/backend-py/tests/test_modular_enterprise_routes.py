@@ -103,6 +103,20 @@ async def test_storage_upload_intent_modular_route(mock_tenant_user):
         assert "invoice_receipt.pdf" in data["fileKey"]
 
 @pytest.mark.asyncio
+async def test_storage_stats_modular_route(mock_tenant_user):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/v1/storage/stats")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        data = body["data"]
+        assert "totalFiles" in data
+        assert "totalBytes" in data
+        assert "activeStorageDriver" in data
+        assert isinstance(data["totalFiles"], int)
+        assert isinstance(data["totalBytes"], int)
+
+@pytest.mark.asyncio
 async def test_reporting_dashboard_modular_route(mock_tenant_user):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/v1/reports/dashboard")
