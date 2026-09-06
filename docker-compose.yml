@@ -131,6 +131,7 @@ services:
       - HR_SERVICE_URL=http://hr-service:4005
       - FINANCE_SERVICE_URL=http://finance-service:4006
       - PLATFORM_SERVICE_URL=http://platform-service:4007
+      - BOT_BUILDER_SERVICE_URL=http://bot-builder-service:4008
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,7 +139,7 @@ services:
       - mystore-net
 
   # ==============================================================================
-  # BACKEND MICROSERVICES (PORTS 4001 - 4006)
+  # BACKEND MICROSERVICES (PORTS 4001 - 4008)
   # ==============================================================================
   auth-service:
     build:
@@ -275,6 +276,27 @@ services:
     command: python -m uvicorn app.microservices.platform_service:app --host 0.0.0.0 --port 4007
     ports:
       - '4007:4007'
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
+      - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mystore-net
+
+  bot-builder-service:
+    build:
+      context: ./services/backend-py
+      dockerfile: Dockerfile
+    container_name: mystore-bot-builder-service
+    restart: unless-stopped
+    command: python -m uvicorn app.microservices.bot_builder_service:app --host 0.0.0.0 --port 4008
+    ports:
+      - '4008:4008'
     environment:
       - DATABASE_URL=postgresql+asyncpg://mystore:mystore_dev@postgres:5432/mystore
       - JWT_SECRET=mystore_super_secret_jwt_key_2026_enterprise_standard
