@@ -139,6 +139,9 @@ jobs:
       - name: Build Contracts
         run: pnpm --filter @mystore/contracts build
 
+      - name: Build Web App
+        run: pnpm --filter @mystore/web build
+
       - name: Install Playwright Browsers
         run: pnpm --filter @mystore/web exec playwright install --with-deps chromium
 

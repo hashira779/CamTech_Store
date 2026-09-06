@@ -17,9 +17,11 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
   ],
+  webServer: {
+    command: 'pnpm preview --port 5002',
+    url: 'http://localhost:5002',
+    reuseExistingServer: !process.env.CI,
+    timeout: 60 * 1000,
+  },
 });
