@@ -12,7 +12,6 @@ from app.modules.workflows.api import router as workflows_router
 from app.modules.reporting.api import router as reporting_router
 
 # Supporting / platform routers
-from app.routers.api_v1 import router as api_v1_router
 from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
 from app.routers.data_exchange_routes import router as data_exchange_router
@@ -38,7 +37,6 @@ for _router in (
     notifications_router,
     workflows_router,
     reporting_router,
-    api_v1_router,
     industry_router,
     ai_copilot_router,
     data_exchange_router,

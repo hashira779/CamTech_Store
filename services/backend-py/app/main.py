@@ -11,7 +11,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.routers.api_v1 import router as api_v1_router
 from app.routers.delivery_routes import router as delivery_router
 from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
@@ -214,7 +213,6 @@ app.include_router(workflows_router, prefix="/api/v1")
 app.include_router(reporting_router, prefix="/api/v1")
 
 # Mount Supporting API Routers
-app.include_router(api_v1_router, prefix="/api/v1")
 app.include_router(delivery_router, prefix="/api/v1")
 app.include_router(industry_router, prefix="/api/v1")
 app.include_router(ai_copilot_router, prefix="/api/v1")
