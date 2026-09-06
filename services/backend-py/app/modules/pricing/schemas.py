@@ -21,10 +21,40 @@ class PriceListDto(BaseModel):
     currency: str
     isDefault: bool
 
+class ResolvePriceLineInput(BaseModel):
+    productVariantId: str
+    quantity: float = 1.0
+
 class PriceResolveInput(BaseModel):
+    basePrice: Optional[float] = 0.0
+    customerTier: Optional[str] = "REGULAR"
+    quantity: Optional[int] = 1
+    customerId: Optional[str] = None
+    priceListId: Optional[str] = None
+    lines: Optional[List[ResolvePriceLineInput]] = None
+
+class ResolvedPriceLineDto(BaseModel):
+    productVariantId: str
+    quantity: float = 1.0
     basePrice: float = 0.0
-    customerTier: str = "REGULAR"
-    quantity: int = 1
+    resolvedUnitPrice: float = 0.0
+    savingsPerUnit: float = 0.0
+    priceSource: str = "BASE_PRICE"
+    tierMinQty: Optional[int] = None
+    priceListName: Optional[str] = None
+
+class PriceListAppliedSummary(BaseModel):
+    id: str
+    name: str
+    code: str
+
+class ResolvedPricesResultDto(BaseModel):
+    priceListApplied: Optional[PriceListAppliedSummary] = None
+    lines: List[ResolvedPriceLineDto] = []
+    resolvedPrice: Optional[float] = None
+    unitPrice: Optional[float] = None
+    tier: Optional[str] = None
+    quantity: Optional[int] = None
 
 class PromotionDto(BaseModel):
     id: str

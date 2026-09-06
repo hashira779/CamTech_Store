@@ -8,7 +8,7 @@ from sqlalchemy import select, desc
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
-from app.models.entities import TaxRate, PriceList, Promotion, LoyaltyTransaction
+from app.models.entities import TaxRate, PriceList, Promotion, LoyaltyTransaction, ProductVariant, Customer
 from app.domain.commerce_engines import (
     TaxCalculator, PromotionEvaluator, PricingResolver, LoyaltyCalculator
 )
@@ -113,13 +113,85 @@ async def list_pricing(
 @router.post("/pricing/resolve")
 async def resolve_price(
     data: PriceResolveInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    base_price = Decimal(str(data.basePrice))
-    tier = str(data.customerTier)
-    qty = int(data.quantity)
-    resolved = PricingResolver.resolve_price(base_price, tier, qty)
-    return {"resolvedPrice": float(resolved), "unitPrice": float(base_price), "tier": tier, "quantity": qty}
+    customer_tier = str(data.customerTier or "REGULAR").upper()
+
+    # If customerId is provided, lookup customer's loyalty tier or type
+    if data.customerId:
+        cust_res = await db.execute(
+            select(Customer).where(
+                Customer.id == data.customerId,
+                Customer.organization_id == user.organization_id
+            )
+        )
+        cust = cust_res.scalar_one_or_none()
+        if cust:
+            if cust.loyalty_tier and str(cust.loyalty_tier).upper() in ["VIP", "WHOLESALE"]:
+                customer_tier = str(cust.loyalty_tier).upper()
+            elif cust.type and str(cust.type).upper() in ["WHOLESALE", "VIP"]:
+                customer_tier = str(cust.type).upper()
+
+    # Batch lines resolution (contract: ResolvePricesInput / ResolvedPricesResultDto)
+    resolved_lines = []
+    if data.lines:
+        variant_ids = [line.productVariantId for line in data.lines]
+        variants_res = await db.execute(
+            select(ProductVariant).where(
+                ProductVariant.id.in_(variant_ids),
+                ProductVariant.organization_id == user.organization_id
+            )
+        )
+        variants_by_id = {v.id: v for v in variants_res.scalars().all()}
+
+        for line in data.lines:
+            v = variants_by_id.get(line.productVariantId)
+            base_price = Decimal(str(v.sell_price)) if v and v.sell_price is not None else Decimal(str(data.basePrice or 0.0))
+            qty = int(line.quantity) if line.quantity else 1
+            resolved_unit = PricingResolver.resolve_price(base_price, customer_tier, qty)
+            savings = max(Decimal("0.0"), base_price - resolved_unit)
+
+            source = "VOLUME_TIER" if qty >= 10 else ("CUSTOMER_TIER" if customer_tier != "REGULAR" else "BASE_PRICE")
+            resolved_lines.append({
+                "productVariantId": line.productVariantId,
+                "quantity": float(qty),
+                "basePrice": float(base_price),
+                "resolvedUnitPrice": float(resolved_unit),
+                "savingsPerUnit": float(savings),
+                "priceSource": source,
+                "tierMinQty": 10 if qty >= 10 else None,
+                "priceListName": None
+            })
+
+    # Legacy single line fallback
+    base_price = Decimal(str(data.basePrice or 0.0))
+    qty = int(data.quantity or 1)
+    single_resolved = PricingResolver.resolve_price(base_price, customer_tier, qty)
+
+    # If no lines were provided, populate resolved_lines with a fallback entry for consistency
+    if not resolved_lines and data.basePrice:
+        savings = max(Decimal("0.0"), base_price - single_resolved)
+        source = "VOLUME_TIER" if qty >= 10 else ("CUSTOMER_TIER" if customer_tier != "REGULAR" else "BASE_PRICE")
+        resolved_lines.append({
+            "productVariantId": "default",
+            "quantity": float(qty),
+            "basePrice": float(base_price),
+            "resolvedUnitPrice": float(single_resolved),
+            "savingsPerUnit": float(savings),
+            "priceSource": source,
+            "tierMinQty": 10 if qty >= 10 else None,
+            "priceListName": None
+        })
+
+    return {
+        "priceListApplied": None,
+        "lines": resolved_lines,
+        "resolvedPrice": float(single_resolved),
+        "unitPrice": float(base_price),
+        "tier": customer_tier,
+        "quantity": qty
+    }
 
 # --- PROMOTIONS ---
 @router.get("/promotions", response_model=List[PromotionDto])

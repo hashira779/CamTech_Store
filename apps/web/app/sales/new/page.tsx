@@ -286,12 +286,12 @@ export default function NewSalePOSPage() {
   });
 
   const getEffectivePrice = (item: CartItem) => {
-    const resolved = resolvedPricing?.lines.find((l) => l.productVariantId === item.productVariantId);
+    const resolved = resolvedPricing?.lines?.find((l) => l.productVariantId === item.productVariantId);
     return resolved ? resolved.resolvedUnitPrice : item.unitPrice;
   };
 
   const getPriceInfo = (item: CartItem) => {
-    return resolvedPricing?.lines.find((l) => l.productVariantId === item.productVariantId);
+    return resolvedPricing?.lines?.find((l) => l.productVariantId === item.productVariantId);
   };
 
   // Live client-side estimate (server will strictly recalculate)

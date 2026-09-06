@@ -88,6 +88,27 @@ async def test_pricing_resolve_modular_route(mock_tenant_user):
         data = body["data"]
         assert data["resolvedPrice"] > 0
         assert data["quantity"] == 10
+        assert "lines" in data
+        assert len(data["lines"]) >= 1
+
+        # Test batch lines resolution contract (ResolvePricesInput / ResolvedPricesResultDto)
+        batch_payload = {
+            "customerId": None,
+            "lines": [
+                {"productVariantId": "test-var-1", "quantity": 2},
+                {"productVariantId": "test-var-2", "quantity": 15}
+            ]
+        }
+        batch_resp = await client.post("/api/v1/pricing/resolve", json=batch_payload)
+        assert batch_resp.status_code == 200
+        batch_body = batch_resp.json()
+        assert batch_body["success"] is True
+        batch_data = batch_body["data"]
+        assert "lines" in batch_data
+        assert len(batch_data["lines"]) == 2
+        assert batch_data["lines"][0]["productVariantId"] == "test-var-1"
+        assert batch_data["lines"][1]["productVariantId"] == "test-var-2"
+        assert batch_data["lines"][1]["priceSource"] == "VOLUME_TIER"
 
 @pytest.mark.asyncio
 async def test_storage_upload_intent_modular_route(mock_tenant_user):
