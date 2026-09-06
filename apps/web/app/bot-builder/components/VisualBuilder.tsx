@@ -47,7 +47,6 @@ const NODE_ICONS: Record<string, string> = {
 function BotNode({ data, selected }: { data: any; selected: boolean }) {
   const color = NODE_COLORS[data.nodeType] || '#818cf8';
   const icon = NODE_ICONS[data.nodeType] || '⚡';
-  const isTrigger = ['start', 'command_received', 'message_received', 'callback_query', 'webhook_received'].includes(data.nodeType);
   const isCondition = data.nodeType === 'condition';
 
   return (
@@ -58,13 +57,21 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
       boxShadow: selected ? `0 0 20px ${color}40` : '0 4px 12px rgba(0,0,0,0.3)',
       transition: 'border-color 0.2s, box-shadow 0.2s',
     }}>
-      {!isTrigger && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          style={{ background: '#818cf8', width: 10, height: 10, border: '2px solid #0f172a' }}
-        />
-      )}
+      {/* Top Input Handle — enabled on all nodes so any node can receive connections */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        title="Input (connect previous step here)"
+        style={{
+          background: '#818cf8',
+          width: 14,
+          height: 14,
+          border: '2px solid #0f172a',
+          cursor: 'crosshair',
+          zIndex: 10,
+          boxShadow: '0 0 8px rgba(129, 140, 248, 0.7)',
+        }}
+      />
 
       <div style={{
         padding: '8px 12px', background: `${color}20`,
@@ -105,7 +112,17 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
               type="source"
               position={Position.Bottom}
               id="true"
-              style={{ left: 14, background: '#22c55e', width: 10, height: 10, border: '2px solid #0f172a' }}
+              title="True branch (drag to connect)"
+              style={{
+                left: 14,
+                background: '#22c55e',
+                width: 14,
+                height: 14,
+                border: '2px solid #0f172a',
+                cursor: 'crosshair',
+                zIndex: 10,
+                boxShadow: '0 0 8px rgba(34, 197, 94, 0.7)',
+              }}
             />
           </span>
           <span style={{ color: '#ef4444', position: 'relative' }}>
@@ -114,7 +131,17 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
               type="source"
               position={Position.Bottom}
               id="false"
-              style={{ left: 14, background: '#ef4444', width: 10, height: 10, border: '2px solid #0f172a' }}
+              title="False branch (drag to connect)"
+              style={{
+                left: 14,
+                background: '#ef4444',
+                width: 14,
+                height: 14,
+                border: '2px solid #0f172a',
+                cursor: 'crosshair',
+                zIndex: 10,
+                boxShadow: '0 0 8px rgba(239, 68, 68, 0.7)',
+              }}
             />
           </span>
         </div>
@@ -122,7 +149,16 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
         <Handle
           type="source"
           position={Position.Bottom}
-          style={{ background: color, width: 10, height: 10, border: '2px solid #0f172a' }}
+          title="Output (drag to connect next step)"
+          style={{
+            background: color,
+            width: 14,
+            height: 14,
+            border: '2px solid #0f172a',
+            cursor: 'crosshair',
+            zIndex: 10,
+            boxShadow: `0 0 8px ${color}80`,
+          }}
         />
       )}
     </div>
@@ -195,6 +231,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const onConnect = useCallback((connection: Connection) => {
+    if (!connection.source || !connection.target || connection.source === connection.target) return;
     setEdges(eds => addEdge({
       ...connection,
       animated: true,
@@ -202,6 +239,12 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
       markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
     }, eds));
   }, [setEdges]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setNodes(nds => nds.filter(n => n.id !== nodeId));
+    setEdges(eds => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNode(null);
+  }, [setNodes, setEdges]);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNode(node);
@@ -318,7 +361,9 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           nodeTypes={nodeTypes}
           fitView
           snapToGrid
-          snapGrid={[20, 20]}
+          snapGrid={[15, 15]}
+          deleteKeyCode={['Backspace', 'Delete']}
+          connectionLineStyle={{ stroke: '#818cf8', strokeWidth: 2 }}
           style={{ background: '#0c1222' }}
           defaultEdgeOptions={{
             animated: true,
@@ -335,6 +380,22 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
             maskColor="rgba(15,23,42,0.8)"
             style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 10 }}
           />
+
+          {/* Helpful connection guide */}
+          <Panel position="bottom-center">
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(15,23,42,0.92)', padding: '7px 16px', borderRadius: 20,
+              border: '1px solid rgba(129,140,248,0.25)', backdropFilter: 'blur(8px)',
+              fontSize: 12, color: '#cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              pointerEvents: 'none', userSelect: 'none',
+            }}>
+              <span style={{ fontSize: 14 }}>💡</span>
+              <span>
+                <strong>Connecting:</strong> Drag from bottom dot (<span style={{ color: '#22c55e', fontWeight: 700 }}>●</span> Output) to top dot (<span style={{ color: '#818cf8', fontWeight: 700 }}>●</span> Input)
+              </span>
+            </div>
+          </Panel>
 
           {/* Toolbar */}
           <Panel position="top-right">
@@ -364,6 +425,15 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
             </div>
           </Panel>
         </ReactFlow>
+
+        <style>{`
+          .react-flow__handle {
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+          }
+          .react-flow__handle:hover {
+            transform: scale(1.35) !important;
+          }
+        `}</style>
       </div>
 
       {/* Right: Config Panel or Preview */}
@@ -379,6 +449,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
             node={selectedNode}
             onChange={handleNodeConfigChange}
             onClose={() => setSelectedNode(null)}
+            onDelete={handleDeleteNode}
           />
         ) : showPreview ? (
           <TelegramPreview nodes={nodes} edges={edges} />

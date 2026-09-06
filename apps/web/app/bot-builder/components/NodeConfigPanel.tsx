@@ -6,9 +6,10 @@ interface Props {
   node: Node;
   onChange: (nodeId: string, config: any, label?: string) => void;
   onClose: () => void;
+  onDelete?: (nodeId: string) => void;
 }
 
-export function NodeConfigPanel({ node, onChange, onClose }: Props) {
+export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
   const nodeType = node.data?.nodeType as string || '';
   const config = (node.data?.config as Record<string, any>) || {};
   const label = (node.data?.label as string) || '';
@@ -191,12 +192,30 @@ export function NodeConfigPanel({ node, onChange, onClose }: Props) {
         )}
       </div>
 
-      {/* Node ID */}
+      {/* Node ID & Actions */}
       <div style={{
-        padding: '10px 16px', borderTop: '1px solid rgba(148,163,184,0.06)',
-        fontSize: 10, color: '#475569', fontFamily: 'monospace',
+        padding: '12px 16px', borderTop: '1px solid rgba(148,163,184,0.06)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        ID: {node.id}
+        <span style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace' }}>
+          ID: {node.id}
+        </span>
+        {onDelete && (
+          <button
+            onClick={() => onDelete(node.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 6,
+              background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+              color: '#ef4444', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.25)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.12)')}
+          >
+            <Trash2 size={12} /> Delete Node
+          </button>
+        )}
       </div>
     </div>
   );

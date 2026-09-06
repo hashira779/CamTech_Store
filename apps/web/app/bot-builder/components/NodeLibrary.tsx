@@ -122,9 +122,9 @@ export function NodeLibrary() {
       {/* Help */}
       <div style={{
         padding: '12px 16px', borderTop: '1px solid rgba(148,163,184,0.06)',
-        fontSize: 10, color: '#475569', textAlign: 'center',
+        fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 1.4,
       }}>
-        Drag nodes onto the canvas
+        💡 Drag nodes to canvas, then connect bottom dot to top dot
       </div>
     </div>
   );
