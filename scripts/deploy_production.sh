@@ -180,7 +180,7 @@ if [ "$DEPLOY_FAILED" -eq 1 ]; then
     run_cmd docker compose -f "$COMPOSE_FILE" logs --tail=40 || true
 
     # Notify Telegram on failure
-    TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA}"
+    TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN}"
     TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
     if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
         curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
@@ -205,7 +205,7 @@ run_cmd docker image prune -f 2>/dev/null || true
 run_cmd docker builder prune -af --filter "until=24h" 2>/dev/null || true
 
 # ── 9. Send Telegram Deployment Success Alert ─────────────────────────────────
-TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA}"
+TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN}"
 TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
 if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
     echo "🔔 Sending deployment readiness alert to Telegram..."

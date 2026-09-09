@@ -45,7 +45,7 @@ jobs:
       - name: Notify Telegram on Deployment Ready
         if: success()
         run: |
-          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "7673456476",
@@ -56,7 +56,7 @@ jobs:
       - name: Notify Telegram on Deployment Failure
         if: failure()
         run: |
-          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "7673456476",
