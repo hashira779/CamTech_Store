@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mystore/contracts": "workspace:*",
+    "@mystore/ui": "workspace:*",
     "@tanstack/react-query": "^5.62.11",
     "clsx": "^2.1.1",
     "lucide-react": "^1.39.0",

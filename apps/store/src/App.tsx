@@ -578,17 +578,17 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden bg-dot-grid pb-24">
+    <div className="min-h-screen bg-[#09090b] text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white relative overflow-x-hidden bg-dot-grid pb-24">
       <Toaster position="top-right" richColors />
 
       {/* Ambient Glow Orbs */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-gradient-to-r from-blue-600/15 via-indigo-500/20 to-purple-600/15 blur-[120px] rounded-full animate-pulse-glow" />
-      <div className="pointer-events-none absolute top-[750px] -right-40 w-[600px] h-[400px] bg-gradient-to-tr from-purple-600/10 via-indigo-600/10 to-cyan-500/10 blur-[130px] rounded-full" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-gradient-to-r from-brand-500/15 via-brand-500/20 to-brand-600/15 blur-[120px] rounded-full animate-pulse-glow" />
+      <div className="pointer-events-none absolute top-[750px] -right-40 w-[600px] h-[400px] bg-gradient-to-tr from-brand-600/10 via-brand-600/10 to-brand-500/10 blur-[130px] rounded-full" />
 
       {/* Top Ambient Status Ribbon */}
       <div className="max-w-6xl mx-auto pt-3 px-4 flex items-center justify-between text-[11px] text-zinc-400 font-mono">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
           <span className="hidden sm:inline">CAMTECH COMMERCE CLOUD • NEXT-DAY FLEET IN PHNOM PENH</span>
           <span className="sm:hidden">CAMTECH CLOUD</span>
         </div>
@@ -599,8 +599,8 @@ export function App() {
               Online • Express Dispatch
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400"></span>
               Offline Mode
             </span>
           )}
@@ -609,15 +609,15 @@ export function App() {
 
       {/* Floating Glassmorphic Capsule Navbar (Lightswind Style) */}
       <header className="sticky top-3 z-40 max-w-6xl mx-auto px-4 mt-2">
-        <div className="h-14 px-3 sm:px-5 rounded-full bg-zinc-950/75 backdrop-blur-2xl border border-zinc-800/80 shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 sm:gap-4">
+        <div className="h-14 px-3 sm:px-5 rounded-full bg-ink-950/75 backdrop-blur-2xl border border-line/80 shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand Identity */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-500 via-brand-500 to-brand-400 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
               <Store className="w-4 h-4" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-extrabold text-white tracking-tight">CamTech</span>
-              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-brand-500/20 text-brand-300 font-bold border border-brand-500/30">
                 STORE
               </span>
             </div>
@@ -631,9 +631,9 @@ export function App() {
               placeholder="Search MacBook, AirPods, Coffee, Charger..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-12 py-1.5 bg-zinc-900/60 border border-zinc-800 rounded-full text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              className="w-full pl-9 pr-12 py-1.5 bg-ink-850/60 border border-line rounded-full text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-500 bg-zinc-800/60 px-1.5 py-0.5 rounded border border-zinc-700/50">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-500 bg-ink-800/60 px-1.5 py-0.5 rounded border border-line-strong/50">
               ⌘K
             </span>
           </div>
@@ -644,14 +644,14 @@ export function App() {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => setIsHistoryOpen(true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 border border-zinc-800 transition"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 border border-line transition"
                   title="View Purchase History"
                 >
-                  <History className="w-3.5 h-3.5 text-indigo-400" />
+                  <History className="w-3.5 h-3.5 text-brand-400" />
                   <span className="hidden sm:inline">Orders</span>
                 </button>
-                <div className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-zinc-900/80 border border-zinc-800">
-                  <div className="w-5 h-5 rounded-full bg-indigo-500/30 text-indigo-300 font-bold text-[10px] flex items-center justify-center">
+                <div className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-ink-850/80 border border-line">
+                  <div className="w-5 h-5 rounded-full bg-brand-500/30 text-brand-300 font-bold text-[10px] flex items-center justify-center">
                     {customer.name.slice(0, 1).toUpperCase()}
                   </div>
                   <span className="text-xs font-semibold text-white max-w-[80px] truncate hidden sm:inline">
@@ -660,7 +660,7 @@ export function App() {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="p-1.5 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-rose-400 transition"
+                  className="p-1.5 rounded-full hover:bg-ink-850 text-zinc-400 hover:text-rose-400 transition"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -669,7 +669,7 @@ export function App() {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-200 transition flex items-center gap-1.5 shadow-sm"
+                className="px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 border border-line text-xs font-medium text-zinc-200 transition flex items-center gap-1.5 shadow-sm"
               >
                 <GoogleIcon className="w-3.5 h-3.5" />
                 <span>Sign In</span>
@@ -693,243 +693,48 @@ export function App() {
         </div>
       </header>
 
-      {/* Hero Section with Signature 3D Hanging Lanyard VIP Pass */}
-      <section className="max-w-6xl mx-auto px-4 pt-12 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Typography & Action CTA */}
-          <div className="lg:col-span-7 text-left space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 backdrop-blur-md shadow-sm">
+      {/* Compact product-first hero */}
+      <section className="max-w-6xl mx-auto px-4 pt-8 pb-6">
+        <div className="relative overflow-hidden rounded-3xl border border-line/80 bg-gradient-to-br from-ink-850/70 to-ink-950/80 p-6 sm:p-8">
+          <div className="pointer-events-none absolute -top-24 -right-16 w-72 h-72 bg-brand-500/15 blur-[90px] rounded-full" />
+          <div className="relative z-10 max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink-950/70 border border-line text-[11px] text-zinc-300">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
-              <span className="font-medium text-[11px] sm:text-xs">
-                Live Enterprise Commerce • Instant NBC Bakong KHQR
-              </span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.08]">
-              Elevate Daily Living with{' '}
-              <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                CamTech Store
-              </span>
+              Live &bull; Instant NBC Bakong KHQR &bull; 15-min delivery
+            </span>
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-[1.1]">
+              Shop tech &amp; coffee,{' '}
+              <span className="bg-gradient-to-r from-brand-300 to-brand-400 bg-clip-text text-transparent">delivered in minutes</span>
             </h1>
-
-            <p className="text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
-              Next-gen Apple silicon, high-fidelity audio, and artisan roast coffee delivered to your doorstep in Phnom Penh with instant Bakong KHQR settlement.
+            <p className="mt-2 text-sm text-zinc-400 max-w-lg">
+              Genuine Apple, Sony &amp; Anker hardware and artisan Mondulkiri roast &mdash; pay instantly with Bakong KHQR.
             </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a
-                href="#catalog"
-                className="px-6 py-3 rounded-full bg-white text-zinc-950 font-bold text-xs sm:text-sm hover:scale-105 transition shadow-[0_0_25px_rgba(255,255,255,0.25)] flex items-center gap-2 cursor-pointer"
-              >
-                <span>Shop Catalog</span>
+            <div className="mt-5 relative max-w-xl">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search MacBook, AirPods, coffee…"
+                className="w-full pl-11 pr-4 py-3 bg-ink-950/70 border border-line rounded-2xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"
+              />
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <a href="#catalog" className="px-5 py-2.5 rounded-full bg-white text-zinc-950 font-bold text-sm hover:bg-zinc-100 transition inline-flex items-center gap-2 cursor-pointer">
+                <span>Shop now</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
               <button
                 onClick={() => (customer ? setIsHistoryOpen(true) : setIsAuthModalOpen(true))}
-                className="px-5 py-3 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-bold text-xs sm:text-sm border border-zinc-800 transition flex items-center gap-2"
+                className="px-4 py-2.5 rounded-full bg-ink-850/80 hover:bg-ink-800 text-zinc-300 font-semibold text-sm border border-line transition inline-flex items-center gap-2"
               >
-                <Compass className="w-4 h-4 text-indigo-400" />
-                <span>Track Live Delivery</span>
+                <Compass className="w-4 h-4 text-brand-400" />
+                <span>Track delivery</span>
               </button>
             </div>
-
-            {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-zinc-800/60 max-w-lg">
-              <div>
-                <div className="text-xl sm:text-2xl font-black text-white flex items-center">
-                  <span>0.4s</span>
-                </div>
-                <div className="text-[11px] text-zinc-500 font-medium">Instant KHQR</div>
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black text-white">100%</div>
-                <div className="text-[11px] text-zinc-500 font-medium">Genuine Warranty</div>
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black text-white">GPS</div>
-                <div className="text-[11px] text-zinc-500 font-medium">Courier Fleet</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Interactive Digital NFC Member Pass */}
-          <div className="lg:col-span-5 relative flex justify-center items-center w-full">
-            {/* Ambient Background Glow behind pass */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-purple-500/10 to-pink-500/20 blur-3xl rounded-3xl" />
-
-            <div className="relative w-full max-w-[350px] rounded-3xl p-6 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 border border-zinc-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col gap-5">
-              {/* Lanyard Clip Header */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-3 bg-zinc-700/80 rounded-full border border-zinc-600/60 flex items-center justify-center">
-                <div className="w-8 h-1 bg-zinc-900 rounded-full"></div>
-              </div>
-
-              {/* Pass Top Branding */}
-              <div className="flex items-center justify-between pt-2">
-                <div>
-                  <span className="text-[9px] font-mono tracking-widest text-indigo-400 uppercase font-semibold block">
-                    CAMTECH COMMERCE
-                  </span>
-                  <span className="text-xs font-bold text-white tracking-tight">VIP Member Pass</span>
-                </div>
-                <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-mono font-bold text-xs">
-                  CT
-                </div>
-              </div>
-
-              {/* Member Identification Card */}
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-white truncate">
-                  {customer?.name || 'VIP Guest Member'}
-                </h3>
-                <p className="text-xs text-zinc-400 font-mono truncate">
-                  {customer?.email || 'guest.vip@camtech.cam'}
-                </p>
-              </div>
-
-              {/* Member Tier & Live Loyalty Engine */}
-              <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-zinc-950/60 border border-zinc-800/80">
-                <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">TIER</span>
-                  <span className="font-extrabold text-xs text-amber-300">
-                    {customer?.loyaltyTier || 'Executive Gold'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">LOYALTY PTS</span>
-                  <span className="font-extrabold text-xs text-emerald-400 font-mono">
-                    {customer?.loyaltyPoints ? `${customer.loyaltyPoints.toLocaleString()} PTS` : '500 PTS'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Account Code & Live Backend Status */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">ACCOUNT CODE</span>
-                  <span className="font-bold text-zinc-300 font-mono">{customer?.code || 'CT-ONLINE'}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 text-[10px] block uppercase font-mono">STATUS</span>
-                  <span className="font-bold text-indigo-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                    {customer?.id ? 'Verified Member' : (customer ? 'Active Member' : 'Guest')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Digital Waveform Barcode */}
-              <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-0.5 h-5">
-                  {[16, 8, 22, 12, 28, 6, 20, 14, 26, 10, 18, 24, 12, 16, 20, 8, 24, 14, 18, 10].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-zinc-600 rounded-full"
-                      style={{ height: `${h}px` }}
-                    />
-                  ))}
-                </div>
-                <span className="text-[10px] font-mono text-zinc-500">
-                  {customer?.code ? `CAMTECH-${customer.code}` : 'CAMTECH-2026-VIP'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Infinite Horizontal Tech & Partner Marquee */}
-      <div className="w-full overflow-hidden py-4 border-y border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md my-8">
-        <div className="animate-marquee flex items-center gap-3">
-          {[
-            '⚡ NBC Bakong KHQR Instant Checkout',
-            '🍎 100% Genuine Apple Warranty',
-            '📦 15-Minute Courier Dispatch',
-            '🛡️ Authentic Hardware & Audio',
-            '☕ Artisan Roast Mondulkiri Coffee',
-            '🔒 Secure 256-Bit Encrypted Checkout',
-            '🚀 Same-Day Phnom Penh Delivery',
-            '✨ VIP Member Loyalty Rewards',
-            '⚡ NBC Bakong KHQR Instant Checkout',
-            '🍎 100% Genuine Apple Warranty',
-            '📦 15-Minute Courier Dispatch',
-            '🛡️ Authentic Hardware & Audio',
-            '☕ Artisan Roast Mondulkiri Coffee',
-            '🔒 Secure 256-Bit Encrypted Checkout',
-            '🚀 Same-Day Phnom Penh Delivery',
-            '✨ VIP Member Loyalty Rewards',
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              className="px-4 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-300 font-medium whitespace-nowrap flex items-center gap-2 shrink-0 shadow-sm"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Interactive Bento Stat Grid (4 Core Platform Pillars) */}
-      <section className="max-w-6xl mx-auto px-4 mb-14">
-        <div className="text-center max-w-xl mx-auto mb-8">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-            Architected for Speed & Reliability
-          </span>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-white mt-3">
-            Enterprise Retail Infrastructure
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: NBC Bakong KHQR */}
-          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
-              <QrCode className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">Instant Bakong KHQR</h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-              0.4-second settlement via NBC Bakong. Pay directly with ABA Mobile, Wing, ACLEDA, or any KHQR app.
-            </p>
-            <span className="text-[10px] font-mono text-rose-400 font-bold">0% Transaction Fee</span>
-          </div>
-
-          {/* Card 2: 15-Minute Fleet Dispatch */}
-          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
-              <Truck className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">15-Min Fleet Dispatch</h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-              Automated dispatch from downtown BKK1 and Toul Kork micro-warehouses straight to your coordinates.
-            </p>
-            <span className="text-[10px] font-mono text-indigo-400 font-bold">Live GPS Courier Track</span>
-          </div>
-
-          {/* Card 3: 100% Genuine Guaranteed */}
-          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">100% Verified Stock</h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-              Direct manufacturer warranty on Apple, Sony, and Anker hardware, plus fresh daily artisan roasts.
-            </p>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">Original Verified</span>
-          </div>
-
-          {/* Card 4: Autonomous Offline Container */}
-          <div className="rounded-[2rem] bg-zinc-900/50 border border-zinc-800/80 p-6 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
-              <Store className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white mb-1">Offline Resilience</h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-              Stores and POS continue ringing up sales even during internet outages, auto-syncing when reconnected.
-            </p>
-            <span className="text-[10px] font-mono text-amber-400 font-bold">Zero Data Loss</span>
           </div>
         </div>
       </section>
@@ -937,7 +742,7 @@ export function App() {
       {/* Main Products Catalog Section */}
       <main id="catalog" className="max-w-6xl mx-auto px-4 scroll-mt-20">
         {/* Category Pills & Refresh Action */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 p-2 bg-zinc-950/70 border border-zinc-800/80 rounded-2xl backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 p-2 bg-ink-950/70 border border-line/80 rounded-2xl backdrop-blur-md">
           <div className="flex flex-wrap items-center gap-1.5">
             {categories.map((cat) => (
               <button
@@ -946,7 +751,7 @@ export function App() {
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-white text-zinc-950 shadow-md shadow-white/10'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                    : 'text-zinc-400 hover:text-white hover:bg-ink-850'
                 }`}
               >
                 {cat}
@@ -958,7 +763,7 @@ export function App() {
               refetchProducts();
               toast.info('Catalog refreshed from Central Data Center!');
             }}
-            className="text-[11px] font-mono text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 transition cursor-pointer"
+            className="text-[11px] font-mono text-zinc-400 hover:text-brand-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-ink-850 border border-line transition cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" />
             <span>Sync Catalog</span>
@@ -977,7 +782,7 @@ export function App() {
             {isBackendConnected ? (
               <span className="text-emerald-400 font-semibold">● Central Data Center</span>
             ) : (
-              <span className="text-amber-400 font-semibold">○ Container Autonomous</span>
+              <span className="text-brand-400 font-semibold">○ Container Autonomous</span>
             )}
           </span>
         </div>
@@ -987,27 +792,27 @@ export function App() {
             {Array.from({ length: 8 }).map((_, n) => (
               <div
                 key={n}
-                className="bg-zinc-900/50 border border-zinc-800/80 rounded-[2rem] p-5 flex flex-col justify-between animate-pulse space-y-4"
+                className="bg-ink-850/50 border border-line/80 rounded-[2rem] p-5 flex flex-col justify-between animate-pulse space-y-4"
               >
                 <div>
-                  <div className="w-full h-40 bg-zinc-800/60 rounded-2xl mb-4" />
-                  <div className="h-3 bg-zinc-800 rounded w-16 mb-2" />
-                  <div className="h-5 bg-zinc-800 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-zinc-800/60 rounded w-full mb-1" />
+                  <div className="w-full h-40 bg-ink-800/60 rounded-2xl mb-4" />
+                  <div className="h-3 bg-ink-800 rounded w-16 mb-2" />
+                  <div className="h-5 bg-ink-800 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-ink-800/60 rounded w-full mb-1" />
                 </div>
-                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
-                  <div className="h-5 bg-zinc-800 rounded w-16" />
-                  <div className="h-8 w-24 bg-zinc-800 rounded-full" />
+                <div className="pt-3 border-t border-line/80 flex items-center justify-between">
+                  <div className="h-5 bg-ink-800 rounded w-16" />
+                  <div className="h-8 w-24 bg-ink-800 rounded-full" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="p-16 text-center rounded-[2.5rem] bg-zinc-950/60 border border-zinc-800/80 my-4 shadow-xl">
+          <div className="p-16 text-center rounded-[2.5rem] bg-ink-950/60 border border-line/80 my-4 shadow-xl">
             <Package className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-white mb-1">No Products Found</h3>
+            <h3 className="text-base font-bold text-white mb-1">Nothing here yet</h3>
             <p className="text-xs text-zinc-400 max-w-sm mx-auto mb-4">
-              There are currently no items matching your filter in this category. Catalog refreshes automatically from the central data center.
+              We&apos;re loading fresh stock into this category. Try another category, or refresh to pull the latest catalog.
             </p>
             <button
               onClick={() => refetchProducts()}
@@ -1022,19 +827,19 @@ export function App() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group bg-zinc-900/50 border border-zinc-800/80 hover:border-indigo-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden"
+                className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden"
               >
                 <div>
-                  <div className="w-full h-40 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-500/40 transition">
-                    <Package className="w-12 h-12 text-zinc-600 group-hover:text-indigo-400 transition transform group-hover:scale-110 duration-300" />
-                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-800">
+                  <div className="w-full h-40 rounded-2xl bg-ink-950/80 border border-line/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
+                    <Package className="w-12 h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
+                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-850 text-zinc-300 border border-line">
                       {product.sku}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase">
+                  <span className="text-[10px] font-bold text-brand-400 tracking-wider uppercase">
                     {product.category}
                   </span>
-                  <h4 className="text-base font-bold text-white mt-1 group-hover:text-indigo-300 transition line-clamp-1">
+                  <h4 className="text-base font-bold text-white mt-1 group-hover:text-brand-300 transition line-clamp-1">
                     {product.name}
                   </h4>
                   <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
@@ -1042,7 +847,7 @@ export function App() {
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                <div className="mt-5 pt-3 border-t border-line/80 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-mono text-zinc-500 block">PRICE</span>
                     <span className="text-lg font-extrabold text-white font-mono">
@@ -1063,23 +868,74 @@ export function App() {
         )}
       </main>
 
+
+      {/* Why shop with us — trust strip (relocated below catalog) */}
+      <section className="max-w-6xl mx-auto px-4 mt-14">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { icon: QrCode, tint: '#fb7185', title: 'Instant Bakong KHQR', sub: '0.4s settlement · 0% fee' },
+            { icon: Truck, tint: '#818cf8', title: '15-min fleet dispatch', sub: 'Live GPS courier tracking' },
+            { icon: ShieldCheck, tint: '#34d399', title: '100% genuine stock', sub: 'Manufacturer warranty' },
+            { icon: Store, tint: '#a5b4fc', title: 'Offline resilience', sub: 'Zero data loss' },
+          ].map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title} className="rounded-2xl bg-ink-850/50 border border-line/80 p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${f.tint}1a`, color: f.tint }}>
+                  <Icon style={{ width: 18, height: 18 }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-white leading-tight">{f.title}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">{f.sub}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* VIP loyalty CTA (compact — replaces the hero member pass) */}
+      <section className="max-w-6xl mx-auto px-4 mt-4">
+        <div className="rounded-2xl border border-line/80 bg-gradient-to-r from-brand-600/15 to-ink-950/50 p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/30 text-brand-300 flex items-center justify-center font-mono font-bold text-xs shrink-0">CT</div>
+            <div>
+              <p className="text-sm font-bold text-white">CamTech VIP &mdash; earn points on every order</p>
+              <p className="text-[11px] text-zinc-400">
+                {customer
+                  ? `${(customer.loyaltyPoints ?? 500).toLocaleString()} pts · ${customer.loyaltyTier ?? 'Executive Gold'}`
+                  : 'Sign in to start earning loyalty rewards on every purchase.'}
+              </p>
+            </div>
+          </div>
+          {!customer && (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-4 py-2 rounded-full bg-white text-zinc-950 text-xs font-bold hover:bg-zinc-100 transition shrink-0"
+            >
+              Join VIP
+            </button>
+          )}
+        </div>
+      </section>
+
       {/* Floating Bottom Quick Action Dock (Lightswind Style) */}
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-zinc-950/85 backdrop-blur-2xl border border-zinc-800/90 shadow-[0_12px_40px_rgba(0,0,0,0.8)] flex items-center gap-1.5 sm:gap-2">
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-ink-950/85 backdrop-blur-2xl border border-line/90 shadow-[0_12px_40px_rgba(0,0,0,0.8)] flex items-center gap-1.5 sm:gap-2">
         <a
           href="#catalog"
-          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          className="p-2 rounded-full hover:bg-ink-800/80 text-zinc-400 hover:text-white transition"
           title="Products Catalog"
         >
           <Package className="w-4 h-4" />
         </a>
         <button
           onClick={() => setIsHistoryOpen(true)}
-          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          className="p-2 rounded-full hover:bg-ink-800/80 text-zinc-400 hover:text-white transition"
           title="My Orders"
         >
           <History className="w-4 h-4" />
         </button>
-        <div className="w-px h-4 bg-zinc-800" />
+        <div className="w-px h-4 bg-ink-800" />
         <button
           onClick={() => setIsCartOpen(true)}
           className="px-3 py-1.5 rounded-full bg-white text-zinc-950 font-bold text-xs flex items-center gap-1.5 hover:bg-zinc-200 transition shadow-md cursor-pointer"
@@ -1092,10 +948,10 @@ export function App() {
             </span>
           )}
         </button>
-        <div className="w-px h-4 bg-zinc-800" />
+        <div className="w-px h-4 bg-ink-800" />
         <button
           onClick={() => (customer ? setIsHistoryOpen(true) : setIsAuthModalOpen(true))}
-          className="p-2 rounded-full hover:bg-zinc-800/80 text-zinc-400 hover:text-white transition"
+          className="p-2 rounded-full hover:bg-ink-800/80 text-zinc-400 hover:text-white transition"
           title={customer ? customer.name : 'Sign In'}
         >
           <User className="w-4 h-4" />
@@ -1105,8 +961,8 @@ export function App() {
       {/* Cart Drawer */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col p-6 shadow-2xl animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="w-full max-w-md bg-ink-850 border-l border-line h-full flex flex-col p-6 shadow-2xl animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-line">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-emerald-400" />
                 <div>
@@ -1119,7 +975,7 @@ export function App() {
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                className="p-1 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1135,7 +991,7 @@ export function App() {
                 cart.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/60"
+                    className="flex items-center justify-between p-3 rounded-xl bg-ink-800/60 border border-line-strong/60"
                   >
                     <div className="flex-1 min-w-0 pr-3">
                       <p className="text-sm font-semibold text-white truncate">{item.name}</p>
@@ -1144,7 +1000,7 @@ export function App() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => updateQuantity(item.id, -1)}
-                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
+                        className="w-6 h-6 rounded-md bg-ink-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
                         title="Decrease"
                       >
                         <Minus className="w-3 h-3" />
@@ -1152,7 +1008,7 @@ export function App() {
                       <span className="text-xs font-bold w-4 text-center text-white">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, 1)}
-                        className="w-6 h-6 rounded-md bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
+                        className="w-6 h-6 rounded-md bg-ink-700 hover:bg-slate-600 flex items-center justify-center text-xs text-slate-200 cursor-pointer"
                         title="Increase"
                       >
                         <Plus className="w-3 h-3" />
@@ -1171,7 +1027,7 @@ export function App() {
             </div>
 
             {cart.length > 0 && (
-              <div className="pt-4 border-t border-slate-800 space-y-3">
+              <div className="pt-4 border-t border-line space-y-3">
                 <div className="flex justify-between text-xs text-slate-400">
                   <span>Subtotal</span>
                   <span className="text-slate-200 font-mono">${cartTotal.toFixed(2)}</span>
@@ -1180,7 +1036,7 @@ export function App() {
                   <span>Tax (10% VAT)</span>
                   <span className="text-slate-200 font-mono">${(cartTotal * 0.1).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-slate-800">
+                <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-line">
                   <span>Total Due</span>
                   <span className="text-emerald-400 font-mono text-base">${(cartTotal * 1.1).toFixed(2)}</span>
                 </div>
@@ -1201,15 +1057,15 @@ export function App() {
       {/* Checkout Modal */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="w-full max-w-lg bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-4 border-b border-line">
               <h3 className="font-bold text-lg text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 Secure Checkout
               </h3>
               <button
                 onClick={() => setIsCheckoutOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1262,17 +1118,17 @@ export function App() {
                           });
                         }
                       }}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                      className="w-full px-3 py-2 bg-ink-850 border border-line-strong focus:border-emerald-500 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none transition"
                     />
                     {!(customer.phone || guestPhone) && (
-                      <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+                      <p className="text-[11px] text-brand-400 mt-1 flex items-center gap-1">
                         <span>⚠️</span> Please enter your phone number so our driver can contact you.
                       </p>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                <div className="bg-ink-950/70 p-3.5 rounded-xl border border-line space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" /> Guest Checkout (No Account Needed)
@@ -1298,9 +1154,9 @@ export function App() {
 
                   <div className="relative text-center my-1">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-800"></div>
+                      <div className="w-full border-t border-line"></div>
                     </div>
-                    <span className="relative bg-slate-950 px-2 text-[10px] text-slate-500 uppercase">or enter manually</span>
+                    <span className="relative bg-ink-950 px-2 text-[10px] text-slate-500 uppercase">or enter manually</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
@@ -1312,7 +1168,7 @@ export function App() {
                         placeholder="e.g. Dara Pich"
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <div>
@@ -1324,7 +1180,7 @@ export function App() {
                         placeholder="e.g. +855 12 345 678"
                         value={guestPhone}
                         onChange={(e) => setGuestPhone(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                   </div>
@@ -1351,7 +1207,7 @@ export function App() {
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                     placeholder="Enter street, building, or district..."
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white"
+                    className="w-full pl-9 pr-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white"
                   />
                 </div>
               </div>
@@ -1364,7 +1220,7 @@ export function App() {
                     className={`p-3 rounded-xl border flex items-center gap-2 transition ${
                       paymentMethod === 'KHQR'
                         ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-300'
+                        : 'bg-ink-800/80 border-line-strong text-slate-300'
                     }`}
                   >
                     <QrCode className="w-5 h-5 text-rose-400" />
@@ -1379,7 +1235,7 @@ export function App() {
                     className={`p-3 rounded-xl border flex items-center gap-2 transition ${
                       paymentMethod === 'COD'
                         ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-300'
+                        : 'bg-ink-800/80 border-line-strong text-slate-300'
                     }`}
                   >
                     <Truck className="w-5 h-5 text-emerald-400" />
@@ -1393,7 +1249,7 @@ export function App() {
 
               {/* KHQR Preview */}
               {paymentMethod === 'KHQR' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-slate-950 border border-rose-800/40 text-center space-y-2.5">
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-ink-950 border border-rose-800/40 text-center space-y-2.5">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
                     <span>KHQR</span> • <span>National Bank of Cambodia</span>
                   </div>
@@ -1414,7 +1270,7 @@ export function App() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+            <div className="pt-4 border-t border-line flex items-center justify-between">
               <div>
                 <span className="text-xs text-slate-400 block">Total Due</span>
                 <span className="text-lg font-bold text-emerald-400 font-mono">${(cartTotal * 1.1).toFixed(2)}</span>
@@ -1434,7 +1290,7 @@ export function App() {
       {/* Order Confirmed View */}
       {confirmedOrder && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 shadow-2xl text-center">
+          <div className="w-full max-w-md bg-ink-850 border border-emerald-500/40 rounded-2xl p-6 shadow-2xl text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 border border-emerald-500/40">
               <CheckCircle2 className="w-8 h-8" />
             </div>
@@ -1444,7 +1300,7 @@ export function App() {
               Thank you, {confirmedOrder.customer.name}! We have routed your dispatch request to our nearest delivery fleet.
             </p>
 
-            <div className="mt-4 p-3 rounded-xl bg-slate-950 text-left text-xs space-y-1.5 border border-slate-800">
+            <div className="mt-4 p-3 rounded-xl bg-ink-950 text-left text-xs space-y-1.5 border border-line">
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Charged:</span>
                 <span className="font-bold text-emerald-400">${confirmedOrder.total.toFixed(2)}</span>
@@ -1466,7 +1322,7 @@ export function App() {
                   setSelectedOrderForInvoice(confirmedOrder);
                   setConfirmedOrder(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-line-strong transition cursor-pointer"
               >
                 <Receipt className="w-4 h-4" />
                 View Invoice
@@ -1486,8 +1342,8 @@ export function App() {
       {/* Customer Purchase History Modal */}
       {isHistoryOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="w-full max-w-xl bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-line">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-lg text-white">Order History & Invoices</h3>
@@ -1495,7 +1351,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setIsHistoryOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                className="p-1 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1504,14 +1360,14 @@ export function App() {
             <div className="py-4 max-h-96 overflow-y-auto space-y-3">
               {isHistoryLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between animate-pulse">
+                  <div key={i} className="p-3.5 rounded-xl bg-ink-950 border border-line flex items-center justify-between animate-pulse">
                     <div className="space-y-1.5">
-                      <div className="h-3.5 w-28 bg-slate-800 rounded" />
-                      <div className="h-2.5 w-16 bg-slate-800/60 rounded" />
+                      <div className="h-3.5 w-28 bg-ink-800 rounded" />
+                      <div className="h-2.5 w-16 bg-ink-800/60 rounded" />
                     </div>
                     <div className="space-y-1.5 text-right flex flex-col items-end">
-                      <div className="h-4 w-16 bg-slate-800 rounded" />
-                      <div className="h-2.5 w-12 bg-slate-800/60 rounded" />
+                      <div className="h-4 w-16 bg-ink-800 rounded" />
+                      <div className="h-2.5 w-12 bg-ink-800/60 rounded" />
                     </div>
                   </div>
                 ))
@@ -1528,7 +1384,7 @@ export function App() {
                       setSelectedOrderForInvoice(order);
                       setIsHistoryOpen(false);
                     }}
-                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/90 transition cursor-pointer flex items-center justify-between group"
+                    className="p-3.5 rounded-xl bg-ink-950 border border-line hover:border-emerald-500/50 hover:bg-ink-850/90 transition cursor-pointer flex items-center justify-between group"
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -1554,7 +1410,7 @@ export function App() {
                           {order.payments?.[0]?.method || order.paymentMethod || 'Paid via KHQR'}
                         </span>
                       </div>
-                      <div className="p-1.5 rounded-lg bg-slate-900 group-hover:bg-emerald-500/20 text-slate-400 group-hover:text-emerald-400 transition">
+                      <div className="p-1.5 rounded-lg bg-ink-850 group-hover:bg-emerald-500/20 text-slate-400 group-hover:text-emerald-400 transition">
                         <Receipt className="w-4 h-4" />
                       </div>
                     </div>
@@ -1597,9 +1453,9 @@ export function App() {
 
         return (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
+            <div className="w-full max-w-xl bg-ink-850 border border-line rounded-2xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
               {/* Modal Control Header (Hidden when printing) */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/80 print:hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-ink-950/80 print:hidden">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-emerald-400" />
                   <h3 className="font-bold text-base text-white">Order Details & Tax Invoice</h3>
@@ -1608,7 +1464,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-700 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition border border-line-strong cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Print Invoice</span>
@@ -1616,7 +1472,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setSelectedOrderForInvoice(null)}
-                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white transition cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1626,10 +1482,10 @@ export function App() {
               {/* Printable Invoice Sheet */}
               <div id="printable-invoice" className="p-6 sm:p-8 space-y-6 text-slate-200 text-xs">
                 {/* Brand Header */}
-                <div className="flex items-start justify-between pb-6 border-b border-slate-800">
+                <div className="flex items-start justify-between pb-6 border-b border-line">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-md">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-brand-400 flex items-center justify-center text-slate-950 shadow-md">
                         <Store className="w-5 h-5" />
                       </div>
                       <div>
@@ -1673,7 +1529,7 @@ export function App() {
                 </div>
 
                 {/* Customer & Delivery Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-950 border border-slate-800/80">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-ink-950 border border-line/80">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Billed To</span>
                     <p className="font-bold text-white text-sm">{customerName}</p>
@@ -1691,14 +1547,14 @@ export function App() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400">
+                      <tr className="border-b border-line text-[10px] uppercase font-bold text-slate-400">
                         <th className="pb-2.5">Item Description</th>
                         <th className="pb-2.5 text-center">Qty</th>
                         <th className="pb-2.5 text-right">Price</th>
                         <th className="pb-2.5 text-right">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-ink-800/60 font-mono">
                       {lineItems.length > 0 ? (
                         lineItems.map((item: any, idx: number) => {
                           const itemName = item.name || item.productName || 'Store Product';
@@ -1708,7 +1564,7 @@ export function App() {
                           const itemSku = item.sku || (item.id ? `SKU-${String(item.id).substring(0, 6)}` : 'GEN-01');
 
                           return (
-                            <tr key={idx} className="hover:bg-slate-950/40">
+                            <tr key={idx} className="hover:bg-ink-950/40">
                               <td className="py-2.5 font-sans">
                                 <span className="font-semibold text-white block">{itemName}</span>
                                 <span className="text-[10px] text-slate-400 font-mono">{itemSku}</span>
@@ -1735,7 +1591,7 @@ export function App() {
                 </div>
 
                 {/* Financial Summary */}
-                <div className="pt-3 border-t border-slate-800 space-y-1.5">
+                <div className="pt-3 border-t border-line space-y-1.5">
                   <div className="flex justify-between text-slate-400 text-xs">
                     <span>Subtotal</span>
                     <span className="font-mono text-slate-200">${subtotal.toFixed(2)}</span>
@@ -1748,7 +1604,7 @@ export function App() {
                     <span>Fleet Delivery & Handling</span>
                     <span className="font-mono text-emerald-400 font-semibold">FREE / INCLUDED</span>
                   </div>
-                  <div className="flex items-baseline justify-between pt-3 border-t border-slate-800">
+                  <div className="flex items-baseline justify-between pt-3 border-t border-line">
                     <div>
                       <span className="font-bold text-sm text-white block">Grand Total Due</span>
                       <span className="text-[10px] text-slate-400 font-mono">1 USD ≈ 4,100 KHR</span>
@@ -1765,7 +1621,7 @@ export function App() {
                 </div>
 
                 {/* Payment & Verification Footer */}
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between text-[11px]">
+                <div className="p-3.5 rounded-xl bg-ink-950 border border-line/80 flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                       <QrCode className="w-4 h-4" />
@@ -1788,14 +1644,14 @@ export function App() {
               </div>
 
               {/* Bottom Actions (hidden during print) */}
-              <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between print:hidden">
+              <div className="p-4 border-t border-line bg-ink-950/80 flex items-center justify-between print:hidden">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedOrderForInvoice(null);
                     setIsHistoryOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-ink-800 transition cursor-pointer"
                 >
                   ← Back to Order History
                 </button>
@@ -1811,7 +1667,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setSelectedOrderForInvoice(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-white font-semibold text-xs transition cursor-pointer"
                   >
                     Close
                   </button>
@@ -1825,15 +1681,15 @@ export function App() {
       {/* Customer Sign In / Account Modal */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-base text-white">Customer Sign In</h3>
               </div>
               <button
                 onClick={() => setIsAuthModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1852,9 +1708,9 @@ export function App() {
 
               <div className="relative my-3 text-center">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-800"></div>
+                  <div className="w-full border-t border-line"></div>
                 </div>
-                <span className="relative bg-slate-900 px-2 text-[10px] text-slate-500 uppercase">or with name & email</span>
+                <span className="relative bg-ink-850 px-2 text-[10px] text-slate-500 uppercase">or with name & email</span>
               </div>
 
               <form
@@ -1897,7 +1753,7 @@ export function App() {
                     placeholder="e.g. Dara Pich"
                     value={authNameInput}
                     onChange={(e) => setAuthNameInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -1908,7 +1764,7 @@ export function App() {
                     placeholder="e.g. +855 12 345 678"
                     value={authPhoneInput}
                     onChange={(e) => setAuthPhoneInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -1919,7 +1775,7 @@ export function App() {
                     placeholder="e.g. dara.pich@gmail.com"
                     value={authEmailInput}
                     onChange={(e) => setAuthEmailInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -1931,7 +1787,7 @@ export function App() {
                 </button>
               </form>
 
-              <p className="text-[11px] text-slate-500 text-center pt-3 border-t border-slate-800">
+              <p className="text-[11px] text-slate-500 text-center pt-3 border-t border-line">
                 Don't have an account? You can simply checkout as a guest without signing in.
               </p>
             </div>

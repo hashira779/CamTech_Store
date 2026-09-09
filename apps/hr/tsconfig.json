@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@mystore/contracts": ["../../packages/contracts/src/index.ts"]
+      "@mystore/contracts": ["../../packages/contracts/src/index.ts"],
+      "@mystore/ui": ["../../packages/ui/src/index.ts"]
     }
   },
   "include": ["src"]

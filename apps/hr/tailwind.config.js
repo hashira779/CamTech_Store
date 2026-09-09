@@ -1,16 +1,13 @@
+import preset from '../../packages/ui/tailwind-preset.cjs';
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  presets: [preset],
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
   ],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
-      },
-    },
-  },
+  theme: { extend: {} },
   plugins: [],
-}
+};

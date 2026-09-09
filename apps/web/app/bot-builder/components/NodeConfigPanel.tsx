@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Plus, Trash2, RotateCcw, Sparkles } from 'lucide-react';
 import type { Node } from '@xyflow/react';
+import { BUTTON_QUICK_PRESETS } from '@mystore/contracts';
 
 interface Props {
   node: Node;
@@ -546,15 +547,7 @@ function ButtonsEditor({
     onChange(updated);
   };
 
-  const quickPresets = [
-    { label: '📦 Track Order', data: 'track_order' },
-    { label: '🛍️ Store Catalog', data: 'browse_catalog' },
-    { label: '💬 Support', data: 'contact_support' },
-    { label: '🇰🇭 Bakong KHQR', data: 'pay_khqr' },
-    { label: '🛵 Track Courier', data: 'track_courier' },
-    { label: '🛒 View Cart', data: 'view_cart' },
-    { label: '🔙 Back to Menu', data: 'back' },
-  ];
+  const quickPresets = BUTTON_QUICK_PRESETS;
 
   return (
     <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 10, padding: 12 }}>

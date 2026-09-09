@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
+import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { PageHeader } from '@/components/page-header';
 import { KpiCard } from '@/components/kpi-card';
@@ -33,6 +34,8 @@ import {
 
 export default function DashboardPage() {
   const { token, user } = useAuth();
+  const { activeExperience } = useExperienceStore();
+  const workspace = EXPERIENCE_CONFIGS[activeExperience] ?? EXPERIENCE_CONFIGS.EXECUTIVE;
   const navigate = useNavigate();
   const [chartRange, setChartRange] = useState<'7d' | '30d'>('7d');
 
@@ -79,12 +82,17 @@ export default function DashboardPage() {
       <div className="space-y-8">
         {/* Page Header */}
         <PageHeader
-          title="Executive Command Center"
-          description={`Operational intelligence for ${user?.name}${freshness ? ` · updated ${freshness}` : ''}.`}
+          title={workspace.title}
+          description={`Welcome back, ${user?.name ?? 'there'}${freshness ? ` · updated ${freshness}` : ''}.`}
           badge={
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-xs">
-              {periodLabel}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-xs">
+                {workspace.badge}
+              </Badge>
+              <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-xs">
+                {periodLabel}
+              </Badge>
+            </div>
           }
         >
           <Button

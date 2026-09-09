@@ -12,6 +12,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@mystore/contracts': path.resolve(__dirname, '../../packages/contracts/src/index.ts'),
+      '@mystore/ui/styles.css': path.resolve(__dirname, '../../packages/ui/styles.css'),
+      '@mystore/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
     },
   },
   build: {

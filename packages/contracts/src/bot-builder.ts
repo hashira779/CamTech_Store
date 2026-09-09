@@ -289,6 +289,17 @@ export const NODE_LIBRARY: NodeCategoryItem[] = [
   { type: 'format_currency', label: 'Format Currency', icon: '💲', description: 'Format number to $USD or ៛KHR', category: 'Data' },
 ];
 
+// ─── Quick Button Presets ──────────────────────────────────────────────────
+export const BUTTON_QUICK_PRESETS = [
+  { label: '📦 Track Order', data: 'track_order' },
+  { label: '🛍️ Store Catalog', data: 'browse_catalog' },
+  { label: '💬 Support', data: 'contact_support' },
+  { label: '🇰🇭 Bakong KHQR', data: 'pay_khqr' },
+  { label: '🛵 Track Courier', data: 'track_courier' },
+  { label: '🛒 View Cart', data: 'view_cart' },
+  { label: '🔙 Back to Menu', data: 'back' },
+];
+
 // ─── Enterprise Starter Templates ───────────────────────────────────────────
 
 export interface WorkflowTemplate {

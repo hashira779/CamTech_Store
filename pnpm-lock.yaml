@@ -38,6 +38,9 @@ importers:
       '@mystore/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@mystore/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.62.11
         version: 5.102.8(react@19.2.8)
@@ -96,6 +99,9 @@ importers:
       '@mystore/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@mystore/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.62.11
         version: 5.102.8(react@19.2.8)
@@ -154,6 +160,9 @@ importers:
       '@mystore/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@mystore/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.62.11
         version: 5.102.8(react@19.2.8)
@@ -212,6 +221,9 @@ importers:
       '@mystore/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@mystore/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.62.11
         version: 5.102.8(react@19.2.8)
@@ -270,6 +282,9 @@ importers:
       '@mystore/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@mystore/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@supabase/supabase-js':
         specifier: ^2.114.0
         version: 2.114.0(@opentelemetry/api@1.9.1)
@@ -489,6 +504,25 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      lucide-react:
+        specifier: '*'
+        version: 1.39.0(react@19.2.8)
+      react:
+        specifier: '>=18'
+        version: 19.2.8
+      react-dom:
+        specifier: '>=18'
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.18)
 
   services/backend:
     dependencies:

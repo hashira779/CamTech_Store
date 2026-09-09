@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import '@mystore/ui/styles.css';
 
 @tailwind base;
 @tailwind components;
@@ -119,12 +120,13 @@
   #printable-invoice .text-slate-500 {
     color: #475569 !important;
   }
-  #printable-invoice .bg-slate-950,
-  #printable-invoice .bg-slate-900 {
+  #printable-invoice .bg-ink-950,
+  #printable-invoice .bg-ink-850,
+  #printable-invoice .bg-ink-800 {
     background: #f8fafc !important;
   }
-  #printable-invoice .border-slate-800,
-  #printable-invoice .border-slate-700 {
+  #printable-invoice .border-line,
+  #printable-invoice .border-line-strong {
     border-color: #cbd5e1 !important;
   }
 }

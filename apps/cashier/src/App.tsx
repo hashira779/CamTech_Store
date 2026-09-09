@@ -447,7 +447,7 @@ export function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-white tracking-wide">Terminal POS-01</h1>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 font-bold">
                   PORT 5003
                 </span>
                 {/* Fault Isolation Status Badge */}
@@ -457,7 +457,7 @@ export function App() {
                     Server: ONLINE
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 animate-pulse">
                     <CloudOff className="w-3 h-3" />
                     Server: DOWN (Running Locally in Container)
                   </span>
@@ -476,20 +476,20 @@ export function App() {
               placeholder="Scan Barcode / SKU (e.g. MBP-14-512)..."
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 pr-4 py-2 bg-ink-950 border border-line rounded-xl text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
             />
           </form>
 
           <div className="flex items-center gap-3">
             {offlineQueue.length > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs font-mono font-bold">
                 <Database className="w-3.5 h-3.5" />
                 <span>{offlineQueue.length} Queued Locally</span>
               </div>
             )}
             <button
               onClick={() => { refetchProducts(); toast.info('Refreshed local catalog cache'); }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1.5 transition"
+              className="p-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-slate-300 text-xs flex items-center gap-1.5 transition"
               title="Sync Catalog"
             >
               <RefreshCw className="w-4 h-4" />
@@ -497,7 +497,7 @@ export function App() {
             {/* Cashier Badge & Lock Register Controls */}
             {cashierUser ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-ink-850 border border-line text-xs">
                   <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
                     <UserCheck className="w-3.5 h-3.5" />
                   </div>
@@ -511,7 +511,7 @@ export function App() {
                 </div>
                 <button
                   onClick={handleLockRegister}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-700/50"
+                  className="px-2.5 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-brand-400 text-xs font-semibold flex items-center gap-1.5 transition border border-line-strong/50"
                   title="Lock Register / Pause Shift"
                 >
                   <Lock className="w-3.5 h-3.5" />
@@ -519,7 +519,7 @@ export function App() {
                 </button>
                 <button
                   onClick={handleSwitchCashier}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 text-xs transition border border-slate-700/50"
+                  className="p-2 rounded-xl bg-ink-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 text-xs transition border border-line-strong/50"
                   title="Log Out Cashier / Switch Shift"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -528,7 +528,7 @@ export function App() {
             ) : (
               <button
                 onClick={() => setIsRegisterLocked(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 text-xs font-bold transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border border-brand-500/40 text-xs font-bold transition"
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>Unlock Register</span>
@@ -538,15 +538,15 @@ export function App() {
         </header>
 
         {/* Category Filter Bar */}
-        <div className="px-6 py-3 border-b border-slate-800 bg-slate-900/30 flex items-center gap-2">
+        <div className="px-6 py-3 border-b border-line bg-ink-850/30 flex items-center gap-2">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition ${
                 selectedCategory === cat
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
+                  ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-500/20'
+                  : 'bg-ink-850 text-slate-400 hover:bg-ink-800'
               }`}
             >
               {cat}
@@ -560,15 +560,15 @@ export function App() {
             Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between animate-pulse space-y-4 shadow-sm"
+                className="p-4 rounded-2xl bg-ink-850/60 border border-line flex flex-col justify-between animate-pulse space-y-4 shadow-sm"
               >
                 <div>
-                  <div className="w-16 h-3.5 bg-slate-800 rounded mb-2.5"></div>
-                  <div className="w-3/4 h-5 bg-slate-800 rounded mb-1.5"></div>
-                  <div className="w-1/2 h-3.5 bg-slate-800/60 rounded"></div>
+                  <div className="w-16 h-3.5 bg-ink-800 rounded mb-2.5"></div>
+                  <div className="w-3/4 h-5 bg-ink-800 rounded mb-1.5"></div>
+                  <div className="w-1/2 h-3.5 bg-ink-800/60 rounded"></div>
                 </div>
-                <div className="mt-4 pt-2.5 border-t border-slate-800/60 flex items-center justify-between w-full">
-                  <div className="w-12 h-3 bg-slate-800/50 rounded"></div>
+                <div className="mt-4 pt-2.5 border-t border-line/60 flex items-center justify-between w-full">
+                  <div className="w-12 h-3 bg-ink-800/50 rounded"></div>
                   <div className="w-16 h-5 bg-emerald-500/20 rounded"></div>
                 </div>
               </div>
@@ -587,14 +587,14 @@ export function App() {
                 className="product-card animate-fade-in-up p-5 rounded-2xl flex flex-col justify-between text-left cursor-pointer"
               >
                 <div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink-950 text-slate-400 border border-line">
                     {item.sku}
                   </span>
-                  <h4 className="text-sm font-bold text-white mt-2 group-hover:text-amber-400 transition line-clamp-2">
+                  <h4 className="text-sm font-bold text-white mt-2 group-hover:text-brand-400 transition line-clamp-2">
                     {item.name}
                   </h4>
                 </div>
-                <div className="mt-4 pt-2 border-t border-slate-800/80 flex items-center justify-between w-full">
+                <div className="mt-4 pt-2 border-t border-line flex items-center justify-between w-full">
                   <span className="text-xs text-slate-500">{item.category}</span>
                   <span className="text-base font-mono font-bold text-emerald-400">
                     ${item.price.toFixed(2)}
@@ -621,14 +621,14 @@ export function App() {
               <Barcode className="w-12 h-12 mx-auto mb-2 opacity-30" />
               <p className="text-xs">Scan or click products to ring up.</p>
               {!isServerOnline && (
-                <p className="text-[10px] text-amber-400/80 mt-1">Autonomous container mode active.</p>
+                <p className="text-[10px] text-brand-400/80 mt-1">Autonomous container mode active.</p>
               )}
             </div>
           ) : (
             cart.map((item) => (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between"
+                className="p-3 rounded-xl bg-ink-850 border border-line flex items-center justify-between"
               >
                 <div className="flex-1 min-w-0 pr-2">
                   <p className="text-xs font-bold text-white truncate">{item.name}</p>
@@ -637,14 +637,14 @@ export function App() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => updateQuantity(item.id, -1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200"
+                    className="w-7 h-7 rounded-lg bg-ink-800 hover:bg-ink-700 flex items-center justify-center text-slate-200"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
                   <span className="text-xs font-bold font-mono w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.id, 1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200"
+                    className="w-7 h-7 rounded-lg bg-ink-800 hover:bg-ink-700 flex items-center justify-center text-slate-200"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -655,7 +655,7 @@ export function App() {
         </div>
 
         {/* Totals & Quick Action Bar */}
-        <div className="p-6 border-t border-slate-800 bg-slate-900/80 space-y-3">
+        <div className="p-6 border-t border-line bg-ink-850/80 space-y-3">
           <div className="flex justify-between text-xs text-slate-400">
             <span>Subtotal</span>
             <span className="font-mono text-slate-200">${subtotal.toFixed(2)}</span>
@@ -664,7 +664,7 @@ export function App() {
             <span>10% Tax</span>
             <span className="font-mono text-slate-200">${tax.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-slate-800">
+          <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-line">
             <span>Total Payable</span>
             <span className="font-mono text-emerald-400 text-xl">${total.toFixed(2)}</span>
           </div>
@@ -683,17 +683,17 @@ export function App() {
       {/* Payment Processing Modal */}
       {isPaymentOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="w-full max-w-md bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-line">
               <div>
                 <h3 className="font-bold text-lg text-white">Select Tender Method</h3>
                 {!isServerOnline && (
-                  <p className="text-[11px] text-amber-400">⚡ Server Down: Cash payment & receipt work 100% offline.</p>
+                  <p className="text-[11px] text-brand-400">⚡ Server Down: Cash payment & receipt work 100% offline.</p>
                 )}
               </div>
               <button
                 onClick={() => setIsPaymentOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg hover:bg-ink-800 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -706,7 +706,7 @@ export function App() {
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
                     paymentMethod === 'CASH'
                       ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300'
+                      : 'bg-ink-800/80 border-line-strong text-slate-300'
                   }`}
                 >
                   <Banknote className="w-8 h-8 text-emerald-400" />
@@ -719,7 +719,7 @@ export function App() {
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
                     paymentMethod === 'BAKONG_KHQR'
                       ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300'
+                      : 'bg-ink-800/80 border-line-strong text-slate-300'
                   }`}
                 >
                   <QrCode className="w-8 h-8 text-rose-400" />
@@ -729,7 +729,7 @@ export function App() {
               </div>
 
               {paymentMethod === 'BAKONG_KHQR' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-slate-950 border border-rose-800/40 text-center space-y-2.5">
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-ink-950 border border-rose-800/40 text-center space-y-2.5">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
                     <span>KHQR</span> • <span>National Bank of Cambodia</span>
                   </div>
@@ -812,7 +812,7 @@ export function App() {
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-ink-850 text-white font-bold text-xs flex items-center justify-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Print Receipt
@@ -830,10 +830,10 @@ export function App() {
 
       {/* Cashier Shift Login & Register Lock Gate Modal */}
       {isRegisterLocked && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 flex flex-col space-y-6">
+        <div className="fixed inset-0 z-50 bg-ink-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-ink-850 border border-line rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 flex flex-col space-y-6">
             <div className="text-center space-y-2">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center shadow-lg shadow-brand-500/10">
                 <Lock className="w-7 h-7" />
               </div>
               <h2 className="text-xl font-bold text-white tracking-wide">Register POS-01 Shift Gate</h2>
@@ -849,7 +849,7 @@ export function App() {
                     Central Data Center: Connected
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
                     <CloudOff className="w-3.5 h-3.5" />
                     Container Mode: Offline Resilient
                   </span>
@@ -858,13 +858,13 @@ export function App() {
             </div>
 
             {/* Mode Switcher */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs font-semibold">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-ink-950/80 rounded-xl border border-line text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => { setLoginMode('CREDENTIALS'); setLoginError(null); }}
                 className={`py-2 rounded-lg transition ${
                   loginMode === 'CREDENTIALS'
-                    ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                    ? 'bg-brand-500 text-slate-950 shadow font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -875,7 +875,7 @@ export function App() {
                 onClick={() => { setLoginMode('OFFLINE_EMERGENCY'); setLoginError(null); }}
                 className={`py-2 rounded-lg transition ${
                   loginMode === 'OFFLINE_EMERGENCY'
-                    ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                    ? 'bg-brand-500 text-slate-950 shadow font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -901,7 +901,7 @@ export function App() {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="cashier@demo.test"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                    className="w-full px-3.5 py-2.5 bg-ink-950 border border-line rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 transition"
                   />
                 </div>
 
@@ -913,7 +913,7 @@ export function App() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                    className="w-full px-3.5 py-2.5 bg-ink-950 border border-line rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 transition"
                   />
                 </div>
 
@@ -925,7 +925,7 @@ export function App() {
                       setLoginEmail('cashier@demo.test');
                       setLoginPassword('Cashier123!');
                     }}
-                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-300 transition"
                   >
                     Quick: Demo Cashier
                   </button>
@@ -935,7 +935,7 @@ export function App() {
                       setLoginEmail('admin@demo.test');
                       setLoginPassword('Admin123!');
                     }}
-                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                    className="text-[10px] font-medium px-2 py-1 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-300 transition"
                   >
                     Quick: Super Admin
                   </button>
@@ -944,7 +944,7 @@ export function App() {
                 <button
                   type="submit"
                   disabled={isLoggingIn}
-                  className="w-full mt-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                  className="w-full mt-2 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 disabled:opacity-50 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition cursor-pointer"
                 >
                   {isLoggingIn ? (
                     <>
@@ -961,7 +961,7 @@ export function App() {
               </form>
             ) : (
               <form onSubmit={handleOfflineEmergencyUnlock} className="space-y-4">
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed">
+                <div className="p-3 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-300 text-[11px] leading-relaxed">
                   ⚡ <strong>Emergency Standalone Mode:</strong> When Central Database is unreachable, sign in as a local operator. Sales will be safely queued in local container storage and synced automatically once online.
                 </div>
 
@@ -973,7 +973,7 @@ export function App() {
                     value={offlineOperatorName}
                     onChange={(e) => setOfflineOperatorName(e.target.value)}
                     placeholder="e.g. Sokha Vathanak"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"
+                    className="w-full px-3.5 py-2.5 bg-ink-950 border border-line rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 transition"
                   />
                 </div>
 
@@ -988,7 +988,7 @@ export function App() {
             )}
 
             {/* Footer reassurance */}
-            <div className="text-center pt-2 border-t border-slate-800/80">
+            <div className="text-center pt-2 border-t border-line">
               <p className="text-[10px] text-slate-500">
                 CamTech Multi-Store Commerce • Protected Register Terminal POS-01
               </p>

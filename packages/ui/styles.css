@@ -1,0 +1,171 @@
+/* ============================================================
+   MyStore Design System — control-tower theme tokens.
+   Import once per app AFTER the @tailwind directives:
+       @import '@mystore/ui/styles.css';
+   Plain CSS (no @apply) so it is fully portable.
+
+   Theme model: DARK is the default (bare :root). LIGHT activates
+   only when the document element carries data-theme="light"
+   (set by the shared ThemeToggle). Apps that have not migrated
+   their text colors stay dark and are unaffected.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+  /* Surface ramp as "R G B" channel triplets (used with /opacity) */
+  --ink-950: 7 10 18;
+  --ink-900: 11 15 26;
+  --ink-850: 15 20 34;
+  --ink-800: 20 26 43;
+  --ink-700: 27 35 54;
+  --ink-600: 35 45 68;
+
+  --line: rgba(148, 163, 184, 0.10);
+  --line-strong: rgba(148, 163, 184, 0.18);
+  --border: rgba(148, 163, 184, 0.10);
+  --border-strong: rgba(148, 163, 184, 0.18);
+
+  --bg: #070a12;
+  --text: #e7ecf5;
+  --text-dim: #94a0b8;
+  --text-faint: #64748b;
+
+  --card-bg: 15 20 34;
+  --card-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --scrollbar: rgba(148, 163, 184, 0.18);
+  --scrollbar-hover: rgba(148, 163, 184, 0.30);
+
+  --brand: #6366f1;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --ink-950: 248 250 252; /* page ground */
+  --ink-900: 255 255 255;
+  --ink-850: 255 255 255; /* card surface */
+  --ink-800: 241 245 249; /* inputs / hover */
+  --ink-700: 226 232 240;
+  --ink-600: 203 213 225;
+
+  --line: rgba(15, 23, 42, 0.10);
+  --line-strong: rgba(15, 23, 42, 0.16);
+  --border: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(15, 23, 42, 0.16);
+
+  --bg: #f4f6fb;
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #64748b;
+
+  --card-bg: 255 255 255;
+  --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 26px -18px rgba(15, 23, 42, 0.20);
+  --scrollbar: rgba(15, 23, 42, 0.18);
+  --scrollbar-hover: rgba(15, 23, 42, 0.30);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.014em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ambient console backdrop (softer in light mode) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
+    radial-gradient(50rem 35rem at 110% 10%, rgba(56, 189, 248, 0.06), transparent 55%);
+}
+:root[data-theme='light'] body::before {
+  background:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(99, 102, 241, 0.06), transparent 60%),
+    radial-gradient(50rem 35rem at 110% 10%, rgba(56, 189, 248, 0.05), transparent 55%);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+/* ---- Semantic text helpers (theme-aware) ---- */
+.ds-text { color: var(--text); }
+.ds-text-dim { color: var(--text-dim); }
+.ds-text-faint { color: var(--text-faint); }
+
+/* ---- Primitives ---- */
+.ds-card {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: rgb(var(--card-bg) / 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow: var(--card-shadow);
+}
+.ds-card-hover { transition: transform 0.2s, border-color 0.2s; }
+.ds-card-hover:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+
+.ds-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ds-figure {
+  font-family: var(--mono);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-strong);
+}
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  cursor: pointer;
+  border: 0;
+}
+.ds-btn-ghost { color: var(--text-dim); background: rgb(var(--ink-800) / 0.8); }
+.ds-btn-ghost:hover { background: rgb(var(--ink-700)); color: var(--text); }
+.ds-btn-brand { color: #fff; background: #4f46e5; box-shadow: 0 0 0 1px rgba(99,102,241,0.35), 0 8px 30px -8px rgba(99,102,241,0.45); }
+.ds-btn-brand:hover { background: #6366f1; }
+
+.ds-divide > * + * { border-top: 1px solid var(--border); }
