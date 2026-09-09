@@ -202,13 +202,13 @@ export class ApiClientError extends Error {
 export function isJwtExpired(token: string): boolean {
   try {
     const parts = token.split('.');
-    if (parts.length < 2) return true;
+    if (parts.length !== 3) return false;
     const jsonStr = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
     const payload = JSON.parse(jsonStr);
-    if (!payload.exp) return false;
+    if (typeof payload.exp !== 'number') return false;
     return Date.now() >= payload.exp * 1000 - 5000;
   } catch {
-    return true;
+    return false;
   }
 }
 
