@@ -4,6 +4,7 @@ import { Store } from 'lucide-react';
 
 import { Toaster } from 'sonner';
 import { useRealtimeStream } from '@/lib/use-realtime-stream';
+import { useInactivityTimeout } from '@/lib/use-inactivity-timeout';
 import { DomainBar } from '@/components/domain-bar';
 import { ErrorBoundary } from '@/components/error-boundary';
 
@@ -27,6 +28,7 @@ function RouteLoading() {
 
 export function App() {
   useRealtimeStream();
+  useInactivityTimeout();
 
   const location = useLocation();
   const hostname = window.location.hostname.toLowerCase();

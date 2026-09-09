@@ -199,16 +199,41 @@ export class ApiClientError extends Error {
   }
 }
 
+export function isJwtExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return true;
+    const jsonStr = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(jsonStr);
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000 - 5000;
+  } catch {
+    return true;
+  }
+}
+
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem('mystore-auth');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.state?.token) return parsed.state.token;
+      if (parsed?.state?.token) {
+        const token = parsed.state.token;
+        if (isJwtExpired(token)) {
+          localStorage.removeItem('mystore-auth');
+          return null;
+        }
+        return token;
+      }
     }
   } catch {}
-  return localStorage.getItem('token') || null;
+  const rawToken = localStorage.getItem('token');
+  if (rawToken && isJwtExpired(rawToken)) {
+    localStorage.removeItem('token');
+    return null;
+  }
+  return rawToken || null;
 }
 
 async function request<T>(
@@ -230,10 +255,35 @@ async function request<T>(
   try {
     body = (await res.json()) as ApiResponse<T>;
   } catch {
+    if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('mystore-auth');
+          localStorage.removeItem('token');
+        } catch {}
+        const p = window.location.pathname;
+        if (!p.startsWith('/login') && !p.startsWith('/shop') && !p.startsWith('/customer')) {
+          window.location.href = '/login?expired=true';
+        }
+      }
+      throw new ApiClientError('UNAUTHORIZED', 'Session expired. Please sign in again.');
+    }
     throw new ApiClientError('NETWORK', `Unexpected response (HTTP ${res.status})`);
   }
 
   if (!body.success) {
+    if (res.status === 401 || (body as any).code === 'UNAUTHORIZED') {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('mystore-auth');
+          localStorage.removeItem('token');
+        } catch {}
+        const p = window.location.pathname;
+        if (!p.startsWith('/login') && !p.startsWith('/shop') && !p.startsWith('/customer')) {
+          window.location.href = '/login?expired=true';
+        }
+      }
+    }
     throw new ApiClientError(body.code, body.message, body.requestId);
   }
   return body.data;

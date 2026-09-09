@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@mystore/contracts';
@@ -13,6 +13,9 @@ import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon } from '
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isExpired = searchParams.get('expired') === 'true';
+  const isInactive = searchParams.get('inactive') === 'true';
   const setAuth = useAuth((s) => s.setAuth);
   const { theme, setTheme } = useThemeStore();
   const { resolveDefaultExperience, setExperience } = useExperienceStore();
@@ -202,6 +205,20 @@ export default function LoginPage() {
             <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
             <p className="mt-1 text-muted-foreground">Sign in to your command center</p>
           </div>
+
+          {isExpired && (
+            <div className="mb-6 flex items-center gap-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs font-medium text-amber-500 backdrop-blur-md animate-fade-in shadow-xs">
+              <KeyRound className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>Your session has expired. Please sign in again to access the admin portal.</span>
+            </div>
+          )}
+
+          {isInactive && (
+            <div className="mb-6 flex items-center gap-2.5 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs font-medium text-blue-400 backdrop-blur-md animate-fade-in shadow-xs">
+              <KeyRound className="h-4 w-4 shrink-0 text-blue-400" />
+              <span>You have been automatically signed out after 30 minutes of inactivity.</span>
+            </div>
+          )}
 
           <form onSubmit={onSubmit} className="glass-panel brand-glow space-y-5 rounded-3xl p-8">
             <div className="space-y-2">
