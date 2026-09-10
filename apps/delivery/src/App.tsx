@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Truck,
   Navigation,
@@ -9,12 +9,9 @@ import {
   MapPin,
   DollarSign,
   FileSignature,
-  Battery,
   ShieldCheck,
-  ShieldAlert,
   ChevronRight,
   Package,
-  Sparkles,
   RefreshCw,
   X,
   Smartphone,
@@ -22,11 +19,14 @@ import {
   Lock,
   LogOut,
   Send,
-  ExternalLink,
-  Info
+  BellRing,
+  User,
+  MessageCircle,
+  Map as MapIcon,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-import { ThemeToggle } from '@mystore/ui';
 
 const API_BASE_URL = (() => {
   if (typeof window !== 'undefined') {
@@ -43,35 +43,45 @@ interface DeliveryTask {
   trackingNumber: string;
   recipientName: string;
   recipientPhone: string;
-  destinationAddress: string;
+  deliveryAddress: string;
   status: 'PENDING' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED';
   codAmount: number;
-  paymentMethod: 'CASH_ON_DELIVERY' | 'PAID_KHQR';
-}
-
-interface DriverProfile {
-  id: string;
-  name: string;
-  phone: string;
-  vehicleType: string;
-  licensePlate: string;
-  status: string;
-  batteryLevel: number;
+  paymentMethod?: string;
+  proofOfDelivery?: string;
+  notes?: string;
 }
 
 interface AuthUser {
   id: string;
   email: string;
   name: string;
+  phone?: string;
   roles: string[];
 }
 
 export function App() {
-  const [deliveries, setDeliveries] = useState<DeliveryTask[]>([]);
-  const [selectedTask, setSelectedTask] = useState<DeliveryTask | null>(null);
+  const queryClient = useQueryClient();
+
+  // Auth State
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authState, setAuthState] = useState<'LOADING' | 'UNREGISTERED' | 'OTP_PENDING' | 'PENDING_APPROVAL' | 'ACTIVE'>('LOADING');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [isAuthProcessing, setIsAuthProcessing] = useState(false);
+  const [initData, setInitData] = useState('');
+  
+  // Traditional password login fallback
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // UI state
+  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [selectedOrder, setSelectedOrder] = useState<DeliveryTask | null>(null);
   const [isPodOpen, setIsPodOpen] = useState(false);
-  const [signatureName, setSignatureName] = useState('');
-  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+  const [podNotes, setPodNotes] = useState('');
+  const [podSignature, setPodSignature] = useState('');
 
   // Mobile / Telegram detection
   const [isDesktop, setIsDesktop] = useState(false);
@@ -79,299 +89,245 @@ export function App() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
 
-  // Authentication & Authorization state
-  const [authToken, setAuthToken] = useState<string | null>(null);
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // Initialize auth & environment detection on mount
+  // 1. Initialize Telegram WebApp & check auto-login
   useEffect(() => {
-    // 1. Detect Telegram WebApp
     const tg = (window as any).Telegram?.WebApp;
-    if (tg && tg.initData) {
+    const tgInitData = tg?.initData || '';
+    if (tg && tgInitData) {
       setIsTelegramApp(true);
       tg.ready?.();
       tg.expand?.();
     }
+    setInitData(tgInitData);
 
-    // 2. Detect Desktop Viewport
     const checkViewport = () => {
       const isWide = window.innerWidth >= 768;
-      const isTg = Boolean((window as any).Telegram?.WebApp?.initData);
-      setIsDesktop(isWide && !isTg);
+      setIsDesktop(isWide && !Boolean(tgInitData));
     };
     checkViewport();
     window.addEventListener('resize', checkViewport);
 
-    // 3. Load saved credentials (from mystore-auth or local delivery cache)
+    // Check cached credentials
     try {
-      const sharedAuth = localStorage.getItem('mystore-auth');
-      if (sharedAuth) {
-        const parsed = JSON.parse(sharedAuth);
-        if (parsed?.state?.token && parsed?.state?.user) {
-          setAuthToken(parsed.state.token);
-          setAuthUser(parsed.state.user);
+      const savedAuth = localStorage.getItem('delivery-driver-auth') || localStorage.getItem('mystore-auth');
+      if (savedAuth) {
+        const parsed = JSON.parse(savedAuth);
+        const savedToken = parsed.token || parsed?.state?.token;
+        const savedUser = parsed.user || parsed?.state?.user;
+        if (savedToken && savedUser) {
+          setToken(savedToken);
+          setUser(savedUser);
+          setAuthState('ACTIVE');
           return () => window.removeEventListener('resize', checkViewport);
-        }
-      }
-
-      const deliveryAuth = localStorage.getItem('delivery-driver-auth');
-      if (deliveryAuth) {
-        const parsed = JSON.parse(deliveryAuth);
-        if (parsed?.token && parsed?.user) {
-          setAuthToken(parsed.token);
-          setAuthUser(parsed.user);
         }
       }
     } catch {}
 
+    // Auto-login via Telegram WebApp if running in bot
+    if (tgInitData) {
+      fetch(`${API_BASE_URL}/api/v1/delivery/auth/login/auto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_init_data: tgInitData })
+      })
+        .then((res) => res.json())
+        .then((res) => {
+          const data = res.data || res;
+          if (data.auth_status === 'ACTIVE' && data.access_token) {
+            setToken(data.access_token);
+            setUser(data.user);
+            setAuthState('ACTIVE');
+            localStorage.setItem('delivery-driver-auth', JSON.stringify({ token: data.access_token, user: data.user }));
+          } else if (data.auth_status === 'PENDING_APPROVAL') {
+            setAuthState('PENDING_APPROVAL');
+          } else {
+            setAuthState('UNREGISTERED');
+          }
+        })
+        .catch(() => {
+          setAuthState('UNREGISTERED');
+        });
+    } else {
+      setAuthState('UNREGISTERED');
+    }
+
     return () => window.removeEventListener('resize', checkViewport);
   }, []);
 
-  // Check authorization roles (Driver, Manager, Admin, Warehouse, CEO)
+  // Check authorization roles
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [];
   const isAuthorized = Boolean(
-    authUser &&
-    Array.isArray(authUser.roles) &&
-    authUser.roles.some((r) =>
-      ['DELIVERY_DRIVER', 'STORE_MANAGER', 'BRANCH_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN', 'WAREHOUSE_STAFF', 'WAREHOUSE_MANAGER', 'CEO', 'CASHIER', 'ADMIN', 'STAFF'].includes(r)
-    )
+    token &&
+    (userRoles.length === 0 || userRoles.some((r: string) =>
+      ['DELIVERY_DRIVER', 'STORE_MANAGER', 'BRANCH_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN', 'WAREHOUSE_STAFF', 'CEO', 'CASHIER', 'ADMIN'].includes(r)
+    ))
   );
 
-  const handleLogin = async (emailToUse?: string, passwordToUse?: string) => {
-    const email = emailToUse || loginEmail;
-    const password = passwordToUse || loginPassword;
-
-    if (!email || !password) {
-      toast.error('Please enter email and password');
-      return;
+  // Send OTP handler
+  const handleInitRegister = async () => {
+    if (!phoneNumber) return toast.error('Please enter your registered phone number');
+    setIsAuthProcessing(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/auth/register/init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phoneNumber, telegram_init_data: initData })
+      });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        throw new Error(json.detail || json.message || 'Phone number not found in admin registry');
+      }
+      setAuthState('OTP_PENDING');
+      toast.success('OTP sent to your Telegram account!');
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Registration failed');
+    } finally {
+      setIsAuthProcessing(false);
     }
+  };
 
-    setIsLoggingIn(true);
+  // Verify OTP handler
+  const handleVerifyOtp = async () => {
+    if (!otpCode) return toast.error('Please enter the 6-digit OTP code');
+    setIsAuthProcessing(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/auth/register/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phoneNumber, otp_code: otpCode, telegram_init_data: initData })
+      });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        throw new Error(json.detail || json.message || 'Invalid or expired OTP code');
+      }
+      setAuthState('PENDING_APPROVAL');
+      toast.success('OTP Verified! Waiting for admin approval.');
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'OTP verification failed');
+    } finally {
+      setIsAuthProcessing(false);
+    }
+  };
+
+  // Traditional Email/Password Login Fallback
+  const handlePasswordLogin = async (emailArg?: string, passArg?: string) => {
+    const email = emailArg || loginEmail;
+    const password = passArg || loginPassword;
+    if (!email || !password) return toast.error('Enter email and password');
+    setIsAuthProcessing(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-
       const json = await res.json();
-      if (!res.ok || (json.success === false)) {
-        toast.error(json.detail || json.message || 'Authentication failed. Check credentials.');
-        setIsLoggingIn(false);
-        return;
+      if (!res.ok || json.success === false) {
+        throw new Error(json.detail || json.message || 'Login failed. Check credentials.');
       }
-
       const data = json.data || json;
-      const token = data.accessToken || data.token;
-      const user = data.user;
-
-      if (!token || !user) {
-        toast.error('Invalid auth payload from server');
-        setIsLoggingIn(false);
-        return;
-      }
-
-      // Check role
-      const userRoles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean);
-      const authorized = userRoles.some((r: string) =>
-        ['DELIVERY_DRIVER', 'STORE_MANAGER', 'BRANCH_MANAGER', 'ORG_ADMIN', 'SUPER_ADMIN', 'WAREHOUSE_STAFF', 'WAREHOUSE_MANAGER', 'CEO', 'CASHIER', 'ADMIN', 'STAFF'].includes(r)
-      );
-
-      if (!authorized) {
-        toast.error('Unauthorized: Your role does not have delivery dispatch access.');
-        setIsLoggingIn(false);
-        return;
-      }
-
-      const authData = { token, user: { ...user, roles: userRoles } };
-      setAuthToken(token);
-      setAuthUser(authData.user);
-      localStorage.setItem('delivery-driver-auth', JSON.stringify(authData));
-      toast.success(`Welcome back, ${user.name}! Dispatch unlocked.`);
+      const t = data.accessToken || data.token;
+      const u = data.user;
+      setToken(t);
+      setUser(u);
+      setAuthState('ACTIVE');
+      localStorage.setItem('delivery-driver-auth', JSON.stringify({ token: t, user: u }));
+      toast.success(`Welcome, ${u.name}! Dispatch unlocked.`);
     } catch (err: any) {
-      toast.error(`Login error: ${err.message || 'Cannot reach API Gateway'}`);
+      toast.error(err.message);
     } finally {
-      setIsLoggingIn(false);
+      setIsAuthProcessing(false);
     }
   };
 
   const handleLogout = () => {
-    setAuthToken(null);
-    setAuthUser(null);
+    setToken(null);
+    setUser(null);
+    setAuthState('UNREGISTERED');
     localStorage.removeItem('delivery-driver-auth');
-    toast.info('Logged out of delivery dispatch.');
+    localStorage.removeItem('mystore-auth');
+    toast.success('Logged out successfully');
   };
 
-  // 1. Fetch real driver roster from Central Data Center API
-  const { data: drivers } = useQuery<DriverProfile[]>({
-    queryKey: ['delivery-fleet-drivers'],
+  // Fetch Delivery Orders (Polling every 3s)
+  const { data: orders = [], isLoading } = useQuery<DeliveryTask[]>({
+    queryKey: ['driver-deliveries'],
     queryFn: async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/delivery/drivers/public`);
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data || json || [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: isAuthorized,
-    staleTime: 30000
-  });
-
-  const activeDriver: DriverProfile | undefined = 
-    (drivers && drivers.find((d) => d.id === selectedDriverId)) ||
-    (drivers && drivers[0]);
-
-  // 2. Fetch live tasks from Central Data Center API (polls every 3s for new store orders)
-  const { data: serverTasks, isLoading: isTasksLoading, refetch } = useQuery({
-    queryKey: ['delivery-live-tasks', authToken],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/delivery/tasks`, {
-          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
-        });
-        if (!res.ok) throw new Error('API offline');
-        const json = await res.json();
-        const items = json.data?.items || json.items || json.data || [];
-        if (Array.isArray(items)) {
-          return items.map((t: any) => ({
-            id: t.id,
-            trackingNumber: t.trackingNumber || `TRK-${t.id.slice(-6)}`,
-            recipientName: t.recipientName || 'Customer',
-            recipientPhone: t.recipientPhone || 'N/A',
-            destinationAddress: t.destinationAddress || 'Address on file',
-            status: t.status || 'DISPATCHED',
-            codAmount: Number(t.codAmount || 0),
-            paymentMethod: t.paymentMethod || 'PAID_KHQR'
-          }));
-        }
-        return [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: isAuthorized,
-    refetchInterval: isAuthorized ? 3000 : false
-  });
-
-  useEffect(() => {
-    if (serverTasks) {
-      setDeliveries(serverTasks);
-      setSelectedTask((current) => {
-        if (!current) return null;
-        return serverTasks.find((t) => t.id === current.id) || current;
+      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-    }
-  }, [serverTasks]);
+      const json = await res.json();
+      const items = json.data || json || [];
+      return Array.isArray(items) ? items.map((o: any) => ({
+        ...o,
+        deliveryAddress: o.deliveryAddress || o.destinationAddress || 'Store Pickup / Express Delivery',
+      })) : [];
+    },
+    enabled: Boolean(token && authState === 'ACTIVE'),
+    refetchInterval: 3000,
+  });
 
-  const activeDeliveries = deliveries;
-  const remainingCount = deliveries.filter((d) => d.status !== 'DELIVERED').length;
-  const completedCount = deliveries.filter((d) => d.status === 'DELIVERED').length;
-  const progressPercent = deliveries.length > 0 ? Math.round((completedCount / deliveries.length) * 100) : 0;
-
-  const updateStatus = async (id: string, newStatus: DeliveryTask['status']) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/tasks/${id}/status`, {
+  // Update Status Mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status, signature, notes }: { id: string; status: string; signature?: string; notes?: string }) => {
+      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status, proofOfDelivery: signature, notes })
       });
-      
-      if (!res.ok) {
-        toast.error('Failed to update status on server');
-        return;
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        throw new Error(json.detail || json.message || 'Failed to update delivery');
       }
-    } catch {
-      toast.error('Network error, please try again');
-      return;
-    }
-    
-    setDeliveries((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d))
-    );
-    if (selectedTask?.id === id) {
-      setSelectedTask((prev) => (prev ? { ...prev, status: newStatus } : null));
-    }
-    refetch();
-    toast.success(`Package status updated to ${newStatus}`);
-  };
-
-  const handleCompleteDelivery = async () => {
-    if (!selectedTask) return;
-    if (!signatureName.trim()) {
-      toast.error('Recipient signature / name required for POD');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/tasks/${selectedTask.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
-        },
-        body: JSON.stringify({ status: 'DELIVERED', proofOfDelivery: signatureName })
-      });
-      if (!res.ok) {
-        toast.error('Failed to complete delivery on backend');
-        return;
+      return json.data || json;
+    },
+    onSuccess: (updated) => {
+      toast.success(`Order #${updated.trackingNumber || 'updated'} marked as ${updated.status}!`);
+      queryClient.invalidateQueries({ queryKey: ['driver-deliveries'] });
+      setIsPodOpen(false);
+      setSelectedOrder(null);
+      setPodNotes('');
+      setPodSignature('');
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
-    } catch {
-      // offline
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Status update failed');
     }
+  });
 
-    setDeliveries((prev) =>
-      prev.map((d) => (d.id === selectedTask.id ? { ...d, status: 'DELIVERED' } : d))
-    );
-    setSelectedTask((prev) => (prev ? { ...prev, status: 'DELIVERED' } : null));
-
-    setIsPodOpen(false);
-    setSignatureName('');
-    toast.success('🎉 Proof of Delivery (POD) synced to Data Center!');
-    refetch();
-  };
+  const pendingOrders = orders.filter((o) => o.status === 'PENDING');
+  const activeOrders = orders.filter((o) => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
+  const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
+  const totalCodToCollect = activeOrders.reduce((sum, o) => sum + (Number(o.codAmount) > 0 ? Number(o.codAmount) : 0), 0);
 
   return (
-    <div className="min-h-screen bg-ink-950 ds-text font-sans select-none flex flex-col items-center">
-      <Toaster position="top-right" richColors />
+    <div className="min-h-screen bg-[#F7F7F9] text-slate-900 flex flex-col items-center relative font-sans antialiased">
+      <Toaster position="top-center" richColors />
 
-      {/* ─── 1. Desktop & Telegram Mini App Alert Banner ─── */}
+      {/* ─── 1. Desktop View Notice ─── */}
       {isDesktop && showDesktopAlert && (
-        <div className="w-full bg-gradient-to-r from-ink-900 via-ink-850 to-ink-850 border-b border-line px-4 py-2.5 text-xs ds-text-dim">
-          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-center sm:text-left">
-              <div className="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-300 flex items-center justify-center shrink-0">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="font-bold ds-text flex items-center gap-1.5 inline-flex">
-                  Telegram Mini App & Mobile Driver Terminal
-                </span>
-                <span className="ds-text-dim block sm:inline sm:ml-2">
-                  Optimized for couriers & Telegram WebApp. Switch to mobile view or scan QR for field GPS & POD signatures.
-                </span>
-              </div>
+        <div className="w-full bg-slate-900 px-4 py-2.5 text-xs text-white z-50 sticky top-0 shadow-md">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-amber-400" />
+              <span>Optimized for Mobile & Telegram Mini App. Open via <strong>@CamTechDeliverybot</strong></span>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setShowQrModal(true)}
-                className="px-2.5 py-1 rounded-lg bg-brand-600/30 hover:bg-brand-600/50 text-brand-200 font-semibold border border-brand-500/30 flex items-center gap-1.5 transition"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                Scan QR Code
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowQrModal(true)} className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-full text-[11px] transition">
+                QR Code
               </button>
-              <button
-                onClick={() => setShowDesktopAlert(false)}
-                className="p-1 ds-text-dim hover:text-white rounded-md transition"
-                title="Dismiss banner"
-              >
+              <button onClick={() => setShowDesktopAlert(false)} className="p-1 hover:text-slate-300">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -379,444 +335,527 @@ export function App() {
         </div>
       )}
 
-      {/* ─── 2. Telegram Mini App Active Header ─── */}
-      {isTelegramApp && (
-        <div className="w-full bg-brand-600 text-white text-[11px] font-bold py-1 px-4 text-center flex items-center justify-center gap-1.5">
-          <Send className="w-3 h-3" />
-          Running inside Telegram Mini App
-        </div>
-      )}
-
-      {/* ─── 3. Authorization Gate (If Not Logged In or Unauthorized) ─── */}
-      {!isAuthorized ? (
+      {/* ─── 2. Auth Flow Gate ─── */}
+      {!isAuthorized || authState !== 'ACTIVE' ? (
         <div className="flex-1 flex items-center justify-center p-4 w-full max-w-md my-auto">
-          <div className="w-full bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl space-y-5">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-300 flex items-center justify-center mx-auto shadow-inner">
-                <Lock className="w-7 h-7" />
+          <div className="w-full bg-white rounded-[2rem] p-8 shadow-xl border border-slate-100 space-y-6">
+            
+            {/* 2a. Checking State */}
+            {authState === 'LOADING' && (
+              <div className="text-center space-y-4 py-10">
+                <RefreshCw className="w-12 h-12 text-amber-500 animate-spin mx-auto" />
+                <h2 className="text-base font-bold text-slate-700">Verifying Driver Credentials...</h2>
+                <p className="text-xs text-slate-400">Connecting to CamTech Telegram Security Gate</p>
               </div>
-              <h2 className="text-lg font-bold ds-text tracking-tight">
-                Delivery Dispatch Terminal
-              </h2>
-              <p className="text-xs ds-text-dim max-w-xs mx-auto">
-                Restricted access. Only authorized <strong className="ds-text-dim">Fleet Drivers</strong> and <strong className="ds-text-dim">Store Managers</strong> can view live customer orders.
-              </p>
-            </div>
+            )}
 
-            {/* Login Form */}
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="text-[11px] font-semibold ds-text-dim block mb-1">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="driver@demo.test or admin@demo.test"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs ds-text placeholder:text-slate-600 outline-none transition"
-                />
+            {/* 2b. Pending Admin Approval */}
+            {authState === 'PENDING_APPROVAL' && (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-2">
+                  <Clock className="w-10 h-10 text-amber-500 animate-pulse" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Pending Approval</h2>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Your Telegram account is verified! A store manager or administrator is reviewing your driver profile.
+                </p>
+                <div className="pt-4 space-y-3">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold py-3.5 text-sm transition shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Check Status
+                  </button>
+                  <button
+                    onClick={() => setAuthState('UNREGISTERED')}
+                    className="text-xs text-slate-400 hover:text-slate-600 font-medium"
+                  >
+                    Use different phone number
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div>
-                <label className="text-[11px] font-semibold ds-text-dim block mb-1">Password</label>
-                <input
-                  type="password"
-                  placeholder="Enter your password..."
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs ds-text placeholder:text-slate-600 outline-none transition"
-                />
+            {/* 2c. Unregistered: Input Phone for OTP */}
+            {authState === 'UNREGISTERED' && !showPasswordLogin && (
+              <div className="space-y-6">
+                <div className="space-y-2 text-center">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <Truck className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">CamTech Delivery</h2>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    Enter your authorized phone number to receive your instant Telegram verification code.
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-1">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 012345678"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-13 text-base font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:border-amber-500 focus:bg-white transition"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleInitRegister}
+                    disabled={isAuthProcessing || phoneNumber.length < 8}
+                    className="w-full h-13 rounded-full bg-[#FDCB82] hover:bg-[#fab75b] disabled:opacity-50 text-amber-950 font-bold text-base shadow-sm transition flex items-center justify-center gap-2"
+                  >
+                    {isAuthProcessing ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" /> Send OTP via Telegram
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setShowPasswordLogin(true)}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                    >
+                      Or sign in with Password / Demo Login
+                    </button>
+                  </div>
+                </div>
               </div>
+            )}
 
-              <button
-                onClick={() => handleLogin()}
-                disabled={isLoggingIn}
-                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-glow transition disabled:opacity-50"
-              >
-                {isLoggingIn ? 'Authenticating...' : 'Sign In to Courier Dispatch'}
-              </button>
-            </div>
+            {/* 2d. OTP Verification Screen */}
+            {authState === 'OTP_PENDING' && !showPasswordLogin && (
+              <div className="space-y-6">
+                <div className="space-y-2 text-center">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">Enter OTP Code</h2>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    We sent a 6-digit code to your Telegram chat via <strong>@CamTechDeliverybot</strong>.
+                  </p>
+                </div>
 
-            {/* Quick Demo Access */}
-            <div className="pt-3 border-t border-line space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider ds-text-faint block text-center">
-                Quick Demo Access
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleLogin('admin@demo.test', 'Admin123!')}
-                  disabled={isLoggingIn}
-                  className="p-2 rounded-xl bg-ink-800/80 hover:bg-ink-700 border border-line-strong text-left transition"
-                >
-                  <span className="text-[11px] font-bold ds-text block">👔 Store Manager</span>
-                  <span className="text-[10px] ds-text-dim">admin@demo.test</span>
-                </button>
-                <button
-                  onClick={() => handleLogin('cashier@demo.test', 'Cashier123!')}
-                  disabled={isLoggingIn}
-                  className="p-2 rounded-xl bg-ink-800/80 hover:bg-ink-700 border border-line-strong text-left transition"
-                >
-                  <span className="text-[11px] font-bold ds-text block">🚚 Fleet Courier</span>
-                  <span className="text-[10px] ds-text-dim">cashier@demo.test</span>
-                </button>
+                <div className="space-y-4 pt-1">
+                  <input
+                    type="text"
+                    placeholder="123456"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl text-center text-3xl tracking-[0.4em] font-mono font-bold text-slate-900 h-16 outline-none focus:border-emerald-500 focus:bg-white transition"
+                  />
+
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={isAuthProcessing || otpCode.length !== 6}
+                    className="w-full h-13 rounded-full bg-[#FDCB82] hover:bg-[#fab75b] disabled:opacity-50 text-amber-950 font-bold text-base shadow-sm transition flex items-center justify-center gap-2"
+                  >
+                    {isAuthProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Verify & Continue'}
+                  </button>
+
+                  <button
+                    onClick={() => setAuthState('UNREGISTERED')}
+                    className="w-full text-center text-xs font-semibold text-slate-400 hover:text-slate-600"
+                  >
+                    Change Phone Number
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Telegram Mini App Trigger */}
-            <div className="pt-2 text-center">
-              <a
-                href="https://t.me/camtech_delivery_bot"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-brand-300 hover:text-brand-200 transition"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Connect via Telegram Bot (@camtech_delivery_bot)
-              </a>
-            </div>
+            {/* 2e. Password / Demo Access Fallback */}
+            {showPasswordLogin && (
+              <div className="space-y-5">
+                <div className="text-center space-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center mx-auto mb-3">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">Manager & Driver Login</h2>
+                  <p className="text-xs text-slate-400">Sign in with registered system credentials</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Email</label>
+                    <input
+                      type="email"
+                      placeholder="driver@demo.test"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handlePasswordLogin()}
+                    disabled={isAuthProcessing}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition"
+                  >
+                    {isAuthProcessing ? 'Signing In...' : 'Sign In'}
+                  </button>
+                </div>
+
+                {/* Demo Logins */}
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">Quick Demo Accounts</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handlePasswordLogin('admin@demo.test', 'Admin123!')}
+                      className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-left text-xs"
+                    >
+                      <div className="font-bold text-slate-900">Store Manager</div>
+                      <div className="text-[10px] text-slate-500">admin@demo.test</div>
+                    </button>
+                    <button
+                      onClick={() => handlePasswordLogin('cashier@demo.test', 'Cashier123!')}
+                      className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-left text-xs"
+                    >
+                      <div className="font-bold text-slate-900">Fleet Courier</div>
+                      <div className="text-[10px] text-slate-500">cashier@demo.test</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-center pt-2">
+                  <button
+                    onClick={() => setShowPasswordLogin(false)}
+                    className="text-xs text-amber-700 font-semibold hover:underline"
+                  >
+                    ← Back to Telegram OTP
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       ) : (
-        /* ─── 4. Authorized Main Courier App Body ─── */
-        <div className="w-full max-w-md flex flex-col flex-1 border-x border-line bg-ink-950 min-h-screen">
-          {/* Driver Status Header with Live Telemetry & Logout */}
-          <header className="bg-ink-850/90 border-b border-line px-4 py-3 sticky top-0 z-40 backdrop-blur-md">
+        /* ─── 3. Authorized Modern Dribbble Delivery Terminal ─── */
+        <div className="w-full max-w-md flex flex-col flex-1 bg-[#F7F7F9] relative pb-28">
+          
+          {/* Header */}
+          <header className="px-6 pt-8 pb-4 space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-500/15 text-brand-300 border border-brand-500/30 flex items-center justify-center font-bold">
-                  <Truck className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center shadow-sm">
+                  <User className="w-6 h-6 text-slate-500" />
                 </div>
                 <div>
-                  {activeDriver ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        {drivers && drivers.length > 1 ? (
-                          <select
-                            value={activeDriver.id}
-                            onChange={(e) => setSelectedDriverId(e.target.value)}
-                            className="bg-ink-800 border border-line-strong ds-text text-xs font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:border-brand-500"
-                          >
-                            {drivers.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name} ({d.vehicleType})
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <h1 className="text-sm font-bold ds-text tracking-wide">{activeDriver.name}</h1>
-                        )}
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-300 font-bold">
-                          {activeDriver.vehicleType}
-                        </span>
-                      </div>
-                      <p className="text-[11px] ds-text-dim flex items-center gap-1.5 mt-0.5">
-                        <span>{activeDriver.licensePlate}</span>
-                        <span>•</span>
-                        <span className="text-emerald-400 font-mono">Battery: {activeDriver.batteryLevel}%</span>
-                      </p>
-                    </>
-                  ) : (
-                    <div>
-                      <h1 className="text-sm font-bold ds-text tracking-wide">{authUser?.name || 'Fleet Dispatch'}</h1>
-                      <p className="text-[11px] ds-text-dim">Authorized • {authUser?.roles?.[0] || 'Courier'}</p>
-                    </div>
-                  )}
+                  <div className="text-xs text-slate-500 font-medium">Driver Terminal</div>
+                  <h1 className="text-xl font-bold text-slate-900 tracking-tight">{user?.name || 'Active Courier'}</h1>
                 </div>
               </div>
-
-              <div className="flex items-center gap-1.5">
-                <ThemeToggle />
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { refetch(); toast.info('Refreshed dispatch queue'); }}
-                  className="p-2 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim transition"
-                  title="Refresh Queue"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['driver-deliveries'] })}
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 text-slate-700 hover:text-amber-600 transition"
+                  title="Refresh Orders"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-xl bg-ink-800 hover:bg-rose-950/40 ds-text-dim hover:text-rose-400 border border-line-strong transition"
-                  title="Sign out / Lock Terminal"
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 text-slate-700 hover:text-rose-600 transition"
+                  title="Logout"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          </header>
 
-          {/* Active Route Summary */}
-          <main className="flex-1 p-4 flex flex-col space-y-4">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-brand-500/10 via-ink-850 to-ink-850 border border-line">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-brand-300 flex items-center gap-1.5">
-                  <Navigation className="w-3.5 h-3.5" /> Active Phnom Penh Route
-                </span>
-                <span className="text-xs font-mono text-emerald-400 font-bold">
-                  {remainingCount} Active • {deliveries.length} Total
-                </span>
+            {/* Shipment Overview Cards */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center mb-3 text-slate-800">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{orders.length}</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">Total Orders</div>
               </div>
-              <div className="w-full bg-ink-800 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-brand-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.max(5, progressPercent)}%` }}
-                ></div>
+
+              <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center mb-3 text-amber-700">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-bold text-slate-900">${totalCodToCollect.toFixed(2)}</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">COD to Collect</div>
               </div>
             </div>
+          </header>
 
-            {/* Task Cards & Empty State */}
-            {isTasksLoading ? (
-              <div className="space-y-3 my-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-2xl bg-ink-850/60 border border-line animate-pulse space-y-3"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1.5 w-2/3">
-                        <div className="w-20 h-4 bg-ink-800 rounded"></div>
-                        <div className="w-32 h-5 bg-ink-800 rounded"></div>
-                      </div>
-                      <div className="w-16 h-5 bg-ink-800/80 rounded-full"></div>
-                    </div>
-                    <div className="space-y-1.5 pt-1">
-                      <div className="w-48 h-3.5 bg-ink-800/60 rounded"></div>
-                      <div className="w-28 h-3.5 bg-ink-800/60 rounded"></div>
-                    </div>
-                  </div>
-                ))}
+          {/* Orders Section */}
+          <main className="flex-1 px-6 space-y-4">
+            <div className="flex items-center justify-between pt-1">
+              <h3 className="text-base font-bold text-slate-900">
+                {orderTab === 'AVAILABLE' ? 'New Requests' : orderTab === 'ACTIVE' ? 'Active Route' : 'Completed'}
+              </h3>
+              <span className="text-xs font-bold px-2.5 py-1 bg-slate-200/80 rounded-full text-slate-700">
+                {orderTab === 'AVAILABLE' ? pendingOrders.length : orderTab === 'ACTIVE' ? activeOrders.length : completedOrders.length} Shipments
+              </span>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-16 text-sm text-slate-400 font-medium flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                Syncing live telemetry...
               </div>
-            ) : activeDeliveries.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-ink-850/40 border border-line my-4">
-                <Package className="w-10 h-10 text-slate-600 mx-auto mb-3 animate-pulse" />
-                <h3 className="text-sm font-bold ds-text mb-1">Queue is Empty</h3>
-                <p className="text-xs ds-text-dim max-w-xs mx-auto mb-4">
-                  All deliveries completed or waiting for incoming customer orders from online storefront.
-                </p>
-                <button
-                  onClick={() => refetch()}
-                  className="px-4 py-2 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim text-xs font-semibold inline-flex items-center gap-1.5 transition"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Check for New Orders
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeDeliveries.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => setSelectedTask(task)}
-                    className={`p-4 rounded-2xl border transition cursor-pointer ${
-                      selectedTask?.id === task.id
-                        ? 'bg-brand-500/10 border-brand-500 shadow-lg shadow-blue-500/10'
-                        : 'bg-ink-850/80 border-line hover:border-line-strong'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
+            ) : orderTab === 'AVAILABLE' ? (
+              /* ─── AVAILABLE ORDERS ─── */
+              pendingOrders.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 text-slate-400 text-sm">
+                  No new delivery requests right now.
+                </div>
+              ) : (
+                pendingOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink-950 ds-text-dim border border-line">
-                          {task.trackingNumber}
-                        </span>
-                        <h3 className="text-sm font-bold ds-text mt-1.5">{task.recipientName}</h3>
+                        <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
+                        <h4 className="text-base font-bold text-slate-900 mt-0.5">{order.recipientName}</h4>
                       </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          task.status === 'DELIVERED'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : task.status === 'IN_TRANSIT'
-                            ? 'bg-brand-500/15 text-brand-300'
-                            : task.status === 'DISPATCHED'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-purple-500/20 text-purple-400'
-                        }`}
-                      >
-                        {task.status}
+                      <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">
+                        Pending
                       </span>
                     </div>
 
-                    <p className="text-xs ds-text-dim flex items-center gap-1.5 mb-3">
-                      <MapPin className="w-3.5 h-3.5 ds-text-faint shrink-0" />
-                      <span className="truncate">{task.destinationAddress}</span>
-                    </p>
+                    <div className="flex items-start gap-2.5 text-xs text-slate-600">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <p className="leading-snug">{order.deliveryAddress}</p>
+                    </div>
 
-                    <div className="pt-2 border-t border-line flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1 font-mono">
-                        {task.codAmount > 0 ? (
-                          <span className="text-amber-400 font-bold">Collect COD: ${task.codAmount.toFixed(2)}</span>
-                        ) : (
-                          <span className="text-emerald-400 font-bold">Prepaid via KHQR</span>
-                        )}
+                    {Number(order.codAmount) > 0 && (
+                      <div className="flex items-center justify-between text-xs font-bold bg-slate-50 p-2.5 rounded-xl text-slate-900">
+                        <span className="text-slate-500">COD Payment</span>
+                        <span className="text-amber-800 font-bold">${Number(order.codAmount).toFixed(2)}</span>
                       </div>
-                      <ChevronRight className="w-4 h-4 ds-text-faint" />
+                    )}
+
+                    <button
+                      onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'DISPATCHED' })}
+                      className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
+                    >
+                      Accept & Claim Order
+                    </button>
+                  </div>
+                ))
+              )
+            ) : orderTab === 'ACTIVE' ? (
+              /* ─── ACTIVE ORDERS ─── */
+              activeOrders.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 text-slate-400 text-sm">
+                  No active orders in transit. Check "New Requests" tab to claim orders!
+                </div>
+              ) : (
+                activeOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
+                        <h4 className="text-base font-bold text-slate-900 mt-0.5">{order.recipientName}</h4>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">
+                        {order.status === 'IN_TRANSIT' ? 'In Transit' : 'Dispatched'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 text-xs text-slate-600">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <p className="leading-snug">{order.deliveryAddress}</p>
+                    </div>
+
+                    {Number(order.codAmount) > 0 && (
+                      <div className="flex items-center justify-between text-xs font-bold bg-amber-50/70 border border-amber-100 p-2.5 rounded-xl text-amber-950">
+                        <span className="text-amber-800">Collect from Customer</span>
+                        <span className="text-amber-900 font-bold text-sm">${Number(order.codAmount).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <a
+                        href={`tel:${order.recipientPhone}`}
+                        className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 shrink-0 transition"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </a>
+
+                      {order.status === 'DISPATCHED' ? (
+                        <button
+                          onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' })}
+                          className="flex-1 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
+                        >
+                          Start Navigation
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsPodOpen(true);
+                          }}
+                          className="flex-1 h-11 rounded-full bg-[#FDCB82] hover:bg-[#fab75b] text-amber-950 font-bold text-xs transition shadow-sm"
+                        >
+                          Deliver & Collect Signature
+                        </button>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )
+            ) : (
+              /* ─── COMPLETED ORDERS ─── */
+              completedOrders.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 text-slate-400 text-sm">
+                  No completed deliveries yet today.
+                </div>
+              ) : (
+                completedOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-4 rounded-3xl border border-slate-100 opacity-80 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
+                      <h4 className="text-sm font-bold text-slate-800 mt-0.5">{order.recipientName}</h4>
+                      <p className="text-[11px] text-slate-400 truncate max-w-[200px]">{order.deliveryAddress}</p>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Delivered
+                    </span>
+                  </div>
+                ))
+              )
             )}
           </main>
 
-          {/* Selected Task Action Bar */}
-          {selectedTask && (
-            <div className="bg-ink-850 border-t border-line p-4 sticky bottom-0 z-40 max-w-md w-full mx-auto">
-              <div className="flex gap-2">
-                <a
-                  href={`tel:${selectedTask.recipientPhone}`}
-                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text flex items-center justify-center text-xs font-bold transition"
-                  title="Call Recipient"
-                >
-                  <Phone className="w-4 h-4" />
-                </a>
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(selectedTask.destinationAddress)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text flex items-center justify-center text-xs font-bold transition"
-                  title="Open GPS Navigation"
-                >
-                  <Navigation className="w-4 h-4" />
-                </a>
-
-                {selectedTask.status === 'PENDING' && (
-                  <button
-                    onClick={() => updateStatus(selectedTask.id, 'DISPATCHED')}
-                    className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition"
-                  >
-                    <Truck className="w-4 h-4" />
-                    Accept & Dispatch
-                  </button>
-                )}
-
-                {selectedTask.status === 'DISPATCHED' && (
-                  <button
-                    onClick={() => updateStatus(selectedTask.id, 'IN_TRANSIT')}
-                    className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20 transition"
-                  >
-                    <Navigation className="w-4 h-4" />
-                    Start Delivery Route
-                  </button>
-                )}
-
-                {selectedTask.status === 'IN_TRANSIT' && (
-                  <button
-                    onClick={() => setIsPodOpen(true)}
-                    className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition"
-                  >
-                    <FileSignature className="w-4 h-4" />
-                    Complete Delivery & Sign POD
-                  </button>
-                )}
-
-                {selectedTask.status === 'DELIVERED' && (
-                  <div className="flex-1 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Delivery Completed
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ─── 5. Proof of Delivery (POD) Modal ─── */}
-      {isPodOpen && selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-line">
-              <h3 className="font-bold text-base ds-text flex items-center gap-2">
-                <FileSignature className="w-4 h-4 text-brand-300" />
-                Proof of Delivery (POD)
-              </h3>
-              <button
-                onClick={() => setIsPodOpen(false)}
-                className="p-1 rounded-lg ds-text-dim hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="py-4 space-y-3 text-xs">
-              <div>
-                <span className="ds-text-dim block mb-1">Recipient Name / Signature</span>
-                <input
-                  type="text"
-                  placeholder="Enter full name of signer..."
-                  value={signatureName}
-                  onChange={(e) => setSignatureName(e.target.value)}
-                  className="w-full px-3 py-2 bg-ink-950 border border-line-strong rounded-xl ds-text font-medium focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
-              {selectedTask.codAmount > 0 && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
-                  <p className="font-bold">⚠️ Cash Collection Required</p>
-                  <p className="text-[11px] mt-0.5">
-                    Please collect <span className="font-bold font-mono">${selectedTask.codAmount.toFixed(2)}</span> cash before handing over package.
-                  </p>
-                </div>
+          {/* ─── Floating Bottom Navigation (Dribbble Pill) ─── */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 rounded-full px-3 py-2 flex items-center gap-2 shadow-2xl z-40 border border-slate-800">
+            <button
+              onClick={() => setOrderTab('AVAILABLE')}
+              className={`flex items-center justify-center w-11 h-11 rounded-full transition-all relative ${
+                orderTab === 'AVAILABLE' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Available"
+            >
+              <Package className="w-5 h-5" />
+              {pendingOrders.length > 0 && orderTab !== 'AVAILABLE' && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-950"></span>
               )}
-            </div>
+            </button>
 
             <button
-              onClick={handleCompleteDelivery}
-              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-500/20"
+              onClick={() => setOrderTab('ACTIVE')}
+              className={`flex items-center justify-center w-11 h-11 rounded-full transition-all ${
+                orderTab === 'ACTIVE' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Active Route"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              Confirm Delivery & Sign
+              <MapIcon className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setOrderTab('COMPLETED')}
+              className={`flex items-center justify-center w-11 h-11 rounded-full transition-all ${
+                orderTab === 'COMPLETED' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Completed"
+            >
+              <CheckCircle2 className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* ─── 6. Telegram QR Code & Mobile Instructions Modal ─── */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <span className="text-xs font-bold ds-text flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-brand-300" />
-                Telegram Mobile Courier App
-              </span>
-              <button
-                onClick={() => setShowQrModal(false)}
-                className="p-1 rounded-lg ds-text-dim hover:text-white"
-              >
-                <X className="w-4 h-4" />
+      {/* ─── 4. Proof of Delivery (POD) Modal ─── */}
+      {isPodOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-md bg-white rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200">
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Complete Delivery</h3>
+                <p className="text-xs text-slate-500 font-mono">#{selectedOrder.trackingNumber} • {selectedOrder.recipientName}</p>
+              </div>
+              <button onClick={() => setIsPodOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* QR Code Container */}
-            <div className="bg-white p-4 rounded-2xl w-48 h-48 mx-auto flex flex-col items-center justify-center shadow-lg">
-              <div className="w-40 h-40 border-4 border-line rounded-xl p-2 flex flex-col items-center justify-center relative">
-                <QrCode className="w-32 h-32 text-slate-950" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                </div>
+            {Number(selectedOrder.codAmount) > 0 && (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-between text-xs">
+                <span className="font-bold text-amber-900">Cash on Delivery (COD)</span>
+                <span className="text-base font-bold text-amber-700">${Number(selectedOrder.codAmount).toFixed(2)}</span>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1">
-              <p className="text-xs font-bold ds-text">Scan with Phone Camera or Telegram</p>
-              <p className="text-[11px] ds-text-dim">
-                Launches the direct Telegram Mini App on iOS & Android with automatic courier telemetry.
-              </p>
-            </div>
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">Recipient Name / Signature</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sopheak Chan"
+                  value={podSignature}
+                  onChange={(e) => setPodSignature(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500"
+                />
+              </div>
 
-            <a
-              href="https://t.me/camtech_delivery_bot"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition"
-            >
-              <Send className="w-3.5 h-3.5" />
-              Open in Telegram Desktop (@camtech_delivery_bot)
-            </a>
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">Delivery Notes (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Handed directly to customer"
+                  value={podNotes}
+                  onChange={(e) => setPodNotes(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <button
+                onClick={() =>
+                  updateStatusMutation.mutate({
+                    id: selectedOrder.id,
+                    status: 'DELIVERED',
+                    signature: podSignature || selectedOrder.recipientName,
+                    notes: podNotes || 'Handed to recipient.'
+                  })
+                }
+                disabled={updateStatusMutation.isPending}
+                className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold text-xs shadow-md transition flex items-center justify-center gap-2 mt-2"
+              >
+                {updateStatusMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm & Mark Delivered'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 5. QR Code Modal for Mobile Access ─── */}
+      {showQrModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-xs w-full text-center space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">Open on Phone</h3>
+              <button onClick={() => setShowQrModal(false)}><X className="w-4 h-4 text-slate-400" /></button>
+            </div>
+            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center">
+              <QrCode className="w-36 h-36 text-slate-800" />
+            </div>
+            <p className="text-xs text-slate-500">Scan to open the delivery terminal in Telegram</p>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-export default App;
