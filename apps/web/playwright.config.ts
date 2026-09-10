@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm preview --port 5002',
+    command: 'pnpm --filter @mystore/web preview --port 5002',
     url: 'http://localhost:5002',
     reuseExistingServer: !process.env.CI,
     timeout: 60 * 1000,
