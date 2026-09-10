@@ -58,7 +58,10 @@ async def test_event_bus_publish_and_subscribe():
         assert "TRK-2026-9999" in msg["data"]
 
         await pubsub.unsubscribe()
-        await pubsub.close()
+        if hasattr(pubsub, "aclose"):
+            await pubsub.aclose()
+        else:
+            await pubsub.close()
     finally:
         event_bus.get_pubsub = orig_get_pubsub
         event_bus.publish = orig_publish

@@ -55,7 +55,10 @@ async def dispatch_user_registered_event(user_data: Dict[str, Any]) -> str:
     if redis_client:
         try:
             await redis_client.lpush(QUEUE_KEY, json.dumps(event.model_dump()))
-            await redis_client.close()
+            if hasattr(redis_client, "aclose"):
+                await redis_client.aclose()
+            else:
+                await redis_client.close()
         except Exception as ex:
             logger.warning(f"Redis push failed, falling back to in-memory queue: {ex}")
             await _in_memory_queue.put(event.model_dump())

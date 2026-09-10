@@ -69,7 +69,10 @@ async def event_stream(
             if pubsub:
                 try:
                     await pubsub.unsubscribe()
-                    await pubsub.close()
+                    if hasattr(pubsub, "aclose"):
+                        await pubsub.aclose()
+                    else:
+                        await pubsub.close()
                 except Exception:
                     pass
 
