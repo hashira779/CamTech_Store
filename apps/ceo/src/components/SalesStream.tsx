@@ -5,8 +5,8 @@ export function SalesStream({ sales, loading }: { sales: any[]; loading: boolean
     <section className="ds-card p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4 gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-white">Sales &amp; invoicing stream</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5 truncate">Live feed from POS and online storefront</p>
+          <h3 className="text-sm font-bold ds-text">Sales &amp; invoicing stream</h3>
+          <p className="text-[11px] ds-text-faint mt-0.5 truncate">Live feed from POS and online storefront</p>
         </div>
         <span className="ds-chip bg-emerald-500/12 text-emerald-400 font-mono shrink-0">Central DB</span>
       </div>
@@ -22,7 +22,7 @@ export function SalesStream({ sales, loading }: { sales: any[]; loading: boolean
             </div>
           ))
         ) : !sales.length ? (
-          <div className="py-10 text-center text-xs text-slate-500">
+          <div className="py-10 text-center text-xs ds-text-faint">
             No sales recorded yet. Ring up a sale on POS or Store to see the live feed.
           </div>
         ) : (
@@ -33,10 +33,10 @@ export function SalesStream({ sales, loading }: { sales: any[]; loading: boolean
                   <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-mono text-xs font-bold text-white block truncate">
+                  <span className="font-mono text-xs font-bold ds-text block truncate">
                     {sale.saleNumber || sale.id}
                   </span>
-                  <span className="text-[11px] text-slate-500 block truncate">{sale.channel || 'POS'} checkout</span>
+                  <span className="text-[11px] ds-text-faint block truncate">{sale.channel || 'POS'} checkout</span>
                 </div>
               </div>
               <div className="text-right shrink-0">

@@ -77,32 +77,32 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
       } else if (nodeType === 'search_products') {
         currentHistory.push({
           type: 'bot',
-          text: '🛍️ Available Products:\n• iPhone 15 Pro — $1,199.00\n• MacBook Air M3 — $1,099.00\n• AirPods Pro 2 — $249.00',
+          text: 'Available Products:\n• iPhone 15 Pro — $1,199.00\n• MacBook Air M3 — $1,099.00\n• AirPods Pro 2 — $249.00',
           nodeId: curr,
         });
       } else if (nodeType === 'get_order_status') {
         currentHistory.push({
           type: 'bot',
-          text: '📋 Order #CT-8821\n• Status: 🚚 Out for Delivery\n• Total: $45.00 USD\n• Est. Arrival: 15 mins',
+          text: 'Order #CT-8821\n• Status: 🚚 Out for Delivery\n• Total: $45.00 USD\n• Est. Arrival: 15 mins',
           nodeId: curr,
         });
       } else if (nodeType === 'generate_khqr') {
         currentHistory.push({
           type: 'bot',
-          text: '🇰🇭 Bakong KHQR Payment\n• Amount: $15.00 USD\n• Ref: ORD-2026\n📲 Scan with Bakong, ABA, or Wing app.',
+          text: 'Bakong KHQR Payment\n• Amount: $15.00 USD\n• Ref: ORD-2026\nScan with Bakong, ABA, or Wing app.',
           photoUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=sample_khqr',
           nodeId: curr,
         });
       } else if (nodeType === 'track_delivery') {
         currentHistory.push({
           type: 'bot',
-          text: '🛵 Delivery Tracking\n• Courier: Sokha (012-889-991)\n• Status: 📦 Picked up and en route\n• Arrival: ~12 minutes',
+          text: 'Delivery Tracking\n• Courier: Sokha (012-889-991)\n• Status: Picked up and en route\n• Arrival: ~12 minutes',
           nodeId: curr,
         });
       } else if (nodeType === 'send_photo') {
         currentHistory.push({
           type: 'bot',
-          text: config.caption || '📸 Photo',
+          text: config.caption || 'Photo',
           photoUrl: config.photoUrl,
           nodeId: curr,
         });
@@ -159,35 +159,35 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0f1d' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--background)' }}>
       {/* Phone Header */}
       <div style={{
-        padding: '12px 16px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+        padding: '12px 16px', borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(30,41,59,0.5)',
+        background: 'var(--muted)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 32, height: 32, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+            background: 'var(--brand-gradient)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
           }}>
             <Bot size={17} color="#fff" />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
               Live Telegram Sim
             </div>
-            <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>● Online & Interactive</div>
+            <div style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600 }}>● Online & Interactive</div>
           </div>
         </div>
 
         <button
           onClick={resetChat}
           style={{
-            background: 'rgba(148,163,184,0.1)', border: 'none', borderRadius: 6,
-            padding: '4px 8px', color: '#94a3b8', cursor: 'pointer',
+            background: 'var(--border)', border: 'none', borderRadius: 6,
+            padding: '4px 8px', color: 'var(--muted-foreground)', cursor: 'pointer',
             fontSize: 11, display: 'flex', alignItems: 'center', gap: 4,
           }}
           title="Restart conversation"
@@ -203,7 +203,7 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
       }}>
         {messages.length === 0 ? (
           <div style={{
-            textAlign: 'center', padding: '50px 20px', color: '#64748b', fontSize: 12,
+            textAlign: 'center', padding: '50px 20px', color: 'var(--muted-foreground)', fontSize: 12,
             lineHeight: 1.6,
           }}>
             Add and connect nodes on canvas to simulate your bot here!
@@ -214,9 +214,9 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
               <div style={{
                 maxWidth: '85%', padding: '10px 14px',
                 borderRadius: msg.type === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                background: msg.type === 'user' ? '#3b82f6' : 'rgba(30,41,59,0.85)',
-                color: '#f8fafc', fontSize: 12, lineHeight: 1.5,
-                border: msg.type === 'user' ? 'none' : '1px solid rgba(148,163,184,0.15)',
+                background: msg.type === 'user' ? 'var(--primary)' : 'var(--card)',
+                color: 'var(--foreground)', fontSize: 12, lineHeight: 1.5,
+                border: msg.type === 'user' ? 'none' : '1px solid var(--border)',
                 whiteSpace: 'pre-line',
               }}>
                 {msg.photoUrl && (
@@ -239,19 +239,19 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
                       onClick={() => handleButtonClick(btn, msg.nodeId)}
                       style={{
                         padding: '8px 12px', borderRadius: 8,
-                        background: 'rgba(129,140,248,0.15)',
-                        border: '1px solid rgba(129,140,248,0.3)',
-                        color: '#c7d2fe', fontSize: 12, fontWeight: 600,
+                        background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                        color: 'var(--primary)', fontSize: 12, fontWeight: 600,
                         cursor: 'pointer', textAlign: 'center',
                         transition: 'background 0.15s, border-color 0.15s',
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(129,140,248,0.3)';
-                        e.currentTarget.style.borderColor = '#818cf8';
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 30%, transparent)';
+                        e.currentTarget.style.borderColor = 'var(--primary)';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(129,140,248,0.15)';
-                        e.currentTarget.style.borderColor = 'rgba(129,140,248,0.3)';
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 15%, transparent)';
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--primary) 30%, transparent)';
                       }}
                     >
                       {btn.text}
@@ -266,16 +266,16 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
 
       {/* Input Bar */}
       <div style={{
-        padding: '10px 14px', borderTop: '1px solid rgba(148,163,184,0.1)',
-        display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(30,41,59,0.3)',
+        padding: '10px 14px', borderTop: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 8, background: 'var(--muted)',
       }}>
         <input
           disabled
           placeholder="Tap buttons above to interact..."
           style={{
-            flex: 1, padding: '7px 12px', background: 'rgba(15,23,42,0.6)',
-            border: '1px solid rgba(148,163,184,0.15)', borderRadius: 16,
-            color: '#64748b', fontSize: 11, outline: 'none',
+            flex: 1, padding: '7px 12px', background: 'var(--input)',
+            border: '1px solid var(--border)', borderRadius: 16,
+            color: 'var(--muted-foreground)', fontSize: 11, outline: 'none',
           }}
         />
       </div>

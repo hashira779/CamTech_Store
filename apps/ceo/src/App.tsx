@@ -55,7 +55,7 @@ export function App() {
   );
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans selection:bg-brand-500/30">
+    <div className="min-h-screen ds-text font-sans selection:bg-brand-500/30">
       <Toaster position="top-right" richColors theme="dark" />
 
       <TopHeader
@@ -70,9 +70,9 @@ export function App() {
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="ds-eyebrow">Enterprise overview</p>
-            <h2 className="text-lg sm:text-xl font-bold text-white mt-1">Real-time performance across every domain</h2>
+            <h2 className="text-lg sm:text-xl font-bold ds-text mt-1">Real-time performance across every domain</h2>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 text-[11px] ds-text-faint">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             All systems operational
           </div>
@@ -124,7 +124,7 @@ export function App() {
           <div className="xl:col-span-8 space-y-6">
             <section>
               <div className="flex items-center justify-between mb-3 gap-2">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold ds-text flex items-center gap-2">
                   <Radio className="w-4 h-4 text-brand-400" />
                   Operational execution
                 </h3>
@@ -158,11 +158,11 @@ export function App() {
             <section className="ds-card p-4 sm:p-5">
               <div className="flex items-start justify-between mb-5 gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white">Revenue trend</h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Last 7 days · gross settled value</p>
+                  <h3 className="text-sm font-bold ds-text">Revenue trend</h3>
+                  <p className="text-[11px] ds-text-faint mt-0.5">Last 7 days · gross settled value</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="ds-figure text-lg text-white">{compactMoney(d.grossRevenue)}</p>
+                  <p className="ds-figure text-lg ds-text">{compactMoney(d.grossRevenue)}</p>
                   <p className="text-[11px] text-emerald-400 flex items-center gap-1 justify-end">
                     <ArrowUpRight className="w-3 h-3" /> trending up
                   </p>

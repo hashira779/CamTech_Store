@@ -5,8 +5,8 @@ export function EcosystemPanel({ apps, loading }: { apps: any[]; loading: boolea
     <section className="ds-card p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4 gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-white">Multi-domain ecosystem</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">Micro-frontend registry</p>
+          <h3 className="text-sm font-bold ds-text">Multi-domain ecosystem</h3>
+          <p className="text-[11px] ds-text-faint mt-0.5">Micro-frontend registry</p>
         </div>
         <span className="ds-chip bg-sky-500/12 text-sky-400 font-mono shrink-0">{apps.length > 0 ? apps.length : '—'}</span>
       </div>
@@ -24,8 +24,8 @@ export function EcosystemPanel({ apps, loading }: { apps: any[]; loading: boolea
                   {app.subdomain?.slice(0, 3).toUpperCase() || 'APP'}
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-[13px] font-semibold text-white leading-none truncate">{app.name}</h4>
-                  <p className="text-[10px] text-slate-500 font-mono mt-1 truncate">{app.subdomain}</p>
+                  <h4 className="text-[13px] font-semibold ds-text leading-none truncate">{app.name}</h4>
+                  <p className="text-[10px] ds-text-faint font-mono mt-1 truncate">{app.subdomain}</p>
                 </div>
               </div>
               <span className="flex items-center gap-1.5 shrink-0">
@@ -35,7 +35,7 @@ export function EcosystemPanel({ apps, loading }: { apps: any[]; loading: boolea
             </div>
           ))
         ) : (
-          <div className="py-8 text-center text-xs text-slate-500">Connecting to registry…</div>
+          <div className="py-8 text-center text-xs ds-text-faint">Connecting to registry…</div>
         )}
       </div>
     </section>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, RefreshCw } from 'lucide-react';
+import { ThemeToggle } from '@mystore/ui';
 
 export function TopHeader({ onRefresh }: { onRefresh: () => void }) {
   const [now, setNow] = useState(new Date());
@@ -16,11 +17,11 @@ export function TopHeader({ onRefresh }: { onRefresh: () => void }) {
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm sm:text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-sm sm:text-[15px] font-bold ds-text tracking-tight flex items-center gap-2">
               <span className="truncate">Executive Control Tower</span>
               <span className="ds-chip bg-brand-500/15 text-brand-300 font-mono hidden sm:inline-flex">CEO</span>
             </h1>
-            <p className="text-[11px] text-slate-500 truncate">CamTech Decision Support · Central Data Center</p>
+            <p className="text-[11px] ds-text-faint truncate">CamTech Decision Support · Central Data Center</p>
           </div>
         </div>
 
@@ -30,12 +31,13 @@ export function TopHeader({ onRefresh }: { onRefresh: () => void }) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
             </span>
-            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+            <span className="text-[11px] ds-text-dim font-mono tabular-nums">
               {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
             <span className="text-[11px] text-slate-600">·</span>
-            <span className="text-[11px] text-slate-400">FY26 · Q3</span>
+            <span className="text-[11px] ds-text-dim">FY26 · Q3</span>
           </div>
+          <ThemeToggle />
           <button onClick={onRefresh} className="ds-btn ds-btn-ghost" title="Refresh">
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Sync</span>

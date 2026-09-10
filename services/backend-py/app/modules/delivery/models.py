@@ -24,7 +24,9 @@ class DeliveryDriver(Base):
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
     name = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
+    phone = Column(String, nullable=False, unique=True)
+    telegram_user_id = Column("telegramUserId", String, nullable=True, unique=True)
+    auth_status = Column("authStatus", String, default="PENDING_REGISTRATION", nullable=False)
     vehicle_type = Column("vehicleType", String, default="MOTORCYCLE", nullable=False)
     license_plate = Column("licensePlate", String, nullable=False)
     status = Column(String, default="IDLE", nullable=False)
@@ -65,3 +67,14 @@ class DeliveryOrder(Base):
     updated_at = Column("updatedAt", DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
     driver = relationship("DeliveryDriver", back_populates="orders")
+
+class OtpVerification(Base):
+    __tablename__ = "otp_verifications"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    phone = Column(String, nullable=False)
+    otp_code = Column("otpCode", String, nullable=False)
+    telegram_user_id = Column("telegramUserId", String, nullable=True)
+    attempts = Column(Integer, default=0, nullable=False)
+    expires_at = Column("expiresAt", DateTime(timezone=True), nullable=False)
+    created_at = Column("createdAt", DateTime(timezone=True), default=utc_now, nullable=False)

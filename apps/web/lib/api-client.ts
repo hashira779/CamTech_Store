@@ -290,6 +290,25 @@ async function request<T>(
 }
 
 export const api = {
+  // ─── Delivery Auth ─────────────────────────────────────────────
+  deliveryAuthInit: (phone_number: string, telegram_init_data: string) =>
+    request<{ success: boolean; message: string }>('/delivery/auth/register/init', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number, telegram_init_data }),
+    }),
+
+  deliveryAuthVerify: (phone_number: string, otp_code: string, telegram_init_data: string) =>
+    request<{ success: boolean; status: string }>('/delivery/auth/register/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number, otp_code, telegram_init_data }),
+    }),
+
+  deliveryAuthAutoLogin: (telegram_init_data: string) =>
+    request<{ success: boolean; auth_status: string; access_token?: string; user?: any }>('/delivery/auth/login/auto', {
+      method: 'POST',
+      body: JSON.stringify({ telegram_init_data }),
+    }),
+
   // ─── Auth ──────────────────────────────────────────────────────
   login: (email: string, password: string) =>
     request<LoginResult>('/auth/login', {

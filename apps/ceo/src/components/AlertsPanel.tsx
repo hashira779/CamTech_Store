@@ -17,7 +17,7 @@ export function AlertsPanel({ alerts }: { alerts: AlertItem[] }) {
   return (
     <section className="ds-card p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <h3 className="text-sm font-bold ds-text flex items-center gap-2">
           <Bell className="w-4 h-4 text-brand-400" />
           Executive alerts
         </h3>
@@ -33,13 +33,13 @@ export function AlertsPanel({ alerts }: { alerts: AlertItem[] }) {
               style={{ background: tone.bg }}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-[13px] font-semibold text-white min-w-0">
+                <span className="flex items-center gap-2 text-[13px] font-semibold ds-text min-w-0">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: tone.dot }} />
                   <span className="truncate">{a.title}</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono shrink-0">{a.time}</span>
+                <span className="text-[10px] ds-text-faint font-mono shrink-0">{a.time}</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed pl-3.5">{a.body}</p>
+              <p className="text-[11px] ds-text-dim mt-1.5 leading-relaxed pl-3.5">{a.body}</p>
             </div>
           );
         })}

@@ -26,6 +26,7 @@ import {
   Info
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { ThemeToggle } from '@mystore/ui';
 
 const API_BASE_URL = (() => {
   if (typeof window !== 'undefined') {
@@ -337,22 +338,22 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-ink-950 text-slate-100 font-sans select-none flex flex-col items-center">
+    <div className="min-h-screen bg-ink-950 ds-text font-sans select-none flex flex-col items-center">
       <Toaster position="top-right" richColors />
 
       {/* ─── 1. Desktop & Telegram Mini App Alert Banner ─── */}
       {isDesktop && showDesktopAlert && (
-        <div className="w-full bg-gradient-to-r from-ink-900 via-ink-850 to-ink-850 border-b border-line px-4 py-2.5 text-xs text-slate-200">
+        <div className="w-full bg-gradient-to-r from-ink-900 via-ink-850 to-ink-850 border-b border-line px-4 py-2.5 text-xs ds-text-dim">
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-center sm:text-left">
               <div className="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-300 flex items-center justify-center shrink-0">
                 <Smartphone className="w-4 h-4" />
               </div>
               <div>
-                <span className="font-bold text-white flex items-center gap-1.5 inline-flex">
+                <span className="font-bold ds-text flex items-center gap-1.5 inline-flex">
                   Telegram Mini App & Mobile Driver Terminal
                 </span>
-                <span className="text-slate-400 block sm:inline sm:ml-2">
+                <span className="ds-text-dim block sm:inline sm:ml-2">
                   Optimized for couriers & Telegram WebApp. Switch to mobile view or scan QR for field GPS & POD signatures.
                 </span>
               </div>
@@ -368,7 +369,7 @@ export function App() {
               </button>
               <button
                 onClick={() => setShowDesktopAlert(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-md transition"
+                className="p-1 ds-text-dim hover:text-white rounded-md transition"
                 title="Dismiss banner"
               >
                 <X className="w-4 h-4" />
@@ -394,35 +395,35 @@ export function App() {
               <div className="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-300 flex items-center justify-center mx-auto shadow-inner">
                 <Lock className="w-7 h-7" />
               </div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-lg font-bold ds-text tracking-tight">
                 Delivery Dispatch Terminal
               </h2>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                Restricted access. Only authorized <strong className="text-slate-200">Fleet Drivers</strong> and <strong className="text-slate-200">Store Managers</strong> can view live customer orders.
+              <p className="text-xs ds-text-dim max-w-xs mx-auto">
+                Restricted access. Only authorized <strong className="ds-text-dim">Fleet Drivers</strong> and <strong className="ds-text-dim">Store Managers</strong> can view live customer orders.
               </p>
             </div>
 
             {/* Login Form */}
             <div className="space-y-3 pt-2">
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Email Address</label>
+                <label className="text-[11px] font-semibold ds-text-dim block mb-1">Email Address</label>
                 <input
                   type="email"
                   placeholder="driver@demo.test or admin@demo.test"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs text-white placeholder:text-slate-600 outline-none transition"
+                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs ds-text placeholder:text-slate-600 outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Password</label>
+                <label className="text-[11px] font-semibold ds-text-dim block mb-1">Password</label>
                 <input
                   type="password"
                   placeholder="Enter your password..."
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs text-white placeholder:text-slate-600 outline-none transition"
+                  className="w-full px-3 py-2.5 bg-ink-950 border border-line focus:border-brand-500 rounded-xl text-xs ds-text placeholder:text-slate-600 outline-none transition"
                 />
               </div>
 
@@ -437,7 +438,7 @@ export function App() {
 
             {/* Quick Demo Access */}
             <div className="pt-3 border-t border-line space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block text-center">
+              <span className="text-[10px] font-bold uppercase tracking-wider ds-text-faint block text-center">
                 Quick Demo Access
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -446,16 +447,16 @@ export function App() {
                   disabled={isLoggingIn}
                   className="p-2 rounded-xl bg-ink-800/80 hover:bg-ink-700 border border-line-strong text-left transition"
                 >
-                  <span className="text-[11px] font-bold text-white block">👔 Store Manager</span>
-                  <span className="text-[10px] text-slate-400">admin@demo.test</span>
+                  <span className="text-[11px] font-bold ds-text block">👔 Store Manager</span>
+                  <span className="text-[10px] ds-text-dim">admin@demo.test</span>
                 </button>
                 <button
                   onClick={() => handleLogin('cashier@demo.test', 'Cashier123!')}
                   disabled={isLoggingIn}
                   className="p-2 rounded-xl bg-ink-800/80 hover:bg-ink-700 border border-line-strong text-left transition"
                 >
-                  <span className="text-[11px] font-bold text-white block">🚚 Fleet Courier</span>
-                  <span className="text-[10px] text-slate-400">cashier@demo.test</span>
+                  <span className="text-[11px] font-bold ds-text block">🚚 Fleet Courier</span>
+                  <span className="text-[10px] ds-text-dim">cashier@demo.test</span>
                 </button>
               </div>
             </div>
@@ -492,7 +493,7 @@ export function App() {
                           <select
                             value={activeDriver.id}
                             onChange={(e) => setSelectedDriverId(e.target.value)}
-                            className="bg-ink-800 border border-line-strong text-white text-xs font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:border-brand-500"
+                            className="bg-ink-800 border border-line-strong ds-text text-xs font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:border-brand-500"
                           >
                             {drivers.map((d) => (
                               <option key={d.id} value={d.id}>
@@ -501,13 +502,13 @@ export function App() {
                             ))}
                           </select>
                         ) : (
-                          <h1 className="text-sm font-bold text-white tracking-wide">{activeDriver.name}</h1>
+                          <h1 className="text-sm font-bold ds-text tracking-wide">{activeDriver.name}</h1>
                         )}
                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-300 font-bold">
                           {activeDriver.vehicleType}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[11px] ds-text-dim flex items-center gap-1.5 mt-0.5">
                         <span>{activeDriver.licensePlate}</span>
                         <span>•</span>
                         <span className="text-emerald-400 font-mono">Battery: {activeDriver.batteryLevel}%</span>
@@ -515,24 +516,25 @@ export function App() {
                     </>
                   ) : (
                     <div>
-                      <h1 className="text-sm font-bold text-white tracking-wide">{authUser?.name || 'Fleet Dispatch'}</h1>
-                      <p className="text-[11px] text-slate-400">Authorized • {authUser?.roles?.[0] || 'Courier'}</p>
+                      <h1 className="text-sm font-bold ds-text tracking-wide">{authUser?.name || 'Fleet Dispatch'}</h1>
+                      <p className="text-[11px] ds-text-dim">Authorized • {authUser?.roles?.[0] || 'Courier'}</p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
+                <ThemeToggle />
                 <button
                   onClick={() => { refetch(); toast.info('Refreshed dispatch queue'); }}
-                  className="p-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-slate-300 transition"
+                  className="p-2 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim transition"
                   title="Refresh Queue"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-xl bg-ink-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-line-strong transition"
+                  className="p-2 rounded-xl bg-ink-800 hover:bg-rose-950/40 ds-text-dim hover:text-rose-400 border border-line-strong transition"
                   title="Sign out / Lock Terminal"
                 >
                   <LogOut className="w-4 h-4" />
@@ -585,13 +587,13 @@ export function App() {
             ) : activeDeliveries.length === 0 ? (
               <div className="p-8 text-center rounded-2xl bg-ink-850/40 border border-line my-4">
                 <Package className="w-10 h-10 text-slate-600 mx-auto mb-3 animate-pulse" />
-                <h3 className="text-sm font-bold text-white mb-1">Queue is Empty</h3>
-                <p className="text-xs text-slate-400 max-w-xs mx-auto mb-4">
+                <h3 className="text-sm font-bold ds-text mb-1">Queue is Empty</h3>
+                <p className="text-xs ds-text-dim max-w-xs mx-auto mb-4">
                   All deliveries completed or waiting for incoming customer orders from online storefront.
                 </p>
                 <button
                   onClick={() => refetch()}
-                  className="px-4 py-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                  className="px-4 py-2 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim text-xs font-semibold inline-flex items-center gap-1.5 transition"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Check for New Orders
@@ -611,10 +613,10 @@ export function App() {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink-950 text-slate-400 border border-line">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink-950 ds-text-dim border border-line">
                           {task.trackingNumber}
                         </span>
-                        <h3 className="text-sm font-bold text-white mt-1.5">{task.recipientName}</h3>
+                        <h3 className="text-sm font-bold ds-text mt-1.5">{task.recipientName}</h3>
                       </div>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -631,8 +633,8 @@ export function App() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-3">
-                      <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <p className="text-xs ds-text-dim flex items-center gap-1.5 mb-3">
+                      <MapPin className="w-3.5 h-3.5 ds-text-faint shrink-0" />
                       <span className="truncate">{task.destinationAddress}</span>
                     </p>
 
@@ -644,7 +646,7 @@ export function App() {
                           <span className="text-emerald-400 font-bold">Prepaid via KHQR</span>
                         )}
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                      <ChevronRight className="w-4 h-4 ds-text-faint" />
                     </div>
                   </div>
                 ))}
@@ -658,7 +660,7 @@ export function App() {
               <div className="flex gap-2">
                 <a
                   href={`tel:${selectedTask.recipientPhone}`}
-                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 text-white flex items-center justify-center text-xs font-bold transition"
+                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text flex items-center justify-center text-xs font-bold transition"
                   title="Call Recipient"
                 >
                   <Phone className="w-4 h-4" />
@@ -667,7 +669,7 @@ export function App() {
                   href={`https://maps.google.com/?q=${encodeURIComponent(selectedTask.destinationAddress)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 text-white flex items-center justify-center text-xs font-bold transition"
+                  className="p-3 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text flex items-center justify-center text-xs font-bold transition"
                   title="Open GPS Navigation"
                 >
                   <Navigation className="w-4 h-4" />
@@ -720,13 +722,13 @@ export function App() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-4 border-b border-line">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
+              <h3 className="font-bold text-base ds-text flex items-center gap-2">
                 <FileSignature className="w-4 h-4 text-brand-300" />
                 Proof of Delivery (POD)
               </h3>
               <button
                 onClick={() => setIsPodOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg ds-text-dim hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -734,13 +736,13 @@ export function App() {
 
             <div className="py-4 space-y-3 text-xs">
               <div>
-                <span className="text-slate-400 block mb-1">Recipient Name / Signature</span>
+                <span className="ds-text-dim block mb-1">Recipient Name / Signature</span>
                 <input
                   type="text"
                   placeholder="Enter full name of signer..."
                   value={signatureName}
                   onChange={(e) => setSignatureName(e.target.value)}
-                  className="w-full px-3 py-2 bg-ink-950 border border-line-strong rounded-xl text-white font-medium focus:outline-none focus:border-brand-500"
+                  className="w-full px-3 py-2 bg-ink-950 border border-line-strong rounded-xl ds-text font-medium focus:outline-none focus:border-brand-500"
                 />
               </div>
 
@@ -770,13 +772,13 @@ export function App() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-ink-850 border border-line rounded-3xl p-6 shadow-2xl text-center space-y-4">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <span className="text-xs font-bold text-white flex items-center gap-2">
+              <span className="text-xs font-bold ds-text flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-brand-300" />
                 Telegram Mobile Courier App
               </span>
               <button
                 onClick={() => setShowQrModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg ds-text-dim hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -795,8 +797,8 @@ export function App() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-bold text-white">Scan with Phone Camera or Telegram</p>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs font-bold ds-text">Scan with Phone Camera or Telegram</p>
+              <p className="text-[11px] ds-text-dim">
                 Launches the direct Telegram Mini App on iOS & Android with automatic courier telemetry.
               </p>
             </div>

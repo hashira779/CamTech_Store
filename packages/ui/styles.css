@@ -176,4 +176,9 @@ body::before {
 .ds-btn-brand { color: #fff; background: #4f46e5; box-shadow: 0 0 0 1px rgba(99,102,241,0.35), 0 8px 30px -8px rgba(99,102,241,0.45); }
 .ds-btn-brand:hover { background: #6366f1; }
 
+/* Inverse solid button — high contrast in both themes (white-on-dark in dark,
+   dark-on-light in light). Replaces hardcoded `bg-white text-zinc-950` buttons. */
+.ds-btn-solid { background-color: var(--text); color: var(--bg); }
+.ds-btn-solid:hover { filter: brightness(1.08); }
+
 .ds-divide > * + * { border-top: 1px solid var(--border); }

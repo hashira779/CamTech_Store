@@ -11,8 +11,10 @@ from app.schemas.dto import (
     AssignDriverInput, LiveTrackingSnapshotDto
 )
 from app.services import delivery_service as svc
+from app.modules.delivery.api_auth import router as auth_router
 
 router = APIRouter(prefix="/delivery", tags=["Delivery & Live Fleet Dispatch"])
+router.include_router(auth_router, prefix="/auth")
 
 def resolve_org_id(user: Optional[TenantUser]) -> str:
     """
