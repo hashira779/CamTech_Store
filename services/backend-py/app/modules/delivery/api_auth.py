@@ -1,7 +1,7 @@
 import datetime
 import random
 import logging
-import requests
+import httpx
 import urllib.parse
 import json
 from typing import Dict, Any
@@ -81,7 +81,8 @@ async def register_init(req: RegisterInitRequest, db: AsyncSession = Depends(get
                 "chat_id": tg_user_id,
                 "text": f"Your CamTech Delivery OTP code is: {otp}. It expires in 5 minutes."
             }
-            requests.post(url, json=payload, timeout=5)
+            async with httpx.AsyncClient() as client:
+                await client.post(url, json=payload, timeout=5.0)
         except Exception as e:
             logger.error(f"Failed to send OTP via Telegram: {e}")
             print(f"MOCK OTP for {req.phone_number} sent to TG {tg_user_id}: {otp}")
@@ -170,7 +171,8 @@ async def approve_driver(driver_id: str, user: TenantUser = Depends(get_current_
                 "chat_id": driver.telegram_user_id,
                 "text": f"Your registration for CamTech Delivery has been approved! You can now open the app to start accepting orders."
             }
-            requests.post(url, json=payload, timeout=5)
+            async with httpx.AsyncClient() as client:
+                await client.post(url, json=payload, timeout=5.0)
         except Exception as e:
             logger.error(f"Failed to send approval notification via Telegram: {e}")
             
