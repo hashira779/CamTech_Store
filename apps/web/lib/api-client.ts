@@ -309,6 +309,12 @@ export const api = {
       body: JSON.stringify({ telegram_init_data }),
     }),
 
+  deliveryAuthApprove: (token: string, driverId: string) =>
+    request<{ success: boolean; message: string }>(`/delivery/auth/approve/${driverId}`, {
+      method: 'PATCH',
+      token,
+    }),
+
   // ─── Auth ──────────────────────────────────────────────────────
   login: (email: string, password: string) =>
     request<LoginResult>('/auth/login', {

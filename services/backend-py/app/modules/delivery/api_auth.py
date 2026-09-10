@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.datetime_utils import utc_now
 from app.core.security import create_access_token
+from app.core.dependencies import get_current_user, TenantUser
 from .models import DeliveryDriver, OtpVerification
 
 logger = logging.getLogger(__name__)
@@ -150,3 +151,27 @@ async def auto_login(req: AutoLoginRequest, db: AsyncSession = Depends(get_db)):
         }
         
     return {"success": True, "auth_status": driver.auth_status}
+
+@router.patch("/approve/{driver_id}")
+async def approve_driver(driver_id: str, user: TenantUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(DeliveryDriver).filter(DeliveryDriver.id == driver_id))
+    driver = result.scalars().first()
+    
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+        
+    driver.auth_status = "ACTIVE"
+    await db.commit()
+    
+    if settings.TELEGRAM_BOT_TOKEN and driver.telegram_user_id:
+        try:
+            url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": driver.telegram_user_id,
+                "text": f"Your registration for CamTech Delivery has been approved! You can now open the app to start accepting orders."
+            }
+            requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            logger.error(f"Failed to send approval notification via Telegram: {e}")
+            
+    return {"success": True, "message": "Driver approved"}

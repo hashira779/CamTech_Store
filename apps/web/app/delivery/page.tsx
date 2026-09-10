@@ -182,6 +182,13 @@ export function DeliveryPage() {
     },
   });
 
+  const approveDriverMutation = useMutation({
+    mutationFn: (driverId: string) => api.deliveryAuthApprove(token!, driverId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-drivers'] });
+    },
+  });
+
   // ─── Live GPS Telemetry Simulation ───
   useEffect(() => {
     if (!isSimulating || !token) return;
@@ -218,7 +225,11 @@ export function DeliveryPage() {
     (o) => o.status === 'DISPATCHED' || o.status === 'IN_TRANSIT'
   );
   const pendingOrders = orders.filter((o) => o.status === 'PENDING');
-  const enRouteDrivers = drivers.filter((d) => d.status === 'EN_ROUTE');
+  
+  const activeDrivers = drivers.filter((d) => !d.authStatus || d.authStatus === 'ACTIVE');
+  const pendingDrivers = drivers.filter((d) => d.authStatus === 'PENDING_APPROVAL');
+  const enRouteDrivers = activeDrivers.filter((d) => d.status === 'EN_ROUTE');
+  
   const totalCod = activeOrders.reduce((sum, o) => sum + o.codAmount, 0);
   const ordersWithEta = activeOrders.filter((o) => o.etaMinutes != null && o.etaMinutes > 0);
   const avgEta = ordersWithEta.length > 0
@@ -503,11 +514,11 @@ export function DeliveryPage() {
           {/* Right 1 Col: Fleet Status Roster */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold tracking-wide text-foreground uppercase">
-              Fleet Units ({drivers.length})
+              Fleet Units ({activeDrivers.length})
             </h3>
 
             <div className="space-y-2.5">
-              {drivers.map((drv) => {
+              {activeDrivers.map((drv) => {
                 const isSelected = selectedDriverId === drv.id;
                 const isEnRoute = drv.status === 'EN_ROUTE';
 
@@ -560,6 +571,49 @@ export function DeliveryPage() {
                 );
               })}
             </div>
+
+            {pendingDrivers.length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold tracking-wide text-amber-500 uppercase mt-8 pt-4 border-t border-border/40">
+                  Pending Approvals ({pendingDrivers.length})
+                </h3>
+                <div className="space-y-2.5">
+                  {pendingDrivers.map((drv) => (
+                    <div
+                      key={drv.id}
+                      className="p-3 rounded-xl border bg-amber-500/5 border-amber-500/20 flex flex-col gap-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
+                          {drv.vehicleType === 'VAN' ? (
+                            <Truck className="w-4 h-4" />
+                          ) : (
+                            <Bike className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-foreground block">
+                            {drv.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {drv.phone}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-500 text-white font-medium"
+                        disabled={approveDriverMutation.isPending}
+                        onClick={() => approveDriverMutation.mutate(drv.id)}
+                      >
+                        <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                        Approve Driver
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -121,6 +121,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-api-gateway
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.gateway:gateway --host 0.0.0.0 --port 4000 --workers 4
     ports:
       - '${API_GATEWAY_PORT_HOST:-4010}:4000'
@@ -153,6 +155,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-auth-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.auth_service:app --host 0.0.0.0 --port 4001 --workers 2
     ports:
       - '127.0.0.1:4001:4001'
@@ -174,6 +178,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-catalog-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.catalog_service:app --host 0.0.0.0 --port 4002 --workers 2
     ports:
       - '127.0.0.1:4002:4002'
@@ -195,6 +201,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-sales-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.sales_service:app --host 0.0.0.0 --port 4003 --workers 2
     ports:
       - '127.0.0.1:4003:4003'
@@ -216,6 +224,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-delivery-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.delivery_service:app --host 0.0.0.0 --port 4004 --workers 2
     ports:
       - '127.0.0.1:4004:4004'
@@ -237,6 +247,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-hr-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.hr_service:app --host 0.0.0.0 --port 4005 --workers 2
     ports:
       - '127.0.0.1:4005:4005'
@@ -258,6 +270,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-finance-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.finance_service:app --host 0.0.0.0 --port 4006 --workers 2
     ports:
       - '127.0.0.1:4006:4006'
@@ -279,6 +293,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-platform-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.platform_service:app --host 0.0.0.0 --port 4007 --workers 2
     ports:
       - '127.0.0.1:4007:4007'
@@ -300,6 +316,8 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-bot-builder-service
     restart: always
+    env_file:
+      - .env
     command: python -m uvicorn app.microservices.bot_builder_service:app --host 0.0.0.0 --port 4008 --workers 2
     ports:
       - '127.0.0.1:4008:4008'
@@ -419,7 +437,7 @@ services:
     container_name: mystore-cloudflared
     restart: always
     network_mode: host
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-eyJhIjoiYTZkNTM1YTYzOWY3ZTk5ZjJlNDkzNGNmZjQ3ZGUyODgiLCJ0IjoiODg2ODgwYTktMWUwYi00ZTAzLThkYTAtNDRiOWVjYmZmOGIwIiwicyI6Ik5XUmlOamd5TWpJdFlXTTJaQzAwTXpBeExUazNNVGN0Wm1KaE1qRXlOek0xTlRJNCJ9}
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - nginx-ingress
 

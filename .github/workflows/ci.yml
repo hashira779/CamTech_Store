@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -158,20 +158,82 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 14
 
+  deploy-production:
+    name: Safe Production Deploy
+    runs-on: self-hosted
+    needs: [python-backend, typescript-monorepo, e2e-playwright]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Free Disk Space
+        run: |
+          # Prune stopped containers from previous runs
+          sudo docker container prune -f 2>/dev/null || true
+          # Prune dangling unused container images
+          sudo docker image prune -f 2>/dev/null || true
+          # Clean old runner diagnostic logs older than 2 days
+          find ~/actions-runner*/_diag -name "*.log" -mtime +2 -delete 2>/dev/null || true
+          # Vacuum system logs
+          sudo journalctl --vacuum-time=2d 2>/dev/null || true
+          echo "✅ Disk optimization complete"
+          df -h /
+
+      - name: Inject Production .env
+        run: |
+          if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
+            echo "${{ secrets.ENV_PRODUCTION }}" > .env
+            echo "✅ Successfully injected production .env from GitHub Secrets."
+          else
+            echo "⚠️ ENV_PRODUCTION secret is missing! Using existing .env on server if it exists."
+          fi
+
+      - name: Make Scripts Executable
+        run: |
+          chmod +x ./scripts/deploy_production.sh
+          chmod +x ./scripts/*.py 2>/dev/null || true
+
+      - name: Safe Deploy with Automated Rollback
+        run: ./scripts/deploy_production.sh
+
+      - name: Notify Telegram on Deployment Ready
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "🎉 *MyStore CI/CD Deployment Ready in Production!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* ✅ All services live & healthy",
+              "parse_mode": "Markdown"
+            }' || true
+
+      - name: Notify Telegram on Deployment Failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "7673456476",
+              "text": "❌ *MyStore CI/CD Deployment FAILED!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Status:* ⚠️ Rollback initiated on production server",
+              "parse_mode": "Markdown"
+            }' || true
+
   notify-telegram:
     name: Telegram CI Pipeline Notification
     runs-on: ubuntu-latest
-    needs: [python-backend, typescript-monorepo, e2e-playwright]
+    needs: [python-backend, typescript-monorepo, e2e-playwright, deploy-production]
     if: always()
     steps:
       - name: Send CI/CD Pipeline Summary
         run: |
-          STATUS="${{ (contains(needs.python-backend.result, 'failure') || contains(needs.typescript-monorepo.result, 'failure') || contains(needs.e2e-playwright.result, 'failure')) && 'FAILED ❌' || 'PASSED ✅' }}"
-          curl -s -X POST "https://api.telegram.org/bot8745615258:AAFadixBs9plxXhPVv_RlixfdnpWtAZf2SA/sendMessage" \
+          STATUS="${{ (contains(needs.python-backend.result, 'failure') || contains(needs.typescript-monorepo.result, 'failure') || contains(needs.e2e-playwright.result, 'failure') || contains(needs.deploy-production.result, 'failure')) && 'FAILED ❌' || 'PASSED ✅' }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d "{
               \"chat_id\": \"7673456476\",
-              \"text\": \"🧪 *MyStore CI Pipeline: ${STATUS}*\n\n• *Commit:* \`${{ github.sha }}\`\n• *Branch:* \`${{ github.ref_name }}\`\n• *Actor:* \`${{ github.actor }}\`\n• *Backend Tests:* \`${{ needs.python-backend.result }}\`\n• *Typescript Build:* \`${{ needs.typescript-monorepo.result }}\`\n• *E2E Playwright:* \`${{ needs.e2e-playwright.result }}\`\",
+              \"text\": \"🧪 *MyStore CI/CD Pipeline: ${STATUS}*\n\n• *Commit:* \`${{ github.sha }}\`\n• *Branch:* \`${{ github.ref_name }}\`\n• *Actor:* \`${{ github.actor }}\`\n• *Backend Tests:* \`${{ needs.python-backend.result }}\`\n• *Typescript Build:* \`${{ needs.typescript-monorepo.result }}\`\n• *E2E Playwright:* \`${{ needs.e2e-playwright.result }}\`\n• *Production Deploy:* \`${{ needs.deploy-production.result }}\`\",
               \"parse_mode\": \"Markdown\"
             }" || true
-

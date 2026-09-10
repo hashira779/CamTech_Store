@@ -78,7 +78,6 @@ run_cmd mkdir -p "$APP_DIR"
 run_cmd rsync -aq --delete \
     --exclude '.git' \
     --exclude 'node_modules' \
-    --exclude '.env' \
     --exclude 'dist' \
     --exclude '.turbo' \
     --exclude '__pycache__' \

@@ -35,6 +35,8 @@ def _driver_to_dto(drv: DeliveryDriver, active_count: int = 0) -> DeliveryDriver
         batteryLevel=drv.battery_level,
         activeOrdersCount=active_count,
         lastPingAt=drv.last_ping_at.isoformat() if drv.last_ping_at else None,
+        authStatus=drv.auth_status,
+        telegramUserId=drv.telegram_user_id,
     )
 
 

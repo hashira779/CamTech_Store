@@ -307,6 +307,8 @@ class DeliveryDriverDto(BaseModel):
     batteryLevel: Optional[int] = 100
     activeOrdersCount: Optional[int] = 0
     lastPingAt: Optional[str] = None
+    authStatus: Optional[str] = None
+    telegramUserId: Optional[str] = None
 
 class CreateDriverInput(BaseModel):
     name: str

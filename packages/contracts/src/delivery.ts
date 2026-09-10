@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const DRIVER_AUTH_STATUSES = ['UNREGISTERED', 'OTP_PENDING', 'PENDING_APPROVAL', 'ACTIVE', 'REJECTED'] as const;
+export type DriverAuthStatus = (typeof DRIVER_AUTH_STATUSES)[number];
+
 export const VEHICLE_TYPES = ['MOTORCYCLE', 'VAN', 'TRUCK'] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
@@ -31,6 +34,8 @@ export interface DeliveryDriverDto {
   batteryLevel?: number;
   activeOrdersCount?: number;
   lastPingAt?: string;
+  authStatus?: string;
+  telegramUserId?: string | null;
 }
 
 export interface DeliveryOrderDto {
