@@ -33,8 +33,8 @@ function EmptyState() {
   return (
     <div className="py-14 text-center">
       <Users className="w-8 h-8 mx-auto mb-3 text-slate-600" />
-      <p className="font-semibold text-slate-300 text-sm">No personnel records found</p>
-      <p className="text-[11px] text-slate-500 mt-1">
+      <p className="font-semibold ds-text-dim text-sm">No personnel records found</p>
+      <p className="text-[11px] ds-text-faint mt-1">
         Records appear as employees are onboarded from the Central HR database.
       </p>
     </div>
@@ -79,7 +79,7 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
       <div className="ds-card overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-slate-500 border-b border-line uppercase tracking-wider text-[10px]">
+            <thead className="ds-text-faint border-b border-line uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3.5 px-5 font-semibold">Employee</th>
                 <th className="py-3.5 px-5 font-semibold">Role &amp; department</th>
@@ -95,8 +95,8 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
                     <div className="flex items-center gap-3">
                       <Avatar name={e.name} />
                       <div className="min-w-0">
-                        <p className="font-bold text-white text-[13px] truncate">{e.name}</p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 truncate">
+                        <p className="font-bold ds-text text-[13px] truncate">{e.name}</p>
+                        <p className="text-[11px] ds-text-faint flex items-center gap-1 truncate">
                           <Mail className="w-3 h-3 shrink-0" />
                           {e.email}
                         </p>
@@ -104,8 +104,8 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
                     </div>
                   </td>
                   <td className="py-3.5 px-5">
-                    <p className="font-medium text-slate-200">{e.position}</p>
-                    <p className="text-[11px] text-slate-500">{e.department}</p>
+                    <p className="font-medium ds-text-dim">{e.position}</p>
+                    <p className="text-[11px] ds-text-faint">{e.department}</p>
                   </td>
                   <td className="py-3.5 px-5 ds-figure text-emerald-400 text-[13px]">{money(e.baseSalary)}/mo</td>
                   <td className="py-3.5 px-5">
@@ -114,7 +114,7 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
                   <td className="py-3.5 px-5 text-right">
                     <button
                       onClick={() => onView(e)}
-                      className="px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-300 text-xs font-medium transition"
+                      className="px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700 ds-text-dim text-xs font-medium transition"
                     >
                       Profile
                     </button>
@@ -134,10 +134,10 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
               <Avatar name={e.name} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-white text-sm truncate">{e.name}</p>
+                  <p className="font-bold ds-text text-sm truncate">{e.name}</p>
                   <StatusBadge status={e.status} />
                 </div>
-                <p className="text-[11px] text-slate-500 flex items-center gap-1 truncate mt-0.5">
+                <p className="text-[11px] ds-text-faint flex items-center gap-1 truncate mt-0.5">
                   <Mail className="w-3 h-3 shrink-0" />
                   {e.email}
                 </p>
@@ -145,14 +145,14 @@ export function EmployeeDirectory({ employees, loading, onView }: Props) {
             </div>
             <div className="mt-3 pt-3 border-t border-line flex items-center justify-between">
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-slate-200 truncate">{e.position}</p>
-                <p className="text-[11px] text-slate-500">{e.department}</p>
+                <p className="text-[13px] font-medium ds-text-dim truncate">{e.position}</p>
+                <p className="text-[11px] ds-text-faint">{e.department}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="ds-figure text-emerald-400 text-sm">{money(e.baseSalary)}</p>
                 <button
                   onClick={() => onView(e)}
-                  className="mt-1 px-3 py-1 rounded-lg bg-ink-800 hover:bg-ink-700 text-slate-300 text-[11px] font-medium transition"
+                  className="mt-1 px-3 py-1 rounded-lg bg-ink-800 hover:bg-ink-700 ds-text-dim text-[11px] font-medium transition"
                 >
                   Profile
                 </button>

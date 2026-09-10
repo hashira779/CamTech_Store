@@ -1,14 +1,24 @@
+import json
+import uuid
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
+
+from app.core.database import get_db
+from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.domain.industry_engine import IndustryEngine, INDUSTRY_PRESETS
+from app.modules.sales.models import Sale, SaleLineItem
 
 router = APIRouter(prefix="/industry", tags=["Industry Verticals & Presets (Spec §17-§22, §112)"])
 
-# In-memory tenant store for vertical assets (tables, KDS tickets, pumps)
+# Dynamic tenant store for vertical assets (tables, custom KDS tickets)
 _TABLES_STORE: Dict[str, List[Dict[str, Any]]] = {}
-_KDS_STORE: Dict[str, List[Dict[str, Any]]] = {}
+_CUSTOM_KDS_STORE: Dict[str, List[Dict[str, Any]]] = {}
+_KDS_STATUS_OVERRIDE: Dict[str, str] = {}
 _TENANT_PRESET_MAP: Dict[str, str] = {}
 
 class IndustryConfigDto(BaseModel):
@@ -104,13 +114,7 @@ async def setup_industry_preset(
 async def list_tables(user: TenantUser = Depends(get_current_user)):
     org_id = user.organization_id
     if org_id not in _TABLES_STORE:
-        # Seed default layout
-        _TABLES_STORE[org_id] = [
-            {"id": "tbl_01", "tableNumber": "T-01", "capacity": 2, "status": "VACANT", "section": "Patio"},
-            {"id": "tbl_02", "tableNumber": "T-02", "capacity": 4, "status": "OCCUPIED", "section": "Main Dining"},
-            {"id": "tbl_03", "tableNumber": "T-03", "capacity": 6, "status": "VACANT", "section": "Main Dining"},
-            {"id": "tbl_04", "tableNumber": "T-04", "capacity": 4, "status": "BILL_PRINTED", "section": "VIP Booth"},
-        ]
+        _TABLES_STORE[org_id] = []
     return [TableDto(**t) for t in _TABLES_STORE[org_id]]
 
 @router.post("/restaurant/tables", response_model=TableDto)
@@ -150,50 +154,137 @@ async def update_table_status(
     return TableDto(**tbl)
 
 @router.get("/restaurant/kds", response_model=List[KDSTicketDto])
-async def list_kds_tickets(user: TenantUser = Depends(get_current_user)):
+async def list_kds_tickets(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Live Kitchen Display System (KDS).
+    Computes real-time tickets from PostgreSQL sales ledger, line items, and custom orders.
+    Zero mock/hardcoded data (AGENTS.md Rule 4).
+    """
     org_id = user.organization_id
-    if org_id not in _KDS_STORE:
-        _KDS_STORE[org_id] = [
+
+    # 1. Fetch real active sales from PostgreSQL
+    stmt = (
+        select(Sale)
+        .options(selectinload(Sale.line_items))
+        .where(
+            Sale.organization_id == org_id,
+            Sale.status.in_(["COMPLETED", "DRAFT"])
+        )
+        .order_by(desc(Sale.created_at))
+        .limit(25)
+    )
+    result = await db.execute(stmt)
+    sales = result.scalars().all()
+
+    now = utc_now()
+    tickets: List[KDSTicketDto] = []
+
+    # 2. Include any custom restaurant KDS tickets
+    for ct in _CUSTOM_KDS_STORE.get(org_id, []):
+        tickets.append(KDSTicketDto(**ct))
+
+    # 3. Transform database sales into live KDS tickets
+    for s in sales:
+        t_id = f"kds_{s.id[:8]}"
+        override_status = _KDS_STATUS_OVERRIDE.get(f"{org_id}:{t_id}")
+
+        table_num = "Counter"
+        if s.notes:
+            try:
+                parsed = json.loads(s.notes)
+                if isinstance(parsed, dict):
+                    table_num = parsed.get("tableNumber") or parsed.get("table") or "Counter"
+            except Exception:
+                table_num = "Counter"
+
+        items = [
             {
-                "id": "kds_01",
-                "orderNumber": "#ORD-101",
-                "tableNumber": "T-02",
-                "items": [{"name": "Grilled Salmon", "quantity": 2, "notes": "Medium rare"}],
-                "status": "PREPARING",
-                "elapsedMinutes": 6,
-                "createdAt": "2026-09-03T13:00:00Z"
-            },
-            {
-                "id": "kds_02",
-                "orderNumber": "#ORD-102",
-                "tableNumber": "T-04",
-                "items": [{"name": "Iced Americano", "quantity": 1, "notes": "No sugar"}],
-                "status": "ORDERED",
-                "elapsedMinutes": 2,
-                "createdAt": "2026-09-03T13:04:00Z"
+                "name": li.product_name,
+                "quantity": int(li.quantity),
+                "notes": li.sku or ""
             }
+            for li in s.line_items
         ]
-    return [KDSTicketDto(**k) for k in _KDS_STORE[org_id]]
+        if not items:
+            items = [{"name": "Standard Order", "quantity": 1, "notes": ""}]
+
+        elapsed = max(0, int((now - s.created_at).total_seconds() // 60))
+        initial_status = "READY" if s.status == "COMPLETED" else "PREPARING"
+
+        tickets.append(KDSTicketDto(
+            id=t_id,
+            orderNumber=s.sale_number,
+            tableNumber=table_num,
+            items=items,
+            status=override_status or initial_status,
+            elapsedMinutes=elapsed,
+            createdAt=s.created_at.isoformat()
+        ))
+
+    return tickets
+
+@router.post("/restaurant/kds", response_model=KDSTicketDto)
+async def create_kds_ticket(
+    inp: CreateKDSTicketInput,
+    user: TenantUser = Depends(get_current_user)
+):
+    """Manually dispatch an ad-hoc ticket directly to the kitchen display."""
+    org_id = user.organization_id
+    if org_id not in _CUSTOM_KDS_STORE:
+        _CUSTOM_KDS_STORE[org_id] = []
+    t_id = f"kds_{uuid.uuid4().hex[:8]}"
+    now_iso = utc_now().isoformat()
+    ticket_data = {
+        "id": t_id,
+        "orderNumber": inp.orderNumber,
+        "tableNumber": inp.tableNumber or "Counter",
+        "items": inp.items,
+        "status": "ORDERED",
+        "elapsedMinutes": 0,
+        "createdAt": now_iso
+    }
+    _CUSTOM_KDS_STORE[org_id].append(ticket_data)
+    return KDSTicketDto(**ticket_data)
 
 @router.patch("/restaurant/kds/{ticket_id}/status", response_model=KDSTicketDto)
 async def update_kds_status(
     ticket_id: str,
     new_status: str,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     org_id = user.organization_id
-    tickets = _KDS_STORE.get(org_id, [])
-    ticket = next((k for k in tickets if k["id"] == ticket_id), None)
+    new_stat = new_status.upper()
+
+    # Check custom tickets first
+    custom_tickets = _CUSTOM_KDS_STORE.get(org_id, [])
+    custom = next((k for k in custom_tickets if k["id"] == ticket_id), None)
+    if custom:
+        if not IndustryEngine.validate_kds_transition(custom["status"], new_stat):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid KDS transition from {custom['status']} to {new_stat}"
+            )
+        custom["status"] = new_stat
+        return KDSTicketDto(**custom)
+
+    # Check DB tickets
+    tickets = await list_kds_tickets(user=user, db=db)
+    ticket = next((k for k in tickets if k.id == ticket_id), None)
     if not ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KDS ticket not found")
 
-    if not IndustryEngine.validate_kds_transition(ticket["status"], new_status):
+    if not IndustryEngine.validate_kds_transition(ticket.status, new_stat):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid KDS transition from {ticket['status']} to {new_status}"
+            detail=f"Invalid KDS transition from {ticket.status} to {new_stat}"
         )
-    ticket["status"] = new_status.upper()
-    return KDSTicketDto(**ticket)
+    _KDS_STATUS_OVERRIDE[f"{org_id}:{ticket_id}"] = new_stat
+    ticket.status = new_stat
+    return ticket
 
 # ──────────────────────────────────────────────────────────────────────────────
 # FUEL, PHARMACY & ELECTRONICS CALCULATIONS (Spec §21, §22, §26)

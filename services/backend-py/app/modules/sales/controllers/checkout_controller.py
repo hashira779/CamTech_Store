@@ -17,7 +17,7 @@ from app.modules.identity.models import User
 from app.modules.catalog.models import ProductVariant, Product
 from app.modules.inventory.models import InventoryItem, StockMovement
 from app.models.entities import NotificationRecord
-from app.services.delivery_service import delivery_service
+from app.services import delivery_service as delivery_svc
 from app.schemas.dto import CreateDeliveryOrderInput
 
 from ..models import Sale, SaleLineItem, SalePayment
@@ -43,9 +43,9 @@ async def store_checkout(
             detail="Cannot checkout with an empty cart."
         )
 
-    email_clean = payload.customerEmail.strip().lower()
-    name_clean = payload.customerName.strip() or email_clean.split("@")[0]
     phone_clean = payload.customerPhone.strip() if payload.customerPhone else None
+    email_clean = payload.customerEmail.strip().lower() if payload.customerEmail else (f"{phone_clean}@customer.camtech.cam" if phone_clean else f"guest_{secrets.token_hex(4)}@customer.camtech.cam")
+    name_clean = payload.customerName.strip() or email_clean.split("@")[0]
 
     # Resolve Target Organization
     target_org = user.organization_id if user else (payload.organizationId or None)
@@ -246,6 +246,7 @@ async def store_checkout(
         paid_at=utc_now(),
     )
     db.add(payment)
+    await db.flush()
 
     # 6. Reset Customer Cart in PostgreSQL
     cust_notes = {}
@@ -331,7 +332,7 @@ async def store_checkout(
         saleId=sale_id,
         notes=f"Storefront Order {sale_num} ({len(line_entities)} items)"
     )
-    deliv_order = delivery_service.create_order(org_id=target_org, inp=deliv_input)
+    deliv_order = await delivery_svc.create_order(db, org_id=target_org, inp=deliv_input)
 
     # 9. Real-Time Alert to Delivery Couriers & Fleet
     deliv_alert = NotificationRecord(
@@ -424,5 +425,9 @@ async def store_checkout(
                 status=payment.status,
                 reference=payment.reference
             )
-        ]
+        ],
+        trackingNumber=deliv_order.trackingNumber,
+        deliveryOrderId=deliv_order.id,
+        deliveryStatus=deliv_order.status,
+        deliveryAddress=deliv_order.deliveryAddress,
     )

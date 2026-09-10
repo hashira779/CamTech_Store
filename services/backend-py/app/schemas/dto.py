@@ -349,8 +349,10 @@ class DeliveryOrderDto(BaseModel):
     deliveredAt: Optional[str] = None
 
 class CreateDeliveryOrderInput(BaseModel):
-    recipientName: str
-    recipientPhone: str
+    recipientName: Optional[str] = None
+    customerName: Optional[str] = None
+    recipientPhone: Optional[str] = None
+    customerPhone: Optional[str] = None
     deliveryAddress: str
     destLat: Optional[float] = 11.5564
     destLng: Optional[float] = 104.9282
@@ -359,6 +361,8 @@ class CreateDeliveryOrderInput(BaseModel):
     deliveryFee: Optional[float] = 2.50
     notes: Optional[str] = None
     driverId: Optional[str] = None
+    items: Optional[List[Any]] = None
+    paymentMethod: Optional[str] = None
 
 class UpdateDeliveryStatusInput(BaseModel):
     status: str

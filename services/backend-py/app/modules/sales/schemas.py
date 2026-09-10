@@ -37,7 +37,7 @@ class StoreCheckoutItemInput(BaseModel):
     category: Optional[str] = None
 
 class StoreCheckoutInput(BaseModel):
-    customerEmail: str
+    customerEmail: Optional[str] = None
     customerName: str
     customerPhone: Optional[str] = None
     deliveryAddress: Optional[str] = None
@@ -92,3 +92,7 @@ class SaleDto(BaseModel):
     createdAt: str
     lineItems: List[SaleLineItemDto] = []
     payments: List[SalePaymentDto] = []
+    trackingNumber: Optional[str] = None
+    deliveryOrderId: Optional[str] = None
+    deliveryStatus: Optional[str] = None
+    deliveryAddress: Optional[str] = None

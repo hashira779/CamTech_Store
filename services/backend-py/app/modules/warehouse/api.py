@@ -12,7 +12,6 @@ from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import StockTransfer, NotificationRecord
 from app.modules.sales.models import Sale, SaleLineItem
-from app.services.delivery_service import delivery_service
 from .schemas import (
     StockTransferDto,
     PickingOrderDto,

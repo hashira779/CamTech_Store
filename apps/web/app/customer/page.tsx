@@ -44,53 +44,104 @@ export default function CustomerPortalPage() {
   const [supportMessage, setSupportMessage] = useState('');
   const [isSupportSubmitted, setIsSupportSubmitted] = useState(false);
 
-  // Fetch real customer orders from delivery dispatch service
+  // Fetch real customer orders from delivery dispatch service with 2-second live sync
   const { data: realOrders = [], isLoading: isOrdersLoading, refetch: refetchOrders } = useQuery({
-    queryKey: ['customer-portal-orders', user?.email],
+    queryKey: ['customer-portal-orders', user?.email, user?.name],
     queryFn: async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/v1/delivery/tasks`);
+        const res = await fetch(`${BASE_URL}/api/v1/delivery/tasks`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) return [];
         const json = await res.json();
-        const items = json.data?.items || json.items || json.data || [];
-        if (!Array.isArray(items)) return [];
-        if (user?.name) {
-          const userFiltered = items.filter(
-            (o: any) =>
-              o.recipientName?.toLowerCase().includes(user.name.toLowerCase()) ||
-              (user.email && o.notes?.toLowerCase().includes(user.email.toLowerCase()))
-          );
-          if (userFiltered.length > 0) return userFiltered;
+        const serverItems: any[] = json.data?.items || json.items || json.data || [];
+
+        // Also load recent orders from this browser's checkout session
+        let localOrders: any[] = [];
+        try {
+          localOrders = JSON.parse(localStorage.getItem('camtech_recent_orders') || '[]');
+        } catch {}
+
+        const serverByTracking = new Map<string, any>();
+        serverItems.forEach((t) => {
+          if (t.trackingNumber) serverByTracking.set(t.trackingNumber, t);
+          if (t.id) serverByTracking.set(t.id, t);
+        });
+
+        const mergedList: any[] = [];
+        const seenTracking = new Set<string>();
+
+        // 1. Process local session orders first with live server status overlay
+        for (const loc of localOrders) {
+          const srv = serverByTracking.get(loc.trackingNumber) || serverByTracking.get(loc.deliveryOrderId);
+          const trk = loc.trackingNumber || srv?.trackingNumber;
+          if (trk && !seenTracking.has(trk)) {
+            seenTracking.add(trk);
+            mergedList.push({
+              id: srv?.id || loc.id || loc.orderNumber,
+              orderNumber: loc.orderNumber || srv?.orderNumber || trk,
+              trackingNumber: trk,
+              recipientName: srv?.recipientName || loc.customerName,
+              destinationAddress: srv?.deliveryAddress || srv?.destinationAddress || loc.deliveryAddress,
+              status: srv?.status || loc.status || 'PENDING',
+              totalAmount: loc.totalAmount || srv?.codAmount || 0,
+              codAmount: srv?.codAmount !== undefined ? srv.codAmount : loc.totalAmount,
+              notes: srv?.notes || (Array.isArray(loc.items) ? loc.items.join(', ') : 'Storefront Order'),
+              createdAt: srv?.createdAt || loc.createdAt,
+            });
+          }
         }
-        return items;
+
+        // 2. Add any server tasks matching user or add all if no local orders existed
+        for (const srv of serverItems) {
+          const trk = srv.trackingNumber;
+          if (trk && !seenTracking.has(trk)) {
+            const matchesUser = user?.name && (
+              srv.recipientName?.toLowerCase().includes(user.name.toLowerCase()) ||
+              (user.email && srv.notes?.toLowerCase().includes(user.email.toLowerCase()))
+            );
+            if (matchesUser || mergedList.length === 0) {
+              seenTracking.add(trk);
+              mergedList.push({
+                ...srv,
+                orderNumber: srv.trackingNumber,
+                totalAmount: srv.codAmount || 0,
+              });
+            }
+          }
+        }
+
+        return mergedList.length > 0 ? mergedList : serverItems;
       } catch {
         return [];
       }
     },
+    refetchInterval: 2000,
   });
 
-  // Fetch real invoices from central sales ledger (when token is available)
+  // Fetch real invoices from central sales ledger (when token is available) with 2s live sync
   const { data: salesData, isLoading: isInvoicesLoading } = useQuery({
     queryKey: ['customer-portal-sales', token],
     queryFn: () => api.listSales(token!, { limit: 20 }),
     enabled: !!token,
+    refetchInterval: 2000,
   });
 
   const pastOrders = realOrders.map((ord: any) => ({
     id: ord.id,
-    orderNumber: ord.trackingNumber || `ORD-${ord.id.slice(-6).toUpperCase()}`,
-    trackingNumber: ord.trackingNumber || `TRK-${ord.id.slice(-8).toUpperCase()}`,
+    orderNumber: ord.orderNumber || ord.trackingNumber || `ORD-${String(ord.id).slice(-6).toUpperCase()}`,
+    trackingNumber: ord.trackingNumber || `TRK-${String(ord.id).slice(-8).toUpperCase()}`,
     date: ord.createdAt ? new Date(ord.createdAt).toISOString().split('T')[0] : 'Recent',
-    total: Number(ord.codAmount || 0) > 0 ? Number(ord.codAmount) : 19.99,
-    status: ord.status,
+    total: Number(ord.totalAmount || ord.codAmount || 0) > 0 ? Number(ord.totalAmount || ord.codAmount) : 19.99,
+    status: ord.status || 'PENDING',
     items: ord.notes ? [ord.notes] : ['Store Delivery Order'],
   }));
 
   const invoices = (salesData?.items || []).map((sale: any) => ({
     id: sale.id,
-    number: `INV-${sale.id.slice(-6).toUpperCase()}`,
+    number: sale.saleNumber || `INV-${sale.id.slice(-6).toUpperCase()}`,
     date: sale.createdAt ? new Date(sale.createdAt).toISOString().split('T')[0] : 'Recent',
-    amount: Number(sale.totalAmount || 0),
+    amount: Number(sale.grandTotal || sale.totalAmount || 0),
     status: sale.status === 'COMPLETED' ? 'PAID' : sale.status,
   }));
 

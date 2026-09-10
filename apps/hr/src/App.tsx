@@ -41,7 +41,7 @@ export function App() {
   const viewProfile = (e: Employee) => toast.info(`Opening profile for ${e.name}`);
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans selection:bg-brand-500/30">
+    <div className="min-h-screen ds-text font-sans selection:bg-brand-500/30">
       <Toaster position="top-right" richColors theme="dark" />
 
       <HrHeader
@@ -58,9 +58,9 @@ export function App() {
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="ds-eyebrow">Workforce overview</p>
-            <h2 className="text-lg sm:text-xl font-bold text-white mt-1">People &amp; payroll operations</h2>
+            <h2 className="text-lg sm:text-xl font-bold ds-text mt-1">People &amp; payroll operations</h2>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 text-[11px] ds-text-faint">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
             Ministry of Labour compliant
           </div>
@@ -111,7 +111,7 @@ export function App() {
 
         <div className="flex items-center justify-between px-1">
           <p className="ds-eyebrow">Employee directory</p>
-          <span className="text-[11px] text-slate-500 font-mono">
+          <span className="text-[11px] ds-text-faint font-mono">
             {filtered.length} of {employees.length}
           </span>
         </div>

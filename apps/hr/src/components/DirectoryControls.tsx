@@ -12,13 +12,13 @@ export function DirectoryControls({ search, onSearch, departments, selected, onS
   return (
     <div className="ds-card p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center gap-3">
       <div className="relative w-full lg:w-80">
-        <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 ds-text-faint absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search by name, role, or email…"
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-ink-950/60 border border-line text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/15 transition"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-ink-950/60 border border-line text-xs ds-text placeholder-slate-500 focus:outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/15 transition"
         />
       </div>
 
@@ -30,7 +30,7 @@ export function DirectoryControls({ search, onSearch, departments, selected, onS
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
               selected === d
                 ? 'bg-brand-600 text-white shadow-glow'
-                : 'bg-ink-800/70 text-slate-400 hover:bg-ink-700 hover:text-slate-200'
+                : 'bg-ink-800/70 ds-text-dim hover:bg-ink-700 hover:text-slate-200'
             }`}
           >
             {d}

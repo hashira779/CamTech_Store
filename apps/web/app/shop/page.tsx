@@ -131,41 +131,98 @@ export default function CustomerShopPage() {
     }
 
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/delivery/orders/public`, {
+      // 1. Dispatch full online sale & auto-delivery order to backend
+      let serverOrder: any = null;
+      let orderNum = '';
+      let trackNum = '';
+
+      const checkoutRes = await fetch(`${BASE_URL}/api/v1/sales/public-checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           customerName: customerName.trim(),
+          customerEmail: user?.email || undefined,
           customerPhone: customerPhone.trim(),
           deliveryAddress: deliveryAddress.trim(),
-          paymentMethod: paymentMethod === 'KHQR' ? 'PAID_KHQR' : 'CASH_ON_DELIVERY',
+          paymentMethod: paymentMethod === 'KHQR' ? 'KHQR' : 'CASH',
           items: cart.map((i) => ({
-            productVariantId: i.variantId || i.productId,
+            id: i.variantId || i.productId,
+            name: i.name,
+            price: i.price,
             quantity: i.quantity,
-            unitPrice: i.price,
+            sku: i.sku,
           })),
         }),
       });
 
-      if (!res.ok) throw new Error('Order placement failed');
+      if (checkoutRes.ok) {
+        const json = await checkoutRes.json();
+        serverOrder = json.data || json;
+        orderNum = serverOrder.saleNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`;
+        trackNum = serverOrder.trackingNumber || `TRK-${serverOrder.id?.slice(-8) || '2026'}`;
+      } else {
+        // Fallback directly to public delivery task endpoint
+        const delivRes = await fetch(`${BASE_URL}/api/v1/delivery/orders/public`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            customerName: customerName.trim(),
+            recipientName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            recipientPhone: customerPhone.trim(),
+            deliveryAddress: deliveryAddress.trim(),
+            paymentMethod: paymentMethod === 'KHQR' ? 'PAID_KHQR' : 'CASH_ON_DELIVERY',
+            codAmount: paymentMethod === 'COD' ? cartTotal : 0.0,
+            notes: `Storefront order (${cartItemCount} items)`,
+            items: cart.map((i) => ({
+              productVariantId: i.variantId || i.productId,
+              quantity: i.quantity,
+              unitPrice: i.price,
+            })),
+          }),
+        });
 
-      const json = await res.json();
-      const serverOrder = json.data || json;
+        if (!delivRes.ok) throw new Error('Order placement failed');
+        const json = await delivRes.json();
+        serverOrder = json.data || json;
+        orderNum = serverOrder.trackingNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`;
+        trackNum = serverOrder.trackingNumber || `TRK-${serverOrder.id?.slice(-8) || '2026'}`;
+      }
 
       const orderData = {
-        orderNumber: serverOrder.trackingNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`,
-        trackingNumber: serverOrder.trackingNumber,
+        id: serverOrder?.id || `ord_${Date.now()}`,
+        orderNumber: orderNum,
+        trackingNumber: trackNum,
         totalAmount: cartTotal,
-        customerName: serverOrder.recipientName || customerName,
-        deliveryAddress: serverOrder.deliveryAddress || deliveryAddress,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        deliveryAddress: deliveryAddress.trim(),
         paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : 'Cash On Delivery',
         itemCount: cartItemCount,
+        items: cart.map((c) => `${c.quantity}x ${c.name}`),
+        createdAt: new Date().toISOString(),
+        status: 'PENDING',
       };
+
+      // Persist in local storage so customer portal immediately reflects order history
+      try {
+        const stored = JSON.parse(localStorage.getItem('camtech_recent_orders') || '[]');
+        const updated = [orderData, ...stored.filter((o: any) => o.trackingNumber !== trackNum)].slice(0, 30);
+        localStorage.setItem('camtech_recent_orders', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Could not cache order in local storage:', err);
+      }
 
       setConfirmedOrder(orderData);
       setCart([]);
       setIsCheckoutOpen(false);
-      toast.success('🎉 Order confirmed and dispatched to Delivery Fleet!');
+      toast.success('🎉 Order placed and live delivery dispatched!');
     } catch {
       toast.error('Failed to place order with server. Please try again.');
     }

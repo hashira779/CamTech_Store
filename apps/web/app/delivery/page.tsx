@@ -105,14 +105,14 @@ export function DeliveryPage() {
         search: search || undefined,
       }),
     enabled: Boolean(token),
-    refetchInterval: 5000,
+    refetchInterval: 2000,
   });
 
   const { data: drivers = [], refetch: refetchDrivers } = useQuery({
     queryKey: ['delivery-drivers'],
     queryFn: () => api.listDrivers(token!),
     enabled: Boolean(token),
-    refetchInterval: 5000,
+    refetchInterval: 2000,
   });
 
   // ─── Mutations ───
@@ -213,13 +213,17 @@ export function DeliveryPage() {
     return () => clearInterval(interval);
   }, [isSimulating, drivers, token, queryClient]);
 
-  // KPIs
+  // KPIs — computed from real data
   const activeOrders = orders.filter(
     (o) => o.status === 'DISPATCHED' || o.status === 'IN_TRANSIT'
   );
   const pendingOrders = orders.filter((o) => o.status === 'PENDING');
   const enRouteDrivers = drivers.filter((d) => d.status === 'EN_ROUTE');
   const totalCod = activeOrders.reduce((sum, o) => sum + o.codAmount, 0);
+  const ordersWithEta = activeOrders.filter((o) => o.etaMinutes != null && o.etaMinutes > 0);
+  const avgEta = ordersWithEta.length > 0
+    ? (ordersWithEta.reduce((sum, o) => sum + (o.etaMinutes ?? 0), 0) / ordersWithEta.length).toFixed(1)
+    : '—';
 
   return (
     <EnterpriseShell>
@@ -269,15 +273,11 @@ export function DeliveryPage() {
             title="Active Deliveries"
             value={activeOrders.length}
             icon={Navigation}
-            change={12}
-            changeLabel="vs last week"
           />
           <KpiCard
             title="Fleet Units En Route"
             value={`${enRouteDrivers.length} / ${drivers.length}`}
             icon={Truck}
-            change={8}
-            changeLabel="units active"
           />
           <KpiCard
             title="Active COD to Collect"
@@ -286,10 +286,8 @@ export function DeliveryPage() {
           />
           <KpiCard
             title="Avg Transit Time"
-            value="16.4 min"
+            value={`${avgEta} min`}
             icon={Clock}
-            change={-4}
-            changeLabel="faster delivery"
           />
         </div>
 

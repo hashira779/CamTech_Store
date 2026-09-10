@@ -113,7 +113,7 @@ export default function DriverAppPage() {
     queryKey: ['driver-deliveries'],
     queryFn: () => api.listDeliveryOrders(token!),
     enabled: isAuthorized,
-    refetchInterval: 6000,
+    refetchInterval: 2000,
   });
 
   // Update Delivery Status Mutation

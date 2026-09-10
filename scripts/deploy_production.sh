@@ -115,6 +115,19 @@ if ! run_cmd docker compose -f "$COMPOSE_FILE" build; then
     exit 1
 fi
 
+# ── 4b. Automated Safe Database Schema Migration ─────────────────────────────
+echo "🗄️ Running automated safe database schema migration (Zero-Downtime)..."
+if ! run_cmd docker compose -f "$COMPOSE_FILE" run --rm --no-deps api-gateway python scripts/auto_migrate.py; then
+    echo "========================================================================"
+    echo "❌ Database migration failed! Aborting deployment without affecting live services."
+    echo "========================================================================"
+    if [ -d "$BACKUP_DIR" ]; then
+        echo "🔄 Restoring stable state from backup..."
+        run_cmd rsync -aq --delete "$BACKUP_DIR/" "$APP_DIR/"
+    fi
+    exit 1
+fi
+
 # ── 5. Gracefully Apply Container Updates ─────────────────────────────────────
 echo "🚀 Deploying updated containers..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d --remove-orphans

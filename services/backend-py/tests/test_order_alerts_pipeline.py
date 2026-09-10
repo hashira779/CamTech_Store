@@ -4,7 +4,6 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.core.database import engine
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser
-from app.services.delivery_service import delivery_service
 
 TEST_ORG_ID = "cmtk8h18o0000vkd0etmdacgw"
 
@@ -128,13 +127,15 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
 
         try:
             # Step 2: Verify Delivery Fleet received order dispatch
-            delivery_orders = delivery_service.list_orders(org_id=TEST_ORG_ID)
-            matching_delivery = [o for o in delivery_orders if o.saleId == sale_id]
+            res_deliv = await client.get("/api/v1/delivery/orders")
+            assert res_deliv.status_code == 200
+            delivery_orders = res_deliv.json()["data"]
+            matching_delivery = [o for o in delivery_orders if o.get("saleId") == sale_id]
             assert len(matching_delivery) == 1
             deliv_order = matching_delivery[0]
-            assert deliv_order.status == "PENDING"
-            assert deliv_order.recipientName == "Sophea Kem"
-            assert "Preah Sihanouk" in deliv_order.deliveryAddress
+            assert deliv_order["status"] == "PENDING"
+            assert deliv_order["recipientName"] == "Sophea Kem"
+            assert "Preah Sihanouk" in deliv_order["deliveryAddress"]
 
             # Step 3: Verify Real-Time Notifications generated for both Delivery and Stocker
             res_notes = await client.get("/api/v1/notifications?limit=30")
@@ -172,7 +173,7 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
 
             # Step 6: Delivery Courier claims/accepts the order
             res_claim = await client.patch(
-                f"/api/v1/delivery/tasks/{deliv_order.id}/status",
+                f"/api/v1/delivery/tasks/{deliv_order['id']}/status",
                 json={"status": "DISPATCHED"}
             )
             assert res_claim.status_code == 200
@@ -182,6 +183,7 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
         finally:
             # Clean up test rows in live DB per AGENTS.md Rule
             async with engine.begin() as conn:
+                await conn.execute(text('DELETE FROM delivery_orders WHERE "saleId" = :sale_id'), {"sale_id": sale_id})
                 await conn.execute(text('DELETE FROM notification_records WHERE "organizationId" = :org_id AND "title" LIKE :pattern'), {"org_id": TEST_ORG_ID, "pattern": f"%{sale_number}%"})
                 await conn.execute(text('DELETE FROM stock_movements WHERE "referenceId" = :sale_id'), {"sale_id": sale_id})
                 await conn.execute(text('DELETE FROM sale_payments WHERE "saleId" = :sale_id'), {"sale_id": sale_id})

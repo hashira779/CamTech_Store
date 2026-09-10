@@ -1,4 +1,5 @@
 import { Users, RefreshCw, DollarSign } from 'lucide-react';
+import { ThemeToggle } from '@mystore/ui';
 import { compactMoney } from '../lib/format';
 
 interface HrHeaderProps {
@@ -17,15 +18,16 @@ export function HrHeader({ totalPayroll, payrollRunning, onRefresh, onRunPayroll
             <Users className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm sm:text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-sm sm:text-[15px] font-bold ds-text tracking-tight flex items-center gap-2">
               <span className="truncate">Human Resources</span>
               <span className="ds-chip bg-brand-500/15 text-brand-300 font-mono hidden sm:inline-flex">HR</span>
             </h1>
-            <p className="text-[11px] text-slate-500 truncate">Workforce &amp; payroll operations · Central Data Center</p>
+            <p className="text-[11px] ds-text-faint truncate">Workforce &amp; payroll operations · Central Data Center</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
           <button onClick={onRefresh} className="ds-btn ds-btn-ghost" title="Sync employee records">
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Sync</span>

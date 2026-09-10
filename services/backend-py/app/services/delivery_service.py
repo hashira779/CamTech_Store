@@ -1,372 +1,415 @@
+"""
+Database-backed Delivery & Fleet Dispatch Service (Spec §45).
+All operations query/mutate the delivery_orders and delivery_drivers tables.
+No in-memory state, no mock data, no seed data.
+"""
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
+from typing import List, Optional
+
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.delivery.models import DeliveryDriver, DeliveryOrder
 from app.domain.delivery_engine import DeliveryEngine
 from app.schemas.dto import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
-    LiveTrackingSnapshotDto
+    LiveTrackingSnapshotDto,
 )
 
-class DeliveryService:
-    """
-    Enterprise In-Memory / Hybrid Delivery & Fleet Service (Spec §45).
-    Provides tenant-scoped real-time dispatch, fleet telemetry, route tracking,
-    and automatic GPS heartbeat simulation for live map demonstrations.
-    """
 
-    def __init__(self):
-        # org_id -> {driver_id: DriverDict}
-        self._drivers: Dict[str, Dict[str, Dict[str, Any]]] = {}
-        # org_id -> {order_id: OrderDict}
-        self._orders: Dict[str, Dict[str, Dict[str, Any]]] = {}
-        # Sequence counter per org
-        self._seq: Dict[str, int] = {}
+def _driver_to_dto(drv: DeliveryDriver, active_count: int = 0) -> DeliveryDriverDto:
+    """Map a DeliveryDriver ORM instance to its Pydantic DTO."""
+    return DeliveryDriverDto(
+        id=drv.id,
+        organizationId=drv.organization_id,
+        name=drv.name,
+        phone=drv.phone,
+        vehicleType=drv.vehicle_type,
+        licensePlate=drv.license_plate,
+        status=drv.status,
+        currentLat=drv.current_lat,
+        currentLng=drv.current_lng,
+        heading=drv.heading,
+        batteryLevel=drv.battery_level,
+        activeOrdersCount=active_count,
+        lastPingAt=drv.last_ping_at.isoformat() if drv.last_ping_at else None,
+    )
 
-    def _ensure_org_seed(self, org_id: str):
-        if org_id not in self._drivers:
-            self._drivers[org_id] = {}
-            self._orders[org_id] = {}
-            self._seq[org_id] = 1000
 
-            # Seed initial drivers across commercial hubs in Phnom Penh
-            d1_id = f"drv_{uuid.uuid4().hex[:8]}"
-            d2_id = f"drv_{uuid.uuid4().hex[:8]}"
-            d3_id = f"drv_{uuid.uuid4().hex[:8]}"
+def _order_to_dto(
+    order: DeliveryOrder,
+    driver: Optional[DeliveryDriver] = None,
+) -> DeliveryOrderDto:
+    """Map a DeliveryOrder ORM instance to its Pydantic DTO, enriching with driver info."""
+    return DeliveryOrderDto(
+        id=order.id,
+        organizationId=order.organization_id,
+        trackingNumber=order.tracking_number,
+        saleId=order.sale_id,
+        status=order.status,
+        recipientName=order.recipient_name,
+        recipientPhone=order.recipient_phone,
+        deliveryAddress=order.delivery_address,
+        destLat=order.dest_lat,
+        destLng=order.dest_lng,
+        driverId=order.driver_id,
+        driverName=driver.name if driver else None,
+        driverPhone=driver.phone if driver else None,
+        driverVehicle=driver.vehicle_type if driver else None,
+        codAmount=float(order.cod_amount or 0),
+        deliveryFee=float(order.delivery_fee or 0),
+        distanceKm=order.distance_km,
+        etaMinutes=order.eta_minutes,
+        proofOfDelivery=order.proof_of_delivery,
+        notes=order.notes,
+        createdAt=order.created_at.isoformat() if order.created_at else datetime.now(timezone.utc).isoformat(),
+        dispatchedAt=order.dispatched_at.isoformat() if order.dispatched_at else None,
+        deliveredAt=order.delivered_at.isoformat() if order.delivered_at else None,
+    )
 
-            self._drivers[org_id][d1_id] = {
-                "id": d1_id,
-                "organizationId": org_id,
-                "name": "Sokha Chan (Express)",
-                "phone": "+855 12 889 123",
-                "vehicleType": "MOTORCYCLE",
-                "licensePlate": "1AB-4492",
-                "status": "EN_ROUTE",
-                "currentLat": 11.5564,   # BKK1
-                "currentLng": 104.9282,
-                "heading": 45.0,
-                "batteryLevel": 92,
-                "activeOrdersCount": 1,
-                "lastPingAt": datetime.now(timezone.utc).isoformat()
-            }
 
-            self._drivers[org_id][d2_id] = {
-                "id": d2_id,
-                "organizationId": org_id,
-                "name": "Rithy Heng (Cargo Van)",
-                "phone": "+855 15 902 441",
-                "vehicleType": "VAN",
-                "licensePlate": "2BC-9910",
-                "status": "EN_ROUTE",
-                "currentLat": 11.5721,   # Riverside / Daun Penh
-                "currentLng": 104.9315,
-                "heading": 180.0,
-                "batteryLevel": 85,
-                "activeOrdersCount": 1,
-                "lastPingAt": datetime.now(timezone.utc).isoformat()
-            }
+# ---------------------------------------------------------------------------
+# Driver operations
+# ---------------------------------------------------------------------------
 
-            self._drivers[org_id][d3_id] = {
-                "id": d3_id,
-                "organizationId": org_id,
-                "name": "Piseth Chea (Rapid Fleet)",
-                "phone": "+855 70 334 556",
-                "vehicleType": "MOTORCYCLE",
-                "licensePlate": "1CD-1123",
-                "status": "IDLE",
-                "currentLat": 11.5385,   # Russian Market (TTP)
-                "currentLng": 104.9142,
-                "heading": 90.0,
-                "batteryLevel": 98,
-                "activeOrdersCount": 0,
-                "lastPingAt": datetime.now(timezone.utc).isoformat()
-            }
+async def list_drivers(db: AsyncSession, org_id: str) -> List[DeliveryDriverDto]:
+    """List all drivers for an organization with their active order counts."""
+    # Subquery: count active orders per driver
+    active_count_sq = (
+        select(
+            DeliveryOrder.driver_id,
+            func.count(DeliveryOrder.id).label("cnt"),
+        )
+        .where(
+            DeliveryOrder.organization_id == org_id,
+            DeliveryOrder.status.in_(["PENDING", "DISPATCHED", "IN_TRANSIT"]),
+        )
+        .group_by(DeliveryOrder.driver_id)
+        .subquery()
+    )
 
-            # Seed initial active orders
-            o1_id = f"ord_{uuid.uuid4().hex[:8]}"
-            o2_id = f"ord_{uuid.uuid4().hex[:8]}"
+    result = await db.execute(
+        select(DeliveryDriver, active_count_sq.c.cnt)
+        .outerjoin(active_count_sq, DeliveryDriver.id == active_count_sq.c.driver_id)
+        .where(DeliveryDriver.organization_id == org_id, DeliveryDriver.is_active == True)
+        .order_by(DeliveryDriver.created_at.desc())
+    )
+    rows = result.all()
+    return [_driver_to_dto(drv, int(cnt or 0)) for drv, cnt in rows]
 
-            self._orders[org_id][o1_id] = {
-                "id": o1_id,
-                "organizationId": org_id,
-                "trackingNumber": "TRK-2026-001001",
-                "saleId": "sale_demo_01",
-                "status": "IN_TRANSIT",
-                "recipientName": "Vannak Meas",
-                "recipientPhone": "+855 98 765 432",
-                "deliveryAddress": "Street 240, Khan Daun Penh, Phnom Penh",
-                "destLat": 11.5612,
-                "destLng": 104.9340,
-                "driverId": d1_id,
-                "driverName": "Sokha Chan (Express)",
-                "driverPhone": "+855 12 889 123",
-                "driverVehicle": "MOTORCYCLE",
-                "codAmount": 34.50,
-                "deliveryFee": 2.00,
-                "distanceKm": 1.2,
-                "etaMinutes": 8,
-                "proofOfDelivery": None,
-                "notes": "Call upon arrival, leave at security desk",
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "dispatchedAt": datetime.now(timezone.utc).isoformat(),
-                "deliveredAt": None
-            }
 
-            self._orders[org_id][o2_id] = {
-                "id": o2_id,
-                "organizationId": org_id,
-                "trackingNumber": "TRK-2026-001002",
-                "saleId": "sale_demo_02",
-                "status": "DISPATCHED",
-                "recipientName": "Sophea Lin",
-                "recipientPhone": "+855 16 332 119",
-                "deliveryAddress": "Toul Kork St 315, Phnom Penh",
-                "destLat": 11.5830,
-                "destLng": 104.8990,
-                "driverId": d2_id,
-                "driverName": "Rithy Heng (Cargo Van)",
-                "driverPhone": "+855 15 902 441",
-                "driverVehicle": "VAN",
-                "codAmount": 120.00,
-                "deliveryFee": 4.50,
-                "distanceKm": 4.8,
-                "etaMinutes": 18,
-                "proofOfDelivery": None,
-                "notes": "Fragile electronic cargo, verify packaging",
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "dispatchedAt": datetime.now(timezone.utc).isoformat(),
-                "deliveredAt": None
-            }
+async def create_driver(db: AsyncSession, org_id: str, inp: CreateDriverInput) -> DeliveryDriverDto:
+    """Register a new fleet driver."""
+    drv = DeliveryDriver(
+        id=str(uuid.uuid4()),
+        organization_id=org_id,
+        name=inp.name,
+        phone=inp.phone,
+        vehicle_type=inp.vehicleType.upper(),
+        license_plate=inp.licensePlate,
+        status="IDLE",
+        current_lat=inp.initialLat or 11.5564,
+        current_lng=inp.initialLng or 104.9282,
+        heading=0.0,
+        battery_level=100,
+        is_active=True,
+        last_ping_at=datetime.now(timezone.utc),
+    )
+    db.add(drv)
+    await db.commit()
+    await db.refresh(drv)
+    return _driver_to_dto(drv, 0)
 
-    def list_drivers(self, org_id: str) -> List[DeliveryDriverDto]:
-        self._ensure_org_seed(org_id)
-        return [DeliveryDriverDto(**d) for d in self._drivers[org_id].values()]
 
-    def create_driver(self, org_id: str, inp: CreateDriverInput) -> DeliveryDriverDto:
-        self._ensure_org_seed(org_id)
-        drv_id = f"drv_{uuid.uuid4().hex[:8]}"
-        data = {
-            "id": drv_id,
-            "organizationId": org_id,
-            "name": inp.name,
-            "phone": inp.phone,
-            "vehicleType": inp.vehicleType.upper(),
-            "licensePlate": inp.licensePlate,
-            "status": "IDLE",
-            "currentLat": inp.initialLat or 11.5564,
-            "currentLng": inp.initialLng or 104.9282,
-            "heading": 0.0,
-            "batteryLevel": 100,
-            "activeOrdersCount": 0,
-            "lastPingAt": datetime.now(timezone.utc).isoformat()
-        }
-        self._drivers[org_id][drv_id] = data
-        return DeliveryDriverDto(**data)
+async def ping_driver_location(
+    db: AsyncSession, org_id: str, inp: DriverLocationPingInput
+) -> Optional[DeliveryDriverDto]:
+    """Process a GPS heartbeat from a driver's mobile device."""
+    result = await db.execute(
+        select(DeliveryDriver).where(
+            DeliveryDriver.id == inp.driverId,
+            DeliveryDriver.organization_id == org_id,
+        )
+    )
+    drv = result.scalar_one_or_none()
+    if not drv:
+        return None
 
-    def ping_driver_location(self, org_id: str, inp: DriverLocationPingInput) -> Optional[DeliveryDriverDto]:
-        self._ensure_org_seed(org_id)
-        driver = self._drivers[org_id].get(inp.driverId)
-        if not driver:
-            return None
+    old_lat, old_lng = drv.current_lat, drv.current_lng
 
-        # Calculate new heading if previous coordinate exists
-        old_lat = driver["currentLat"]
-        old_lng = driver["currentLng"]
-        if inp.heading is not None:
-            new_heading = inp.heading
-        elif (old_lat != inp.latitude or old_lng != inp.longitude):
-            new_heading = DeliveryEngine.calculate_bearing(old_lat, old_lng, inp.latitude, inp.longitude)
-        else:
-            new_heading = driver.get("heading", 0.0)
+    # Compute heading
+    if inp.heading is not None:
+        new_heading = inp.heading
+    elif old_lat != inp.latitude or old_lng != inp.longitude:
+        new_heading = DeliveryEngine.calculate_bearing(old_lat, old_lng, inp.latitude, inp.longitude)
+    else:
+        new_heading = drv.heading or 0.0
 
-        driver["currentLat"] = round(inp.latitude, 6)
-        driver["currentLng"] = round(inp.longitude, 6)
-        driver["heading"] = new_heading
-        if inp.batteryLevel is not None:
-            driver["batteryLevel"] = inp.batteryLevel
-        driver["lastPingAt"] = datetime.now(timezone.utc).isoformat()
+    drv.current_lat = round(inp.latitude, 6)
+    drv.current_lng = round(inp.longitude, 6)
+    drv.heading = new_heading
+    if inp.batteryLevel is not None:
+        drv.battery_level = inp.batteryLevel
+    drv.last_ping_at = datetime.now(timezone.utc)
 
-        # Update distance and ETA for active orders assigned to this driver
-        for o in self._orders[org_id].values():
-            if o.get("driverId") == inp.driverId and o.get("status") in ["DISPATCHED", "IN_TRANSIT"]:
-                dist = DeliveryEngine.calculate_distance_km(
-                    inp.latitude, inp.longitude, o["destLat"], o["destLng"]
-                )
-                eta = DeliveryEngine.calculate_eta_minutes(dist, driver["vehicleType"])
-                o["distanceKm"] = dist
-                o["etaMinutes"] = eta
-
-        return DeliveryDriverDto(**driver)
-
-    def list_orders(
-        self,
-        org_id: str,
-        status: Optional[str] = None,
-        search: Optional[str] = None
-    ) -> List[DeliveryOrderDto]:
-        self._ensure_org_seed(org_id)
-        orders = list(self._orders[org_id].values())
-
-        if status:
-            orders = [o for o in orders if o["status"].upper() == status.upper()]
-        if search:
-            s = search.lower()
-            orders = [
-                o for o in orders
-                if s in o["trackingNumber"].lower()
-                or s in o["recipientName"].lower()
-                or s in o["recipientPhone"].lower()
-                or s in o["deliveryAddress"].lower()
-            ]
-
-        # Sort newest first
-        orders.sort(key=lambda x: x["createdAt"], reverse=True)
-        return [DeliveryOrderDto(**o) for o in orders]
-
-    def get_order(self, org_id: str, order_id: str) -> Optional[DeliveryOrderDto]:
-        self._ensure_org_seed(org_id)
-        data = self._orders[org_id].get(order_id)
-        return DeliveryOrderDto(**data) if data else None
-
-    def create_order(self, org_id: str, inp: CreateDeliveryOrderInput) -> DeliveryOrderDto:
-        self._ensure_org_seed(org_id)
-        self._seq[org_id] += 1
-        ord_id = f"ord_{uuid.uuid4().hex[:8]}"
-        tracking_num = DeliveryEngine.generate_tracking_number(self._seq[org_id])
-
-        driver_info = {}
-        initial_status = "PENDING"
-        distance_km = None
-        eta_minutes = None
-
-        dest_lat = inp.destLat if inp.destLat is not None else 11.5564
-        dest_lng = inp.destLng if inp.destLng is not None else 104.9282
-
-        assigned_driver_id = inp.driverId
-        if assigned_driver_id and assigned_driver_id in self._drivers[org_id]:
-            drv = self._drivers[org_id][assigned_driver_id]
-            driver_info = {
-                "driverId": drv["id"],
-                "driverName": drv["name"],
-                "driverPhone": drv["phone"],
-                "driverVehicle": drv["vehicleType"],
-            }
-            initial_status = "DISPATCHED"
-            drv["activeOrdersCount"] = drv.get("activeOrdersCount", 0) + 1
-            drv["status"] = "EN_ROUTE"
-            distance_km = DeliveryEngine.calculate_distance_km(
-                drv["currentLat"], drv["currentLng"], dest_lat, dest_lng
-            )
-            eta_minutes = DeliveryEngine.calculate_eta_minutes(distance_km, drv["vehicleType"])
-
-        data = {
-            "id": ord_id,
-            "organizationId": org_id,
-            "trackingNumber": tracking_num,
-            "saleId": inp.saleId,
-            "status": initial_status,
-            "recipientName": inp.recipientName,
-            "recipientPhone": inp.recipientPhone,
-            "deliveryAddress": inp.deliveryAddress,
-            "destLat": round(dest_lat, 6),
-            "destLng": round(dest_lng, 6),
-            "codAmount": inp.codAmount or 0.0,
-            "deliveryFee": inp.deliveryFee or 2.50,
-            "distanceKm": distance_km,
-            "etaMinutes": eta_minutes,
-            "proofOfDelivery": None,
-            "notes": inp.notes,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "dispatchedAt": datetime.now(timezone.utc).isoformat() if inp.driverId else None,
-            "deliveredAt": None,
-            **driver_info
-        }
-        self._orders[org_id][ord_id] = data
-        return DeliveryOrderDto(**data)
-
-    def assign_driver(self, org_id: str, order_id: str, driver_id: str) -> Optional[DeliveryOrderDto]:
-        self._ensure_org_seed(org_id)
-        order = self._orders[org_id].get(order_id)
-        driver = self._drivers[org_id].get(driver_id)
-        if not order or not driver:
-            return None
-
-        order["driverId"] = driver["id"]
-        order["driverName"] = driver["name"]
-        order["driverPhone"] = driver["phone"]
-        order["driverVehicle"] = driver["vehicleType"]
-        order["status"] = "DISPATCHED"
-        order["dispatchedAt"] = datetime.now(timezone.utc).isoformat()
-
-        driver["activeOrdersCount"] = driver.get("activeOrdersCount", 0) + 1
-        driver["status"] = "EN_ROUTE"
-
+    # Update ETA/distance on active orders assigned to this driver
+    orders_result = await db.execute(
+        select(DeliveryOrder).where(
+            DeliveryOrder.driver_id == inp.driverId,
+            DeliveryOrder.organization_id == org_id,
+            DeliveryOrder.status.in_(["DISPATCHED", "IN_TRANSIT"]),
+        )
+    )
+    for order in orders_result.scalars().all():
         dist = DeliveryEngine.calculate_distance_km(
-            driver["currentLat"], driver["currentLng"], order["destLat"], order["destLng"]
+            inp.latitude, inp.longitude, order.dest_lat, order.dest_lng
         )
-        order["distanceKm"] = dist
-        order["etaMinutes"] = DeliveryEngine.calculate_eta_minutes(dist, driver["vehicleType"])
+        eta = DeliveryEngine.calculate_eta_minutes(dist, drv.vehicle_type)
+        order.distance_km = dist
+        order.eta_minutes = eta
 
-        return DeliveryOrderDto(**order)
+    await db.commit()
+    await db.refresh(drv)
+    return _driver_to_dto(drv)
 
-    def update_order_status(
-        self,
-        org_id: str,
-        order_id: str,
-        inp: UpdateDeliveryStatusInput
-    ) -> Optional[DeliveryOrderDto]:
-        self._ensure_org_seed(org_id)
-        order = self._orders[org_id].get(order_id)
-        if not order:
-            return None
 
-        old_status = order["status"]
-        new_status = inp.status.upper()
+# ---------------------------------------------------------------------------
+# Order operations
+# ---------------------------------------------------------------------------
 
-        # Allow flexible field courier workflow:
-        # PENDING -> IN_TRANSIT or DELIVERED automatically dispatches
-        # DISPATCHED -> DELIVERED automatically marks in-transit then delivered
-        if old_status == "PENDING" and new_status in ["IN_TRANSIT", "DELIVERED"]:
-            order["status"] = "DISPATCHED"
-            old_status = "DISPATCHED"
-        if old_status == "DISPATCHED" and new_status == "DELIVERED":
-            order["status"] = "IN_TRANSIT"
-            old_status = "IN_TRANSIT"
+async def _load_driver(db: AsyncSession, driver_id: Optional[str]) -> Optional[DeliveryDriver]:
+    """Helper to load a driver by ID."""
+    if not driver_id:
+        return None
+    result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == driver_id))
+    return result.scalar_one_or_none()
 
-        if not DeliveryEngine.validate_status_transition(old_status, new_status):
-            return None
 
-        order["status"] = new_status
-        if inp.proofOfDelivery:
-            order["proofOfDelivery"] = inp.proofOfDelivery
-        if inp.notes:
-            order["notes"] = inp.notes
-
-        if new_status == "DELIVERED":
-            order["deliveredAt"] = datetime.now(timezone.utc).isoformat()
-            # Decrement driver active count
-            drv_id = order.get("driverId")
-            if drv_id and drv_id in self._drivers[org_id]:
-                drv = self._drivers[org_id][drv_id]
-                drv["activeOrdersCount"] = max(0, drv.get("activeOrdersCount", 1) - 1)
-                if drv["activeOrdersCount"] == 0:
-                    drv["status"] = "IDLE"
-
-        return DeliveryOrderDto(**order)
-
-    def get_live_tracking_snapshot(self, org_id: str) -> LiveTrackingSnapshotDto:
-        self._ensure_org_seed(org_id)
-        drivers = [DeliveryDriverDto(**d) for d in self._drivers[org_id].values()]
-        active_orders = [
-            DeliveryOrderDto(**o)
-            for o in self._orders[org_id].values()
-            if o["status"] in ["PENDING", "DISPATCHED", "IN_TRANSIT"]
-        ]
-        return LiveTrackingSnapshotDto(
-            drivers=drivers,
-            activeOrders=active_orders,
-            timestamp=datetime.now(timezone.utc).isoformat()
+async def list_orders(
+    db: AsyncSession,
+    org_id: str,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+) -> List[DeliveryOrderDto]:
+    """List delivery orders with optional status/search filters."""
+    stmt = (
+        select(DeliveryOrder, DeliveryDriver)
+        .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+        .where(DeliveryOrder.organization_id == org_id)
+    )
+    if status:
+        stmt = stmt.where(DeliveryOrder.status == status.upper())
+    if search:
+        pattern = f"%{search.lower()}%"
+        stmt = stmt.where(
+            func.lower(DeliveryOrder.tracking_number).like(pattern)
+            | func.lower(DeliveryOrder.recipient_name).like(pattern)
+            | func.lower(DeliveryOrder.recipient_phone).like(pattern)
+            | func.lower(DeliveryOrder.delivery_address).like(pattern)
         )
+    stmt = stmt.order_by(DeliveryOrder.created_at.desc())
 
-# Global singleton instance
-delivery_service = DeliveryService()
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [_order_to_dto(order, driver) for order, driver in rows]
+
+
+async def get_order(db: AsyncSession, org_id: str, order_id: str) -> Optional[DeliveryOrderDto]:
+    """Get a single delivery order by ID."""
+    result = await db.execute(
+        select(DeliveryOrder, DeliveryDriver)
+        .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+        .where(DeliveryOrder.id == order_id, DeliveryOrder.organization_id == org_id)
+    )
+    row = result.first()
+    if not row:
+        return None
+    order, driver = row
+    return _order_to_dto(order, driver)
+
+
+async def create_order(
+    db: AsyncSession, org_id: str, inp: CreateDeliveryOrderInput
+) -> DeliveryOrderDto:
+    """Create a new delivery order, optionally pre-assigning a driver."""
+    now = datetime.now(timezone.utc)
+
+    # Generate sequential tracking number
+    count_result = await db.execute(
+        select(func.count(DeliveryOrder.id)).where(DeliveryOrder.organization_id == org_id)
+    )
+    seq = (count_result.scalar() or 0) + 1001
+    tracking_num = DeliveryEngine.generate_tracking_number(seq)
+
+    dest_lat = inp.destLat if inp.destLat is not None else 11.5564
+    dest_lng = inp.destLng if inp.destLng is not None else 104.9282
+
+    recipient_name = (inp.recipientName or inp.customerName or "Valued Customer").strip()
+    recipient_phone = (inp.recipientPhone or inp.customerPhone or "N/A").strip()
+
+    order = DeliveryOrder(
+        id=str(uuid.uuid4()),
+        organization_id=org_id,
+        tracking_number=tracking_num,
+        sale_id=inp.saleId,
+        status="PENDING",
+        recipient_name=recipient_name,
+        recipient_phone=recipient_phone,
+        delivery_address=inp.deliveryAddress,
+        dest_lat=dest_lat,
+        dest_lng=dest_lng,
+        driver_id=None,
+        cod_amount=inp.codAmount or 0,
+        delivery_fee=inp.deliveryFee or 2.50,
+        notes=inp.notes,
+        created_at=now,
+    )
+
+    driver = None
+    if inp.driverId:
+        driver = await _load_driver(db, inp.driverId)
+        if driver:
+            order.driver_id = driver.id
+            order.status = "DISPATCHED"
+            order.dispatched_at = now
+            driver.status = "EN_ROUTE"
+
+            dist = DeliveryEngine.calculate_distance_km(
+                driver.current_lat, driver.current_lng, dest_lat, dest_lng
+            )
+            order.distance_km = dist
+            order.eta_minutes = DeliveryEngine.calculate_eta_minutes(dist, driver.vehicle_type)
+
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    if driver:
+        await db.refresh(driver)
+    return _order_to_dto(order, driver)
+
+
+async def assign_driver(
+    db: AsyncSession, org_id: str, order_id: str, driver_id: str
+) -> Optional[DeliveryOrderDto]:
+    """Assign a driver to an order and compute initial distance & ETA."""
+    result = await db.execute(
+        select(DeliveryOrder).where(
+            DeliveryOrder.id == order_id, DeliveryOrder.organization_id == org_id
+        )
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        return None
+
+    drv_result = await db.execute(
+        select(DeliveryDriver).where(
+            DeliveryDriver.id == driver_id, DeliveryDriver.organization_id == org_id
+        )
+    )
+    driver = drv_result.scalar_one_or_none()
+    if not driver:
+        return None
+
+    order.driver_id = driver.id
+    order.status = "DISPATCHED"
+    order.dispatched_at = datetime.now(timezone.utc)
+
+    driver.status = "EN_ROUTE"
+
+    dist = DeliveryEngine.calculate_distance_km(
+        driver.current_lat, driver.current_lng, order.dest_lat, order.dest_lng
+    )
+    order.distance_km = dist
+    order.eta_minutes = DeliveryEngine.calculate_eta_minutes(dist, driver.vehicle_type)
+
+    await db.commit()
+    await db.refresh(order)
+    await db.refresh(driver)
+    return _order_to_dto(order, driver)
+
+
+async def update_order_status(
+    db: AsyncSession, org_id: str, order_id: str, inp: UpdateDeliveryStatusInput
+) -> Optional[DeliveryOrderDto]:
+    """Update delivery status following state machine rules."""
+    result = await db.execute(
+        select(DeliveryOrder).where(
+            DeliveryOrder.id == order_id, DeliveryOrder.organization_id == org_id
+        )
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        return None
+
+    old_status = order.status
+    new_status = inp.status.upper()
+
+    # Flexible courier workflow shortcuts
+    if old_status == "PENDING" and new_status in ("IN_TRANSIT", "DELIVERED"):
+        order.status = "DISPATCHED"
+        old_status = "DISPATCHED"
+    if old_status == "DISPATCHED" and new_status == "DELIVERED":
+        order.status = "IN_TRANSIT"
+        old_status = "IN_TRANSIT"
+
+    if not DeliveryEngine.validate_status_transition(old_status, new_status):
+        return None
+
+    order.status = new_status
+    if inp.proofOfDelivery:
+        order.proof_of_delivery = inp.proofOfDelivery
+    if inp.notes:
+        order.notes = inp.notes
+
+    if new_status == "DELIVERED":
+        order.delivered_at = datetime.now(timezone.utc)
+        # Set driver back to IDLE if they have no other active orders
+        if order.driver_id:
+            active_count_result = await db.execute(
+                select(func.count(DeliveryOrder.id)).where(
+                    DeliveryOrder.driver_id == order.driver_id,
+                    DeliveryOrder.organization_id == org_id,
+                    DeliveryOrder.status.in_(["DISPATCHED", "IN_TRANSIT"]),
+                    DeliveryOrder.id != order_id,
+                )
+            )
+            remaining = active_count_result.scalar() or 0
+            if remaining == 0:
+                drv_result = await db.execute(
+                    select(DeliveryDriver).where(DeliveryDriver.id == order.driver_id)
+                )
+                driver_obj = drv_result.scalar_one_or_none()
+                if driver_obj:
+                    driver_obj.status = "IDLE"
+
+    await db.commit()
+    await db.refresh(order)
+
+    driver = await _load_driver(db, order.driver_id)
+    return _order_to_dto(order, driver)
+
+
+async def get_live_tracking_snapshot(
+    db: AsyncSession, org_id: str
+) -> LiveTrackingSnapshotDto:
+    """Return real-time snapshot of all active drivers and in-transit orders."""
+    drivers = await list_drivers(db, org_id)
+
+    orders_result = await db.execute(
+        select(DeliveryOrder, DeliveryDriver)
+        .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+        .where(
+            DeliveryOrder.organization_id == org_id,
+            DeliveryOrder.status.in_(["PENDING", "DISPATCHED", "IN_TRANSIT"]),
+        )
+        .order_by(DeliveryOrder.created_at.desc())
+    )
+    active_orders = [_order_to_dto(o, d) for o, d in orders_result.all()]
+
+    return LiveTrackingSnapshotDto(
+        drivers=drivers,
+        activeOrders=active_orders,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
