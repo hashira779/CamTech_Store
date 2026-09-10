@@ -68,6 +68,14 @@
   border-color: var(--border);
 }
 
+/* Beat per-app <body class="bg-slate-950 text-slate-100"> utilities (specificity
+   0,1,1 > a single utility class) so the theme always controls the page ground.
+   initTheme() sets data-theme on <html>, so this always matches. */
+[data-theme] body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
