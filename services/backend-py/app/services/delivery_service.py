@@ -10,6 +10,7 @@ from typing import List, Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.datetime_utils import utc_now
 from app.modules.delivery.models import DeliveryDriver, DeliveryOrder
 from app.domain.delivery_engine import DeliveryEngine
 from app.schemas.dto import (
@@ -117,7 +118,7 @@ async def create_driver(db: AsyncSession, org_id: str, inp: CreateDriverInput) -
         heading=0.0,
         battery_level=100,
         is_active=True,
-        last_ping_at=datetime.now(timezone.utc),
+        last_ping_at=utc_now(),
     )
     db.add(drv)
     await db.commit()
@@ -154,7 +155,7 @@ async def ping_driver_location(
     drv.heading = new_heading
     if inp.batteryLevel is not None:
         drv.battery_level = inp.batteryLevel
-    drv.last_ping_at = datetime.now(timezone.utc)
+    drv.last_ping_at = utc_now()
 
     # Update ETA/distance on active orders assigned to this driver
     orders_result = await db.execute(
@@ -236,7 +237,7 @@ async def create_order(
     db: AsyncSession, org_id: str, inp: CreateDeliveryOrderInput
 ) -> DeliveryOrderDto:
     """Create a new delivery order, optionally pre-assigning a driver."""
-    now = datetime.now(timezone.utc)
+    now = utc_now()
 
     # Generate sequential tracking number
     count_result = await db.execute(
@@ -316,7 +317,7 @@ async def assign_driver(
 
     order.driver_id = driver.id
     order.status = "DISPATCHED"
-    order.dispatched_at = datetime.now(timezone.utc)
+    order.dispatched_at = utc_now()
 
     driver.status = "EN_ROUTE"
 
@@ -366,7 +367,7 @@ async def update_order_status(
         order.notes = inp.notes
 
     if new_status == "DELIVERED":
-        order.delivered_at = datetime.now(timezone.utc)
+        order.delivered_at = utc_now()
         # Set driver back to IDLE if they have no other active orders
         if order.driver_id:
             active_count_result = await db.execute(

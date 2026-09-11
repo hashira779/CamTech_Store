@@ -41,10 +41,14 @@ class StateManager:
         state = result.scalar_one_or_none()
 
         # Check expiration
-        if state and state.expires_at and state.expires_at < utc_now():
-            await db.delete(state)
-            await db.flush()
-            state = None
+        if state and state.expires_at:
+            exp = state.expires_at
+            if exp.tzinfo is not None:
+                exp = exp.replace(tzinfo=None)
+            if exp < utc_now():
+                await db.delete(state)
+                await db.flush()
+                state = None
 
         if state:
             return state

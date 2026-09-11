@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_
@@ -523,3 +523,33 @@ async def execute_telegram_command(
     params = data.get("params", "")
     reply = TelegramCommandRouter.route_command(command, params)
     return {"command": command, "reply": reply}
+
+@router.post("/telegram/webhook")
+async def telegram_webhook_simulation(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    message = data.get("message") or {}
+    text = (message.get("text") or "").strip()
+    chat = message.get("chat") or {}
+    chat_id = str(chat.get("id") or "123456789")
+
+    if not text:
+        text = "/help"
+
+    parts = text.split(" ", 1)
+    command = parts[0]
+    params = parts[1] if len(parts) > 1 else ""
+
+    reply = TelegramCommandRouter.route_command(command, params)
+    return {
+        "ok": True,
+        "chatId": chat_id,
+        "command": command,
+        "response": reply,
+    }

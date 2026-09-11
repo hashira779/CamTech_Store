@@ -1374,6 +1374,13 @@ export const api = {
       body: JSON.stringify({ message, botId }),
     }),
 
+  executeTelegramCommand: (token: string, command: string, params?: string) =>
+    request<{ command: string; reply: string }>('/telegram/command', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ command, params }),
+    }),
+
   // ─── Flow Automation Platform (n8n Engine) ───────────────────────
   listFlows: (token: string) =>
     request<AutomationFlowDto[]>('/flows', { token }),

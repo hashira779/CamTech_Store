@@ -392,6 +392,13 @@ export default function TelegramPage() {
     setIsSimulating(true);
     setSimResponse(null);
     try {
+      if (token) {
+        const data = await api.executeTelegramCommand(token, simCommand, targetChat);
+        setSimResponse(data.reply || JSON.stringify(data, null, 2));
+        return;
+      }
+
+      // Webhook simulation fallback with safe response decoding
       const res = await fetch(`${BASE_URL}/api/v1/telegram/webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -402,10 +409,16 @@ export default function TelegramPage() {
           },
         }),
       });
-      const data = await res.json();
-      setSimResponse(data.response || JSON.stringify(data, null, 2));
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(res.ok ? 'Received invalid format from server' : `Server error (HTTP ${res.status})`);
+      }
+      setSimResponse(data.response || data.data?.response || data.reply || data.data?.reply || JSON.stringify(data, null, 2));
     } catch (err: any) {
-      setSimResponse(`Error communicating with webhook: ${err.message}`);
+      setSimResponse(`Simulation failed: ${err.message || 'Unable to contact webhook'}`);
     } finally {
       setIsSimulating(false);
     }

@@ -196,12 +196,15 @@ async def register_verify(req: RegisterVerifyRequest, db: AsyncSession = Depends
         .order_by(OtpVerification.created_at.desc())
     )
     otp_record = result.scalars().first()
-    
     if not otp_record:
         raise HTTPException(status_code=400, detail="Invalid OTP")
-        
-    if otp_record.expires_at < utc_now():
-        raise HTTPException(status_code=400, detail="OTP Expired")
+
+    exp = otp_record.expires_at
+    if exp:
+        if exp.tzinfo is not None:
+            exp = exp.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        if exp < utc_now():
+            raise HTTPException(status_code=400, detail="OTP Expired")
         
     driver = await find_driver_by_phone(db, req.phone_number)
     
