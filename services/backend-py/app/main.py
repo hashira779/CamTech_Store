@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -231,6 +232,9 @@ async def response_envelope_middleware(request: Request, call_next):
             return Response(content=raw_body, status_code=response.status_code, headers=dict(response.headers))
 
     return response
+
+# High-concurrency GZip compression applied outermost (compresses enveloped responses >= 1KB)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 from app.modules.identity.api import router as auth_router
 from app.modules.organizations.api import router as org_router

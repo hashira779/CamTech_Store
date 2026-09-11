@@ -195,8 +195,10 @@ async def list_orders(
     org_id: str,
     status: Optional[str] = None,
     search: Optional[str] = None,
+    limit: int = 200,
+    offset: int = 0,
 ) -> List[DeliveryOrderDto]:
-    """List delivery orders with optional status/search filters."""
+    """List delivery orders with optional status/search filters and bounded pagination."""
     stmt = (
         select(DeliveryOrder, DeliveryDriver)
         .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
@@ -212,7 +214,8 @@ async def list_orders(
             | func.lower(DeliveryOrder.recipient_phone).like(pattern)
             | func.lower(DeliveryOrder.delivery_address).like(pattern)
         )
-    stmt = stmt.order_by(DeliveryOrder.created_at.desc())
+    safe_limit = min(max(limit, 1), 500)
+    stmt = stmt.order_by(DeliveryOrder.created_at.desc()).limit(safe_limit).offset(max(offset, 0))
 
     result = await db.execute(stmt)
     rows = result.all()

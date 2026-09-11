@@ -88,6 +88,10 @@ async def list_products(
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
 
+    safe_limit = min(max(limit, 1), 200)
+    safe_offset = max(page - 1, 0) * safe_limit
+    stmt = stmt.order_by(Product.name.asc()).limit(safe_limit).offset(safe_offset)
+
     result = await db.execute(stmt)
     products = result.scalars().all()
 

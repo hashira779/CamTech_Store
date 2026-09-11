@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
 
@@ -128,9 +129,8 @@ def apply_enterprise_layer(app: FastAPI) -> None:
             try:
                 parsed = json.loads(raw_body.decode("utf-8"))
                 if isinstance(parsed, dict) and "success" in parsed and "data" in parsed:
-                    enveloped = parsed
-                else:
-                    enveloped = {"success": True, "data": parsed, "requestId": req_id}
+                    return Response(content=raw_body, status_code=response.status_code, headers=dict(response.headers), media_type="application/json")
+                enveloped = {"success": True, "data": parsed, "requestId": req_id}
                 new_content = json.dumps(enveloped).encode("utf-8")
                 headers = dict(response.headers)
                 headers["content-length"] = str(len(new_content))
@@ -165,6 +165,9 @@ def create_microservice(name: str, description: str, port: int, lifespan=None) -
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # High-concurrency GZip compression for payloads >= 1KB
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # Same error envelope + response wrapping as the monolith edge.
     apply_enterprise_layer(app)
