@@ -39,6 +39,16 @@ test.describe('Enterprise Authentication & Dashboard Navigation', () => {
     await emailInput.fill('admin@demo.test');
     await passwordInput.fill('Admin123!');
 
+    // Verify show/hide password toggle functionality
+    const toggleBtn = page.locator('button[title="Show password"]');
+    await expect(toggleBtn).toBeVisible();
+    await toggleBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
+    const hideBtn = page.locator('button[title="Hide password"]');
+    await expect(hideBtn).toBeVisible();
+    await hideBtn.click();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
     const submitBtn = page.locator('button[type="submit"]');
     await submitBtn.click();
 

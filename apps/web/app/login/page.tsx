@@ -9,7 +9,7 @@ import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
-import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon } from 'lucide-react';
+import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const { theme, setTheme } = useThemeStore();
   const { resolveDefaultExperience, setExperience } = useExperienceStore();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -246,12 +247,26 @@ export default function LoginPage() {
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="h-11 w-full rounded-xl border border-input bg-card text-foreground pl-10 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring shadow-xs"
-                  type="password"
+                  className="h-11 w-full rounded-xl border border-input bg-card text-foreground pl-10 pr-11 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring shadow-xs"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   {...register('password')}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               {errors.password && <span className="text-xs text-destructive">{errors.password.message}</span>}
             </div>

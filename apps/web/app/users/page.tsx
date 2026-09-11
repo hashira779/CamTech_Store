@@ -24,7 +24,9 @@ import {
   Lock,
   Building,
   Sparkles,
-  Info
+  Info,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
@@ -107,6 +109,7 @@ export default function UsersPage() {
   const [createName, setCreateName] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPassword, setCreatePassword] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [createRoles, setCreateRoles] = useState<Role[]>(['STAFF']);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -115,6 +118,7 @@ export default function UsersPage() {
   const [editRoles, setEditRoles] = useState<Role[]>([]);
   const [editIsActive, setEditIsActive] = useState(true);
   const [editNewPassword, setEditNewPassword] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
   // Query: Users List
@@ -552,14 +556,26 @@ export default function UsersPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Initial Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={createPassword}
-                  onChange={(e) => setCreatePassword(e.target.value)}
-                  className="input text-xs w-full bg-background"
-                />
+                <div className="relative">
+                  <input
+                    type={showCreatePassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••"
+                    value={createPassword}
+                    onChange={(e) => setCreatePassword(e.target.value)}
+                    className="input text-xs w-full bg-background pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                    title={showCreatePassword ? 'Hide password' : 'Show password'}
+                    aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showCreatePassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2 pt-1">
@@ -659,13 +675,25 @@ export default function UsersPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Reset Password (optional)</label>
-                <input
-                  type="password"
-                  placeholder="Leave blank to keep existing password"
-                  value={editNewPassword}
-                  onChange={(e) => setEditNewPassword(e.target.value)}
-                  className="input text-xs w-full bg-background"
-                />
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    placeholder="Leave blank to keep existing password"
+                    value={editNewPassword}
+                    onChange={(e) => setEditNewPassword(e.target.value)}
+                    className="input text-xs w-full bg-background pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                    title={showEditPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showEditPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background/50">
