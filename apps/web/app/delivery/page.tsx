@@ -513,9 +513,36 @@ export function DeliveryPage() {
 
           {/* Right 1 Col: Fleet Status Roster */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold tracking-wide text-foreground uppercase">
-              Fleet Units ({activeDrivers.length})
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold tracking-wide text-foreground uppercase">
+                Fleet Units ({activeDrivers.length})
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateDriverOpen(true)}
+                className="h-7 text-xs gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Driver
+              </Button>
+            </div>
+
+            {activeDrivers.length === 0 && (
+              <div className="p-4 rounded-xl border border-dashed border-border/70 bg-card/40 text-center space-y-2">
+                <Truck className="w-7 h-7 text-muted-foreground mx-auto opacity-50" />
+                <p className="text-xs font-semibold text-foreground">No Fleet Drivers Yet</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Register a courier phone number to enable Telegram dispatch via @CamTechDeliverybot.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => setCreateDriverOpen(true)}
+                  className="h-7 text-xs gap-1 mt-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Register Driver
+                </Button>
+              </div>
+            )}
 
             <div className="space-y-2.5">
               {activeDrivers.map((drv) => {

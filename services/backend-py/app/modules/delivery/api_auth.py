@@ -45,17 +45,53 @@ def parse_telegram_init_data(init_data: str) -> Dict[str, Any]:
         # Fallback to mock for testing
         return {"id": "test_tg_id_1"}
 
+import re
+
+def normalize_phone(phone: str) -> str:
+    cleaned = re.sub(r"[^\d+]", "", phone or "").strip()
+    if cleaned.startswith("+855"):
+        cleaned = "0" + cleaned[4:]
+    elif cleaned.startswith("855"):
+        cleaned = "0" + cleaned[3:]
+    return cleaned
+
+def get_phone_variants(phone: str) -> list[str]:
+    raw = (phone or "").strip()
+    norm = normalize_phone(raw)
+    variants = {raw, norm}
+    if norm.startswith("0"):
+        digits = norm[1:]
+        variants.add("+855" + digits)
+        variants.add("855" + digits)
+        variants.add(digits)
+    return list(variants)
+
+async def find_driver_by_phone(db: AsyncSession, phone: str):
+    variants = get_phone_variants(phone)
+    result = await db.execute(select(DeliveryDriver).filter(DeliveryDriver.phone.in_(variants)))
+    driver = result.scalars().first()
+    if not driver:
+        # Fallback: scan normalized phones in database
+        norm_target = normalize_phone(phone)
+        all_drivers = (await db.execute(select(DeliveryDriver))).scalars().all()
+        for d in all_drivers:
+            if normalize_phone(d.phone) == norm_target:
+                return d
+    return driver
+
 @router.post("/register/init")
 async def register_init(req: RegisterInitRequest, db: AsyncSession = Depends(get_db)):
     user_data = parse_telegram_init_data(req.telegram_init_data)
     tg_user_id = str(user_data.get("id"))
     
     # 2. Check if phone is allowed (pre-registered by admin)
-    result = await db.execute(select(DeliveryDriver).filter(DeliveryDriver.phone == req.phone_number))
-    driver = result.scalars().first()
+    driver = await find_driver_by_phone(db, req.phone_number)
     
     if not driver:
-        raise HTTPException(status_code=403, detail="Phone number not registered by admin")
+        raise HTTPException(
+            status_code=403,
+            detail="Phone number not registered by admin. Please contact your company dispatcher to add you to the fleet roster."
+        )
 
     # 3. Generate OTP
     otp = str(random.randint(100000, 999999))
@@ -111,13 +147,27 @@ async def register_verify(req: RegisterVerifyRequest, db: AsyncSession = Depends
     if otp_record.expires_at < utc_now():
         raise HTTPException(status_code=400, detail="OTP Expired")
         
-    result = await db.execute(select(DeliveryDriver).filter(DeliveryDriver.phone == req.phone_number))
-    driver = result.scalars().first()
+    driver = await find_driver_by_phone(db, req.phone_number)
     
     if driver:
         driver.telegram_user_id = tg_user_id
-        driver.auth_status = "PENDING_APPROVAL"
+        driver.auth_status = "ACTIVE"
         await db.commit()
+        await db.refresh(driver)
+        access_token = create_access_token(
+            data={"sub": driver.id, "email": driver.phone, "type": "delivery", "roles": ["DELIVERY_DRIVER"]}
+        )
+        return {
+            "success": True,
+            "status": "ACTIVE",
+            "access_token": access_token,
+            "user": {
+                "id": driver.id,
+                "name": driver.name,
+                "phone": driver.phone,
+                "roles": ["DELIVERY_DRIVER"]
+            }
+        }
         
     return {"success": True, "status": "PENDING_APPROVAL"}
 

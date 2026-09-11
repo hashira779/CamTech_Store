@@ -203,8 +203,17 @@ export function App() {
       if (!res.ok || json.success === false) {
         throw new Error(json.detail || json.message || 'Invalid or expired OTP code');
       }
-      setAuthState('PENDING_APPROVAL');
-      toast.success('OTP Verified! Waiting for admin approval.');
+      const data = json.data || json;
+      if (data.access_token) {
+        setToken(data.access_token);
+        setUser(data.user);
+        setAuthState('ACTIVE');
+        localStorage.setItem('delivery-driver-auth', JSON.stringify({ token: data.access_token, user: data.user }));
+        toast.success('Authentication successful! Welcome to CamTech Delivery.');
+      } else {
+        setAuthState(data.status || 'PENDING_APPROVAL');
+        toast.success('OTP Verified! Waiting for admin approval.');
+      }
       if ((window as any).Telegram?.WebApp?.HapticFeedback) {
         (window as any).Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
