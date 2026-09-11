@@ -1648,7 +1648,18 @@ export function App() {
                   <div className="space-y-1 sm:text-right">
                     <span className="text-[10px] font-bold uppercase tracking-wider ds-text-dim block">Delivery Destination</span>
                     <p className="text-[11px] ds-text-dim line-clamp-2">{orderAddress}</p>
-                    <p className="text-[10px] text-emerald-400 font-medium">⚡ Express Fleet Dispatch</p>
+                    <div className="flex items-center sm:justify-end gap-2 pt-0.5">
+                      <p className="text-[10px] text-emerald-400 font-medium">⚡ Express Fleet Dispatch</p>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderAddress)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 font-medium underline transition print:hidden"
+                      >
+                        <span>📍 Open Map</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
 

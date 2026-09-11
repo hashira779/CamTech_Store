@@ -37,9 +37,33 @@ def main():
     create_tar(delivery_dist, delivery_tar)
 
     print(f"Connecting to {HOST}...")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(HOST, username=USER, password=PASSWORD, timeout=20)
+    import time
+    ssh = None
+    for attempt in range(1, 6):
+        try:
+            print(f"SSH Attempt {attempt}...", flush=True)
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(
+                HOST,
+                username=USER,
+                password=PASSWORD,
+                timeout=30,
+                banner_timeout=60,
+                auth_timeout=60
+            )
+            ssh = client
+            print("SSH Connected successfully!", flush=True)
+            break
+        except Exception as e:
+            print(f"  Attempt {attempt} failed: {e}", flush=True)
+            if attempt < 5:
+                time.sleep(2)
+
+    if not ssh:
+        print("Failed to connect to server after 5 attempts.")
+        sys.exit(1)
+
     sftp = ssh.open_sftp()
 
     def run_remote(cmd):

@@ -24,7 +24,10 @@ import {
   MessageCircle,
   Map as MapIcon,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  Compass,
+  Layers
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 
@@ -38,12 +41,84 @@ const API_BASE_URL = (() => {
   return import.meta.env.VITE_API_URL || 'http://localhost:4000';
 })();
 
+// Open Google Maps turn-by-turn navigation or search
+export const openInGoogleMaps = (address: string, lat?: number, lng?: number) => {
+  let url = '';
+  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+    url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  } else {
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  }
+
+  const tg = (window as any).Telegram?.WebApp;
+  if (tg?.openLink) {
+    tg.openLink(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+// Embedded Mini Map Component with Google Maps Launcher
+export function DeliveryMiniMap({
+  address,
+  lat = 11.5564,
+  lng = 104.9282,
+  className = "h-44",
+}: {
+  address: string;
+  lat?: number;
+  lng?: number;
+  className?: string;
+}) {
+  const safeLat = typeof lat === 'number' && !isNaN(lat) && lat !== 0 ? lat : 11.5564;
+  const safeLng = typeof lng === 'number' && !isNaN(lng) && lng !== 0 ? lng : 104.9282;
+  const delta = 0.007;
+
+  return (
+    <div className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group ${className}`}>
+      <iframe
+        title={`Mini-Map-${safeLat}-${safeLng}`}
+        src={`https://www.openstreetmap.org/export/embed.html?bbox=${safeLng - delta}%2C${safeLat - delta * 0.7}%2C${safeLng + delta}%2C${safeLat + delta * 0.7}&layer=mapnik&marker=${safeLat}%2C${safeLng}`}
+        className="w-full h-full border-0 pointer-events-auto"
+        loading="lazy"
+      />
+      {/* Floating Google Maps button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          openInGoogleMaps(address, safeLat, safeLng);
+        }}
+        className="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-white text-slate-900 shadow-md font-bold text-[11px] flex items-center gap-1.5 border border-slate-200 transition hover:scale-105 active:scale-95 cursor-pointer z-10"
+        title="Open destination in Google Maps"
+      >
+        <Navigation className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+        <span>Open in Google Maps</span>
+        <ExternalLink className="w-3 h-3 text-slate-400" />
+      </button>
+
+      {/* Destination address badge at bottom */}
+      <div className="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-700 shadow-sm border border-slate-100 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-1 truncate">
+          <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+          <span className="truncate">{address}</span>
+        </div>
+        <span className="font-mono text-slate-400 shrink-0 ml-1">
+          {safeLat.toFixed(4)}, {safeLng.toFixed(4)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 interface DeliveryTask {
   id: string;
   trackingNumber: string;
   recipientName: string;
   recipientPhone: string;
   deliveryAddress: string;
+  destLat?: number;
+  destLng?: number;
   status: 'PENDING' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED';
   codAmount: number;
   paymentMethod?: string;
@@ -318,6 +393,8 @@ export function App() {
       return Array.isArray(items) ? items.map((o: any) => ({
         ...o,
         deliveryAddress: o.deliveryAddress || o.destinationAddress || 'Store Pickup / Express Delivery',
+        destLat: typeof o.destLat === 'number' && !isNaN(o.destLat) && o.destLat !== 0 ? o.destLat : 11.5564,
+        destLng: typeof o.destLng === 'number' && !isNaN(o.destLng) && o.destLng !== 0 ? o.destLng : 104.9282,
       })) : [];
     },
     enabled: Boolean(token && authState === 'ACTIVE'),
@@ -722,6 +799,14 @@ export function App() {
                       <p className="leading-snug">{order.deliveryAddress}</p>
                     </div>
 
+                    {/* Mini Map Preview for Available Requests */}
+                    <DeliveryMiniMap
+                      address={order.deliveryAddress}
+                      lat={order.destLat}
+                      lng={order.destLng}
+                      className="h-36 my-1"
+                    />
+
                     {Number(order.codAmount) > 0 && (
                       <div className="flex items-center justify-between text-xs font-bold bg-slate-50 p-2.5 rounded-xl text-slate-900">
                         <span className="text-slate-500">COD Payment</span>
@@ -729,12 +814,24 @@ export function App() {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'DISPATCHED' })}
-                      className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
-                    >
-                      Accept & Claim Order
-                    </button>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng)}
+                        className="h-11 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+                        title="Open with Google Maps"
+                      >
+                        <Navigation className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+                        <span>Google Maps</span>
+                      </button>
+
+                      <button
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'DISPATCHED' })}
+                        className="flex-1 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
+                      >
+                        Accept & Claim Order
+                      </button>
+                    </div>
                   </div>
                 ))
               )
@@ -762,6 +859,14 @@ export function App() {
                       <p className="leading-snug">{order.deliveryAddress}</p>
                     </div>
 
+                    {/* Embedded Mini Map for Active Route */}
+                    <DeliveryMiniMap
+                      address={order.deliveryAddress}
+                      lat={order.destLat}
+                      lng={order.destLng}
+                      className="h-44 my-1"
+                    />
+
                     {Number(order.codAmount) > 0 && (
                       <div className="flex items-center justify-between text-xs font-bold bg-amber-50/70 border border-amber-100 p-2.5 rounded-xl text-amber-950">
                         <span className="text-amber-800">Collect from Customer</span>
@@ -769,20 +874,35 @@ export function App() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2.5 pt-1">
+                    <div className="flex items-center gap-2 pt-1">
                       <a
                         href={`tel:${order.recipientPhone}`}
                         className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 shrink-0 transition"
+                        title="Call Customer"
                       >
                         <Phone className="w-4 h-4" />
                       </a>
 
+                      <button
+                        type="button"
+                        onClick={() => openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng)}
+                        className="h-11 px-3.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                        title="Navigate with Google Maps"
+                      >
+                        <Navigation className="w-4 h-4 text-blue-600 fill-blue-600" />
+                        <span>Google Maps</span>
+                      </button>
+
                       {order.status === 'DISPATCHED' ? (
                         <button
-                          onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' })}
-                          className="flex-1 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm"
+                          onClick={() => {
+                            updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' });
+                            openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng);
+                          }}
+                          className="flex-1 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          Start Navigation
+                          <Compass className="w-4 h-4 text-amber-400" />
+                          <span>Start Route</span>
                         </button>
                       ) : (
                         <button
@@ -790,9 +910,9 @@ export function App() {
                             setSelectedOrder(order);
                             setIsPodOpen(true);
                           }}
-                          className="flex-1 h-11 rounded-full bg-[#FDCB82] hover:bg-[#fab75b] text-amber-950 font-bold text-xs transition shadow-sm"
+                          className="flex-1 h-11 rounded-full bg-[#FDCB82] hover:bg-[#fab75b] text-amber-950 font-bold text-xs transition shadow-sm cursor-pointer"
                         >
-                          Deliver & Collect Signature
+                          Deliver & Sign
                         </button>
                       )}
                     </div>
@@ -1004,6 +1124,14 @@ export function App() {
               )}
             </div>
 
+            {/* Mini Map in Incoming Order Alert Modal */}
+            <DeliveryMiniMap
+              address={incomingOrder.deliveryAddress}
+              lat={incomingOrder.destLat}
+              lng={incomingOrder.destLng}
+              className="h-36"
+            />
+
             {/* Payment Summary */}
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80">
               <div className="flex items-center gap-2">
@@ -1024,6 +1152,16 @@ export function App() {
 
             {/* Modal Actions */}
             <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => openInGoogleMaps(incomingOrder.deliveryAddress, incomingOrder.destLat, incomingOrder.destLng)}
+                className="w-full h-11 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-98"
+              >
+                <Navigation className="w-4 h-4 text-blue-600 fill-blue-600" />
+                <span>Open in Google Maps</span>
+                <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
+              </button>
+
               <button
                 onClick={() => {
                   updateStatusMutation.mutate({ id: incomingOrder.id, status: 'DISPATCHED' });
