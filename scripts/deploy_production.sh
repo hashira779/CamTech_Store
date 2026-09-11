@@ -241,8 +241,8 @@ if [ "$CRITICAL_FAILED" -eq 1 ]; then
     run_cmd docker logs --tail 40 mystore-api-gateway 2>&1 || true
 
     # Notify Telegram on failure
-    TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN}"
-    TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
+    TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN}}"
+    TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-${USER_ID}}"
     if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
         curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
             -H "Content-Type: application/json" \
@@ -271,8 +271,8 @@ run_cmd docker image prune -f 2>/dev/null || true
 run_cmd docker builder prune -af --filter "until=24h" 2>/dev/null || true
 
 # ── 9. Send Telegram Deployment Success Alert ─────────────────────────────────
-TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN}"
-TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-7673456476}"
+TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN}}"
+TG_CHAT="${TELEGRAM_ALERT_CHAT_ID:-${USER_ID}}"
 if [ -n "$TG_BOT" ] && [ -n "$TG_CHAT" ]; then
     echo "🔔 Sending deployment readiness alert to Telegram..."
     TG_RES=$(curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_BOT}/sendMessage" \
