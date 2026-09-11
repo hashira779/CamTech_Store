@@ -134,21 +134,24 @@ run_cmd docker compose -f "$COMPOSE_FILE" up -d --remove-orphans $FRONTEND_SERVI
 run_cmd docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
 
 # ── 6. Smoke Tests & Health Check Loop ───────────────────────────────────────
+echo "🔍 Waiting 10s for containers to stabilize before health checks..."
+sleep 10
+
 echo "🔍 Running health verification checks..."
-MAX_RETRIES=30
-RETRY_INTERVAL=2
+RETRY_INTERVAL=3
 
 check_endpoint() {
     local url=$1
     local name=$2
-    for i in $(seq 1 $MAX_RETRIES); do
+    local max_retries=${3:-40}
+    for i in $(seq 1 $max_retries); do
         local code
-        code=$(curl -s -o /dev/null -w "%{http_code}" -m 4 -H "User-Agent: Mozilla/5.0" "$url" 2>/dev/null || echo "000")
+        code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -H "User-Agent: Mozilla/5.0" "$url" 2>/dev/null || echo "000")
         if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
             echo "   ✅ $name is operational (HTTP $code at $url)"
             return 0
         fi
-        echo "   ⏳ Waiting for $name (HTTP $code, $i/$MAX_RETRIES)..."
+        echo "   ⏳ Waiting for $name (HTTP $code, $i/$max_retries)..."
         sleep $RETRY_INTERVAL
     done
     echo "   ❌ $name failed health verification at $url (last code: $code)"
@@ -158,45 +161,42 @@ check_endpoint() {
 CRITICAL_FAILED=0
 WARN_FAILED=0
 
-# Verify API Gateway & Microservices
+# Verify API Gateway & Microservices (allow up to ~2 min for 4-worker startup)
 API_PORT="${API_GATEWAY_PORT_HOST:-4010}"
-if ! check_endpoint "http://localhost:${API_PORT}/health" "API Gateway (Port ${API_PORT})"; then
+if ! check_endpoint "http://localhost:${API_PORT}/health" "API Gateway (Port ${API_PORT})" 45; then
     CRITICAL_FAILED=1
 fi
 
-# Verify Delivery Service specifically (ensures no 503 SERVICE_UNAVAILABLE)
+# Verify Delivery Service specifically (with retries — single curl was causing false positives)
 echo "🔍 Verifying Delivery Microservice routing..."
-DELIVERY_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -H "User-Agent: Mozilla/5.0" "http://localhost:${API_PORT}/api/v1/delivery/tasks" 2>/dev/null || echo "000")
-if [ "$DELIVERY_HTTP_CODE" = "503" ] || [ "$DELIVERY_HTTP_CODE" = "000" ]; then
-    echo "   ❌ Delivery API returned HTTP $DELIVERY_HTTP_CODE (Service Unavailable)"
+if ! check_endpoint "http://localhost:${API_PORT}/api/v1/delivery/tasks" "Delivery API (via Gateway)" 20; then
+    echo "   ❌ Delivery API failed health verification (Service Unavailable)"
     CRITICAL_FAILED=1
-else
-    echo "   ✅ Delivery API is operational (HTTP $DELIVERY_HTTP_CODE)"
 fi
 
-# Verify Storefront
-if ! check_endpoint "http://localhost:5001/" "Customer Storefront (Port 5001)"; then
+# Verify Storefront (non-critical, fewer retries)
+if ! check_endpoint "http://localhost:5001/" "Customer Storefront (Port 5001)" 10; then
     WARN_FAILED=1
 fi
 
 # Verify Web Admin
-if ! check_endpoint "http://localhost:5002/" "Enterprise Admin (Port 5002)"; then
+if ! check_endpoint "http://localhost:5002/" "Enterprise Admin (Port 5002)" 10; then
     WARN_FAILED=1
 fi
 
 # Verify POS Cashier
-if ! check_endpoint "http://localhost:5003/" "POS Cashier (Port 5003)"; then
+if ! check_endpoint "http://localhost:5003/" "POS Cashier (Port 5003)" 10; then
     WARN_FAILED=1
 fi
 
 # Verify Courier Delivery App
-if ! check_endpoint "http://localhost:5004/" "Courier Delivery App (Port 5004)"; then
+if ! check_endpoint "http://localhost:5004/" "Courier Delivery App (Port 5004)" 10; then
     echo "   ⚠️ Notice: Courier Delivery app container not responding directly on 5004"
 fi
 
 # Verify Main Ingress Proxy
 INGRESS_PORT="${INGRESS_PORT_HOST:-8090}"
-if ! check_endpoint "http://localhost:${INGRESS_PORT}/health" "Nginx Ingress Edge Router (Port ${INGRESS_PORT})"; then
+if ! check_endpoint "http://localhost:${INGRESS_PORT}/health" "Nginx Ingress Edge Router (Port ${INGRESS_PORT})" 10; then
     WARN_FAILED=1
 fi
 
