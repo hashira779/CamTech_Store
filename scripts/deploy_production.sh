@@ -79,25 +79,42 @@ fi
 # ── 3. Sync New Code to APP_DIR ──────────────────────────────────────────────
 echo "🔄 Syncing new files to $APP_DIR..."
 run_cmd mkdir -p "$APP_DIR"
+
+# Preserve existing active .env in $APP_DIR if present, to protect production secrets & port mappings
+if [ -f "$APP_DIR/.env" ]; then
+    echo "🔒 Preserving active production .env in $APP_DIR..."
+    run_cmd cp "$APP_DIR/.env" /tmp/.camtech_active_env 2>/dev/null || true
+fi
+
 run_cmd rsync -aq \
     --exclude '.git' \
     --exclude 'node_modules' \
     --exclude 'dist' \
     --exclude '.turbo' \
     --exclude '__pycache__' \
+    --exclude '.env' \
     ./ "$APP_DIR/"
 
 cd "$APP_DIR"
 chmod +x scripts/*.sh scripts/*.py 2>/dev/null || true
 
-# Ensure production environment variables exist
-if [ ! -f .env ]; then
+# Restore preserved production .env or initialize if first deploy
+if [ -f /tmp/.camtech_active_env ]; then
+    run_cmd cp /tmp/.camtech_active_env "$APP_DIR/.env"
+    run_cmd rm -f /tmp/.camtech_active_env
+elif [ ! -f "$APP_DIR/.env" ]; then
     if [ -f .env.production.example ]; then
         echo "⚠️ .env not found; initializing from .env.production.example..."
-        cp .env.production.example .env
-    else
-        echo "⚠️ .env file missing in $APP_DIR!"
+        run_cmd cp .env.production.example "$APP_DIR/.env"
     fi
+fi
+
+# Load active environment for the deploy script execution
+if [ -f "$APP_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$APP_DIR/.env"
+    set +a
 fi
 
 # ── 4. Build Python Backend Microservices First (Fast, Shared Cache, Zero-Downtime) ─
@@ -130,7 +147,7 @@ run_cmd docker compose -f "$COMPOSE_FILE" build delivery-app admin-app || true
 run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
 
 echo "🚀 Deploying updated frontend containers..."
-run_cmd docker compose -f "$COMPOSE_FILE" up -d --remove-orphans $FRONTEND_SERVICES
+run_cmd docker compose -f "$COMPOSE_FILE" up -d $FRONTEND_SERVICES
 echo "🔄 Reloading Nginx ingress post-frontend deploy..."
 run_cmd docker exec mystore-nginx-ingress nginx -s reload 2>/dev/null || true
 
@@ -150,8 +167,12 @@ check_endpoint() {
     local max_retries=${3:-40}
     for i in $(seq 1 $max_retries); do
         local code
-        code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -H "User-Agent: Mozilla/5.0" "$url" 2>/dev/null || echo "000")
-        if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
+        code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -H "User-Agent: Mozilla/5.0" "$url" 2>/dev/null || true)
+        code="${code:-000}"
+        if [ ${#code} -gt 3 ]; then
+            code="${code: -3}"
+        fi
+        if [ "$code" -ge 200 ] 2>/dev/null && [ "$code" -lt 500 ] 2>/dev/null; then
             echo "   ✅ $name is operational (HTTP $code at $url)"
             return 0
         fi
@@ -167,40 +188,44 @@ WARN_FAILED=0
 
 # Verify API Gateway & Microservices (allow up to ~2 min for 4-worker startup)
 API_PORT="${API_GATEWAY_PORT_HOST:-4010}"
-if ! check_endpoint "http://localhost:${API_PORT}/health" "API Gateway (Port ${API_PORT})" 45; then
+if ! check_endpoint "http://127.0.0.1:${API_PORT}/health" "API Gateway (Port ${API_PORT})" 45; then
     CRITICAL_FAILED=1
 fi
 
 # Verify Delivery Service specifically (with retries — single curl was causing false positives)
 echo "🔍 Verifying Delivery Microservice routing..."
-if ! check_endpoint "http://localhost:${API_PORT}/api/v1/delivery/tasks" "Delivery API (via Gateway)" 20; then
+if ! check_endpoint "http://127.0.0.1:${API_PORT}/api/v1/delivery/tasks" "Delivery API (via Gateway)" 20; then
     echo "   ❌ Delivery API failed health verification (Service Unavailable)"
     CRITICAL_FAILED=1
 fi
 
 # Verify Storefront (non-critical, fewer retries)
-if ! check_endpoint "http://localhost:5001/" "Customer Storefront (Port 5001)" 10; then
+STORE_PORT="${STORE_PORT_HOST:-5001}"
+if ! check_endpoint "http://127.0.0.1:${STORE_PORT}/" "Customer Storefront (Port ${STORE_PORT})" 10; then
     WARN_FAILED=1
 fi
 
 # Verify Web Admin
-if ! check_endpoint "http://localhost:5002/" "Enterprise Admin (Port 5002)" 10; then
+ADMIN_PORT="${ADMIN_PORT_HOST:-5002}"
+if ! check_endpoint "http://127.0.0.1:${ADMIN_PORT}/" "Enterprise Admin (Port ${ADMIN_PORT})" 10; then
     WARN_FAILED=1
 fi
 
 # Verify POS Cashier
-if ! check_endpoint "http://localhost:5003/" "POS Cashier (Port 5003)" 10; then
+POS_PORT="${POS_PORT_HOST:-5003}"
+if ! check_endpoint "http://127.0.0.1:${POS_PORT}/" "POS Cashier (Port ${POS_PORT})" 10; then
     WARN_FAILED=1
 fi
 
 # Verify Courier Delivery App
-if ! check_endpoint "http://localhost:5004/" "Courier Delivery App (Port 5004)" 10; then
-    echo "   ⚠️ Notice: Courier Delivery app container not responding directly on 5004"
+DELIVERY_PORT="${DELIVERY_PORT_HOST:-5004}"
+if ! check_endpoint "http://127.0.0.1:${DELIVERY_PORT}/" "Courier Delivery App (Port ${DELIVERY_PORT})" 10; then
+    echo "   ⚠️ Notice: Courier Delivery app container not responding directly on ${DELIVERY_PORT}"
 fi
 
 # Verify Main Ingress Proxy
 INGRESS_PORT="${INGRESS_PORT_HOST:-8090}"
-if ! check_endpoint "http://localhost:${INGRESS_PORT}/health" "Nginx Ingress Edge Router (Port ${INGRESS_PORT})" 10; then
+if ! check_endpoint "http://127.0.0.1:${INGRESS_PORT}/health" "Nginx Ingress Edge Router (Port ${INGRESS_PORT})" 10; then
     WARN_FAILED=1
 fi
 

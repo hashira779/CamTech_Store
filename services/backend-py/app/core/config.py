@@ -1,6 +1,8 @@
+import json
 import os
+from typing import Any, List
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from typing import List
 
 class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv(
@@ -25,6 +27,30 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["*"]
+            if v.startswith("[") and v.endswith("]"):
+                inner = v[1:-1].strip()
+                if not inner:
+                    return ["*"]
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+                return [x.strip().strip("'\"") for x in inner.split(",") if x.strip()]
+            return [x.strip().strip("'\"") for x in v.split(",") if x.strip()]
+        elif isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        return ["*"]
 
     model_config = {
         "env_file": ".env",

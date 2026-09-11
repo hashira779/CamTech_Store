@@ -189,7 +189,10 @@ jobs:
 
       - name: Inject Production .env
         run: |
-          if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
+          if [ -f /home/ubuntu-server/CamTech_Store/.env ]; then
+            echo "🔒 Using active production .env from /home/ubuntu-server/CamTech_Store/.env"
+            cp /home/ubuntu-server/CamTech_Store/.env .env
+          elif [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
             echo "${{ secrets.ENV_PRODUCTION }}" > .env
             echo "✅ Successfully injected production .env from GitHub Secrets."
           else
