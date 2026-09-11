@@ -211,28 +211,32 @@ jobs:
         if: success()
         continue-on-error: true
         run: |
-          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ "${{ secrets.TELEGRAM_BOT_TOKEN }}" != "your_delivery_bot_token" ]; then
-            curl -s -m 5 -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          TG_TOKEN="${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}"
+          TG_CHAT="${{ secrets.TELEGRAM_ALERT_CHAT_ID }}"
+          if [ -n "$TG_TOKEN" ] && [ "$TG_TOKEN" != "your_delivery_bot_token" ] && [ -n "$TG_CHAT" ]; then
+            curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
               -H "Content-Type: application/json" \
-              -d '{
-                "chat_id": "7673456476",
-                "text": "🎉 *MyStore CI/CD Deployment Ready in Production!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* ✅ All services live & healthy",
-                "parse_mode": "Markdown"
-              }' || true
+              -d "{
+                \"chat_id\": \"${TG_CHAT}\",
+                \"text\": \"🎉 *MyStore CI/CD Deployment Ready in Production!*\n\n• *Environment:* \`Production\`\n• *Branch:* \`${{ github.ref_name }}\`\n• *Commit:* \`${{ github.sha }}\`\n• *Triggered By:* \`${{ github.actor }}\`\n• *Admin Console:* https://admin.camtech.cam\n• *Alt Console:* https://adminconsol.camtech.cam\n• *Status:* ✅ All services live & healthy\",
+                \"parse_mode\": \"Markdown\"
+              }" >/dev/null 2>&1 || true
           fi
 
       - name: Notify Telegram on Deployment Failure
         if: failure()
         continue-on-error: true
         run: |
-          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ "${{ secrets.TELEGRAM_BOT_TOKEN }}" != "your_delivery_bot_token" ]; then
-            curl -s -m 5 -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          TG_TOKEN="${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}"
+          TG_CHAT="${{ secrets.TELEGRAM_ALERT_CHAT_ID }}"
+          if [ -n "$TG_TOKEN" ] && [ "$TG_TOKEN" != "your_delivery_bot_token" ] && [ -n "$TG_CHAT" ]; then
+            curl -s -m 5 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
               -H "Content-Type: application/json" \
-              -d '{
-                "chat_id": "7673456476",
-                "text": "❌ *MyStore CI/CD Deployment FAILED!*\n\n• *Server:* `10.1.0.11`\n• *Branch:* `${{ github.ref_name }}`\n• *Commit:* `${{ github.sha }}`\n• *Triggered By:* `${{ github.actor }}`\n• *Status:* ⚠️ Rollback initiated on production server",
-                "parse_mode": "Markdown"
-              }' || true
+              -d "{
+                \"chat_id\": \"${TG_CHAT}\",
+                \"text\": \"❌ *MyStore CI/CD Deployment FAILED!*\n\n• *Environment:* \`Production\`\n• *Branch:* \`${{ github.ref_name }}\`\n• *Commit:* \`${{ github.sha }}\`\n• *Triggered By:* \`${{ github.actor }}\`\n• *Status:* ⚠️ Rollback initiated on production server\",
+                \"parse_mode\": \"Markdown\"
+              }" >/dev/null 2>&1 || true
           fi
 
   notify-telegram:
@@ -247,9 +251,9 @@ jobs:
           python3 -c "
           import os, urllib.request, json
           token = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip()
-          chat_id = '7673456476'
-          if not token or token == 'your_delivery_bot_token':
-              print('ℹ️ Telegram bot token not configured; skipping notification.')
+          chat_id = os.environ.get('TELEGRAM_CHAT_ID', '').strip()
+          if not token or token == 'your_delivery_bot_token' or not chat_id:
+              print('ℹ️ Telegram notifications disabled or not configured; skipping.')
               exit(0)
 
           status = os.environ.get('PIPELINE_STATUS', 'UNKNOWN')
@@ -272,12 +276,13 @@ jobs:
           )
           try:
               with urllib.request.urlopen(req, timeout=10) as resp:
-                  print('Telegram response:', resp.status)
-          except Exception as e:
-              print('Telegram alert skipped:', e)
+                  pass
+          except Exception:
+              pass
           " || true
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
           PIPELINE_STATUS: ${{ (contains(needs.python-backend.result, 'failure') || contains(needs.typescript-monorepo.result, 'failure') || contains(needs.deploy-production.result, 'failure')) && 'FAILED ❌' || 'PASSED ✅' }}
           COMMIT_SHA: ${{ github.sha }}
           BRANCH_NAME: ${{ github.ref_name }}

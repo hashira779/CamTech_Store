@@ -32,14 +32,58 @@ SERVER_START_TIME = time.time()
 
 
 
+from typing import Optional
+from fastapi.responses import HTMLResponse
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from app.core.docs_protection import is_admin_request, get_docs_lock_html, get_request_token
+
 app = FastAPI(
     title="MyStore Universal Enterprise API (FastAPI)",
     description="High-performance, async Python backend powering the MyStore Enterprise Platform",
     version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return HTMLResponse(content=get_docs_lock_html("/docs"), status_code=401)
+    active_token = get_request_token(request, token)
+    schema_url = f"/openapi.json?token={active_token}" if active_token else "/openapi.json"
+    return get_swagger_ui_html(
+        openapi_url=schema_url,
+        title=f"{app.title} - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
+
+@app.get("/redoc", include_in_schema=False)
+async def custom_redoc(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return HTMLResponse(content=get_docs_lock_html("/redoc"), status_code=401)
+    active_token = get_request_token(request, token)
+    schema_url = f"/openapi.json?token={active_token}" if active_token else "/openapi.json"
+    return get_redoc_html(
+        openapi_url=schema_url,
+        title=f"{app.title} - ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+    )
+
+@app.get("/openapi.json", include_in_schema=False)
+async def custom_openapi_endpoint(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "code": "UNAUTHORIZED",
+                "message": "Admin authorization required to access OpenAPI specifications."
+            }
+        )
+    return JSONResponse(app.openapi())
 
 # CORS configuration (Supports all multi-experience subdomains §228-§258)
 app.add_middleware(

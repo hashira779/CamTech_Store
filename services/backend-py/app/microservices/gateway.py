@@ -24,14 +24,58 @@ def get_fallback_app():
             print(f"[gateway] in-process fallback unavailable (a module failed to import): {exc}")
     return _fallback_app
 
+from typing import Optional
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.responses import JSONResponse
+from app.core.docs_protection import is_admin_request, get_docs_lock_html, get_request_token
+
 gateway = FastAPI(
     title="MyStore Universal Enterprise API Gateway (Port 4000)",
     description="2026–2030 Cloud-Native API Gateway routing traffic to microservices on ports 4001-4007 with fault-tolerant local fallback.",
     version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
+@gateway.get("/docs", include_in_schema=False)
+async def custom_swagger_ui(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return HTMLResponse(content=get_docs_lock_html("/docs"), status_code=401)
+    active_token = get_request_token(request, token)
+    schema_url = f"/openapi.json?token={active_token}" if active_token else "/openapi.json"
+    return get_swagger_ui_html(
+        openapi_url=schema_url,
+        title=f"{gateway.title} - Swagger UI",
+        oauth2_redirect_url=gateway.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
+
+@gateway.get("/redoc", include_in_schema=False)
+async def custom_redoc(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return HTMLResponse(content=get_docs_lock_html("/redoc"), status_code=401)
+    active_token = get_request_token(request, token)
+    schema_url = f"/openapi.json?token={active_token}" if active_token else "/openapi.json"
+    return get_redoc_html(
+        openapi_url=schema_url,
+        title=f"{gateway.title} - ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+    )
+
+@gateway.get("/openapi.json", include_in_schema=False)
+async def custom_openapi_endpoint(request: Request, token: Optional[str] = None):
+    if not is_admin_request(request, token):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "code": "UNAUTHORIZED",
+                "message": "Admin authorization required to access OpenAPI specifications."
+            }
+        )
+    return JSONResponse(gateway.openapi())
 
 # CORS configuration allowing all frontend web applications (5001-5008)
 gateway.add_middleware(
