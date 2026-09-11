@@ -230,7 +230,16 @@ async def publish_workflow(
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    if not wf.draft_nodes:
+    # If draft payload is provided in publish request, atomically update draft
+    if data.draftNodes is not None:
+        wf.draft_nodes = data.draftNodes
+    if data.draftEdges is not None:
+        wf.draft_edges = data.draftEdges
+    if data.draftVariables is not None:
+        wf.draft_variables = data.draftVariables
+
+    current_nodes = _ensure_json(wf.draft_nodes, list)
+    if not current_nodes or len(current_nodes) == 0:
         raise HTTPException(status_code=400, detail="Cannot publish an empty workflow — add at least one node")
 
     # Get commands for this bot to snapshot
@@ -253,7 +262,7 @@ async def publish_workflow(
         organization_id=user.organization_id,
         workflow_id=wf.id,
         version_number=new_version_number,
-        nodes=_ensure_json(wf.draft_nodes, list),
+        nodes=current_nodes,
         edges=_ensure_json(wf.draft_edges, list),
         variables=_ensure_json(wf.draft_variables, list),
         commands=commands,

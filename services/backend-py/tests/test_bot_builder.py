@@ -280,6 +280,45 @@ async def test_bot_builder_workflow_api_lifecycle(auth_headers):
         assert get_res.status_code == 200
         assert get_res.json()["data"]["id"] == wf_id
 
+        # 2b. Test empty workflow publish rejection and atomic publish
+        empty_wf_res = await client.post(
+            "/api/v1/bot-builder/workflows",
+            json={"botId": "test-builder-bot-1", "name": "Empty Test Flow"},
+            headers=auth_headers,
+        )
+        assert empty_wf_res.status_code == 201
+        empty_wf_id = empty_wf_res.json()["data"]["id"]
+
+        # Explicitly clear nodes to make it empty
+        await client.patch(
+            f"/api/v1/bot-builder/workflows/{empty_wf_id}",
+            json={"draftNodes": [], "draftEdges": []},
+            headers=auth_headers,
+        )
+
+        empty_pub_res = await client.post(
+            f"/api/v1/bot-builder/workflows/{empty_wf_id}/publish",
+            json={"notes": "Try publish empty"},
+            headers=auth_headers,
+        )
+        assert empty_pub_res.status_code == 400
+        assert "Cannot publish an empty workflow" in empty_pub_res.json()["message"]
+
+        atomic_pub_res = await client.post(
+            f"/api/v1/bot-builder/workflows/{empty_wf_id}/publish",
+            json={
+                "notes": "Atomic publish with nodes",
+                "draftNodes": [
+                    {"id": "n1", "type": "start", "position": {"x": 0, "y": 0}, "data": {"label": "Start"}}
+                ],
+                "draftEdges": [],
+            },
+            headers=auth_headers,
+        )
+        assert atomic_pub_res.status_code == 201
+        assert atomic_pub_res.json()["data"]["versionNumber"] == 1
+        await client.delete(f"/api/v1/bot-builder/workflows/{empty_wf_id}", headers=auth_headers)
+
         # 3. Publish to create Version 1
         pub_res = await client.post(
             f"/api/v1/bot-builder/workflows/{wf_id}/publish",

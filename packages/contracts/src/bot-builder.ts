@@ -103,6 +103,9 @@ export interface UpdateBotWorkflowInput {
 
 export interface PublishWorkflowInput {
   notes?: string;
+  draftNodes?: BotNode[];
+  draftEdges?: BotEdge[];
+  draftVariables?: Record<string, any>[];
 }
 
 // ─── Version DTOs ───────────────────────────────────────────────────────────

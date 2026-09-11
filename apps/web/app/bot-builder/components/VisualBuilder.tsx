@@ -8,8 +8,9 @@ import {
 import '@xyflow/react/dist/style.css';
 import {
   Save, Upload, Eye, Wand2, Trash2, BookOpen,
-  CheckCircle2, AlertCircle, X, Sparkles,
+  CheckCircle2, AlertCircle, X, Sparkles, Plus,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { BotWorkflowDto, WORKFLOW_TEMPLATES, WorkflowTemplate } from '@mystore/contracts';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
@@ -512,7 +513,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
   }, [setNodes, setEdges, fitView]);
 
   // Save draft
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     setSaving(true);
     try {
       const activeToken = token || useAuth.getState().token || '';
@@ -521,25 +522,51 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
         draftEdges: toStoredEdges(edges),
       });
       setSaveStatus('saved');
+      if (!silent) toast.success('Draft saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch {
+      return true;
+    } catch (e: any) {
       setSaveStatus('error');
+      if (!silent) toast.error(e?.message || 'Failed to save draft');
+      return false;
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   // Publish
   const handlePublish = async () => {
-    await handleSave();
+    if (nodes.length === 0) {
+      toast.error('Cannot publish an empty workflow — please add at least one node or load a template.');
+      return;
+    }
     setPublishing(true);
     try {
       const activeToken = token || useAuth.getState().token || '';
-      await api.publishBotWorkflow(activeToken, workflow.id, { notes: 'Published from Visual Builder' });
+      const storedNodes = toStoredNodes(nodes);
+      const storedEdges = toStoredEdges(edges);
+
+      // Save draft first
+      await api.updateBotWorkflow(activeToken, workflow.id, {
+        draftNodes: storedNodes,
+        draftEdges: storedEdges,
+      });
+
+      // Atomically publish with current nodes and edges
+      await api.publishBotWorkflow(activeToken, workflow.id, {
+        notes: 'Published from Visual Builder',
+        draftNodes: storedNodes,
+        draftEdges: storedEdges,
+      });
+
+      toast.success('Workflow published successfully! Bot is now live on Telegram.');
       onUpdate();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e?.message || 'Failed to publish workflow');
+    } finally {
+      setPublishing(false);
     }
-    setPublishing(false);
   };
 
   // Update node config
@@ -644,19 +671,33 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 16 }}>
                   Start by clicking <strong>+ Add</strong> on any node from the left library, or load one of our ready-to-use business templates below!
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowTemplates(true)}
-                  style={{
-                    padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                    background: 'linear-gradient(135deg, #818cf8, #6366f1)',
-                    border: 'none', color: '#fff', cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
-                  }}
-                >
-                  <Sparkles size={15} /> Load a Business Template
-                </button>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleAddNode('command_received', '/start')}
+                    style={{
+                      padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                      background: 'rgba(99,102,241,0.15)',
+                      border: '1px solid rgba(129,140,248,0.3)', color: '#818cf8', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <Plus size={15} /> Add /start Command
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplates(true)}
+                    style={{
+                      padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                      background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+                      border: 'none', color: '#fff', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                    }}
+                  >
+                    <Sparkles size={15} /> Load a Business Template
+                  </button>
+                </div>
               </div>
             </Panel>
           )}
@@ -728,7 +769,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
 
               {/* Save Draft */}
               <button
-                onClick={handleSave}
+                onClick={() => handleSave(false)}
                 disabled={saving}
                 style={toolbarBtn(false)}
               >
@@ -739,13 +780,16 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
               {/* Publish to Production */}
               <button
                 onClick={handlePublish}
-                disabled={publishing}
+                disabled={publishing || nodes.length === 0}
                 style={{
                   ...toolbarBtn(false),
-                  background: 'linear-gradient(135deg, #818cf8, #6366f1)',
-                  color: '#fff', fontWeight: 600,
-                  boxShadow: '0 2px 10px rgba(99,102,241,0.4)',
+                  background: nodes.length === 0 ? 'rgba(148, 163, 184, 0.15)' : 'linear-gradient(135deg, #818cf8, #6366f1)',
+                  color: nodes.length === 0 ? '#64748b' : '#fff',
+                  cursor: nodes.length === 0 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  boxShadow: nodes.length === 0 ? 'none' : '0 2px 10px rgba(99,102,241,0.4)',
                 }}
+                title={nodes.length === 0 ? 'Cannot publish an empty workflow — add at least one node or load a template' : 'Publish workflow to live Telegram bot'}
               >
                 <Upload size={14} /> {publishing ? 'Publishing...' : 'Publish'}
               </button>

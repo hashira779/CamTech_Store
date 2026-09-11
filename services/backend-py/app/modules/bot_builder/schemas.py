@@ -45,6 +45,9 @@ class UpdateBotWorkflowInput(BaseModel):
 
 class PublishWorkflowInput(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=500)
+    draftNodes: Optional[List[Dict[str, Any]]] = None
+    draftEdges: Optional[List[Dict[str, Any]]] = None
+    draftVariables: Optional[List[Dict[str, Any]]] = None
 
 
 # ─── Version Schemas ─────────────────────────────────────────────────────────
