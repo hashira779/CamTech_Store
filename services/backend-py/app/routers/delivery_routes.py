@@ -151,6 +151,7 @@ async def get_delivery_order(
         )
     return order
 
+@router.patch("/orders/{order_id}", response_model=DeliveryOrderDto)
 @router.patch("/orders/{order_id}/status", response_model=DeliveryOrderDto)
 async def update_delivery_status(
     order_id: str,

@@ -21,18 +21,33 @@ router = APIRouter(tags=["Customer Orders"])
 @router.get("/sales/customer-orders", response_model=PaginatedResponse[SaleDto])
 @router.get("/customers/orders", response_model=PaginatedResponse[SaleDto])
 async def get_customer_orders(
-    email: str,
+    email: Optional[str] = None,
+    phone: Optional[str] = None,
+    channel: Optional[str] = None,
     user: Optional[TenantUser] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Fetches past sales orders and invoices for a customer directly from PostgreSQL.
+    Supports filtering by channel (e.g. 'STORE' for online storefront orders) and lookup by email or phone.
     """
-    email_clean = email.strip().lower()
+    if not email and not phone:
+        return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
 
-    # Find customer
+    # Find customer by email or phone
+    cust_filters = []
+    if email:
+        email_clean = email.strip().lower()
+        cust_filters.append(or_(Customer.email == email_clean, func.lower(Customer.email) == email_clean))
+    if phone:
+        phone_clean = phone.strip()
+        cust_filters.append(or_(
+            Customer.phone == phone_clean,
+            func.replace(Customer.phone, " ", "") == phone_clean.replace(" ", "")
+        ))
+
     cust_res = await db.execute(
-        select(Customer).where(or_(Customer.email == email_clean, func.lower(Customer.email) == email_clean)).limit(1)
+        select(Customer).where(or_(*cust_filters)).limit(1)
     )
     customer = cust_res.scalar_one_or_none()
 
@@ -44,6 +59,10 @@ async def get_customer_orders(
         sale_filters.append(Sale.organization_id == user.organization_id)
     elif customer.organization_id:
         sale_filters.append(Sale.organization_id == customer.organization_id)
+
+    # Optional channel filtering (e.g. STORE vs POS)
+    if channel and channel.upper() != "ALL":
+        sale_filters.append(Sale.channel == channel.upper())
 
     stmt = (
         select(Sale)

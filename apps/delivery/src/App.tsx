@@ -83,6 +83,48 @@ export function App() {
   const [podNotes, setPodNotes] = useState('');
   const [podSignature, setPodSignature] = useState('');
 
+  // Real-Time Incoming Order Popup Alert State
+  const [incomingOrder, setIncomingOrder] = useState<DeliveryTask | null>(null);
+  const [isIncomingModalOpen, setIsIncomingModalOpen] = useState(false);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
+
+  // Audio Synthesizer Chime for Instant Dispatch Alert
+  const playIncomingChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      [
+        { freq: 587.33, time: 0, dur: 0.12 },
+        { freq: 880.00, time: 0.14, dur: 0.14 },
+        { freq: 1174.66, time: 0.30, dur: 0.35 }
+      ].forEach(({ freq, time, dur }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + time);
+        gain.gain.setValueAtTime(0.3, now + time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + time);
+        osc.stop(now + time + dur);
+      });
+    } catch {}
+  };
+
+  const triggerTelegramHaptic = () => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('warning');
+        setTimeout(() => tg.HapticFeedback.impactOccurred('heavy'), 180);
+      }
+    } catch {}
+  };
+
   // Mobile / Telegram detection
   const [isDesktop, setIsDesktop] = useState(false);
   const [showDesktopAlert, setShowDesktopAlert] = useState(true);
@@ -285,7 +327,8 @@ export function App() {
   // Update Status Mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, signature, notes }: { id: string; status: string; signature?: string; notes?: string }) => {
-      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders/${id}`, {
+      // Support both /orders/{id}/status and /orders/{id}
+      const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -314,6 +357,37 @@ export function App() {
       toast.error(err.message || 'Status update failed');
     }
   });
+
+  // Real-time Detection of Newly Dispatched Orders via Polling
+  useEffect(() => {
+    if (!orders || orders.length === 0) return;
+
+    if (isInitialLoadRef.current) {
+      // First load: record existing orders so we don't trigger alerts on boot
+      orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    // Subsequent polls: detect if a new PENDING order has arrived
+    const newlyArrivedPending = orders.find(
+      (o) => o.status === 'PENDING' && !knownOrderIdsRef.current.has(o.id)
+    );
+
+    // Update known IDs
+    orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+
+    if (newlyArrivedPending) {
+      setIncomingOrder(newlyArrivedPending);
+      setIsIncomingModalOpen(true);
+      playIncomingChime();
+      triggerTelegramHaptic();
+      toast.info(`🔔 New Delivery Order #${newlyArrivedPending.trackingNumber}!`, {
+        description: `${newlyArrivedPending.recipientName} • ${newlyArrivedPending.deliveryAddress}`,
+        duration: 12000,
+      });
+    }
+  }, [orders]);
 
   const pendingOrders = orders.filter((o) => o.status === 'PENDING');
   const activeOrders = orders.filter((o) => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
@@ -862,6 +936,130 @@ export function App() {
               <QrCode className="w-36 h-36 text-slate-800" />
             </div>
             <p className="text-xs text-slate-500">Scan to open the delivery terminal in Telegram</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 6. REAL-TIME INCOMING ORDER POPUP MODAL ─── */}
+      {isIncomingModalOpen && incomingOrder && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-300 border-2 border-amber-400/40">
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
+
+            {/* Alert Header with Pulsing Beacon */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="relative flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/80">
+                  New Order Dispatched
+                </span>
+              </div>
+              <button
+                onClick={() => setIsIncomingModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Title & Tracking Number */}
+            <div className="space-y-1">
+              <span className="text-xs font-mono font-bold text-slate-400 block">#{incomingOrder.trackingNumber}</span>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Incoming Delivery Task</span>
+                <Sparkles className="w-4 h-4 text-amber-500" />
+              </h2>
+            </div>
+
+            {/* Customer & Destination Card */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Recipient</div>
+                  <div className="text-base font-bold text-slate-900">{incomingOrder.recipientName}</div>
+                </div>
+                {incomingOrder.recipientPhone && (
+                  <a
+                    href={`tel:${incomingOrder.recipientPhone}`}
+                    className="px-3 py-1.5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Call</span>
+                  </a>
+                )}
+              </div>
+
+              <div className="flex items-start gap-2 text-xs text-slate-600 pt-2 border-t border-slate-200/60">
+                <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <span className="leading-snug font-medium">{incomingOrder.deliveryAddress}</span>
+              </div>
+
+              {incomingOrder.notes && (
+                <div className="text-[11px] text-slate-500 bg-white p-2 rounded-xl border border-slate-200/50">
+                  <span className="font-semibold text-slate-700">Notes:</span> {incomingOrder.notes}
+                </div>
+              )}
+            </div>
+
+            {/* Payment Summary */}
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-amber-600" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase text-amber-800">Payment Collection</div>
+                  <div className="text-xs font-bold text-amber-950">
+                    {Number(incomingOrder.codAmount) > 0 ? 'Cash on Delivery (COD)' : 'Prepaid via Bakong KHQR'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-mono font-black text-amber-700">
+                  {Number(incomingOrder.codAmount) > 0 ? `$${Number(incomingOrder.codAmount).toFixed(2)}` : 'PAID'}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={() => {
+                  updateStatusMutation.mutate({ id: incomingOrder.id, status: 'DISPATCHED' });
+                  setOrderTab('ACTIVE');
+                  setIsIncomingModalOpen(false);
+                }}
+                disabled={updateStatusMutation.isPending}
+                className="w-full h-13 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+              >
+                {updateStatusMutation.isPending ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4 text-amber-400" />
+                    <span>Accept & Claim Order Now</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  setOrderTab('AVAILABLE');
+                  setIsIncomingModalOpen(false);
+                }}
+                className="w-full h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
+                View in Available Requests
+              </button>
+
+              <button
+                onClick={() => setIsIncomingModalOpen(false)}
+                className="text-xs font-medium text-slate-400 hover:text-slate-600 py-1 text-center w-full block transition"
+              >
+                Dismiss for Now
+              </button>
+            </div>
           </div>
         </div>
       )}

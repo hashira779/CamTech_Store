@@ -97,6 +97,7 @@ export function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyChannelTab, setHistoryChannelTab] = useState<'STORE' | 'ALL'>('STORE');
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any>(null);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
@@ -408,13 +409,22 @@ export function App() {
   });
 
   // 2. Fetch customer orders directly from Central PostgreSQL Database
-  const { data: orderHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
-    queryKey: ['store-order-history', customer?.email],
+  const activeCustomerEmail = customer?.email || (typeof window !== 'undefined' ? localStorage.getItem('camtech_customer_email') : null);
+  const activeCustomerPhone = customer?.phone || (typeof window !== 'undefined' ? localStorage.getItem('camtech_customer_phone') : null);
+
+  const { data: serverOrderHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
+    queryKey: ['store-order-history', activeCustomerEmail, activeCustomerPhone, historyChannelTab],
     queryFn: async () => {
-      const email = customer?.email || (typeof window !== 'undefined' ? localStorage.getItem('camtech_customer_email') : null);
-      if (!email) return [];
+      const email = activeCustomerEmail;
+      const phone = activeCustomerPhone;
+      if (!email && !phone) return [];
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/sales/customer-orders?email=${encodeURIComponent(email)}`);
+        const queryParams = new URLSearchParams();
+        if (email) queryParams.set('email', email);
+        if (phone) queryParams.set('phone', phone);
+        if (historyChannelTab === 'STORE') queryParams.set('channel', 'STORE');
+
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales/customer-orders?${queryParams.toString()}`);
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.items || json.items || json.data || [];
@@ -422,9 +432,29 @@ export function App() {
         return [];
       }
     },
-    enabled: !!customer?.email,
+    enabled: Boolean(activeCustomerEmail || activeCustomerPhone),
     staleTime: 30 * 1000,
   });
+
+  // Local device cache for instant receipt retrieval across sessions
+  const localOrders = (() => {
+    try {
+      return typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('camtech_store_orders') || '[]') : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const orderHistory = (() => {
+    const serverList = Array.isArray(serverOrderHistory) ? serverOrderHistory : [];
+    const serverIds = new Set(serverList.map((o: any) => o.id || o.saleNumber));
+    const missingLocal = localOrders.filter((lo: any) => !serverIds.has(lo.id) && !serverIds.has(lo.orderNumber));
+    const combined = [...serverList, ...missingLocal];
+    if (historyChannelTab === 'STORE') {
+      return combined.filter((o: any) => !o.channel || o.channel === 'STORE');
+    }
+    return combined;
+  })();
 
   const products: ProductItem[] = serverProducts || [];
   
@@ -491,7 +521,8 @@ export function App() {
   const handleCheckout = async () => {
     const buyerName = customer ? customer.name : guestName.trim();
     const buyerPhone = (customer?.phone || guestPhone).trim();
-    const buyerEmail = customer ? customer.email : (guestEmail.trim() || 'guest@camtech.cam');
+    const buyerPhoneClean = buyerPhone.replace(/\s+/g, '');
+    const buyerEmail = customer ? customer.email : (guestEmail.trim() || (buyerPhoneClean ? `${buyerPhoneClean}@customer.camtech.cam` : 'guest@customer.camtech.cam'));
 
     if (!buyerName) {
       toast.error('Please enter your full name for delivery');
@@ -508,6 +539,9 @@ export function App() {
 
     if (buyerPhone) {
       localStorage.setItem('camtech_customer_phone', buyerPhone);
+    }
+    if (buyerEmail) {
+      localStorage.setItem('camtech_customer_email', buyerEmail);
     }
 
     const orderPayload = {
@@ -563,6 +597,7 @@ export function App() {
         items: [...cart],
         total: serverSale.grandTotal || cartTotal * 1.1,
         paymentMethod,
+        channel: 'STORE',
         customer: {
           name: buyerName,
           email: buyerEmail,
@@ -572,6 +607,13 @@ export function App() {
         date: serverSale.createdAt || new Date().toISOString(),
         status: serverSale.status || 'COMPLETED',
       };
+
+      // Save order to local device cache
+      try {
+        const localList = JSON.parse(localStorage.getItem('camtech_store_orders') || '[]');
+        const updatedList = [newOrder, ...localList.filter((o: any) => (o.id || o.orderNumber) !== (newOrder.id || newOrder.orderNumber))].slice(0, 30);
+        localStorage.setItem('camtech_store_orders', JSON.stringify(updatedList));
+      } catch {}
 
       setConfirmedOrder(newOrder);
       if (customer?.email) {
@@ -682,13 +724,23 @@ export function App() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 border border-line text-xs font-medium ds-text-dim transition flex items-center gap-1.5 shadow-sm"
-              >
-                <GoogleIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign In</span>
-              </button>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setIsHistoryOpen(true)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium ds-text-dim flex items-center gap-1.5 border border-line transition cursor-pointer"
+                  title="View Purchase History"
+                >
+                  <History className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Orders</span>
+                </button>
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 border border-line text-xs font-medium ds-text-dim transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <GoogleIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </button>
+              </div>
             )}
 
             {/* Floating High-Contrast Cart Pill */}
@@ -743,8 +795,8 @@ export function App() {
                 <ArrowRight className="w-4 h-4" />
               </a>
               <button
-                onClick={() => (customer ? setIsHistoryOpen(true) : setIsAuthModalOpen(true))}
-                className="px-4 py-2.5 rounded-full bg-ink-850/80 hover:bg-ink-800 ds-text-dim font-semibold text-sm border border-line transition inline-flex items-center gap-2"
+                onClick={() => setIsHistoryOpen(true)}
+                className="px-4 py-2.5 rounded-full bg-ink-850/80 hover:bg-ink-800 ds-text-dim font-semibold text-sm border border-line transition inline-flex items-center gap-2 cursor-pointer"
               >
                 <Compass className="w-4 h-4 text-brand-400" />
                 <span>Track delivery</span>
@@ -1358,7 +1410,7 @@ export function App() {
       {isHistoryOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-xl bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-line">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-lg ds-text">Order History & Invoices</h3>
@@ -1372,7 +1424,35 @@ export function App() {
               </button>
             </div>
 
-            <div className="py-4 max-h-96 overflow-y-auto space-y-3">
+            {/* Channel Filtering Segmented Tabs */}
+            <div className="flex items-center gap-2 pt-3 pb-1">
+              <button
+                type="button"
+                onClick={() => setHistoryChannelTab('STORE')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  historyChannelTab === 'STORE'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'bg-ink-950 text-slate-400 hover:text-white border border-line'
+                }`}
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Online Store Orders</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryChannelTab('ALL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  historyChannelTab === 'ALL'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'bg-ink-950 text-slate-400 hover:text-white border border-line'
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>All Invoices (POS & Online)</span>
+              </button>
+            </div>
+
+            <div className="py-3 max-h-96 overflow-y-auto space-y-3">
               {isHistoryLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="p-3.5 rounded-xl bg-ink-950 border border-line flex items-center justify-between animate-pulse">
@@ -1387,14 +1467,21 @@ export function App() {
                   </div>
                 ))
               ) : (!orderHistory || orderHistory.length === 0) ? (
-                <div className="text-center py-8 ds-text-faint">
-                  <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-xs">No past sales found in Central Data Center.</p>
+                <div className="text-center py-10 ds-text-faint space-y-2">
+                  <Package className="w-10 h-10 mx-auto opacity-30 text-emerald-400" />
+                  <p className="text-xs font-medium">
+                    {historyChannelTab === 'STORE'
+                      ? 'No online storefront orders found for your account.'
+                      : 'No past purchases found.'}
+                  </p>
+                  <p className="text-[11px] text-zinc-500">
+                    Orders placed on this device or with your phone number will appear here automatically.
+                  </p>
                 </div>
               ) : (
-                orderHistory.slice(0, 12).map((order: any) => (
+                orderHistory.slice(0, 15).map((order: any) => (
                   <div
-                    key={order.id}
+                    key={order.id || order.orderNumber}
                     onClick={() => {
                       setSelectedOrderForInvoice(order);
                       setIsHistoryOpen(false);
@@ -1404,16 +1491,23 @@ export function App() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold ds-text group-hover:text-emerald-400 transition">
-                          {order.saleNumber || order.id}
+                          {order.saleNumber || order.orderNumber || order.id}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
                           {order.status || 'COMPLETED'}
                         </span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                          (order.channel === 'STORE' || !order.channel)
+                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                        }`}>
+                          {(order.channel === 'STORE' || !order.channel) ? '🛍️ STORE' : '🏪 POS'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[10px] ds-text-dim">
-                        <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Recent'}</span>
+                        <span>{order.createdAt || order.date ? new Date(order.createdAt || order.date).toLocaleDateString() : 'Recent'}</span>
                         <span>•</span>
-                        <span>{order.lineItems?.length || order.itemCount || 1} item(s)</span>
+                        <span>{order.lineItems?.length || order.items?.length || order.itemCount || 1} item(s)</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
