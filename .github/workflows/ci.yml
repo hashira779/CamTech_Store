@@ -214,33 +214,37 @@ jobs:
         if: success()
         continue-on-error: true
         run: |
-          TG_TOKEN="${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}"
-          TG_CHAT="${{ secrets.USER_ID || secrets.TELEGRAM_ALERT_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}"
-          TG_TOKEN="${TG_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}"
-          TG_CHAT="${TG_CHAT:-7673456476}"
-          curl -s -m 10 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${TG_CHAT}\",
-              \"text\": \"🎉 <b>MyStore CI/CD Deployment Ready in Production!</b>\n\n• <b>Environment:</b> <code>Production</code>\n• <b>Branch:</b> <code>${{ github.ref_name }}</code>\n• <b>Commit:</b> <code>${{ github.sha }}</code>\n• <b>Triggered By:</b> <code>${{ github.actor }}</code>\n• <b>Admin Console:</b> https://adminconsol.camtech.cam\n• <b>Status:</b> ✅ All services live & healthy\",
-              \"parse_mode\": \"HTML\"
-            }" || true
+          TG_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_ALERT_BOT_TOKEN }}"
+          TG_CHAT="${{ secrets.USER_ID || secrets.TELEGRAM_CHAT_ID || secrets.TELEGRAM_ALERT_CHAT_ID }}"
+          if [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ]; then
+            curl -s -m 10 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"chat_id\": \"${TG_CHAT}\",
+                \"text\": \"🎉 <b>MyStore CI/CD Deployment Ready in Production!</b>\n\n• <b>Environment:</b> <code>Production</code>\n• <b>Branch:</b> <code>${{ github.ref_name }}</code>\n• <b>Commit:</b> <code>${{ github.sha }}</code>\n• <b>Triggered By:</b> <code>${{ github.actor }}</code>\n• <b>Admin Console:</b> https://adminconsol.camtech.cam\n• <b>Status:</b> ✅ All services live & healthy\",
+                \"parse_mode\": \"HTML\"
+              }" || true
+          else
+            echo "ℹ️ Telegram notification skipped: TELEGRAM_BOT_TOKEN or USER_ID secret not found."
+          fi
 
       - name: Notify Telegram on Deployment Failure
         if: failure()
         continue-on-error: true
         run: |
-          TG_TOKEN="${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}"
-          TG_CHAT="${{ secrets.USER_ID || secrets.TELEGRAM_ALERT_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}"
-          TG_TOKEN="${TG_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}"
-          TG_CHAT="${TG_CHAT:-7673456476}"
-          curl -s -m 10 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${TG_CHAT}\",
-              \"text\": \"❌ <b>MyStore CI/CD Deployment FAILED!</b>\n\n• <b>Environment:</b> <code>Production</code>\n• <b>Branch:</b> <code>${{ github.ref_name }}</code>\n• <b>Commit:</b> <code>${{ github.sha }}</code>\n• <b>Triggered By:</b> <code>${{ github.actor }}</code>\n• <b>Status:</b> ⚠️ Rollback initiated on production server\",
-              \"parse_mode\": \"HTML\"
-            }" || true
+          TG_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_ALERT_BOT_TOKEN }}"
+          TG_CHAT="${{ secrets.USER_ID || secrets.TELEGRAM_CHAT_ID || secrets.TELEGRAM_ALERT_CHAT_ID }}"
+          if [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ]; then
+            curl -s -m 10 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"chat_id\": \"${TG_CHAT}\",
+                \"text\": \"❌ <b>MyStore CI/CD Deployment FAILED!</b>\n\n• <b>Environment:</b> <code>Production</code>\n• <b>Branch:</b> <code>${{ github.ref_name }}</code>\n• <b>Commit:</b> <code>${{ github.sha }}</code>\n• <b>Triggered By:</b> <code>${{ github.actor }}</code>\n• <b>Status:</b> ⚠️ Rollback initiated on production server\",
+                \"parse_mode\": \"HTML\"
+              }" || true
+          else
+            echo "ℹ️ Telegram notification skipped: TELEGRAM_BOT_TOKEN or USER_ID secret not found."
+          fi
 
   notify-telegram:
     name: Telegram CI Pipeline Notification
@@ -254,12 +258,11 @@ jobs:
           python3 -c "
           import os, urllib.request, json
           token = (os.environ.get('TELEGRAM_BOT_TOKEN') or '').strip()
-          if not token or token == 'your_delivery_bot_token':
-              token = '8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY'
-
           chat_id = (os.environ.get('TELEGRAM_CHAT_ID') or '').strip()
-          if not chat_id:
-              chat_id = '7673456476'
+
+          if not token or not chat_id:
+              print('ℹ️ Telegram notifications: TELEGRAM_BOT_TOKEN or USER_ID not found in repository secrets; skipping.')
+              exit(0)
 
           status = os.environ.get('PIPELINE_STATUS', 'UNKNOWN')
           commit = (os.environ.get('COMMIT_SHA') or '')[:10]
@@ -301,8 +304,8 @@ jobs:
               print(f'❌ Telegram exception: {e}')
           " || true
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.USER_ID || secrets.TELEGRAM_ALERT_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_ALERT_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.USER_ID || secrets.TELEGRAM_CHAT_ID || secrets.TELEGRAM_ALERT_CHAT_ID }}
           PIPELINE_STATUS: ${{ (contains(needs.python-backend.result, 'failure') || contains(needs.typescript-monorepo.result, 'failure') || contains(needs.deploy-production.result, 'failure')) && 'FAILED ❌' || 'PASSED ✅' }}
           COMMIT_SHA: ${{ github.sha }}
           BRANCH_NAME: ${{ github.ref_name }}
