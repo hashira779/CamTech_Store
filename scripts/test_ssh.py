@@ -1,7 +1,8 @@
 import paramiko
 import sys
 
-print("Connecting to 10.1.0.11...", flush=True)
+cmd = sys.argv[1] if len(sys.argv) > 1 else "echo 'pTT!CT01' | sudo -S docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -14,14 +15,17 @@ try:
         banner_timeout=90,
         auth_timeout=90,
     )
-    print("SSH Connected successfully!", flush=True)
-    _, stdout, stderr = client.exec_command("echo 'pTT!CT01' | sudo -S docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'")
+    _, stdout, stderr = client.exec_command(cmd)
     out = stdout.read().decode(errors="replace")
+    err = stderr.read().decode(errors="replace")
     for line in out.splitlines():
         if "[sudo]" not in line and "password for" not in line:
             print(line, flush=True)
+    if err.strip():
+        for line in err.splitlines():
+            if "[sudo]" not in line and "password for" not in line:
+                print(f"[err] {line}", file=sys.stderr, flush=True)
     client.close()
-    print("Done.", flush=True)
 except Exception as e:
     print(f"Failed: {type(e).__name__}: {e}", flush=True)
     sys.exit(1)

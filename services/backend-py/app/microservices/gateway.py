@@ -12,17 +12,15 @@ from app.microservices.gateway_dashboard import get_gateway_dashboard_html
 # Without this, `from app.main import app` at startup couples the gateway's health to
 # every module compiling — one broken file would take :4000 (the whole API) down.
 _fallback_app = None
-_fallback_import_failed = False
 
 
 def get_fallback_app():
-    global _fallback_app, _fallback_import_failed
-    if _fallback_app is None and not _fallback_import_failed:
+    global _fallback_app
+    if _fallback_app is None:
         try:
             from app.main import app as fb
             _fallback_app = fb
         except Exception as exc:  # a broken module must not crash the gateway
-            _fallback_import_failed = True
             print(f"[gateway] in-process fallback unavailable (a module failed to import): {exc}")
     return _fallback_app
 
@@ -198,9 +196,9 @@ async def route_gateway(request: Request, path: str):
                 headers=dict(proxy_resp.headers),
                 media_type=proxy_resp.headers.get("content-type")
             )
-        except Exception:
-            # If target microservice is offline, gracefully fall through to in-process fallback
-            pass
+        except Exception as proxy_err:
+            # If target microservice is offline, log and gracefully fall through to in-process fallback
+            print(f"[gateway] Microservice request to {target_url} failed ({proxy_err}), falling back to in-process app")
 
     # 3. Resilient In-Process Fallback: Execute via canonical local router.
     # Loaded lazily — if a module is broken the fallback is simply unavailable for
