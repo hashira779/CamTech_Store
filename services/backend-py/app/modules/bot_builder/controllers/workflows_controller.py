@@ -286,7 +286,11 @@ async def publish_workflow(
             except Exception:
                 decrypted_token = bot_entity.bot_token
             adapter = TelegramAdapter(decrypted_token)
-            webhook_url = f"https://admin.camtech.cam/api/v1/bot-builder/webhook/{wf.bot_id}"
+            from app.core.config import settings
+            gateway_base = getattr(settings, "GATEWAY_URL", "").rstrip("/")
+            if not gateway_base or not gateway_base.startswith("https://"):
+                gateway_base = "https://gateway.camtech.cam"
+            webhook_url = f"{gateway_base}/api/v1/bot-builder/webhook/{wf.bot_id}"
             await adapter.set_webhook(webhook_url)
     except Exception as exc:
         logger.warning("Auto webhook registration skipped or failed on publish: %s", exc)

@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    GATEWAY_URL: str = os.getenv("GATEWAY_URL", "https://gateway.camtech.cam")
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

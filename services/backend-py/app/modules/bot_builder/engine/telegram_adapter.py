@@ -163,6 +163,9 @@ class TelegramAdapter:
             payload["secret_token"] = secret_token
         return await self._post("setWebhook", payload)
 
+    async def get_webhook_info(self) -> Dict[str, Any]:
+        return await self._post("getWebhookInfo", {})
+
     async def delete_webhook(self) -> Dict[str, Any]:
         return await self._post("deleteWebhook", {})
 

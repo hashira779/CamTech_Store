@@ -142,7 +142,7 @@ def apply_enterprise_layer(app: FastAPI) -> None:
         return response
 
 
-def create_microservice(name: str, description: str, port: int) -> FastAPI:
+def create_microservice(name: str, description: str, port: int, lifespan=None) -> FastAPI:
     """
     Factory function for independent MyStore microservices.
     Configures CORS, the enterprise response envelope, health probes, and OpenAPI docs.
@@ -153,6 +153,7 @@ def create_microservice(name: str, description: str, port: int) -> FastAPI:
         version="2.0.0",
         docs_url="/docs",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
     # CORS configuration allowing all frontend web applications (5001-5008)

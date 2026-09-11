@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import paramiko
+import shlex
 
 HOST = "10.1.0.11"
 USER = "ubuntu-server"
@@ -11,12 +12,13 @@ def run_cmd(command: str):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(HOST, username=USER, password=PASSWORD, timeout=15)
     
+
     # Execute via bash -c for proper pipe and quotation support
     if "sudo" in command and USER != "root":
         # Pass sudo password to sudo -S bash -c
-        full_command = f"echo '{PASSWORD}' | sudo -S bash -c {repr(command)}"
+        full_command = f"echo '{PASSWORD}' | sudo -S bash -c {shlex.quote(command)}"
     else:
-        full_command = f"bash -c {repr(command)}"
+        full_command = f"bash -c {shlex.quote(command)}"
         
     stdin, stdout, stderr = ssh.exec_command(full_command, get_pty=True)
     out = stdout.read().decode(errors="replace")

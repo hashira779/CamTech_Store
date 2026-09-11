@@ -233,6 +233,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
       - REDIS_URL=redis://redis:6379/0
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -325,6 +326,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
       - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
       - REDIS_URL=redis://redis:6379/0
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}
+      - GATEWAY_URL=${GATEWAY_URL:-https://gateway.camtech.cam}
     depends_on:
       postgres:
         condition: service_healthy
