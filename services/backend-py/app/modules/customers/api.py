@@ -3,7 +3,7 @@ import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, case
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
@@ -61,6 +61,35 @@ def _validate_type(value: str) -> str:
     return value
 
 
+_cached_default_org_id: Optional[str] = None
+
+
+async def _resolve_target_org(user: Optional[TenantUser], db: AsyncSession) -> str:
+    global _cached_default_org_id
+    if user and user.organization_id:
+        return user.organization_id
+    if _cached_default_org_id:
+        return _cached_default_org_id
+    try:
+        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
+        _cached_default_org_id = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+    except Exception:
+        _cached_default_org_id = settings.DEFAULT_ORG_ID
+    return _cached_default_org_id
+
+
+async def _find_customer_by_email(email_clean: str, target_org: str, db: AsyncSession) -> Optional[Customer]:
+    """Efficiently find customer prioritizing target_org while leveraging index on email."""
+    stmt = (
+        select(Customer)
+        .where(or_(Customer.email == email_clean, func.lower(Customer.email) == email_clean))
+        .order_by(case((Customer.organization_id == target_org, 0), else_=1))
+        .limit(1)
+    )
+    res = await db.execute(stmt)
+    return res.scalar_one_or_none()
+
+
 @router.post("/customers/sync", response_model=CustomerDto)
 @router.post("/customers/public-sync", response_model=CustomerDto)
 async def sync_customer(
@@ -80,19 +109,10 @@ async def sync_customer(
     phone_clean = input_data.phone.strip() if input_data.phone else None
 
     # Resolve Target Organization ID
-    target_org = user.organization_id if user else None
-    if not target_org:
-        org_result = await db.execute(select(Organization.id).limit(1))
-        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+    target_org = await _resolve_target_org(user, db)
 
     # 1. Sync / Provision in 'customers' table
-    cust_result = await db.execute(
-        select(Customer).where(
-            Customer.organization_id == target_org,
-            func.lower(Customer.email) == email_clean
-        )
-    )
-    customer = cust_result.scalar_one_or_none()
+    customer = await _find_customer_by_email(email_clean, target_org, db)
 
     if not customer:
         customer_code = f"CUST-{uuid.uuid4().hex[:8].upper()}"
@@ -123,7 +143,7 @@ async def sync_customer(
 
     # 2. Sync / Provision in 'users' table (Visible to Super Admin in User Directory)
     user_result = await db.execute(
-        select(User).where(func.lower(User.email) == email_clean)
+        select(User).where(or_(User.email == email_clean, func.lower(User.email) == email_clean)).limit(1)
     )
     user_record = user_result.scalar_one_or_none()
 
@@ -157,18 +177,8 @@ async def get_customer_profile(
     Fetches real-time customer profile & loyalty metrics by email.
     """
     email_clean = email.strip().lower()
-    target_org = user.organization_id if user else None
-    if not target_org:
-        org_result = await db.execute(select(Organization.id).limit(1))
-        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
-
-    cust_result = await db.execute(
-        select(Customer).where(
-            Customer.organization_id == target_org,
-            func.lower(Customer.email) == email_clean
-        )
-    )
-    customer = cust_result.scalar_one_or_none()
+    target_org = await _resolve_target_org(user, db)
+    customer = await _find_customer_by_email(email_clean, target_org, db)
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found in database")
     return _to_dto(customer)
@@ -184,26 +194,8 @@ async def get_customer_cart(
     Retrieves the customer's active shopping cart directly from PostgreSQL.
     """
     email_clean = email.strip().lower()
-    target_org = user.organization_id if user else None
-    if not target_org:
-        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
-        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
-
-    # 1. Try finding within target organization
-    cust_result = await db.execute(
-        select(Customer).where(
-            Customer.organization_id == target_org,
-            func.lower(Customer.email) == email_clean
-        )
-    )
-    customer = cust_result.scalar_one_or_none()
-
-    # 2. Fallback to global search by email across organizations if not found
-    if not customer:
-        cust_global = await db.execute(
-            select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
-        )
-        customer = cust_global.scalar_one_or_none()
+    target_org = await _resolve_target_org(user, db)
+    customer = await _find_customer_by_email(email_clean, target_org, db)
 
     if not customer or not customer.notes:
         return CustomerCartDto(email=email_clean, items=[])
@@ -231,28 +223,10 @@ async def sync_customer_cart(
     Persists customer shopping cart in PostgreSQL linked to their customer profile.
     """
     email_clean = payload.email.strip().lower()
-    target_org = user.organization_id if user else None
-    if not target_org:
-        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
-        target_org = org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID
+    target_org = await _resolve_target_org(user, db)
+    customer = await _find_customer_by_email(email_clean, target_org, db)
 
-    # 1. Try finding within target organization
-    cust_result = await db.execute(
-        select(Customer).where(
-            Customer.organization_id == target_org,
-            func.lower(Customer.email) == email_clean
-        )
-    )
-    customer = cust_result.scalar_one_or_none()
-
-    # 2. Fallback to global search by email
-    if not customer:
-        cust_global = await db.execute(
-            select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
-        )
-        customer = cust_global.scalar_one_or_none()
-
-    # 3. If still not found, provision customer record
+    # If still not found, provision customer record
     if not customer:
         customer = Customer(
             organization_id=target_org,
@@ -278,6 +252,10 @@ async def sync_customer_cart(
         except Exception:
             existing_meta["notes"] = str(customer.notes)
 
+    # Fast path: if cart in database already matches incoming items, avoid committing WAL disk flush
+    if existing_meta.get("cart") == payload.items:
+        return CustomerCartDto(email=email_clean, items=payload.items)
+
     existing_meta["cart"] = payload.items
     customer.notes = json.dumps(existing_meta)
     customer.updated_at = utc_now()
@@ -285,6 +263,7 @@ async def sync_customer_cart(
     await db.commit()
     await db.refresh(customer)
     return CustomerCartDto(email=email_clean, items=payload.items)
+
 
 
 @router.get("/customers", response_model=PaginatedResponse[CustomerDto])

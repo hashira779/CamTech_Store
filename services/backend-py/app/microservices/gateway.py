@@ -135,7 +135,11 @@ ROUTING_MAP = {
     "/api/v1/dashboard": PLATFORM_SERVICE_URL,
 }
 
-http_client = httpx.AsyncClient(timeout=15.0)
+http_client = httpx.AsyncClient(
+    timeout=httpx.Timeout(15.0, connect=5.0),
+    limits=httpx.Limits(max_keepalive_connections=100, max_connections=300, keepalive_expiry=60.0),
+)
+
 
 def custom_openapi():
     if gateway.openapi_schema:
@@ -234,10 +238,14 @@ async def route_gateway(request: Request, path: str):
                 content=body
             )
             
+            resp_headers = dict(proxy_resp.headers)
+            for hop in ("transfer-encoding", "content-encoding", "connection", "keep-alive"):
+                resp_headers.pop(hop, None)
+
             return Response(
                 content=proxy_resp.content,
                 status_code=proxy_resp.status_code,
-                headers=dict(proxy_resp.headers),
+                headers=resp_headers,
                 media_type=proxy_resp.headers.get("content-type")
             )
         except Exception as proxy_err:

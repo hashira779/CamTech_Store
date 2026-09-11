@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingBag,
@@ -83,6 +83,7 @@ interface ProductItem {
 
 export function App() {
   const queryClient = useQueryClient();
+  const lastProcessedEmailRef = useRef<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [cart, setCart] = useState<Array<ProductItem & { quantity: number }>>(() => {
@@ -259,8 +260,11 @@ export function App() {
         localStorage.setItem('camtech_store_cart', JSON.stringify(merged));
       } catch {}
 
-      // Keep database in sync with merged cart
-      await syncCartWithDatabase(email, merged);
+      // Keep database in sync with merged cart only if merged items differ from server
+      const isCartDifferent = JSON.stringify(serverItems) !== JSON.stringify(merged);
+      if (isCartDifferent) {
+        await syncCartWithDatabase(email, merged);
+      }
 
       if (merged.length > 0) {
         toast.success(`🛒 Cart synchronized with your account (${merged.length} item${merged.length > 1 ? 's' : ''})`);
@@ -274,11 +278,17 @@ export function App() {
   useEffect(() => {
     const processSession = (session: any) => {
       if (!session?.user) return;
+      const email = session.user.email || '';
+      if (!email) return;
+
+      // Prevent redundant concurrent executions on mount
+      if (lastProcessedEmailRef.current === email) return;
+      lastProcessedEmailRef.current = email;
+
       const metadata = session.user.user_metadata || {};
       const savedPhone = localStorage.getItem('camtech_customer_phone') || '';
       const phone = session.user.phone || metadata.phone || savedPhone || '';
-      const name = metadata.full_name || metadata.name || session.user.email?.split('@')[0] || 'Google User';
-      const email = session.user.email || '';
+      const name = metadata.full_name || metadata.name || email.split('@')[0] || 'Google User';
 
       setCustomer({
         name,
@@ -303,11 +313,13 @@ export function App() {
       processSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         processSession(session);
-        const metadata = session.user.user_metadata || {};
-        toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
+        if (event === 'SIGNED_IN') {
+          const metadata = session.user.user_metadata || {};
+          toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
+        }
       }
     });
 
@@ -330,6 +342,7 @@ export function App() {
     } catch {
       // ignore
     }
+    lastProcessedEmailRef.current = '';
     setCustomer(null);
     setCart([]);
 
@@ -390,11 +403,10 @@ export function App() {
         return [];
       }
     },
-    staleTime: 10000,
+    staleTime: 60 * 1000,
     retry: 1
   });
 
-  // 2. Fetch customer orders from Central Data Center API (only when signed in)
   // 2. Fetch customer orders directly from Central PostgreSQL Database
   const { data: orderHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['store-order-history', customer?.email],
@@ -410,7 +422,8 @@ export function App() {
         return [];
       }
     },
-    enabled: !!customer?.email
+    enabled: !!customer?.email,
+    staleTime: 30 * 1000,
   });
 
   const products: ProductItem[] = serverProducts || [];

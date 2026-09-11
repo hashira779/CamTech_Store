@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -24,6 +24,7 @@ router = APIRouter(tags=["Catalog"])
 
 @router.get("/public/products", response_model=PaginatedResponse[ProductDto])
 async def list_public_products(
+    response: Response,
     search: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
@@ -32,6 +33,7 @@ async def list_public_products(
     """Public customer storefront catalog endpoint (§161, §228).
     Does not require enterprise login. Sanitizes internal margins/cost prices.
     """
+    response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
     stmt = select(Product).options(selectinload(Product.variants))
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))

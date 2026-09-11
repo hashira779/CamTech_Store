@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, or_
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -32,7 +32,7 @@ async def get_customer_orders(
 
     # Find customer
     cust_res = await db.execute(
-        select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+        select(Customer).where(or_(Customer.email == email_clean, func.lower(Customer.email) == email_clean)).limit(1)
     )
     customer = cust_res.scalar_one_or_none()
 
