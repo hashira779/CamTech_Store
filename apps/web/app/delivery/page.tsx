@@ -458,6 +458,15 @@ export function DeliveryPage() {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&destination=${ord.destLat || 11.5564},${ord.destLng || 104.9282}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="h-7 w-7 rounded-md border border-border/60 bg-background hover:bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-blue-500 transition"
+                                  title="Open in Google Maps"
+                                >
+                                  <Navigation className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
+                                </a>
                                 {!ord.driverId && ord.status === 'PENDING' && (
                                   <Button
                                     size="sm"
