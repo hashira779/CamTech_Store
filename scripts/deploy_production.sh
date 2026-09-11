@@ -111,6 +111,8 @@ fi
 # ── 4b. Apply Backend Microservice Updates & Core Persistence ─────────────────
 echo "🚀 Starting persistence and updated backend microservices..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d postgres redis pgbouncer otel-collector jaeger $BACKEND_SERVICES
+echo "🔄 Reloading Nginx ingress to flush upstream DNS cache..."
+run_cmd docker exec mystore-nginx-ingress nginx -s reload 2>/dev/null || run_cmd docker compose -f "$COMPOSE_FILE" restart nginx-ingress 2>/dev/null || true
 
 # ── 4c. Automated Safe Database Schema Migration ─────────────────────────────
 echo "🗄️ Running automated safe database schema migration (Zero-Downtime)..."
@@ -129,6 +131,8 @@ run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
 
 echo "🚀 Deploying updated frontend containers..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d --remove-orphans $FRONTEND_SERVICES
+echo "🔄 Reloading Nginx ingress post-frontend deploy..."
+run_cmd docker exec mystore-nginx-ingress nginx -s reload 2>/dev/null || true
 
 # Ensure mystore-admin-app is reachable by external Cloudflare tunnel expecting admin-web
 run_cmd docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
@@ -225,6 +229,7 @@ if [ "$CRITICAL_FAILED" -eq 1 ]; then
         run_cmd rsync -aq "$BACKUP_DIR/" "$APP_DIR/" 2>/dev/null || true
         cd "$APP_DIR"
         run_cmd docker compose -f "$COMPOSE_FILE" up -d 2>/dev/null || true
+        run_cmd docker exec mystore-nginx-ingress nginx -s reload 2>/dev/null || true
         echo "✅ Rollback complete. Previous stable containers restored."
     fi
     exit 1
