@@ -461,6 +461,9 @@ export const api = {
   voidSale: (token: string, id: string) =>
     request<SaleDto>(`/sales/${id}/void`, { method: 'POST', token }),
 
+  completeSale: (token: string, id: string) =>
+    request<SaleDto>(`/sales/${id}/complete`, { method: 'PATCH', token }),
+
   // ─── Inventory ─────────────────────────────────────────────────
   listInventory: (
     token: string,

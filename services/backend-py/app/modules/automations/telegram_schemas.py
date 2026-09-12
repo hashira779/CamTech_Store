@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 TelegramBindingType = Literal["USER", "GROUP"]
-TelegramRole = Literal["OPERATOR", "BRANCH_MANAGER", "SUPER_ADMIN", "DISPATCHER", "CASHIER"]
+TelegramRole = Literal["SUPER_ADMIN", "ORG_ADMIN", "MANAGER", "DISPATCHER", "CASHIER", "DELIVERY_DRIVER"]
 TelegramBotPurpose = Literal["SALES", "DELIVERY", "INVENTORY", "FINANCE", "SUPPORT", "GENERAL"]
 TelegramBotStatus = Literal["CONNECTED", "DISCONNECTED", "ERROR"]
 
@@ -85,7 +85,7 @@ class TelegramBindingInput(BaseModel):
     username: Optional[str] = Field(default=None, max_length=100)
     botId: Optional[str] = Field(default=None, max_length=100)
     bindingType: TelegramBindingType = "GROUP"
-    role: TelegramRole = "OPERATOR"
+    role: TelegramRole = "CASHIER"
 
     @field_validator("chatId", "chatTitle", "username", "botId", mode="before")
     @classmethod

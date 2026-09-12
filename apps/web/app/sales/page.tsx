@@ -136,11 +136,30 @@ export function SalesPage() {
     },
   });
 
+  const completeSaleMutation = useMutation({
+    mutationFn: async (saleId: string) => {
+      return api.completeSale(token!, saleId);
+    },
+    onSuccess: () => {
+      toast.success('Order marked as completed!');
+      queryClient.invalidateQueries({ queryKey: ['sale-detail', selectedSaleId] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Failed to complete order');
+    },
+  });
+
   const sales = data?.items ?? [];
 
   // Computed KPIs
   const completedSales = useMemo(
     () => sales.filter((s) => s.status === 'COMPLETED'),
+    [sales]
+  );
+
+  const preparingSales = useMemo(
+    () => sales.filter((s) => s.status === 'DRAFT'),
     [sales]
   );
 
@@ -250,6 +269,17 @@ export function SalesPage() {
             );
           }
 
+          if (status === 'DRAFT') {
+            return (
+              <Badge
+                variant="secondary"
+                className="text-[10px] font-semibold uppercase bg-amber-500/15 text-amber-500 border-amber-500/30"
+              >
+                PREPARING
+              </Badge>
+            );
+          }
+
           return (
             <Badge
               variant={status === 'COMPLETED' ? 'success' : 'destructive'}
@@ -292,6 +322,18 @@ export function SalesPage() {
                   <Eye className="mr-2 h-4 w-4" />
                   View Receipt Details
                 </DropdownMenuItem>
+                {sale.status === 'DRAFT' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => completeSaleMutation.mutate(sale.id)}
+                      className="text-emerald-600 focus:text-emerald-600"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Mark Complete
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {canVoid && sale.status === 'COMPLETED' && (
                   <>
                     <DropdownMenuSeparator />
@@ -579,12 +621,12 @@ export function SalesPage() {
             isLoading={isLoading}
           />
           <KpiCard
-            title="Voided Orders"
-            value={voidedCount}
-            icon={Ban}
-            iconColor={voidedCount > 0 ? 'text-destructive' : 'text-muted-foreground'}
-            change={voidedCount > 0 ? voidedCount : 0}
-            changeLabel="reversed transactions"
+            title="Preparing Orders"
+            value={preparingSales.length}
+            icon={Clock}
+            iconColor={preparingSales.length > 0 ? 'text-amber-500' : 'text-muted-foreground'}
+            change={preparingSales.length > 0 ? preparingSales.length : 0}
+            changeLabel="orders being prepared"
             isLoading={isLoading}
           />
         </div>
@@ -606,6 +648,7 @@ export function SalesPage() {
                   column={table.getColumn('status')}
                   title="Status"
                   options={[
+                    { label: 'Preparing', value: 'DRAFT' },
                     { label: 'Completed', value: 'COMPLETED' },
                     { label: 'Voided', value: 'VOIDED' },
                   ]}
@@ -701,8 +744,12 @@ export function SalesPage() {
                   <div className="col-span-2 sm:col-span-1">
                     <span className="text-muted-foreground font-medium block">Status</span>
                     <div className="mt-1">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-pink-50 dark:bg-pink-950/40 text-[#ff007a] border border-pink-200 dark:border-pink-800">
-                        {selectedSale.deliveryStatus || selectedSale.status}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+                        selectedSale.status === 'DRAFT'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 border-amber-200 dark:border-amber-800'
+                          : 'bg-pink-50 dark:bg-pink-950/40 text-[#ff007a] border-pink-200 dark:border-pink-800'
+                      }`}>
+                        {selectedSale.status === 'DRAFT' ? 'PREPARING' : (selectedSale.deliveryStatus || selectedSale.status)}
                       </span>
                     </div>
                   </div>
@@ -982,6 +1029,21 @@ export function SalesPage() {
                         <span>{selectedSale.deliveryAddress || '123 Norodom Blvd, Daun Penh, Phnom Penh'}</span>
                       </p>
                     </div>
+
+                    {/* Mark Complete Action for DRAFT (Preparing) Orders */}
+                    {selectedSale.status === 'DRAFT' && (
+                      <div className="pt-2">
+                        <Button
+                          variant="default"
+                          onClick={() => completeSaleMutation.mutate(selectedSale.id)}
+                          disabled={completeSaleMutation.isPending}
+                          className="w-full gap-2 text-xs font-semibold h-10 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {completeSaleMutation.isPending ? 'Completing...' : 'Mark Order as Completed'}
+                        </Button>
+                      </div>
+                    )}
 
                     {/* Void Order Action for Admin */}
                     {canVoid && selectedSale.status === 'COMPLETED' && (

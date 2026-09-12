@@ -84,7 +84,7 @@ class TelegramChatBinding(Base):
     chat_title = Column("chatTitle", String, nullable=True)
     username = Column(String, nullable=True)
     binding_type = Column("bindingType", String, default="GROUP", nullable=False)
-    role = Column(String, default="OPERATOR", nullable=False)
+    role = Column(String, default="CASHIER", nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     bound_by_user_id = Column("boundByUserId", String, nullable=True)
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)

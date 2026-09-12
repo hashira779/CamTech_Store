@@ -535,9 +535,12 @@ export default function NewSalePOSPage() {
                   <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground">Transaction Completed!</h3>
+                  <h3 className="text-xl font-bold text-foreground">Order Received — Preparing!</h3>
                   <p className="font-mono text-sm text-primary font-semibold">
                     Receipt #{completedSale.saleNumber}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Payment recorded. Mark as completed from the Sales dashboard when the order is ready.
                   </p>
                 </>
               )}

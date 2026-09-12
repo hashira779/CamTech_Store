@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.modules.catalog.models import ProductVariant
 from app.modules.locations.models import Location
 from app.modules.inventory.models import InventoryItem, StockMovement
@@ -29,7 +29,7 @@ router = APIRouter(tags=["POS Sales"])
 
 @router.get("/sales", response_model=PaginatedResponse[SaleDto])
 async def list_sales(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["sales:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -88,7 +88,7 @@ async def list_sales(
 @router.get("/sales/{sale_id}", response_model=SaleDto)
 async def get_sale(
     sale_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["sales:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -191,7 +191,7 @@ async def create_sale(
     request: Request,
     idempotency_key_header: Optional[str] = Header(None, alias="Idempotency-Key"),
     x_idempotency_key_header: Optional[str] = Header(None, alias="X-Idempotency-Key"),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["sales:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     # Idempotency Key Handling (§104)
@@ -354,7 +354,7 @@ async def create_sale(
         idempotency_key=idempotency_key,
         sale_number=sale_num,
         channel=sale_in.channel,
-        status="COMPLETED",
+        status="DRAFT",
         subtotal=subtotal,
         tax_total=tax_total,
         discount_total=Decimal('0.0'),
@@ -429,6 +429,86 @@ async def create_sale(
         currency=sale.currency,
         itemCount=len(sale_in.items),
         customerName=sale_in.customerName,
+        paymentStatus=derive_payment_status(sale.payments, sale.grand_total),
+        createdAt=sale.created_at.isoformat(),
+        lineItems=[
+            SaleLineItemDto(
+                id=li.id,
+                variantId=li.product_variant_id,
+                sku=li.sku,
+                name=li.product_name,
+                quantity=float(li.quantity),
+                unitPrice=float(li.unit_price),
+                taxRatePct=float(li.tax_rate_pct),
+                lineTotal=float(li.line_total)
+            ) for li in sale.line_items
+        ],
+        payments=[
+            SalePaymentDto(
+                id=p.id,
+                amount=float(p.amount),
+                method=p.method,
+                status=p.status,
+                reference=p.reference
+            ) for p in sale.payments
+        ]
+    )
+
+@router.patch("/sales/{sale_id}/complete", response_model=SaleDto)
+async def complete_sale(
+    sale_id: str,
+    user: TenantUser = Depends(RequirePermissions(["sales:write"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Transitions a DRAFT (preparing) POS sale to COMPLETED.
+    Used when the merchant finishes preparing a walk-in order.
+    """
+    stmt = (
+        select(Sale)
+        .where(
+            Sale.id == sale_id,
+            Sale.organization_id == user.organization_id,
+        )
+        .options(selectinload(Sale.line_items), selectinload(Sale.payments))
+    )
+    res = await db.execute(stmt)
+    sale = res.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sale not found: {sale_id}"
+        )
+    if sale.status != "DRAFT":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only DRAFT (preparing) sales can be completed. Current status: {sale.status}"
+        )
+
+    sale.status = "COMPLETED"
+    sale.completed_at = utc_now()
+    await db.commit()
+    await db.refresh(sale)
+
+    # Derive Customer Name
+    cust_name = None
+    if sale.customer_id:
+        c_res = await db.execute(select(Customer.name).where(Customer.id == sale.customer_id))
+        cust_name = c_res.scalar_one_or_none()
+
+    return SaleDto(
+        id=sale.id,
+        idempotencyKey=sale.idempotency_key,
+        saleNumber=sale.sale_number,
+        channel=sale.channel,
+        status=sale.status,
+        subtotal=float(sale.subtotal),
+        taxTotal=float(sale.tax_total),
+        discountTotal=float(sale.discount_total),
+        grandTotal=float(sale.grand_total),
+        currency=sale.currency,
+        itemCount=len(sale.line_items),
+        customerName=cust_name or "Walk-in Customer",
         paymentStatus=derive_payment_status(sale.payments, sale.grand_total),
         createdAt=sale.created_at.isoformat(),
         lineItems=[

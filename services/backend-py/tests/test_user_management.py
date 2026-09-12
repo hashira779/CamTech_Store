@@ -57,17 +57,17 @@ async def test_user_management_lifecycle():
             # 6. Update Cashier
             res_update = await client.patch(
                 f"/api/v1/auth/users/{user_id}",
-                json={"name": "Senior Cashier 01", "roles": ["CASHIER", "STAFF"]},
+                json={"name": "Senior Cashier 01", "roles": ["CASHIER", "MANAGER"]},
                 headers=headers
             )
             assert res_update.status_code == 200
             updated = res_update.json()["data"]
             assert updated["name"] == "Senior Cashier 01"
-            assert "STAFF" in updated["roles"]
+            assert "MANAGER" in updated["roles"]
 
             # 7. Deactivate Cashier
             res_del = await client.delete(f"/api/v1/auth/users/{user_id}", headers=headers)
-            assert res_del.status_code == 200
+            assert res_del.status_code == 204
         finally:
             # Clean up: hard-delete test user from DB to prevent row leak
             if user_id:

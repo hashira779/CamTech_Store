@@ -21,7 +21,7 @@ class TenantUser:
         self.location_id: Optional[str] = user.location_id
 
     def has_role(self, role: str) -> bool:
-        return role in self.roles or "ORG_ADMIN" in self.roles
+        return role in self.roles or "ORG_ADMIN" in self.roles or "SUPER_ADMIN" in self.roles
 
 def extract_user_roles(user: User) -> List[str]:
     """Strictly use relational user_roles table."""
@@ -45,6 +45,14 @@ async def _fetch_user_with_roles(db: AsyncSession, user_id: str) -> Optional[Use
         if user:
             return user
     return None
+
+
+from app.core.permissions import has_permission, has_any_permission
+
+def get_permissions(user: User) -> List[str]:
+    # Placeholder for backward compatibility if needed, but we'll use `has_permission` 
+    pass
+
 
 
 async def get_current_user(
@@ -139,4 +147,36 @@ async def get_optional_user(
         return TenantUser(user=user, roles=roles_list)
     except Exception:
         return None
+
+
+class RequirePermissions:
+    """
+    FastAPI dependency for granular RBAC (Requires ALL).
+    Usage: @router.get("/", dependencies=[Depends(RequirePermissions(["sales:read"]))])
+    """
+    def __init__(self, required_permissions: List[str]):
+        self.required_permissions = required_permissions
+
+    def __call__(self, current_user: TenantUser = Depends(get_current_user)):
+        if not has_permission(current_user.roles, self.required_permissions):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: Requires permissions {self.required_permissions}",
+            )
+        return current_user
+
+class RequireAnyPermission:
+    """
+    FastAPI dependency for granular RBAC (Requires ANY ONE).
+    """
+    def __init__(self, required_permissions: List[str]):
+        self.required_permissions = required_permissions
+
+    def __call__(self, current_user: TenantUser = Depends(get_current_user)):
+        if not has_any_permission(current_user.roles, self.required_permissions):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: Requires at least one of these permissions: {self.required_permissions}",
+            )
+        return current_user
 

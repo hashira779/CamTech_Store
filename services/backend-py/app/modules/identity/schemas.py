@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import List, Optional
 
 class UserDto(BaseModel):
@@ -53,12 +53,21 @@ class OAuthSyncRequest(BaseModel):
     providerId: Optional[str] = None
     avatarUrl: Optional[str] = None
 
+from app.core.permissions import VALID_ROLES
+
 class CreateUserInput(BaseModel):
     name: str
     email: str
     password: str
-    roles: List[str] = ["STAFF"]
+    roles: List[str] = ["CASHIER"]
     locationId: Optional[str] = None
+
+    @validator('roles')
+    def validate_roles(cls, v):
+        for role in v:
+            if role.upper() not in VALID_ROLES:
+                raise ValueError(f"Invalid role: {role}. Must be one of {VALID_ROLES}")
+        return [r.upper() for r in v]
 
 class UpdateUserInput(BaseModel):
     name: Optional[str] = None
@@ -66,6 +75,15 @@ class UpdateUserInput(BaseModel):
     isActive: Optional[bool] = None
     password: Optional[str] = None
     locationId: Optional[str] = None
+
+    @validator('roles')
+    def validate_roles(cls, v):
+        if v is None:
+            return v
+        for role in v:
+            if role.upper() not in VALID_ROLES:
+                raise ValueError(f"Invalid role: {role}. Must be one of {VALID_ROLES}")
+        return [r.upper() for r in v]
 
 class UserDetailDto(BaseModel):
     id: str

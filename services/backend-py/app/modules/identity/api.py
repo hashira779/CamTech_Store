@@ -14,7 +14,7 @@ from app.core.security import (
     decode_refresh_token, generate_totp_secret, verify_totp_code,
     get_totp_uri
 )
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.registration_worker import dispatch_user_registered_event
 
 from typing import List
@@ -316,15 +316,10 @@ async def get_me(user: TenantUser = Depends(get_current_user)):
 
 @router.get("/users", response_model=List[UserDetailDto])
 async def list_users(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["users:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """List all users/staff in the organization. Requires admin access."""
-    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
-        )
     
     stmt = select(User).options(selectinload(User.user_roles)).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
     res = await db.execute(stmt)
@@ -350,28 +345,23 @@ async def list_users(
 
 @router.post("/users", response_model=UserDetailDto, status_code=status.HTTP_201_CREATED)
 async def create_user(
-    req: CreateUserInput,
-    user: TenantUser = Depends(get_current_user),
+    inp: CreateUserInput,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
     db: AsyncSession = Depends(get_db)
 ):
-    """Super Admin / Org Admin creates a new staff, cashier, or admin user."""
-    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
-        )
+    """Create a new staff user. Requires admin access."""
     
     # Check if email exists
-    exist = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
+    exist = (await db.execute(select(User).where(User.email == inp.email))).scalar_one_or_none()
     if exist:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"User with email '{req.email}' already exists"
+            detail=f"User with email '{inp.email}' already exists"
         )
     
-    pwd_hash = await asyncio.to_thread(hash_password, req.password)
+    pwd_hash = await asyncio.to_thread(hash_password, inp.password)
     user_id = f"usr_{uuid.uuid4().hex[:10]}"
-    roles = [r.upper() for r in req.roles] if req.roles else ["STAFF"]
+    roles = [r.upper() for r in inp.roles] if inp.roles else ["STAFF"]
     
     # Only SUPER_ADMIN can create another SUPER_ADMIN
     if "SUPER_ADMIN" in roles and "SUPER_ADMIN" not in user.roles:
@@ -383,11 +373,11 @@ async def create_user(
     new_user = User(
         id=user_id,
         organization_id=user.organization_id,
-        email=req.email,
-        name=req.name,
+        email=inp.email,
+        name=inp.name,
         password_hash=pwd_hash,
         roles=json.dumps(roles),
-        location_id=req.locationId,
+        location_id=inp.locationId,
         is_active=True
     )
     db.add(new_user)
@@ -412,28 +402,23 @@ async def create_user(
         createdAt=new_user.created_at.isoformat() if new_user.created_at else None
     )
 
-@router.patch("/users/{user_id}", response_model=UserDetailDto)
+@router.patch("/users/{target_user_id}", response_model=UserDetailDto)
 async def update_user(
-    user_id: str,
-    req: UpdateUserInput,
-    user: TenantUser = Depends(get_current_user),
+    target_user_id: str,
+    inp: UpdateUserInput,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
     db: AsyncSession = Depends(get_db)
 ):
-    """Super Admin / Org Admin updates a user's roles, active status, name, or password."""
-    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
-        )
+    """Update user roles, status, or reset password."""
     
-    target = (await db.execute(select(User).where(User.id == user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
+    target = (await db.execute(select(User).where(User.id == target_user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    if req.name is not None:
-        target.name = req.name
-    if req.roles is not None:
-        roles = [r.upper() for r in req.roles]
+    if inp.name is not None:
+        target.name = inp.name
+    if inp.roles is not None:
+        roles = [r.upper() for r in inp.roles]
         if "SUPER_ADMIN" in roles and "SUPER_ADMIN" not in user.roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -448,12 +433,12 @@ async def update_user(
                 db.add(Role(name=r, description=f"{r} role"))
                 await db.flush()
             db.add(UserRole(user_id=target.id, role_name=r))
-    if req.isActive is not None:
-        target.is_active = req.isActive
-    if req.locationId is not None:
-        target.location_id = req.locationId
-    if req.password:
-        target.password_hash = await asyncio.to_thread(hash_password, req.password)
+    if inp.isActive is not None:
+        target.is_active = inp.isActive
+    if inp.locationId is not None:
+        target.location_id = inp.locationId
+    if inp.password:
+        target.password_hash = await asyncio.to_thread(hash_password, inp.password)
     
     await db.commit()
     await db.refresh(target)
@@ -470,20 +455,15 @@ async def update_user(
         createdAt=target.created_at.isoformat() if target.created_at else None
     )
 
-@router.delete("/users/{user_id}")
-async def deactivate_user(
-    user_id: str,
-    user: TenantUser = Depends(get_current_user),
+@router.delete("/users/{target_user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    target_user_id: str,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
     db: AsyncSession = Depends(get_db)
 ):
-    """Deactivates a user account."""
-    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: requires SUPER_ADMIN or ORG_ADMIN privileges"
-        )
+    """Deactivate or delete user."""
     
-    target = (await db.execute(select(User).where(User.id == user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
+    target = (await db.execute(select(User).where(User.id == target_user_id, User.organization_id == user.organization_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     

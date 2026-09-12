@@ -166,7 +166,7 @@ async def test_developer_platform_endpoints_flow():
                 "chatId": f"-100{test_run_id}",
                 "chatTitle": f"Dev Channel {test_run_id}",
                 "username": "dev_bot",
-                "role": "OPERATOR",
+                "role": "CASHIER",
                 "botId": created_bot_id,
             }
             res = await client.post("/api/v1/telegram/bindings", json=binding_payload)

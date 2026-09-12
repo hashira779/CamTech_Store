@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, get_optional_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser, RequirePermissions, RequireAnyPermission
 from .schemas import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
@@ -131,7 +131,7 @@ async def update_delivery_task_status(
 async def list_delivery_orders(
     status: Optional[str] = None,
     search: Optional[str] = None,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -147,7 +147,7 @@ async def list_delivery_orders(
 @router.post("/orders", response_model=DeliveryOrderDto)
 async def create_delivery_order(
     inp: CreateDeliveryOrderInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:manage"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -158,7 +158,7 @@ async def create_delivery_order(
 @router.get("/orders/{order_id}", response_model=DeliveryOrderDto)
 async def get_delivery_order(
     order_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -177,7 +177,7 @@ async def get_delivery_order(
 async def update_delivery_status(
     order_id: str,
     inp: UpdateDeliveryStatusInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequireAnyPermission(["delivery:manage", "delivery:update_own"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -202,7 +202,7 @@ async def update_delivery_status(
 async def assign_driver(
     order_id: str,
     inp: AssignDriverInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:manage"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -223,7 +223,7 @@ async def assign_driver(
 
 @router.get("/drivers", response_model=List[DeliveryDriverDto])
 async def list_drivers(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -234,7 +234,7 @@ async def list_drivers(
 @router.post("/drivers", response_model=DeliveryDriverDto)
 async def create_driver(
     inp: CreateDriverInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:manage"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -246,7 +246,7 @@ async def create_driver(
 async def ping_driver_location(
     driver_id: str,
     inp: DriverLocationPingInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequireAnyPermission(["delivery:manage", "delivery:update_own"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -263,7 +263,7 @@ async def ping_driver_location(
 
 @router.get("/live-tracking", response_model=LiveTrackingSnapshotDto)
 async def get_live_tracking_snapshot(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
