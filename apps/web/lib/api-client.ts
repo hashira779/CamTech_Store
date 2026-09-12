@@ -1528,6 +1528,9 @@ export const api = {
   getDeliveryOrder: (token: string, id: string) =>
     request<DeliveryOrderDto>(`/delivery/orders/${id}`, { token }),
 
+  trackDeliveryOrder: (identifier: string, token?: string) =>
+    request<DeliveryOrderDto>(`/delivery/track/${encodeURIComponent(identifier)}`, { token }),
+
   updateDeliveryStatus: (
     token: string,
     id: string,

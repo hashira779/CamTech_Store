@@ -96,3 +96,12 @@ class SaleDto(BaseModel):
     deliveryOrderId: Optional[str] = None
     deliveryStatus: Optional[str] = None
     deliveryAddress: Optional[str] = None
+    driverName: Optional[str] = None
+    driverPhone: Optional[str] = None
+    driverVehicle: Optional[str] = None
+    destLat: Optional[float] = None
+    destLng: Optional[float] = None
+    deliveryFee: Optional[float] = None
+    etaMinutes: Optional[int] = None
+    distanceKm: Optional[float] = None
+

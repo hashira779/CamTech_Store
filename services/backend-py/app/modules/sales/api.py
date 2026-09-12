@@ -16,7 +16,8 @@ _derive_payment_status = derive_payment_status
 
 router = APIRouter(tags=["Sales"])
 
-# Mount modular sub-controllers
-router.include_router(pos_router)
-router.include_router(checkout_router)
+# Mount modular sub-controllers (specific endpoints first before dynamic {sale_id})
 router.include_router(orders_router)
+router.include_router(checkout_router)
+router.include_router(pos_router)
+

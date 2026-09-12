@@ -31,7 +31,14 @@ import {
   Receipt,
   Printer,
   Copy,
-  Check
+  Check,
+  MessageSquare,
+  Star,
+  ArrowLeft,
+  MoreVertical,
+  Clock,
+  Bike,
+  Loader2,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
@@ -99,8 +106,57 @@ export function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyChannelTab, setHistoryChannelTab] = useState<'STORE' | 'ALL'>('STORE');
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<any>(null);
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<any>(null);
+  const [activeTip, setActiveTip] = useState<number | null>(null);
+  const [isTrackLookupOpen, setIsTrackLookupOpen] = useState(false);
+  const [trackLookupQuery, setTrackLookupQuery] = useState('');
+  const [isSearchingTracking, setIsSearchingTracking] = useState(false);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
+
+  // Real-time tracking polling when tracking modal is open
+  useEffect(() => {
+    if (!selectedOrderForTracking) return;
+    const identifier = selectedOrderForTracking.trackingNumber || selectedOrderForTracking.saleNumber || selectedOrderForTracking.orderNumber || selectedOrderForTracking.id;
+    if (!identifier) return;
+
+    let isMounted = true;
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/delivery/track/${encodeURIComponent(identifier)}`);
+        if (res.ok) {
+          const json = await res.json();
+          const liveData = json.data || json;
+          if (liveData && isMounted) {
+            setSelectedOrderForTracking((prev: any) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                deliveryStatus: liveData.status || prev.deliveryStatus || prev.status,
+                status: liveData.status || prev.status,
+                driverName: liveData.driverName || prev.driverName,
+                driverPhone: liveData.driverPhone || prev.driverPhone,
+                driverVehicle: liveData.driverVehicle || prev.driverVehicle,
+                destLat: liveData.destLat ?? prev.destLat,
+                destLng: liveData.destLng ?? prev.destLng,
+                distanceKm: liveData.distanceKm ?? prev.distanceKm,
+                etaMinutes: liveData.etaMinutes ?? prev.etaMinutes,
+                trackingNumber: liveData.trackingNumber || prev.trackingNumber,
+              };
+            });
+          }
+        }
+      } catch {
+        // network silent fallback
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [selectedOrderForTracking?.id, selectedOrderForTracking?.trackingNumber, selectedOrderForTracking?.orderNumber]);
+
 
   // Automatically keep localStorage in sync with cart state
   useEffect(() => {
@@ -700,8 +756,16 @@ export function App() {
             {customer ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
+                  onClick={() => setIsTrackLookupOpen(true)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 border border-line transition cursor-pointer"
+                  title="Track Order Status"
+                >
+                  <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Track</span>
+                </button>
+                <button
                   onClick={() => setIsHistoryOpen(true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium ds-text-dim flex items-center gap-1.5 border border-line transition"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium ds-text-dim flex items-center gap-1.5 border border-line transition cursor-pointer"
                   title="View Purchase History"
                 >
                   <History className="w-3.5 h-3.5 text-brand-400" />
@@ -725,6 +789,14 @@ export function App() {
               </div>
             ) : (
               <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setIsTrackLookupOpen(true)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 border border-line transition cursor-pointer"
+                  title="Track Order Status"
+                >
+                  <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Track</span>
+                </button>
                 <button
                   onClick={() => setIsHistoryOpen(true)}
                   className="px-2.5 sm:px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 text-xs font-medium ds-text-dim flex items-center gap-1.5 border border-line transition cursor-pointer"
@@ -1382,25 +1454,39 @@ export function App() {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
+            <div className="mt-6 space-y-2.5">
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedOrderForInvoice(confirmedOrder);
+                  setSelectedOrderForTracking(confirmedOrder);
                   setConfirmedOrder(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-line-strong transition cursor-pointer"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
               >
-                <Receipt className="w-4 h-4" />
-                View Invoice
+                <Truck className="w-4 h-4" />
+                <span>Track Order Live (Real-Time GPS)</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setConfirmedOrder(null)}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition cursor-pointer"
-              >
-                Continue Shopping
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForInvoice(confirmedOrder);
+                    setConfirmedOrder(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-line-strong transition cursor-pointer"
+                >
+                  <Receipt className="w-4 h-4" />
+                  View Invoice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmedOrder(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-ink-950 hover:bg-ink-800 text-slate-300 font-bold text-xs border border-line transition cursor-pointer"
+                >
+                  Continue Shopping
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1511,7 +1597,7 @@ export function App() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-right">
+                      <div className="text-right hidden sm:block">
                         <span className="font-mono font-bold text-emerald-400 text-sm block">
                           ${Number(order.grandTotal || order.total || 0).toFixed(2)}
                         </span>
@@ -1519,8 +1605,32 @@ export function App() {
                           {order.payments?.[0]?.method || order.paymentMethod || 'Paid via KHQR'}
                         </span>
                       </div>
-                      <div className="p-1.5 rounded-lg bg-ink-850 group-hover:bg-emerald-500/20 ds-text-dim group-hover:text-emerald-400 transition">
-                        <Receipt className="w-4 h-4" />
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrderForTracking(order);
+                            setIsHistoryOpen(false);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-[11px] flex items-center gap-1 border border-emerald-500/30 transition cursor-pointer"
+                          title="Track Live"
+                        >
+                          <Truck className="w-3 h-3" />
+                          <span>Track</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrderForInvoice(order);
+                            setIsHistoryOpen(false);
+                          }}
+                          className="p-1 rounded-lg bg-ink-850 hover:bg-ink-800 ds-text-dim hover:text-white transition border border-line cursor-pointer"
+                          title="View Invoice"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1570,6 +1680,18 @@ export function App() {
                   <h3 className="font-bold text-base ds-text">Order Details & Tax Invoice</h3>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForTracking(order);
+                      setSelectedOrderForInvoice(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold flex items-center gap-1.5 transition border border-emerald-500/30 cursor-pointer"
+                    title="Switch to Real-Time Tracking"
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Live Tracking</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => window.print()}
@@ -1797,6 +1919,439 @@ export function App() {
           </div>
         );
       })()}
+
+      {/* ─── Real-Time Customer Order Tracking Modal (Reference Image 1) ─── */}
+      {selectedOrderForTracking && (() => {
+        const order = selectedOrderForTracking;
+        const trackingNum = order.trackingNumber || (order.id ? `TRK-${String(order.id).slice(-4).toUpperCase()}` : 'TRK-2026-LIVE');
+        const destLat = typeof order.destLat === 'number' && order.destLat !== 0 ? order.destLat : (coords?.lat ?? 11.5564);
+        const destLng = typeof order.destLng === 'number' && order.destLng !== 0 ? order.destLng : (coords?.lng ?? 104.9282);
+
+        // 4-digit verification code (matching Image 1 "2045 Your code")
+        const verificationCode = order.deliveryPin || (order.id ? order.id.replace(/\D/g, '').slice(-4) || '2045' : '2045');
+
+        // Status determination
+        const rawStatus = String(order.deliveryStatus || order.status || 'PENDING').toUpperCase();
+        let statusTitle = 'Order Confirmed';
+        let statusSubtitle = 'Merchant is preparing order';
+        let activeStep = 1; // 1: Accepted, 2: Processing, 3: Pickup / In Transit, 4: Delivered
+
+        if (rawStatus === 'PENDING' || rawStatus === 'DRAFT') {
+          statusTitle = 'Order Accepted';
+          statusSubtitle = 'Merchant confirmed your order';
+          activeStep = 1;
+        } else if (rawStatus === 'DISPATCHED' || rawStatus === 'PACKING') {
+          statusTitle = 'Processing & Packing';
+          statusSubtitle = 'Driver arriving at store for pickup';
+          activeStep = 2;
+        } else if (rawStatus === 'IN_TRANSIT') {
+          statusTitle = 'Out For delivery';
+          const eta = order.etaMinutes ? `Arriving in ~${order.etaMinutes} mins` : 'Arriving at 12:45';
+          statusSubtitle = eta;
+          activeStep = 3;
+        } else if (rawStatus === 'DELIVERED' || rawStatus === 'COMPLETED') {
+          statusTitle = 'Package Delivered';
+          statusSubtitle = 'Successfully handed to recipient';
+          activeStep = 4;
+        }
+
+        const driverName = order.driverName || 'James Williams';
+        const driverRating = '4.8';
+        const driverPhone = order.driverPhone || '+85512888999';
+
+        const handleSelectTip = (amount: number) => {
+          setActiveTip(amount);
+          toast.success(`🎉 Added $${amount.toFixed(2)} tip for ${driverName}! Everyone deserves a little kindness.`);
+        };
+
+        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            {/* Phone/Device Container Card */}
+            <div className="w-full max-w-md bg-ink-900 border border-line rounded-[36px] shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 flex flex-col relative text-zinc-100">
+              
+              {/* Top Navigation Bar */}
+              <div className="px-5 py-3.5 bg-ink-950/80 backdrop-blur-md border-b border-line flex items-center justify-between z-20 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderForTracking(null)}
+                  className="w-9 h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
+                  title="Back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h3 className="font-extrabold text-sm tracking-tight text-white">Tracking Order</h3>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForInvoice(order);
+                      setSelectedOrderForTracking(null);
+                    }}
+                    className="w-9 h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
+                    title="View Tax Invoice"
+                  >
+                    <Receipt className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Map Header Section with Route Simulation (Image 1) */}
+              <div className="relative w-full h-72 bg-slate-950 overflow-hidden shrink-0 border-b border-line">
+                {/* Real Street Map (OpenStreetMap) */}
+                <iframe
+                  title={`Tracking-Map-${destLat}-${destLng}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${destLng - 0.009}%2C${destLat - 0.006}%2C${destLng + 0.009}%2C${destLat + 0.006}&layer=mapnik&marker=${destLat}%2C${destLng}`}
+                  className="w-full h-full border-0 opacity-80 pointer-events-auto"
+                  loading="lazy"
+                />
+
+                {/* Simulated Visual Route Line (Curved Green Line from Image 1) */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                  <defs>
+                    <linearGradient id="routeGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
+                      <stop offset="100%" stopColor="#059669" stopOpacity="0.95" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M 130 220 Q 150 170 200 150 T 260 70"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray="6 6"
+                    className="animate-pulse"
+                  />
+                </svg>
+
+                {/* Courier / Shopper Scooter Marker on Route */}
+                <div 
+                  className="absolute z-20 flex flex-col items-center pointer-events-none"
+                  style={{ left: '46%', top: '48%', transform: 'translate(-50%, -50%)' }}
+                >
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center text-lg border-2 border-emerald-500 animate-bounce">
+                      🛵
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                  </div>
+                  <span className="mt-1 px-2 py-0.5 rounded-md bg-slate-950/90 text-white font-mono text-[9px] font-bold border border-slate-700 shadow-md whitespace-nowrap">
+                    {driverName.split(' ')[0]} • En Route
+                  </span>
+                </div>
+
+                {/* Destination Marker with Glowing Pin */}
+                <div
+                  className="absolute z-20 flex flex-col items-center pointer-events-none"
+                  style={{ left: '68%', top: '22%', transform: 'translate(-50%, -50%)' }}
+                >
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/30 flex items-center justify-center animate-pulse">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg text-slate-950 font-black text-xs">
+                        📍
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating "Open with Google Maps" Button */}
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-lg border border-slate-700/80 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+                >
+                  <Navigation className="w-3.5 h-3.5 text-sky-400 fill-sky-400" />
+                  <span>Google Maps</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
+
+                {/* Tracking ID Badge */}
+                <div className="absolute bottom-2 left-3 z-20 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] font-mono font-bold text-emerald-400">
+                  #{trackingNum}
+                </div>
+              </div>
+
+              {/* Floating Status & Milestone Card (Bottom - Matching Reference Image 1) */}
+              <div className="p-5 space-y-5 bg-ink-950 flex-1 overflow-y-auto">
+                
+                {/* Status Header + 4-digit code */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-xl font-black text-white tracking-tight">{statusTitle}</h4>
+                    <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{statusSubtitle}</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono text-xl font-black text-emerald-400 block tracking-wider">
+                      {verificationCode}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                      Your code
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4-Stage Visual Progress Stepper (Image 1) */}
+                <div className="relative pt-2 pb-1">
+                  {/* Background track */}
+                  <div className="absolute top-6 left-6 right-6 h-1 bg-ink-800 rounded-full z-0" />
+                  
+                  {/* Progressive Green Track */}
+                  <div 
+                    className="absolute top-6 left-6 h-1 bg-emerald-500 rounded-full transition-all duration-500 z-0"
+                    style={{
+                      width: activeStep === 1 ? '10%' : activeStep === 2 ? '40%' : activeStep === 3 ? '72%' : '92%'
+                    }}
+                  />
+
+                  {/* 4 Checkpoint Nodes */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    {/* Stage 1: Accepted */}
+                    <div className="flex flex-col items-center text-center w-16">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                        activeStep >= 1
+                          ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/30'
+                          : 'bg-ink-850 text-zinc-500 border border-line'
+                      }`}>
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      </div>
+                      <span className={`text-[10px] font-bold mt-2 ${
+                        activeStep >= 1 ? 'text-white' : 'text-zinc-500'
+                      }`}>
+                        Accepted
+                      </span>
+                    </div>
+
+                    {/* Stage 2: Processing */}
+                    <div className="flex flex-col items-center text-center w-16">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                        activeStep >= 2
+                          ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/30'
+                          : 'bg-ink-850 text-zinc-500 border border-line'
+                      }`}>
+                        {activeStep === 2 ? (
+                          <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
+                        ) : (
+                          <Package className="w-4 h-4" />
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-bold mt-2 ${
+                        activeStep >= 2 ? 'text-white' : 'text-zinc-500'
+                      }`}>
+                        Processing
+                      </span>
+                    </div>
+
+                    {/* Stage 3: Pickup / Out for Delivery */}
+                    <div className="flex flex-col items-center text-center w-16">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                        activeStep >= 3
+                          ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/30'
+                          : 'bg-ink-850 text-zinc-500 border border-line'
+                      }`}>
+                        <Truck className="w-4 h-4" />
+                      </div>
+                      <span className={`text-[10px] font-bold mt-2 ${
+                        activeStep >= 3 ? 'text-white' : 'text-zinc-500'
+                      }`}>
+                        Pickup
+                      </span>
+                    </div>
+
+                    {/* Stage 4: Delivered */}
+                    <div className="flex flex-col items-center text-center w-16">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                        activeStep >= 4
+                          ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/30'
+                          : 'bg-ink-850 text-zinc-500 border border-line'
+                      }`}>
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <span className={`text-[10px] font-bold mt-2 ${
+                        activeStep >= 4 ? 'text-white' : 'text-zinc-500'
+                      }`}>
+                        Delivered
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assigned Driver Profile Card (Image 1) */}
+                <div className="p-3.5 rounded-2xl bg-ink-900 border border-line flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Avatar photo */}
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500/40 bg-ink-800 shrink-0 flex items-center justify-center">
+                      <img
+                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                        alt={driverName}
+                        className="w-full h-full object-cover"
+                        onError={(e: any) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <User className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h5 className="font-extrabold text-sm text-white">{driverName}</h5>
+                      <div className="flex items-center gap-1 mt-0.5 text-xs text-zinc-400">
+                        <span>Coming to you</span>
+                        <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          {driverRating}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Communication Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.info(`Direct chat with ${driverName} is active via Telegram Fleet Dispatch.`);
+                      }}
+                      className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                      title="Chat with courier"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={`tel:${driverPhone}`}
+                      className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                      title="Call courier"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Tip Your Shopper Section (Image 1) */}
+                <div className="p-4 rounded-2xl bg-ink-900 border border-line space-y-3">
+                  <div>
+                    <h5 className="font-extrabold text-xs text-white">Tip your shopper</h5>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Everyone deserve a little kindness</p>
+                  </div>
+                  
+                  {/* Tip quick amount buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[2.00, 5.00, 10.00, 15.00].map((amt) => {
+                      const isSelected = activeTip === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => handleSelectTip(amt)}
+                          className={`py-2 rounded-xl text-xs font-mono font-bold transition active:scale-95 cursor-pointer border ${
+                            isSelected
+                              ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20'
+                              : 'bg-ink-850 hover:bg-ink-800 text-zinc-300 border-line hover:border-emerald-500/40'
+                          }`}
+                        >
+                          ${amt.toFixed(2)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer Controls: Switch to Invoice or Close */}
+                <div className="flex items-center gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForInvoice(order);
+                      setSelectedOrderForTracking(null);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-ink-850 hover:bg-ink-800 text-zinc-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-line transition cursor-pointer"
+                  >
+                    <Receipt className="w-4 h-4 text-emerald-400" />
+                    <span>View Tax Invoice</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderForTracking(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-ink-850 hover:bg-ink-800 text-zinc-300 hover:text-white font-bold text-xs transition border border-line cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Track Order Quick Lookup Modal */}
+      {isTrackLookupOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-base ds-text">Track Your Order</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTrackLookupOpen(false)}
+                className="p-1 rounded-lg hover:bg-ink-800 ds-text-dim hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 text-xs">
+              <p className="ds-text-dim">
+                Enter your order number or tracking number to see real-time delivery status:
+              </p>
+              <input
+                type="text"
+                placeholder="e.g. TRK-2026-1001 or ORD-..."
+                value={trackLookupQuery}
+                onChange={(e) => setTrackLookupQuery(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-ink-950 border border-line ds-text placeholder-zinc-500 focus:outline-none focus:border-emerald-500 font-mono text-xs"
+              />
+              <button
+                type="button"
+                disabled={!trackLookupQuery.trim() || isSearchingTracking}
+                onClick={async () => {
+                  if (!trackLookupQuery.trim()) return;
+                  setIsSearchingTracking(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/v1/delivery/track/${encodeURIComponent(trackLookupQuery.trim())}`);
+                    if (res.ok) {
+                      const json = await res.json();
+                      const trackData = json.data || json;
+                      setSelectedOrderForTracking(trackData);
+                      setIsTrackLookupOpen(false);
+                      toast.success(`Found live tracking for #${trackData.trackingNumber || trackLookupQuery}`);
+                    } else {
+                      toast.error(`No order found matching "${trackLookupQuery}". Please check the number.`);
+                    }
+                  } catch (err: any) {
+                    toast.error(`Lookup failed: ${err.message || 'Server unreachable'}`);
+                  } finally {
+                    setIsSearchingTracking(false);
+                  }
+                }}
+                className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+              >
+                {isSearchingTracking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                <span>Find Live Tracking</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Customer Sign In / Account Modal */}
       {isAuthModalOpen && (

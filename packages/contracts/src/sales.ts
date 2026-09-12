@@ -112,7 +112,19 @@ export interface SaleDto {
   updatedAt: string;
   lineItems: SaleLineItemDto[];
   payments: SalePaymentDto[];
-  customer?: { id: string; name: string; code: string | null } | null;
+  customer?: { id: string; name: string; code: string | null; phone?: string | null; email?: string | null } | null;
+  trackingNumber?: string | null;
+  deliveryOrderId?: string | null;
+  deliveryStatus?: string | null;
+  deliveryAddress?: string | null;
+  deliveryFee?: number | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  driverVehicle?: string | null;
+  destLat?: number | null;
+  destLng?: number | null;
+  etaMinutes?: number | null;
+  distanceKm?: number | null;
 }
 
 /** Summary DTO used in list views (without full line items). */

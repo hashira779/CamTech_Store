@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.dependencies import get_optional_user, TenantUser
 from app.modules.customers.models import Customer
+from app.modules.delivery.models import DeliveryOrder, DeliveryDriver
 
 from ..models import Sale
 from ..schemas import (
@@ -74,8 +75,23 @@ async def get_customer_orders(
     result = await db.execute(stmt)
     sales = result.scalars().all()
 
+    sale_ids = [s.id for s in sales]
+    deliv_map = {}
+    if sale_ids:
+        deliv_res = await db.execute(
+            select(DeliveryOrder, DeliveryDriver)
+            .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+            .where(DeliveryOrder.sale_id.in_(sale_ids))
+        )
+        for d_ord, d_drv in deliv_res.all():
+            deliv_map[d_ord.sale_id] = (d_ord, d_drv)
+
     out = []
     for s in sales:
+        deliv_info = deliv_map.get(s.id)
+        d_ord = deliv_info[0] if deliv_info else None
+        d_drv = deliv_info[1] if deliv_info else None
+
         out.append(SaleDto(
             id=s.id,
             saleNumber=s.sale_number,
@@ -110,7 +126,18 @@ async def get_customer_orders(
                     status=p.status,
                     reference=p.reference
                 ) for p in s.payments
-            ]
+            ],
+            trackingNumber=d_ord.tracking_number if d_ord else None,
+            deliveryOrderId=d_ord.id if d_ord else None,
+            deliveryStatus=d_ord.status if d_ord else None,
+            deliveryAddress=d_ord.delivery_address if d_ord else None,
+            driverName=d_drv.name if d_drv else None,
+            driverPhone=d_drv.phone if d_drv else None,
+            driverVehicle=d_drv.vehicle_type if d_drv else None,
+            destLat=d_ord.dest_lat if d_ord else None,
+            destLng=d_ord.dest_lng if d_ord else None,
+            etaMinutes=d_ord.eta_minutes if d_ord else None,
+            distanceKm=d_ord.distance_km if d_ord else None,
         ))
 
     return PaginatedResponse(items=out, meta=PageMeta(page=1, limit=50, total=len(out), totalPages=1), total=len(out))

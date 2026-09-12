@@ -236,6 +236,28 @@ async def get_order(db: AsyncSession, org_id: str, order_id: str) -> Optional[De
     return _order_to_dto(order, driver)
 
 
+async def track_order(db: AsyncSession, org_id: str, identifier: str) -> Optional[DeliveryOrderDto]:
+    """Find a delivery order by tracking_number, order_id, or sale_id."""
+    clean_id = identifier.strip()
+    result = await db.execute(
+        select(DeliveryOrder, DeliveryDriver)
+        .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+        .where(
+            DeliveryOrder.organization_id == org_id,
+            (DeliveryOrder.id == clean_id)
+            | (func.lower(DeliveryOrder.tracking_number) == clean_id.lower())
+            | (DeliveryOrder.sale_id == clean_id)
+        )
+        .limit(1)
+    )
+    row = result.first()
+    if not row:
+        return None
+    order, driver = row
+    return _order_to_dto(order, driver)
+
+
+
 async def create_order(
     db: AsyncSession, org_id: str, inp: CreateDeliveryOrderInput
 ) -> DeliveryOrderDto:

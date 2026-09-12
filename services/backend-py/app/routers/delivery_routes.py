@@ -27,6 +27,26 @@ def resolve_org_id(user: Optional[TenantUser]) -> str:
     return settings.DEFAULT_ORG_ID
 
 # Public & Fleet Driver Task Endpoints (Spec §45, §161)
+@router.get("/track/{identifier}", response_model=DeliveryOrderDto)
+async def track_delivery_order(
+    identifier: str,
+    user: Optional[TenantUser] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Real-time Order Tracking Endpoint.
+    Allows customers and dispatchers to lookup live delivery status, ETA, and courier telemetry.
+    Supports lookup by tracking number (e.g. TRK-2026-1001), delivery order UUID, or sale ID.
+    """
+    target_org = resolve_org_id(user)
+    order = await svc.track_order(db, org_id=target_org, identifier=identifier)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tracking details not found for '{identifier}'"
+        )
+    return order
+
 @router.get("/tasks")
 async def list_delivery_tasks(
     status: Optional[str] = None,

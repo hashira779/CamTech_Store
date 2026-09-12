@@ -1,5 +1,6 @@
 import uuid
 import secrets
+import json
 from decimal import Decimal
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
@@ -13,6 +14,8 @@ from app.core.dependencies import get_current_user, TenantUser
 from app.modules.catalog.models import ProductVariant
 from app.modules.locations.models import Location
 from app.modules.inventory.models import InventoryItem, StockMovement
+from app.modules.customers.models import Customer
+from app.modules.delivery.models import DeliveryOrder, DeliveryDriver
 from app.models.entities import NotificationRecord
 
 from ..models import Sale, SaleLineItem, SalePayment
@@ -78,6 +81,106 @@ async def list_sales(
             ]
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=1, limit=50, total=len(out), totalPages=1), total=len(out))
+
+@router.get("/sales/{sale_id}", response_model=SaleDto)
+async def get_sale(
+    sale_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = (
+        select(Sale)
+        .where(
+            Sale.id == sale_id,
+            Sale.organization_id == user.organization_id
+        )
+        .options(selectinload(Sale.line_items), selectinload(Sale.payments))
+    )
+    res = await db.execute(stmt)
+    s = res.scalar_one_or_none()
+    if not s:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sale transaction not found: {sale_id}"
+        )
+
+    # Derive Customer Name
+    cust_name = None
+    if s.customer_id:
+        c_res = await db.execute(select(Customer.name).where(Customer.id == s.customer_id))
+        cust_name = c_res.scalar_one_or_none()
+    if not cust_name and s.notes:
+        try:
+            parsed = json.loads(s.notes)
+            if isinstance(parsed, dict):
+                cust_name = parsed.get("customerName")
+        except Exception:
+            pass
+
+    # Look up attached DeliveryOrder & Driver
+    deliv_stmt = (
+        select(DeliveryOrder, DeliveryDriver)
+        .outerjoin(DeliveryDriver, DeliveryOrder.driver_id == DeliveryDriver.id)
+        .where(
+            DeliveryOrder.organization_id == user.organization_id,
+            (DeliveryOrder.sale_id == s.id) | (DeliveryOrder.tracking_number == s.sale_number)
+        )
+        .limit(1)
+    )
+    deliv_res = await db.execute(deliv_stmt)
+    deliv_row = deliv_res.first()
+
+    deliv_order = deliv_row[0] if deliv_row else None
+    deliv_driver = deliv_row[1] if deliv_row else None
+
+    return SaleDto(
+        id=s.id,
+        saleNumber=s.sale_number,
+        channel=s.channel,
+        status=s.status,
+        subtotal=float(s.subtotal),
+        taxTotal=float(s.tax_total),
+        discountTotal=float(s.discount_total),
+        grandTotal=float(s.grand_total),
+        currency=s.currency,
+        itemCount=len(s.line_items),
+        customerName=cust_name or "Walk-in Customer",
+        paymentStatus=derive_payment_status(s.payments, s.grand_total),
+        createdAt=s.created_at.isoformat(),
+        lineItems=[
+            SaleLineItemDto(
+                id=li.id,
+                variantId=li.product_variant_id,
+                sku=li.sku,
+                name=li.product_name,
+                quantity=float(li.quantity),
+                unitPrice=float(li.unit_price),
+                taxRatePct=float(li.tax_rate_pct),
+                lineTotal=float(li.line_total)
+            ) for li in s.line_items
+        ],
+        payments=[
+            SalePaymentDto(
+                id=p.id,
+                amount=float(p.amount),
+                method=p.method,
+                status=p.status,
+                reference=p.reference
+            ) for p in s.payments
+        ],
+        trackingNumber=deliv_order.tracking_number if deliv_order else None,
+        deliveryOrderId=deliv_order.id if deliv_order else None,
+        deliveryStatus=deliv_order.status if deliv_order else None,
+        deliveryAddress=deliv_order.delivery_address if deliv_order else None,
+        driverName=deliv_driver.name if deliv_driver else None,
+        driverPhone=deliv_driver.phone if deliv_driver else None,
+        driverVehicle=deliv_driver.vehicle_type if deliv_driver else None,
+        destLat=deliv_order.dest_lat if deliv_order else None,
+        destLng=deliv_order.dest_lng if deliv_order else None,
+        deliveryFee=float(deliv_order.delivery_fee) if deliv_order and deliv_order.delivery_fee is not None else None,
+        etaMinutes=deliv_order.eta_minutes if deliv_order else None,
+        distanceKm=deliv_order.distance_km if deliv_order else None,
+    )
 
 @router.post("/sales", response_model=SaleDto)
 async def create_sale(
