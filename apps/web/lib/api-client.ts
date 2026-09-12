@@ -272,12 +272,14 @@ async function request<T>(
   }
 
   // Handle standard { success: true, data: ... } envelope
-  if (rawJson && typeof rawJson === 'object' && rawJson.success === true) {
+  const isSuccess = rawJson && typeof rawJson === 'object' && rawJson.success === true;
+  if (isSuccess) {
     return rawJson.data as T;
   }
 
   // Handle direct unwrapped 2xx response (e.g. { accessToken: ... } or direct DTOs)
-  if (res.status >= 200 && res.status < 300 && rawJson?.success !== false) {
+  const isExplicitFailure = rawJson && typeof rawJson === 'object' && rawJson.success === false;
+  if (res.status >= 200 && res.status < 300 && !isExplicitFailure) {
     return (rawJson?.data !== undefined ? rawJson.data : rawJson) as T;
   }
 

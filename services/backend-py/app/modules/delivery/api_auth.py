@@ -216,7 +216,14 @@ async def register_verify(req: RegisterVerifyRequest, db: AsyncSession = Depends
         await db.commit()
         await db.refresh(driver)
         access_token = create_access_token(
-            data={"sub": driver.id, "email": driver.phone, "type": "delivery", "roles": ["DELIVERY_DRIVER"]}
+            data={
+                "sub": driver.id,
+                "orgId": driver.organization_id,
+                "organization_id": driver.organization_id,
+                "email": driver.phone,
+                "type": "delivery",
+                "roles": ["DELIVERY_DRIVER"],
+            }
         )
         return {
             "success": True,
@@ -226,7 +233,8 @@ async def register_verify(req: RegisterVerifyRequest, db: AsyncSession = Depends
                 "id": driver.id,
                 "name": driver.name,
                 "phone": driver.phone,
-                "roles": ["DELIVERY_DRIVER"]
+                "roles": ["DELIVERY_DRIVER"],
+                "organizationId": driver.organization_id,
             }
         }
         
@@ -248,7 +256,14 @@ async def auto_login(req: AutoLoginRequest, db: AsyncSession = Depends(get_db)):
         
     if driver.auth_status == "ACTIVE":
         access_token = create_access_token(
-            data={"sub": driver.id, "email": driver.phone, "type": "delivery", "roles": ["DELIVERY_DRIVER"]}
+            data={
+                "sub": driver.id,
+                "orgId": driver.organization_id,
+                "organization_id": driver.organization_id,
+                "email": driver.phone,
+                "type": "delivery",
+                "roles": ["DELIVERY_DRIVER"],
+            }
         )
         return {
             "success": True, 
@@ -258,7 +273,8 @@ async def auto_login(req: AutoLoginRequest, db: AsyncSession = Depends(get_db)):
                 "id": driver.id,
                 "name": driver.name,
                 "phone": driver.phone,
-                "roles": ["DELIVERY_DRIVER"]
+                "roles": ["DELIVERY_DRIVER"],
+                "organizationId": driver.organization_id,
             }
         }
         

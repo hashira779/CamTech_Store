@@ -1,6 +1,6 @@
 import uvicorn
 from app.microservices.common import create_microservice
-from app.routers.delivery_routes import router as delivery_router
+from app.modules.delivery.api import router as delivery_router
 
 app = create_microservice(
     name="Delivery & Fleet Microservice",

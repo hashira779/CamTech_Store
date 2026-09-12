@@ -62,6 +62,17 @@ export interface DeliveryOrderDto {
   createdAt: string;
   dispatchedAt?: string | null;
   deliveredAt?: string | null;
+  items?: Array<{
+    id?: string;
+    productName: string;
+    sku?: string;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+  }> | null;
+  saleNumber?: string | null;
+  totalAmount?: number | null;
+  wmsStatus?: string | null;
 }
 
 export interface LiveTrackingSnapshotDto {

@@ -10,7 +10,10 @@ from app.modules.documents.api import router as documents_router
 from app.modules.notifications.api import router as notifications_router
 from app.modules.workflows.api import router as workflows_router
 from app.modules.reporting.api import router as reporting_router
-from app.modules.bot_builder.api import router as bot_builder_router
+
+# NOTE: bot_builder has its own dedicated microservice on port 4008
+# (bot_builder_service.py). Do NOT mount it here — that would create
+# a confusing duplicate registration.
 
 # Supporting / platform routers
 from app.routers.industry_routes import router as industry_router
@@ -24,7 +27,7 @@ app = create_microservice(
     name="Platform & Experience Microservice",
     description=(
         "Owns every domain not carved into a core service: reporting/BI, notifications, "
-        "documents, workflows & approvals, projects, service desk, automations, bot builder, "
+        "documents, workflows & approvals, projects, service desk, automations, "
         "industry packs, AI copilot, data exchange, live events (SSE), app registry and the outbox/saga engine."
     ),
     port=4007,
@@ -38,7 +41,6 @@ for _router in (
     notifications_router,
     workflows_router,
     reporting_router,
-    bot_builder_router,
     industry_router,
     ai_copilot_router,
     data_exchange_router,

@@ -5,13 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser
-from app.schemas.dto import (
+from .schemas import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
     AssignDriverInput, LiveTrackingSnapshotDto
 )
-from app.services import delivery_service as svc
-from app.modules.delivery.api_auth import router as auth_router
+from . import service as svc
+from .api_auth import router as auth_router
 
 router = APIRouter(prefix="/delivery", tags=["Delivery & Live Fleet Dispatch"])
 router.include_router(auth_router, prefix="/auth")
@@ -118,7 +118,8 @@ async def update_delivery_task_status(
     Allows mobile delivery couriers to update package status (IN_TRANSIT, DELIVERED).
     """
     target_org = resolve_org_id(user)
-    order = await svc.update_order_status(db, org_id=target_org, order_id=order_id, inp=inp)
+    driver_id = user.id if (user and ("DELIVERY_DRIVER" in user.roles or hasattr(user, "id"))) else None
+    order = await svc.update_order_status(db, org_id=target_org, order_id=order_id, inp=inp, driver_id=driver_id)
     if not order:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,11 +183,13 @@ async def update_delivery_status(
     """
     Updates the delivery status following state machine rules (DISPATCHED, IN_TRANSIT, DELIVERED).
     """
+    driver_id = user.id if ("DELIVERY_DRIVER" in user.roles) else None
     order = await svc.update_order_status(
         db,
         org_id=user.organization_id,
         order_id=order_id,
-        inp=inp
+        inp=inp,
+        driver_id=driver_id
     )
     if not order:
         raise HTTPException(

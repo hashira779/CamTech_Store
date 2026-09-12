@@ -7,7 +7,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 > Orientation first: [`README.md`](README.md) · [`docs/architecture/current-state.md`](docs/architecture/current-state.md) ·
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
 > [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
-> latest change log [`docs/audits/session-2026-09-06.md`](docs/audits/session-2026-09-06.md).
+> latest change log [`docs/audits/session-2026-09-12.md`](docs/audits/session-2026-09-12.md).
 
 ---
 

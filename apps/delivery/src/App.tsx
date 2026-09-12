@@ -717,8 +717,19 @@ export function App() {
                   <User className="w-6 h-6 text-slate-500" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 font-medium">Driver Terminal</div>
-                  <h1 className="text-xl font-bold text-slate-900 tracking-tight">{user?.name || 'Active Courier'}</h1>
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Online & Ready for Dispatch</span>
+                  </div>
+                  <h1 className="text-xl font-black text-slate-900 tracking-tight capitalize">{user?.name || 'Active Courier'}</h1>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                      🛵 Verified Courier
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {user?.phone ? `+855 ${user.phone.slice(1)}` : 'Telegram Verified'}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">

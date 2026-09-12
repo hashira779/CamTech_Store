@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.datetime_utils import utc_now
 from app.modules.delivery.models import DeliveryDriver, DeliveryOrder
 from app.domain.delivery_engine import DeliveryEngine
-from app.schemas.dto import (
+from .schemas import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
     LiveTrackingSnapshotDto,
@@ -44,8 +44,12 @@ def _driver_to_dto(drv: DeliveryDriver, active_count: int = 0) -> DeliveryDriver
 def _order_to_dto(
     order: DeliveryOrder,
     driver: Optional[DeliveryDriver] = None,
+    items: Optional[List[dict]] = None,
+    sale_number: Optional[str] = None,
+    total_amount: Optional[float] = None,
+    wms_status: Optional[str] = None,
 ) -> DeliveryOrderDto:
-    """Map a DeliveryOrder ORM instance to its Pydantic DTO, enriching with driver info."""
+    """Map a DeliveryOrder ORM instance to its Pydantic DTO, enriching with driver info and line items."""
     return DeliveryOrderDto(
         id=order.id,
         organizationId=order.organization_id,
@@ -70,6 +74,10 @@ def _order_to_dto(
         createdAt=order.created_at.isoformat() if order.created_at else datetime.now(timezone.utc).isoformat(),
         dispatchedAt=order.dispatched_at.isoformat() if order.dispatched_at else None,
         deliveredAt=order.delivered_at.isoformat() if order.delivered_at else None,
+        items=items,
+        saleNumber=sale_number,
+        totalAmount=total_amount,
+        wmsStatus=wms_status,
     )
 
 
@@ -254,7 +262,38 @@ async def track_order(db: AsyncSession, org_id: str, identifier: str) -> Optiona
     if not row:
         return None
     order, driver = row
-    return _order_to_dto(order, driver)
+
+    items_list = None
+    sale_num = None
+    total_amt = None
+    wms_st = "PREPARING" if order.status == "PENDING" else ("OUT_FOR_DELIVERY" if order.status in ("DISPATCHED", "IN_TRANSIT") else "DELIVERED")
+
+    if order.sale_id:
+        try:
+            from app.modules.sales.models import Sale
+            from sqlalchemy.orm import selectinload
+            s_res = await db.execute(
+                select(Sale).options(selectinload(Sale.line_items)).where(Sale.id == order.sale_id)
+            )
+            s_obj = s_res.scalar_one_or_none()
+            if s_obj:
+                sale_num = s_obj.sale_number
+                total_amt = float(s_obj.grand_total)
+                items_list = [
+                    {
+                        "id": li.id,
+                        "productName": li.product_name,
+                        "sku": li.sku,
+                        "quantity": float(li.quantity),
+                        "unitPrice": float(li.unit_price),
+                        "lineTotal": float(li.line_total),
+                    }
+                    for li in (s_obj.line_items or [])
+                ]
+        except Exception:
+            pass
+
+    return _order_to_dto(order, driver, items=items_list, sale_number=sale_num, total_amount=total_amt, wms_status=wms_st)
 
 
 
@@ -359,7 +398,11 @@ async def assign_driver(
 
 
 async def update_order_status(
-    db: AsyncSession, org_id: str, order_id: str, inp: UpdateDeliveryStatusInput
+    db: AsyncSession,
+    org_id: str,
+    order_id: str,
+    inp: UpdateDeliveryStatusInput,
+    driver_id: Optional[str] = None,
 ) -> Optional[DeliveryOrderDto]:
     """Update delivery status following state machine rules."""
     result = await db.execute(
@@ -370,6 +413,21 @@ async def update_order_status(
     order = result.scalar_one_or_none()
     if not order:
         return None
+
+    # Auto-assign claiming driver if order is unassigned and driver exists in delivery_drivers
+    if order.driver_id is None and driver_id:
+        drv_result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == driver_id))
+        claiming_drv = drv_result.scalar_one_or_none()
+        if claiming_drv:
+            order.driver_id = driver_id
+            if not order.dispatched_at:
+                order.dispatched_at = utc_now()
+            claiming_drv.status = "EN_ROUTE"
+            dist = DeliveryEngine.calculate_distance_km(
+                claiming_drv.current_lat, claiming_drv.current_lng, order.dest_lat, order.dest_lng
+            )
+            order.distance_km = dist
+            order.eta_minutes = DeliveryEngine.calculate_eta_minutes(dist, claiming_drv.vehicle_type)
 
     old_status = order.status
     new_status = inp.status.upper()

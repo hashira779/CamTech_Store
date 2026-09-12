@@ -2,7 +2,7 @@
 
 > **Document Version:** 5.0.0  
 > **Last Verified:** 2026-09-06  
-> **Status:** Python canonical backend — **Enterprise Architecture Modernization Complete**. 97/97 tests passing (0 warnings). Relational RBAC normalized, God-routers decomposed, OpenTelemetry distributed tracing integrated, PgBouncer deployed, automated pre-push gate active.
+> **Status:** Python canonical backend — **Enterprise Architecture Modernization Complete**. 112/112 tests passing (0 warnings). Relational RBAC normalized, God-routers decomposed, OpenTelemetry distributed tracing integrated, PgBouncer deployed, automated pre-push gate active.
 
 > [!NOTE]
 > **What changed in 5.0.0 (2026-09-06):**
@@ -48,7 +48,7 @@ d:\Project\MyStore/
 |---|---|---|---|---|
 | **Root Workspace** | `/` | pnpm 11, Turbo 2.3 | ✅ Active | Scripts: `dev`, `build`, `test`, `typecheck`, `lint` |
 | **Web Application** | `apps/web/` | Vite 6, React 19, react-router-dom 7, Tailwind, TanStack Query | ✅ Active | 28 routes via react-router, enterprise UI with design system |
-| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 68 tables mapped, 0 schema drift, 97/97 tests passing (0 warnings). See [audit](../audits/session-2026-09-06.md). |
+| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 68 tables mapped, 0 schema drift, 112/112 tests passing (0 warnings). See [audit](../audits/session-2026-09-06.md). |
 | **Backend (Legacy)** | `services/backend/` | NestJS 10.4, Express, Prisma 6 | ⚠️ Legacy | 28 modules implemented. Retained for reference; not actively developed. |
 | **Shared Contracts** | `packages/contracts/` | TypeScript, Zod 3.24 | ✅ Active | Single source of truth for DTOs & contracts (used by web app) |
 | **Dev Infrastructure** | `docker-compose.yml` | Docker Compose v3.8 | ✅ Active | PostgreSQL 16, Redis 7 Alpine, MinIO S3 |

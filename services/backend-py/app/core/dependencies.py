@@ -24,25 +24,27 @@ class TenantUser:
         return role in self.roles or "ORG_ADMIN" in self.roles
 
 def extract_user_roles(user: User) -> List[str]:
-    """Dual-read: prioritize relational user_roles, fallback to legacy JSON string."""
+    """Strictly use relational user_roles table."""
     if getattr(user, "user_roles", None):
         return [ur.role_name for ur in user.user_roles]
-    try:
-        return json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["CASHIER"])
-    except Exception:
-        return [user.roles] if user.roles else ["CASHIER"]
+    return ["CASHIER"]
 
 async def _fetch_user_with_roles(db: AsyncSession, user_id: str) -> Optional[User]:
     try:
         result = await db.execute(
             select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
         )
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        if user:
+            return user
     except Exception:
         result = await db.execute(
             select(User).where(User.id == user_id)
         )
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        if user:
+            return user
+    return None
 
 
 async def get_current_user(

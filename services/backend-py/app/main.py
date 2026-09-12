@@ -12,7 +12,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.routers.delivery_routes import router as delivery_router
+from app.modules.delivery.api import router as delivery_router
 from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
 from app.routers.data_exchange_routes import router as data_exchange_router

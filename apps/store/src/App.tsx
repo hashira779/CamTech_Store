@@ -142,6 +142,9 @@ export function App() {
                 distanceKm: liveData.distanceKm ?? prev.distanceKm,
                 etaMinutes: liveData.etaMinutes ?? prev.etaMinutes,
                 trackingNumber: liveData.trackingNumber || prev.trackingNumber,
+                items: liveData.items || prev.items || prev.lineItems,
+                saleNumber: liveData.saleNumber || prev.saleNumber,
+                totalAmount: liveData.totalAmount || prev.totalAmount || prev.grandTotal,
               };
             });
           }
@@ -2183,6 +2186,54 @@ export function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* ─── Ordered Items Breakdown Card ─── */}
+                {((order.items && order.items.length > 0) || (order.lineItems && order.lineItems.length > 0)) && (
+                  <div className="p-4 rounded-2xl bg-ink-900 border border-line space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-extrabold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Items in this Order</span>
+                      </h5>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-ink-800 text-emerald-400 border border-emerald-500/20">
+                        {(order.items || order.lineItems).length} item{(order.items || order.lineItems).length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-line/60">
+                      {(order.items || order.lineItems).map((item: any, idx: number) => {
+                        const name = item.productName || item.name || 'Item';
+                        const qty = item.quantity || 1;
+                        const price = item.unitPrice || item.price || (item.lineTotal ? item.lineTotal / qty : 0);
+                        const total = item.lineTotal || (qty * price);
+                        return (
+                          <div key={item.id || idx} className="py-2.5 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-400 font-black text-[11px] flex items-center justify-center shrink-0 border border-emerald-500/30">
+                                {qty}x
+                              </span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-white block truncate">{name}</span>
+                                <span className="text-[10px] text-zinc-400 font-mono">${Number(price).toFixed(2)} each</span>
+                              </div>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-400 shrink-0 ml-2">
+                              ${Number(total).toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Order Total */}
+                    <div className="pt-2.5 border-t border-line flex items-center justify-between text-xs">
+                      <span className="font-bold text-zinc-400">Total Charged</span>
+                      <span className="text-emerald-400 font-mono font-black text-sm">
+                        ${Number(order.grandTotal || order.totalAmount || order.codAmount || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Assigned Driver Profile Card (Image 1) */}
                 <div className="p-3.5 rounded-2xl bg-ink-900 border border-line flex items-center justify-between">
