@@ -390,6 +390,65 @@ async def store_checkout(
 
     await db.commit()
 
+    # 11. Broadcast Real-Time SSE Stream Events to Admin & Staff
+    try:
+        from app.domain.event_bus import event_bus
+        await event_bus.publish(
+            target_org,
+            "SALE_COMPLETED",
+            {
+                "saleId": sale_id,
+                "saleNumber": sale_num,
+                "customerName": name_clean,
+                "totalAmount": float(grand_total),
+                "itemCount": len(line_entities),
+                "trackingNumber": deliv_order.trackingNumber,
+            }
+        )
+        await event_bus.publish(
+            target_org,
+            "ORDER_CREATED",
+            {
+                "saleId": sale_id,
+                "saleNumber": sale_num,
+                "customerName": name_clean,
+                "itemCount": len(line_entities),
+                "totalAmount": float(grand_total),
+                "deliveryAddress": deliv_addr,
+                "trackingNumber": deliv_order.trackingNumber,
+            }
+        )
+    except Exception:
+        pass
+
+    # 12. Dispatch to Telegram Group/Admin if active Telegram bot configured
+    try:
+        from app.modules.automations.models import TelegramBot
+        from app.core.crypto import EncryptionService
+        from app.modules.bot_builder.engine.telegram_adapter import TelegramAdapter
+        bot_res = await db.execute(
+            select(TelegramBot).where(
+                TelegramBot.organization_id == target_org,
+                TelegramBot.is_active == True
+            ).order_by((TelegramBot.purpose == "DELIVERY").desc(), TelegramBot.is_primary.desc())
+        )
+        tg_bot = bot_res.scalars().first()
+        if tg_bot and tg_bot.bot_token and tg_bot.default_chat_id:
+            raw_token = EncryptionService.decrypt(tg_bot.bot_token)
+            adapter = TelegramAdapter(raw_token)
+            msg_text = (
+                f"🛍 <b>New Online Order #{sale_num}</b>\n\n"
+                f"👤 <b>Customer:</b> {name_clean}\n"
+                f"📞 <b>Phone:</b> {phone_clean}\n"
+                f"📦 <b>Items:</b> {len(line_entities)} items ({items_summary})\n"
+                f"💰 <b>Total:</b> ${float(grand_total):.2f}\n"
+                f"📍 <b>Delivery:</b> {deliv_addr}\n"
+                f"🛵 <b>Tracking:</b> <code>{deliv_order.trackingNumber}</code>"
+            )
+            await adapter.send_message(tg_bot.default_chat_id, msg_text)
+    except Exception:
+        pass
+
     return SaleDto(
         id=sale.id,
         idempotencyKey=sale.idempotency_key,

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, createContext, useContext, Suspense } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { useNavigate, useLocation, Link, Navigate, Outlet } from 'react-router-dom';
 import { PageSkeleton } from '@/components/page-skeleton';
@@ -107,6 +109,13 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false);
 
   const { theme, setTheme } = useThemeStore();
+
+  const { data: notifStats } = useQuery({
+    queryKey: ['notificationStats'],
+    queryFn: () => (token ? api.getNotificationStats(token) : null),
+    enabled: Boolean(token),
+    refetchInterval: 15000,
+  });
 
   // Protect route
   useEffect(() => {
@@ -531,10 +540,17 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             <button
               onClick={() => navigate('/notifications')}
               className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors cursor-pointer"
-              title="Notifications"
+              title={`Notifications (${notifStats?.unreadInApp || 0} unread)`}
+              aria-label="View notifications"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-card" />
+              {Boolean(notifStats?.unreadInApp && notifStats.unreadInApp > 0) ? (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-xs animate-in zoom-in">
+                  {notifStats!.unreadInApp > 99 ? '99+' : notifStats!.unreadInApp}
+                </span>
+              ) : (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-card" />
+              )}
             </button>
           </div>
         </header>

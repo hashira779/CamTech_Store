@@ -41,21 +41,39 @@ export function useRealtimeStream() {
             });
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             queryClient.invalidateQueries({ queryKey: ['reports'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationsList'] });
+          } else if (type === 'ORDER_CREATED') {
+            toast.info(`📦 New Order #${data.saleNumber || 'ORD'}`, {
+              description: `${data.customerName || 'Customer'} placed an order (${data.itemCount || 1} items).`,
+            });
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationsList'] });
+          } else if (type === 'NOTIFICATION_CREATED') {
+            toast.info(data.title || '🔔 New Notification', {
+              description: data.message || '',
+            });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationsList'] });
           } else if (type === 'DELIVERY_DISPATCHED') {
             toast.info(`🚚 Courier Dispatched (${data.trackingNumber})`, {
               description: `Order assigned to courier for delivery.`,
             });
             queryClient.invalidateQueries({ queryKey: ['delivery'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
           } else if (type === 'APPROVAL_REQUIRED') {
             toast.warning(`✍️ Approval Request Pending`, {
               description: data.title || 'New approval requires review.',
             });
             queryClient.invalidateQueries({ queryKey: ['approvals'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
           } else if (type === 'LOW_STOCK_ALERT') {
             toast.error(`⚠️ Low Stock Alert: ${data.variantName || 'Item'}`, {
               description: `Remaining: ${data.stock} units (Threshold: ${data.threshold})`,
             });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['notificationStats'] });
           }
         } catch {
           // Non-JSON frame (e.g. heartbeat)

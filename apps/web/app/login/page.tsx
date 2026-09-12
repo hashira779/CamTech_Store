@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -39,9 +40,16 @@ export default function LoginPage() {
       const targetExp = resolveDefaultExperience(result.user.roles || []);
       setExperience(targetExp);
       const targetRoute = EXPERIENCE_CONFIGS[targetExp]?.defaultRoute || '/dashboard';
+      toast.success(`Welcome back, ${result.user.name || 'Admin'}! 👋`, {
+        description: 'Signed in successfully. Redirecting to command center...',
+      });
       navigate(targetRoute);
     } catch (err) {
-      setServerError(err instanceof ApiClientError ? err.message : 'Login failed');
+      const msg = err instanceof ApiClientError ? err.message : 'Login failed. Please check your credentials.';
+      setServerError(msg);
+      toast.error('Authentication Failed', {
+        description: msg,
+      });
     }
   });
 

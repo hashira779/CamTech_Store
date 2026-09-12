@@ -251,9 +251,9 @@ async function request<T>(
     },
   });
 
-  let body: ApiResponse<T>;
+  let rawJson: any;
   try {
-    body = (await res.json()) as ApiResponse<T>;
+    rawJson = await res.json();
   } catch {
     if (res.status === 401) {
       if (typeof window !== 'undefined') {
@@ -271,32 +271,30 @@ async function request<T>(
     throw new ApiClientError('NETWORK', `Unexpected response (HTTP ${res.status})`);
   }
 
-  // Handle enveloped successful response: { success: true, data: T }
-  if (body && typeof body === 'object' && body.success === true) {
-    return body.data;
+  // Handle standard { success: true, data: ... } envelope
+  if (rawJson && typeof rawJson === 'object' && rawJson.success === true) {
+    return rawJson.data as T;
   }
 
-  // Handle direct 2xx response (e.g. { accessToken: ... } or raw entities without envelope)
-  if (res.status >= 200 && res.status < 300 && (body?.success === undefined || body?.success === true)) {
-    return (body?.data !== undefined ? body.data : body) as T;
+  // Handle direct unwrapped 2xx response (e.g. { accessToken: ... } or direct DTOs)
+  if (res.status >= 200 && res.status < 300 && rawJson?.success !== false) {
+    return (rawJson?.data !== undefined ? rawJson.data : rawJson) as T;
   }
 
-  if (!body || !body.success) {
-    if (res.status === 401 || (body as any)?.code === 'UNAUTHORIZED') {
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.removeItem('mystore-auth');
-          localStorage.removeItem('token');
-        } catch {}
-        const p = window.location.pathname;
-        if (!p.startsWith('/login') && !p.startsWith('/shop') && !p.startsWith('/customer')) {
-          window.location.href = '/login?expired=true';
-        }
+  // Error case (either { success: false, code, message } or HTTP error)
+  if (res.status === 401 || rawJson?.code === 'UNAUTHORIZED') {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('mystore-auth');
+        localStorage.removeItem('token');
+      } catch {}
+      const p = window.location.pathname;
+      if (!p.startsWith('/login') && !p.startsWith('/shop') && !p.startsWith('/customer')) {
+        window.location.href = '/login?expired=true';
       }
     }
-    throw new ApiClientError(body?.code, body?.message, body?.requestId);
   }
-  return body.data;
+  throw new ApiClientError(rawJson?.code, rawJson?.message, rawJson?.requestId);
 }
 
 export const api = {
