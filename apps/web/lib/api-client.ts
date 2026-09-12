@@ -1562,15 +1562,30 @@ export const api = {
       body: JSON.stringify({ driverId }),
     }),
 
-  listDrivers: (token: string) =>
-    request<DeliveryDriverDto[]>('/delivery/drivers', { token }),
-
-  createDriver: (token: string, input: CreateDriverInput) =>
-    request<DeliveryDriverDto>('/delivery/drivers', {
+  getDrivers(token: string) {
+    return request<DeliveryDriverDto[]>('/delivery/drivers', { token });
+  },
+  createDriver(token: string, payload: CreateDriverInput) {
+    return request<DeliveryDriverDto>('/delivery/drivers', {
       method: 'POST',
+      body: JSON.stringify(payload),
       token,
-      body: JSON.stringify(input),
-    }),
+    });
+  },
+  updateDriver(token: string, id: string, payload: any) {
+    return request<DeliveryDriverDto>(`/delivery/drivers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+      token,
+    });
+  },
+  deleteDriver(token: string, id: string) {
+    return request<void>(`/delivery/drivers/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
 
   pingDriverLocation: (
     token: string,

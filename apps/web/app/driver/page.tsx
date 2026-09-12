@@ -233,12 +233,16 @@ export default function DriverAppPage() {
   const prevPendingRef = useRef<number>(0);
 
   const pendingOrders = orders.filter((o) => o.status === 'PENDING');
-  const activeOrders = orders.filter((o) => ['DISPATCHED', 'IN_TRANSIT'].includes(o.status));
-  const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
+  const activeOrders = orders.filter((o) => 
+    ['DISPATCHED', 'IN_TRANSIT'].includes(o.status) && o.driverId === user?.id
+  );
+  const completedOrders = orders.filter((o) => 
+    o.status === 'DELIVERED' && o.driverId === user?.id
+  );
   const totalCodToCollect = activeOrders.reduce((sum, o) => sum + (Number(o.codAmount) > 0 ? Number(o.codAmount) : 0), 0);
 
   useEffect(() => {
-    if (pendingOrders.length > prevPendingRef.current && prevPendingRef.current > 0) {
+    if (pendingOrders.length > prevPendingRef.current && prevPendingRef.current >= 0) {
       toast.info(`New Order! (${pendingOrders.length} unassigned)`);
     }
     prevPendingRef.current = pendingOrders.length;

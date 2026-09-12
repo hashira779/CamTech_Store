@@ -125,8 +125,8 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
         sale_id = sale_data["id"]
         sale_number = sale_data["saleNumber"]
 
-        # Step 1b: Verify customer order history returns the order when channel=STORE
-        res_hist = await client.get("/api/v1/sales/customer-orders?email=customer.alerts.test@camtech.cam&channel=STORE")
+        # Step 1b: Verify customer order history returns the order when channel=ONLINE
+        res_hist = await client.get("/api/v1/sales/customer-orders?email=customer.alerts.test@camtech.cam&channel=ONLINE")
         assert res_hist.status_code == 200
         hist_items = res_hist.json()["data"]["items"]
         assert any(item["id"] == sale_id for item in hist_items)

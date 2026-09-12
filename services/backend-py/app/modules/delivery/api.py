@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser, RequirePermissions, RequireAnyPermission
 from .schemas import (
-    DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
+    DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput, UpdateDriverInput,
     DeliveryOrderDto, CreateDeliveryOrderInput, UpdateDeliveryStatusInput,
     AssignDriverInput, LiveTrackingSnapshotDto
 )
@@ -241,6 +241,36 @@ async def create_driver(
     Registers a new driver and vehicle in the fleet.
     """
     return await svc.create_driver(db, org_id=user.organization_id, inp=inp)
+
+@router.put("/drivers/{driver_id}", response_model=DeliveryDriverDto)
+async def update_driver(
+    driver_id: str,
+    inp: UpdateDriverInput,
+    user: TenantUser = Depends(RequirePermissions(["delivery:manage"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Updates driver information.
+    """
+    driver = await svc.update_driver(db, org_id=user.organization_id, driver_id=driver_id, inp=inp)
+    if not driver:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Driver not found: {driver_id}")
+    return driver
+
+@router.delete("/drivers/{driver_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_driver(
+    driver_id: str,
+    user: TenantUser = Depends(RequirePermissions(["delivery:manage"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Soft deletes a driver.
+    """
+    success = await svc.delete_driver(db, org_id=user.organization_id, driver_id=driver_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Driver not found: {driver_id}")
+    return None
+
 
 @router.post("/drivers/{driver_id}/location", response_model=DeliveryDriverDto)
 async def ping_driver_location(

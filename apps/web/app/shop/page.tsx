@@ -20,6 +20,7 @@ import {
   Store,
   CreditCard,
   Package,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,16 @@ export default function CustomerShopPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
+
+  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
+  const [trackingInput, setTrackingInput] = useState('');
+  
+  const { data: trackResult, isLoading: isTracking, refetch: trackOrder } = useQuery({
+    queryKey: ['track-order', trackingInput],
+    queryFn: () => api.trackDeliveryOrder(trackingInput),
+    enabled: false,
+    retry: false,
+  });
 
   // Fetch Public Products (sanitize: only sell price exposed!)
   const { data: productsData, isLoading } = useQuery({
@@ -259,6 +270,15 @@ export default function CustomerShopPage() {
                 className="h-9 pl-9 bg-slate-950 border-slate-800 text-xs text-slate-100"
               />
             </div>
+
+            <Button
+              onClick={() => setIsTrackOrderOpen(true)}
+              variant="outline"
+              className="relative h-9 px-3.5 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white gap-2 text-xs"
+            >
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              <span>Track Order</span>
+            </Button>
 
             {/* Shopping Cart Button */}
             <Button
@@ -572,6 +592,64 @@ export default function CustomerShopPage() {
             >
               Continue Shopping
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Track Order Modal ─── */}
+      <Dialog open={isTrackOrderOpen} onOpenChange={setIsTrackOrderOpen}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-sky-400" />
+              Track Delivery Order
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Enter your tracking ID or order number to see live delivery status.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g. TRK-123456"
+                value={trackingInput}
+                onChange={(e) => setTrackingInput(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-sm"
+              />
+              <Button onClick={() => trackOrder()} disabled={!trackingInput || isTracking} className="bg-sky-600 hover:bg-sky-500 text-white">
+                Track
+              </Button>
+            </div>
+
+            {isTracking && <div className="text-center text-xs text-slate-400">Searching...</div>}
+            
+            {trackResult && (
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <span className="font-bold text-sm text-sky-400">{trackResult.trackingNumber}</span>
+                  <Badge variant="outline" className="text-xs border-sky-500/30 text-sky-400">{trackResult.status}</Badge>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Destination:</span>
+                    <span className="text-right max-w-[200px] truncate">{trackResult.deliveryAddress}</span>
+                  </div>
+                  {trackResult.driverName && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Courier:</span>
+                      <span>{trackResult.driverName} ({trackResult.driverPhone || 'N/A'})</span>
+                    </div>
+                  )}
+                  {trackResult.etaMinutes && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">ETA:</span>
+                      <span className="font-mono text-emerald-400">{trackResult.etaMinutes} mins</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

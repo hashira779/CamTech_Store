@@ -36,14 +36,17 @@ import {
   Pause,
   Layers,
   Send,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
-import type {
+import {
   DeliveryOrderDto,
   DeliveryDriverDto,
   CreateDeliveryOrderInput,
   CreateDriverInput,
   DeliveryStatus,
 } from '@mystore/contracts';
+import { toast } from 'sonner';
 
 const STATUS_BADGES: Record<DeliveryStatus, { label: string; className: string }> = {
   PENDING: { label: 'Pending Dispatch', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
@@ -71,6 +74,10 @@ export function DeliveryPage() {
   const [assignDriverOpen, setAssignDriverOpen] = useState(false);
   const [podOpen, setPodOpen] = useState(false);
   const [activeOrderForAction, setActiveOrderForAction] = useState<DeliveryOrderDto | null>(null);
+
+  // Driver Management
+  const [driverToEdit, setDriverToEdit] = useState<DeliveryDriverDto | null>(null);
+  const [driverToDelete, setDriverToDelete] = useState<string | null>(null);
 
   // Form states
   const [orderForm, setOrderForm] = useState<CreateDeliveryOrderInput>({
@@ -110,7 +117,7 @@ export function DeliveryPage() {
 
   const { data: drivers = [], refetch: refetchDrivers } = useQuery({
     queryKey: ['delivery-drivers'],
-    queryFn: () => api.listDrivers(token!),
+    queryFn: () => api.getDrivers(token!),
     enabled: Boolean(token),
     refetchInterval: 2000,
   });
@@ -183,10 +190,32 @@ export function DeliveryPage() {
   });
 
   const approveDriverMutation = useMutation({
-    mutationFn: (driverId: string) => api.deliveryAuthApprove(token!, driverId),
+    mutationFn: (id: string) => api.updateDriver(token!, id, { status: 'IDLE' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-drivers'] });
+      toast.success('Driver approved and activated!');
+      refetchDrivers();
     },
+    onError: (err: ApiClientError) => toast.error(err.message),
+  });
+
+  const updateDriverMutation = useMutation({
+    mutationFn: (args: { id: string, payload: any }) => api.updateDriver(token!, args.id, args.payload),
+    onSuccess: () => {
+      toast.success('Driver updated');
+      setDriverToEdit(null);
+      refetchDrivers();
+    },
+    onError: (err: ApiClientError) => toast.error(err.message),
+  });
+
+  const deleteDriverMutation = useMutation({
+    mutationFn: (id: string) => api.deleteDriver(token!, id),
+    onSuccess: () => {
+      toast.success('Driver removed');
+      setDriverToDelete(null);
+      refetchDrivers();
+    },
+    onError: (err: ApiClientError) => toast.error(err.message),
   });
 
   // ─── Live GPS Telemetry Simulation ───
@@ -467,19 +496,19 @@ export function DeliveryPage() {
                                 >
                                   <Navigation className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
                                 </a>
-                                {!ord.driverId && ord.status === 'PENDING' && (
+                                {drivers.filter((drv: any) => drv.status === 'IDLE').map((drv: any) => (
                                   <Button
+                                    key={drv.id}
                                     size="sm"
                                     variant="outline"
                                     className="h-7 text-[11px] px-2"
                                     onClick={() => {
-                                      setActiveOrderForAction(ord);
-                                      setAssignDriverOpen(true);
+                                      assignDriverMutation.mutate({ orderId: ord.id, driverId: drv.id });
                                     }}
                                   >
-                                    Assign
+                                    Assign {drv.name}
                                   </Button>
-                                )}
+                                ))}
                                 {ord.status === 'DISPATCHED' && (
                                   <Button
                                     size="sm"
@@ -586,17 +615,35 @@ export function DeliveryPage() {
                           </span>
                         </div>
                       </div>
-
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          isEnRoute
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                        }`}
-                      >
-                        {isEnRoute ? 'En Route' : 'Idle'}
-                      </Badge>
+                      
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-6 h-6 hover:bg-slate-800"
+                          onClick={(e) => { e.stopPropagation(); setDriverToEdit(drv); }}
+                        >
+                          <Edit2 className="w-3 h-3 text-slate-400" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-6 h-6 hover:bg-red-900/30"
+                          onClick={(e) => { e.stopPropagation(); setDriverToDelete(drv.id); }}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-400" />
+                        </Button>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ml-1 ${
+                            isEnRoute
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                          }`}
+                        >
+                          {isEnRoute ? 'En Route' : 'Idle'}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40 font-mono">
@@ -720,7 +767,7 @@ export function DeliveryPage() {
                   onChange={(e) => setOrderForm({ ...orderForm, driverId: e.target.value || undefined })}
                 >
                   <option value="">Auto-dispatch later</option>
-                  {drivers.map((d) => (
+                  {drivers.map((d: any) => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({d.vehicleType})
                     </option>
@@ -803,6 +850,89 @@ export function DeliveryPage() {
                 onClick={() => createDriverMutation.mutate(driverForm)}
               >
                 Register Unit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Driver Modal */}
+        <Dialog open={!!driverToEdit} onOpenChange={(open) => !open && setDriverToEdit(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Driver</DialogTitle>
+              <DialogDescription>Update driver details.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2 text-xs">
+              <div>
+                <label className="text-xs font-medium text-foreground">Driver Name</label>
+                <Input
+                  className="h-8 mt-1 text-xs"
+                  value={driverToEdit?.name || ''}
+                  onChange={(e) => setDriverToEdit(d => d ? { ...d, name: e.target.value } : null)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground">Phone Number</label>
+                <Input
+                  className="h-8 mt-1 text-xs"
+                  value={driverToEdit?.phone || ''}
+                  onChange={(e) => setDriverToEdit(d => d ? { ...d, phone: e.target.value } : null)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground">Vehicle Type</label>
+                <select
+                  className="w-full h-8 mt-1 bg-background border border-border rounded-md px-2 text-xs"
+                  value={driverToEdit?.vehicleType || 'MOTORCYCLE'}
+                  onChange={(e) => setDriverToEdit((d: any) => (d ? { ...d, vehicleType: e.target.value as any } : null))}
+                >
+                  <option value="MOTORCYCLE">Motorcycle</option>
+                  <option value="TUKTUK">Tuk-Tuk</option>
+                  <option value="VAN">Van / Truck</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground">License Plate</label>
+                <Input
+                  className="h-8 mt-1 text-xs"
+                  value={driverToEdit?.licensePlate || ''}
+                  onChange={(e) => setDriverToEdit((d: any) => (d ? { ...d, licensePlate: e.target.value } : null))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                size="sm"
+                className="w-full text-xs"
+                disabled={updateDriverMutation.isPending}
+                onClick={() => driverToEdit && updateDriverMutation.mutate({ id: driverToEdit.id, payload: {
+                  name: driverToEdit.name,
+                  phone: driverToEdit.phone,
+                  vehicleType: driverToEdit.vehicleType,
+                  licensePlate: driverToEdit.licensePlate
+                }})}
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Driver Modal */}
+        <Dialog open={!!driverToDelete} onOpenChange={(open) => !open && setDriverToDelete(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-red-500 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" /> Remove Driver
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove this driver from the fleet? This action is permanent.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4 gap-2">
+              <Button size="sm" variant="outline" onClick={() => setDriverToDelete(null)}>Cancel</Button>
+              <Button size="sm" variant="destructive" onClick={() => driverToDelete && deleteDriverMutation.mutate(driverToDelete)} disabled={deleteDriverMutation.isPending}>
+                Yes, Remove
               </Button>
             </DialogFooter>
           </DialogContent>

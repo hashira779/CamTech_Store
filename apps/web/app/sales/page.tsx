@@ -258,7 +258,7 @@ export function SalesPage() {
           const channel = row.getValue('channel') as string;
           const deliveryStatus = row.original.deliveryStatus;
 
-          if (channel === 'STORE' && deliveryStatus) {
+          if ((channel === 'STORE' || channel === 'ONLINE') && deliveryStatus) {
              return (
               <Badge
                 variant={deliveryStatus === 'DELIVERED' ? 'success' : deliveryStatus === 'PENDING' ? 'secondary' : 'default'}

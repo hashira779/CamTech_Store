@@ -26,6 +26,14 @@ class CreateDriverInput(BaseModel):
     initialLat: Optional[float] = 11.5564
     initialLng: Optional[float] = 104.9282
 
+class UpdateDriverInput(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    vehicleType: Optional[str] = None
+    licensePlate: Optional[str] = None
+    status: Optional[str] = None
+
+
 class DriverLocationPingInput(BaseModel):
     driverId: str
     latitude: float

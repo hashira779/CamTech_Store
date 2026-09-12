@@ -9,9 +9,15 @@ from typing import List, Optional
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
+import logging
 
 from app.core.datetime_utils import utc_now
 from app.modules.delivery.models import DeliveryDriver, DeliveryOrder
+from app.modules.delivery.api_auth import get_telegram_bot_token
+from app.domain.delivery_engine import DeliveryEngine
+
+logger = logging.getLogger(__name__)
 from app.domain.delivery_engine import DeliveryEngine
 from .schemas import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput,
@@ -132,6 +138,52 @@ async def create_driver(db: AsyncSession, org_id: str, inp: CreateDriverInput) -
     await db.commit()
     await db.refresh(drv)
     return _driver_to_dto(drv, 0)
+
+
+async def update_driver(db: AsyncSession, org_id: str, driver_id: str, inp: "UpdateDriverInput") -> Optional[DeliveryDriverDto]:
+    result = await db.execute(
+        select(DeliveryDriver).where(
+            DeliveryDriver.id == driver_id,
+            DeliveryDriver.organization_id == org_id,
+            DeliveryDriver.is_active == True,
+        )
+    )
+    drv = result.scalar_one_or_none()
+    if not drv:
+        return None
+
+    if inp.name is not None:
+        drv.name = inp.name
+    if inp.phone is not None:
+        drv.phone = inp.phone
+    if inp.vehicleType is not None:
+        drv.vehicle_type = inp.vehicleType.upper()
+    if inp.licensePlate is not None:
+        drv.license_plate = inp.licensePlate
+    if inp.status is not None:
+        drv.status = inp.status.upper()
+
+    await db.commit()
+    await db.refresh(drv)
+    return _driver_to_dto(drv)
+
+
+async def delete_driver(db: AsyncSession, org_id: str, driver_id: str) -> bool:
+    result = await db.execute(
+        select(DeliveryDriver).where(
+            DeliveryDriver.id == driver_id,
+            DeliveryDriver.organization_id == org_id,
+        )
+    )
+    drv = result.scalar_one_or_none()
+    if not drv:
+        return False
+    
+    # Soft delete
+    drv.is_active = False
+    await db.commit()
+    return True
+
 
 
 async def ping_driver_location(
@@ -394,6 +446,20 @@ async def assign_driver(
     await db.commit()
     await db.refresh(order)
     await db.refresh(driver)
+    
+    # Notify driver via Telegram if linked
+    if driver.telegram_user_id:
+        try:
+            bot_token = await get_telegram_bot_token(db, driver.organization_id)
+            if bot_token:
+                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                text = f"📦 *New Delivery Assigned*\n\n*Order:* `{order.tracking_number}`\n*To:* {order.recipient_name}\n*Address:* {order.delivery_address}\n\nPlease check the Mini App for details."
+                payload = {"chat_id": driver.telegram_user_id, "text": text, "parse_mode": "Markdown"}
+                import asyncio
+                asyncio.create_task(httpx.AsyncClient().post(url, json=payload, timeout=5.0))
+        except Exception as e:
+            logger.warning(f"Failed to send Telegram notification to driver {driver.id}: {e}")
+
     return _order_to_dto(order, driver)
 
 
@@ -428,6 +494,18 @@ async def update_order_status(
             )
             order.distance_km = dist
             order.eta_minutes = DeliveryEngine.calculate_eta_minutes(dist, claiming_drv.vehicle_type)
+            
+            if claiming_drv.telegram_user_id:
+                try:
+                    bot_token = await get_telegram_bot_token(db, claiming_drv.organization_id)
+                    if bot_token:
+                        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                        text = f"✅ *Delivery Claimed*\n\nYou have successfully claimed order `{order.tracking_number}`."
+                        payload = {"chat_id": claiming_drv.telegram_user_id, "text": text, "parse_mode": "Markdown"}
+                        import asyncio
+                        asyncio.create_task(httpx.AsyncClient().post(url, json=payload, timeout=5.0))
+                except Exception as e:
+                    logger.warning(f"Failed to send Telegram notification to driver: {e}")
 
     old_status = order.status
     new_status = inp.status.upper()

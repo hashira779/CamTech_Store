@@ -76,7 +76,7 @@ async def store_checkout(
         customer_id=customer.id,
         user_id=sale_user_id,
         sale_number=sale_num,
-        channel="STORE",
+        channel="ONLINE",
         status="COMPLETED",
         subtotal=subtotal,
         discount_total=Decimal("0.0"),
