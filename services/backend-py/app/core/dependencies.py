@@ -12,16 +12,17 @@ from app.modules.identity.models import User, Role
 security_scheme = HTTPBearer(auto_error=False)
 
 class TenantUser:
-    def __init__(self, user: User, roles: List[str]):
+    def __init__(self, user: Any, roles: List[str]):
         self.id: str = user.id
         self.organization_id: str = user.organization_id
-        self.email: str = user.email
+        self.email: str = getattr(user, "email", getattr(user, "phone", ""))
         self.name: str = user.name
         self.roles: List[str] = roles
-        self.location_id: Optional[str] = user.location_id
+        self.location_id: Optional[str] = getattr(user, "location_id", None)
 
     def has_role(self, role: str) -> bool:
         return role in self.roles or "ORG_ADMIN" in self.roles or "SUPER_ADMIN" in self.roles
+
 
 def extract_user_roles(user: User) -> List[str]:
     """Strictly use relational user_roles table."""
@@ -77,16 +78,27 @@ async def get_current_user(
         )
 
     user_id = payload["sub"]
-    user = await _fetch_user_with_roles(db, user_id)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-
-    roles_list = extract_user_roles(user)
-    return TenantUser(user=user, roles=roles_list)
+    token_type = payload.get("type")
+    
+    if token_type == "delivery":
+        from app.modules.delivery.models import DeliveryDriver
+        result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == user_id))
+        driver = result.scalar_one_or_none()
+        if not driver:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Driver not found",
+            )
+        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+    else:
+        user = await _fetch_user_with_roles(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        roles_list = extract_user_roles(user)
+        return TenantUser(user=user, roles=roles_list)
 
 
 async def get_streaming_user(
@@ -116,16 +128,27 @@ async def get_streaming_user(
         )
 
     user_id = payload["sub"]
-    user = await _fetch_user_with_roles(db, user_id)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-
-    roles_list = extract_user_roles(user)
-    return TenantUser(user=user, roles=roles_list)
+    token_type = payload.get("type")
+    
+    if token_type == "delivery":
+        from app.modules.delivery.models import DeliveryDriver
+        result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == user_id))
+        driver = result.scalar_one_or_none()
+        if not driver:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Driver not found",
+            )
+        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+    else:
+        user = await _fetch_user_with_roles(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        roles_list = extract_user_roles(user)
+        return TenantUser(user=user, roles=roles_list)
 
 
 async def get_optional_user(
@@ -140,13 +163,24 @@ async def get_optional_user(
         if not payload or "sub" not in payload:
             return None
         user_id = payload["sub"]
-        user = await _fetch_user_with_roles(db, user_id)
-        if not user:
-            return None
-        roles_list = extract_user_roles(user)
-        return TenantUser(user=user, roles=roles_list)
+        token_type = payload.get("type")
+        
+        if token_type == "delivery":
+            from app.modules.delivery.models import DeliveryDriver
+            result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == user_id))
+            driver = result.scalar_one_or_none()
+            if not driver:
+                return None
+            return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+        else:
+            user = await _fetch_user_with_roles(db, user_id)
+            if not user:
+                return None
+            roles_list = extract_user_roles(user)
+            return TenantUser(user=user, roles=roles_list)
     except Exception:
         return None
+
 
 
 class RequirePermissions:
