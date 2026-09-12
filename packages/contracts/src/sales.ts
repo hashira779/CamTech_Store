@@ -140,4 +140,6 @@ export interface SaleSummaryDto {
   itemCount: number;
   completedAt: string | null;
   createdAt: string;
+  deliveryStatus?: string | null;
+  trackingNumber?: string | null;
 }

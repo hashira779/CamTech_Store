@@ -256,6 +256,8 @@ class SaleDto(BaseModel):
     createdAt: str
     lineItems: List[SaleLineItemDto] = []
     payments: List[SalePaymentDto] = []
+    deliveryStatus: Optional[str] = None
+    trackingNumber: Optional[str] = None
 
 
 # ==============================================================================

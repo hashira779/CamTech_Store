@@ -33,17 +33,18 @@ async def list_sales(
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
-        select(Sale)
+        select(Sale, DeliveryOrder)
+        .outerjoin(DeliveryOrder, DeliveryOrder.sale_id == Sale.id)
         .where(Sale.organization_id == user.organization_id)
         .options(selectinload(Sale.line_items), selectinload(Sale.payments))
         .order_by(desc(Sale.created_at))
         .limit(50)
     )
     result = await db.execute(stmt)
-    sales = result.scalars().all()
+    rows = result.all()
 
     out = []
-    for s in sales:
+    for s, do in rows:
         out.append(SaleDto(
             id=s.id,
             saleNumber=s.sale_number,
@@ -78,7 +79,9 @@ async def list_sales(
                     status=p.status,
                     reference=p.reference
                 ) for p in s.payments
-            ]
+            ],
+            deliveryStatus=do.status if do else None,
+            trackingNumber=do.tracking_number if do else None
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=1, limit=50, total=len(out), totalPages=1), total=len(out))
 

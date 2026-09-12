@@ -236,6 +236,20 @@ export function SalesPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
         cell: ({ row }) => {
           const status = row.getValue('status') as string;
+          const channel = row.getValue('channel') as string;
+          const deliveryStatus = row.original.deliveryStatus;
+
+          if (channel === 'STORE' && deliveryStatus) {
+             return (
+              <Badge
+                variant={deliveryStatus === 'DELIVERED' ? 'success' : deliveryStatus === 'PENDING' ? 'secondary' : 'default'}
+                className="text-[10px] font-semibold uppercase"
+              >
+                {deliveryStatus === 'PENDING' ? 'PREPARING' : deliveryStatus}
+              </Badge>
+            );
+          }
+
           return (
             <Badge
               variant={status === 'COMPLETED' ? 'success' : 'destructive'}
