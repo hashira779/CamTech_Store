@@ -467,11 +467,10 @@ export function SalesPage() {
   const currentStage = useMemo(() => {
     if (!selectedSale) return 0;
     const st = (selectedSale.deliveryStatus || '').toUpperCase();
-    if (st === 'DELIVERED') return 4;
-    if (st === 'OUT_FOR_DELIVERY') return 3;
+    if (st === 'DELIVERED') return 3;
     if (st === 'IN_TRANSIT') return 2;
     if (st === 'DISPATCHED' || st === 'PACKED') return 1;
-    return 0; // Placed
+    return 0; // Placed (PENDING)
   }, [selectedSale]);
 
   const totalItemsCount = useMemo(() => {
@@ -506,28 +505,21 @@ export function SalesPage() {
       icon: ShoppingCart,
     },
     {
-      label: 'Order Packed',
-      date: currentStage >= 1 ? 'Packed & Sealed' : 'Pending',
+      label: 'Packed & Dispatched',
+      date: currentStage >= 1 ? 'Handed to Courier' : 'Pending',
       icon: Package,
-    },
-    {
-      label: 'In Transit',
-      date: currentStage >= 2 ? 'En Route to Hub' : 'Pending',
-      icon: Truck,
     },
     {
       label: 'Out for delivery',
       date:
-        currentStage >= 3
-          ? selectedSale?.etaMinutes
-            ? `ETA ~${selectedSale.etaMinutes}m`
-            : 'On Courier Route'
+        currentStage >= 2 && selectedSale?.driverName
+          ? `With ${selectedSale.driverName}`
           : 'Pending',
-      icon: Bike,
+      icon: Truck,
     },
     {
       label: 'Delivered',
-      date: currentStage >= 4 ? 'Package Delivered' : 'Pending',
+      date: currentStage >= 3 ? 'Completed' : 'Pending',
       icon: CheckCircle2,
     },
   ];
@@ -752,7 +744,7 @@ export function SalesPage() {
                     {/* Active pink progress fill line */}
                     <div
                       className="absolute top-7 left-7 h-1 bg-gradient-to-r from-[#ff007a] to-pink-500 rounded-full transition-all duration-500 shadow-sm shadow-pink-500/50"
-                      style={{ width: `calc(${(currentStage / 4) * 100}% - 28px)` }}
+                      style={{ width: `calc(${(currentStage / 3) * 100}% - 28px)` }}
                     />
 
                     {/* Nodes row */}
@@ -890,29 +882,13 @@ export function SalesPage() {
                                 })
                               }
                               disabled={updateDeliveryStatusMutation.isPending}
-                              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-8 text-xs font-medium"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              Dispatch In Transit
-                            </Button>
-                          )}
-                          {currentStage === 2 && (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                updateDeliveryStatusMutation.mutate({
-                                  orderId: selectedSale.deliveryOrderId!,
-                                  status: 'OUT_FOR_DELIVERY',
-                                })
-                              }
-                              disabled={updateDeliveryStatusMutation.isPending}
                               className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 h-8 text-xs font-medium"
                             >
-                              <Bike className="w-3.5 h-3.5" />
+                              <Truck className="w-3.5 h-3.5" />
                               Set Out for Delivery
                             </Button>
                           )}
-                          {currentStage === 3 && (
+                          {currentStage === 2 && (
                             <Button
                               size="sm"
                               onClick={() =>
@@ -928,7 +904,7 @@ export function SalesPage() {
                               Confirm Delivered
                             </Button>
                           )}
-                          {currentStage === 4 && (
+                          {currentStage === 3 && (
                             <span className="flex items-center gap-1 text-emerald-600 font-semibold">
                               <CheckCircle2 className="w-4 h-4" /> Delivered & Completed
                             </span>
