@@ -271,8 +271,18 @@ async function request<T>(
     throw new ApiClientError('NETWORK', `Unexpected response (HTTP ${res.status})`);
   }
 
-  if (!body.success) {
-    if (res.status === 401 || (body as any).code === 'UNAUTHORIZED') {
+  // Handle enveloped successful response: { success: true, data: T }
+  if (body && typeof body === 'object' && body.success === true) {
+    return body.data;
+  }
+
+  // Handle direct 2xx response (e.g. { accessToken: ... } or raw entities without envelope)
+  if (res.status >= 200 && res.status < 300 && (body?.success === undefined || body?.success === true)) {
+    return (body?.data !== undefined ? body.data : body) as T;
+  }
+
+  if (!body || !body.success) {
+    if (res.status === 401 || (body as any)?.code === 'UNAUTHORIZED') {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('mystore-auth');
@@ -284,7 +294,7 @@ async function request<T>(
         }
       }
     }
-    throw new ApiClientError(body.code, body.message, body.requestId);
+    throw new ApiClientError(body?.code, body?.message, body?.requestId);
   }
   return body.data;
 }
