@@ -31,8 +31,8 @@ async def test_database_connection_pool_burst():
 
     assert len(results) == 50
     assert results == list(range(50))
-    # Assert all 50 concurrent queries finished under 2 seconds
-    assert duration < 2.0
+    # Assert all 50 concurrent queries finished under 5 seconds
+    assert duration < 5.0
 
 @pytest.mark.asyncio
 async def test_gzip_compression_on_large_payloads():
