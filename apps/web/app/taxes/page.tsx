@@ -165,7 +165,7 @@ export default function TaxesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <Percent className="w-5 h-5" />
               </div>
               <div>
@@ -177,7 +177,7 @@ export default function TaxesPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
@@ -189,7 +189,7 @@ export default function TaxesPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
@@ -201,12 +201,12 @@ export default function TaxesPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+              <div className="p-2.5 rounded-lg bg-orange-500/10 text-orange-500">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Inclusive Rates</p>
-                <p className="text-xl font-bold text-purple-400 font-mono">{inclusiveCount}</p>
+                <p className="text-xl font-bold text-orange-500 font-mono">{inclusiveCount}</p>
               </div>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function TaxesPage() {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               rate.isInclusive
-                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
                                 : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                             }`}
                           >
@@ -376,7 +376,7 @@ export default function TaxesPage() {
             </div>
 
             {/* Simulation Results Breakdown */}
-            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2 text-xs">
+            <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Taxable Subtotal (Net)</span>
                 <span className="font-mono font-bold text-foreground">${simNet.toFixed(2)}</span>
@@ -401,8 +401,8 @@ export default function TaxesPage() {
 
         {/* Create / Edit Tax Rate Modal */}
         {isCreateOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 border-border shadow-md bg-card">
               <div className="flex justify-between items-center pb-3 border-b border-border mb-4">
                 <div className="flex items-center gap-2">
                   <Percent className="w-5 h-5 text-primary" />

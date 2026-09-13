@@ -402,8 +402,8 @@ export default function DevelopersPage() {
 
         {/* MODAL: SECRET KEY REVEAL (ONCE) */}
         {newlyCreatedKey && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-lg p-6 border-emerald-500/50 shadow-2xl bg-card space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
+            <div className="card w-full max-w-lg p-6 border-emerald-500/50 shadow-md bg-card space-y-4">
               <div className="flex items-center gap-2 text-emerald-400">
                 <Key className="w-5 h-5" />
                 <h3 className="text-base font-bold text-foreground">API Key Generated Successfully</h3>
@@ -437,8 +437,8 @@ export default function DevelopersPage() {
 
         {/* MODAL: GENERATE API KEY */}
         {isKeyModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Generate Scoped API Key</h3>
                 <button onClick={() => setIsKeyModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -488,8 +488,8 @@ export default function DevelopersPage() {
 
         {/* MODAL: ADD WEBHOOK */}
         {isWebhookModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Subscribe Webhook Destination</h3>
                 <button onClick={() => setIsWebhookModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -539,8 +539,8 @@ export default function DevelopersPage() {
 
         {/* MODAL: REGISTER APP */}
         {isAppModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-sm p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-sm p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Register Developer Application</h3>
                 <button onClick={() => setIsAppModalOpen(false)}><X className="w-4 h-4" /></button>

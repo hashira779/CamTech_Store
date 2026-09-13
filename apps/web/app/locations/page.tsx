@@ -48,8 +48,8 @@ const TYPE_ICONS: Record<LocationType, any> = {
 };
 
 const TYPE_COLORS: Record<LocationType, string> = {
-  COMPANY: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  BUSINESS_UNIT: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+  COMPANY: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  BUSINESS_UNIT: 'bg-primary/10 text-primary border-primary/20',
   REGION: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   BRANCH: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   DEPARTMENT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -253,14 +253,14 @@ export function LocationsPage() {
             title="POS Stations"
             value={posCount}
             icon={Laptop}
-            iconColor="text-purple-500"
+            iconColor="text-orange-500"
             isLoading={isListLoading}
           />
         </div>
 
         {/* View Mode: Tree */}
         {viewMode === 'tree' && (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-xs">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Organizational Structure
@@ -326,7 +326,7 @@ export function LocationsPage() {
               </select>
             </div>
 
-            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+            <div className="rounded-lg border border-border bg-card overflow-hidden shadow-xs">
               <table className="w-full text-left text-xs">
                 <thead className="bg-muted/40 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider">
                   <tr>

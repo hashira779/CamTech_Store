@@ -284,7 +284,7 @@ export function CustomersPage() {
             title="Corporate / Wholesale"
             value={corporateAccounts}
             icon={Building}
-            iconColor="text-purple-500"
+            iconColor="text-orange-500"
             isLoading={isLoading}
           />
           <KpiCard
@@ -371,7 +371,7 @@ export function CustomersPage() {
             </SheetHeader>
             {selectedCustomer && (
               <div className="space-y-6 py-4">
-                <div className="p-4 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                <div className="p-4 rounded-lg border border-border bg-muted/20 flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-lg text-foreground">{selectedCustomer.name}</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -410,7 +410,7 @@ export function CustomersPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 p-3.5 rounded-xl border border-border bg-card text-xs">
+                <div className="space-y-3 p-3.5 rounded-lg border border-border bg-card text-xs">
                   <p className="font-semibold text-foreground uppercase tracking-wider text-[11px]">
                     Direct Contact
                   </p>

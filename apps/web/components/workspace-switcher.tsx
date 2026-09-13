@@ -53,7 +53,7 @@ export function WorkspaceSwitcher() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-card hover:bg-accent border border-border transition-all text-left shadow-xs focus:outline-hidden cursor-pointer">
+      <DropdownMenuTrigger className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-card hover:bg-accent border border-border transition-all text-left shadow-xs focus:outline-hidden cursor-pointer">
         <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
           <CurrentIcon className="w-3.5 h-3.5" />
         </div>
@@ -66,7 +66,7 @@ export function WorkspaceSwitcher() {
         <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1 shrink-0" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-72 bg-card border border-border text-foreground p-1.5 shadow-2xl">
+      <DropdownMenuContent align="start" className="w-72 bg-card border border-border text-foreground p-1.5 shadow-md">
         <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider px-2 py-1.5 flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-primary" /> Multi-Experience Workspaces
         </DropdownMenuLabel>
@@ -81,7 +81,7 @@ export function WorkspaceSwitcher() {
             <DropdownMenuItem
               key={key}
               onClick={() => handleSwitch(key)}
-              className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-all ${
+              className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
                 isSelected
                   ? 'bg-primary/15 border border-primary/30 text-primary-foreground'
                   : 'hover:bg-accent text-foreground'

@@ -29,10 +29,10 @@ export function CardGridSkeleton({ count = 8, className }: { count?: number; cla
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className="rounded-2xl border border-border/70 bg-card p-4 flex flex-col justify-between space-y-4"
+          className="rounded-lg border border-border/70 bg-card p-4 flex flex-col justify-between space-y-4"
         >
           <div className="space-y-3">
-            <Skeleton className="w-full h-36 rounded-xl" />
+            <Skeleton className="w-full h-36 rounded-lg" />
             <Skeleton className="h-3 w-16 rounded-full" />
             <Skeleton className="h-4 w-3/4 rounded" />
             <Skeleton className="h-3 w-full rounded" />
@@ -43,7 +43,7 @@ export function CardGridSkeleton({ count = 8, className }: { count?: number; cla
               <Skeleton className="h-2 w-8 rounded" />
               <Skeleton className="h-4 w-14 rounded" />
             </div>
-            <Skeleton className="h-8 w-20 rounded-xl" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
           </div>
         </div>
       ))}
@@ -57,10 +57,10 @@ export function ListSkeleton({ count = 5 }: { count?: number }) {
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-4"
+          className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+            <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
             <div className="space-y-1.5 flex-1 min-w-0">
               <Skeleton className="h-4 w-1/3 rounded" />
               <Skeleton className="h-3 w-1/2 rounded" />
@@ -92,8 +92,8 @@ export function PageSkeleton({
           <Skeleton className="h-4 w-72 rounded" />
         </div>
         <div className="flex items-center gap-2.5">
-          <Skeleton className="h-9 w-24 rounded-xl" />
-          <Skeleton className="h-9 w-32 rounded-xl" />
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-32 rounded-lg" />
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export function PageSkeleton({
       {showKpis && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-5 rounded-2xl border border-border bg-card space-y-3">
+            <div key={i} className="p-5 rounded-lg border border-border bg-card space-y-3">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-3 w-24 rounded" />
                 <Skeleton className="w-8 h-8 rounded-lg" />
@@ -114,7 +114,7 @@ export function PageSkeleton({
       )}
 
       {/* Controls & Filter Bar Skeleton */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card/60">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/60">
         <Skeleton className="h-9 w-full sm:w-72 rounded-lg" />
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Skeleton className="h-8 w-20 rounded-lg" />
@@ -125,7 +125,7 @@ export function PageSkeleton({
 
       {/* Main Content Skeleton depending on variant */}
       {variant === 'table' && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <Skeleton className="h-4 w-32 rounded" />
             <Skeleton className="h-4 w-20 rounded" />
@@ -153,14 +153,14 @@ export function PageSkeleton({
 
       {variant === 'dashboard' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 p-6 rounded-2xl border border-border bg-card space-y-4">
+          <div className="lg:col-span-2 p-6 rounded-lg border border-border bg-card space-y-4">
             <div className="flex justify-between items-center">
               <Skeleton className="h-5 w-40 rounded" />
               <Skeleton className="h-4 w-24 rounded" />
             </div>
-            <Skeleton className="h-64 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-lg" />
           </div>
-          <div className="p-6 rounded-2xl border border-border bg-card space-y-4">
+          <div className="p-6 rounded-lg border border-border bg-card space-y-4">
             <Skeleton className="h-5 w-32 rounded" />
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -188,7 +188,7 @@ export function AppShellSkeleton() {
         <div className="space-y-6">
           {/* Brand */}
           <div className="flex items-center gap-3 px-2">
-            <Skeleton className="w-9 h-9 rounded-xl" />
+            <Skeleton className="w-9 h-9 rounded-lg" />
             <div className="space-y-1.5 flex-1">
               <Skeleton className="h-4 w-24 rounded" />
               <Skeleton className="h-2.5 w-16 rounded" />
@@ -198,7 +198,7 @@ export function AppShellSkeleton() {
           {/* Nav groups */}
           <div className="space-y-2">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl">
+              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg">
                 <Skeleton className="w-5 h-5 rounded-md shrink-0" />
                 <Skeleton className="h-3.5 flex-1 rounded" />
               </div>
@@ -207,7 +207,7 @@ export function AppShellSkeleton() {
         </div>
 
         {/* User profile badge */}
-        <div className="flex items-center gap-3 p-2 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card">
           <Skeleton className="w-8 h-8 rounded-full shrink-0" />
           <div className="space-y-1 flex-1">
             <Skeleton className="h-3 w-20 rounded" />

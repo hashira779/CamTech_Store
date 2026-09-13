@@ -37,7 +37,7 @@ export function WarehouseLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-zinc-900 border-b border-zinc-800 shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="bg-amber-500/10 p-2 rounded-xl text-amber-500 border border-amber-500/20">
+            <div className="bg-amber-500/10 p-2 rounded-md text-amber-500 border border-amber-500/20">
               <Boxes className="w-6 h-6" />
             </div>
             <div>
@@ -46,7 +46,7 @@ export function WarehouseLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1 ml-4 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+          <nav className="hidden md:flex items-center gap-1 ml-4 bg-zinc-950 p-1 rounded-md border border-zinc-800">
             {tabs.map((tab) => {
               const active = location.pathname.startsWith(tab.path);
               const Icon = tab.icon;

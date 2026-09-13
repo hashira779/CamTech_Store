@@ -132,23 +132,29 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
         assert any(item["id"] == sale_id for item in hist_items)
 
         try:
-            # Step 2: Verify Delivery Fleet received order dispatch
+            # Step 2: Verify Delivery Fleet has one order that is not claimable before packing
             res_deliv = await client.get("/api/v1/delivery/orders")
             assert res_deliv.status_code == 200
             delivery_orders = res_deliv.json()["data"]
             matching_delivery = [o for o in delivery_orders if o.get("saleId") == sale_id]
             assert len(matching_delivery) == 1
             deliv_order = matching_delivery[0]
-            assert deliv_order["status"] == "PENDING"
+            assert deliv_order["status"] == "PREPARING"
             assert deliv_order["recipientName"] == "Sophea Kem"
             assert "Preah Sihanouk" in deliv_order["deliveryAddress"]
+
+            res_premature_claim = await client.patch(
+                f"/api/v1/delivery/tasks/{deliv_order['id']}/status",
+                json={"status": "DISPATCHED"},
+            )
+            assert res_premature_claim.status_code == 400
 
             # Step 3: Verify Real-Time Notifications generated for both Delivery and Stocker
             res_notes = await client.get("/api/v1/notifications?limit=30")
             assert res_notes.status_code == 200
             notes = res_notes.json()["data"]
 
-            # Check delivery alert notification
+            # Check delivery preparation notification
             delivery_notifs = [n for n in notes if "Delivery" in n["title"] and sale_number in n["title"]]
             assert len(delivery_notifs) >= 1
             assert delivery_notifs[0]["status"] == "SENT"
@@ -176,6 +182,19 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
             assert res_fulfill.status_code == 200
             fulfilled_order = res_fulfill.json()["data"]
             assert fulfilled_order["wmsStatus"] == "PICKED"
+
+            res_ready = await client.get("/api/v1/delivery/orders?status=PENDING")
+            assert res_ready.status_code == 200
+            ready_orders = [o for o in res_ready.json()["data"] if o.get("saleId") == sale_id]
+            assert len(ready_orders) == 1
+            assert ready_orders[0]["id"] == deliv_order["id"]
+
+            res_all_after_fulfill = await client.get("/api/v1/delivery/orders")
+            assert res_all_after_fulfill.status_code == 200
+            linked_orders = [
+                o for o in res_all_after_fulfill.json()["data"] if o.get("saleId") == sale_id
+            ]
+            assert len(linked_orders) == 1
 
             # Step 6: Delivery Courier claims/accepts the order
             res_claim = await client.patch(

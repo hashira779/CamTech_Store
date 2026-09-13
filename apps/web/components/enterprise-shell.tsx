@@ -246,7 +246,7 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
       <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <a
         href="#main-content"
-        className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0"
+        className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0"
       >
         Skip to main content
       </a>
@@ -256,95 +256,89 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/80 lg:hidden backdrop-blur-xs"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* ─── Sidebar ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card/95 backdrop-blur-md border-r border-border/80 transition-all duration-300 lg:static ${
-          collapsed ? 'w-18' : 'w-64'
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-200 lg:static ${
+          collapsed ? 'w-16' : 'w-60'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border/80 shrink-0">
+        <div className="h-14 flex items-center justify-between px-3 border-b border-border shrink-0">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2.5 font-bold text-base tracking-tight text-foreground overflow-hidden group"
+            className="flex items-center gap-2 font-semibold text-sm text-foreground overflow-hidden"
           >
-            <div className="bg-primary p-2 rounded-xl text-primary-foreground shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
-              <Store className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground shrink-0">
+              <Store className="w-4 h-4" />
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0">
-                <span className="whitespace-nowrap font-bold tracking-tight text-sm text-foreground flex items-center gap-1.5">
-                  MyStore <span className="text-primary text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">ERP</span>
-                </span>
-                <span className="text-[10px] text-muted-foreground truncate font-normal">Enterprise Management</span>
+                <span className="font-bold text-sm leading-tight">MyStore</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">Enterprise</span>
               </div>
             )}
           </Link>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="hidden lg:flex p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground"
+            className="lg:hidden p-1 rounded-md text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Quick Launch POS Terminal */}
-        <div className="p-3 border-b border-border/60 shrink-0">
-          <Button
-            onClick={() => navigate('/pos')}
-            size="sm"
-            variant="outline"
-            className={`w-full border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-semibold shadow-2xs transition-all ${
-              collapsed ? 'px-0 justify-center' : 'justify-start gap-2.5'
-            }`}
-          >
-            <div className="w-5 h-5 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+        {/* Quick Launch POS */}
+        {!collapsed && (
+          <div className="px-3 py-2 border-b border-border shrink-0">
+            <button
+              onClick={() => navigate('/pos')}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            >
               <ShoppingBag className="w-3.5 h-3.5" />
-            </div>
-            {!collapsed && <span className="text-xs">Open POS Terminal</span>}
-          </Button>
-        </div>
+              Open POS Terminal
+            </button>
+          </div>
+        )}
 
-        {/* Grouped Navigation List with Accordion Sections */}
-        <nav className="flex-1 overflow-y-auto py-2.5 px-2 space-y-2 select-none">
+        {/* ─── Navigation ─── */}
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1 select-none">
           {groupedNavigation.map((group) => {
             const isSectionOpen = openSections[group.section] ?? true;
             const hasActiveItem = group.items.some((item) => routeIsActive(pathname, item.href));
 
             return (
-              <div key={group.section} className="space-y-0.5">
+              <div key={group.section}>
                 {!collapsed ? (
                   <button
                     type="button"
                     onClick={() => toggleSection(group.section)}
-                    className="flex w-full items-center justify-between px-2.5 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors cursor-pointer group/sec"
+                    className="flex w-full items-center justify-between px-2 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
-                    <span className={hasActiveItem ? 'text-primary font-bold' : ''}>{group.label}</span>
+                    <span className={hasActiveItem ? 'text-primary' : ''}>{group.label}</span>
                     <ChevronDown
-                      className={`w-3 h-3 text-muted-foreground/40 transition-transform duration-200 group-hover/sec:text-foreground ${
+                      className={`w-3 h-3 text-muted-foreground/50 transition-transform duration-150 ${
                         isSectionOpen ? 'rotate-0' : '-rotate-90'
                       }`}
                     />
                   </button>
                 ) : (
-                  <div className="border-t border-border/40 my-2 mx-2" />
+                  <div className="border-t border-border my-2 mx-1" />
                 )}
 
                 {/* Section Items */}
                 {(!collapsed ? isSectionOpen : true) && (
-                  <div className="space-y-0.5 animate-fade-in">
+                  <div className="space-y-px">
                     {group.items.map((item) => {
                       const isActive = routeIsActive(pathname, item.href);
 
@@ -355,14 +349,14 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
                           onMouseEnter={() => prefetchRoute(item.href)}
                           onFocus={() => prefetchRoute(item.href)}
                           title={collapsed ? item.name : undefined}
-                          className={`group/item flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                          className={`group/item flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] transition-colors ${
                             isActive
-                              ? 'bg-primary/15 text-primary font-semibold shadow-2xs border-l-[3px] border-primary pl-2'
-                              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                              ? 'bg-primary/10 text-primary font-semibold border-l-2 border-primary pl-1.5'
+                              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                           } ${collapsed ? 'justify-center px-2' : ''}`}
                         >
                           <item.icon
-                            className={`w-4 h-4 shrink-0 transition-colors ${
+                            className={`w-4 h-4 shrink-0 ${
                               isActive ? 'text-primary' : 'text-muted-foreground group-hover/item:text-foreground'
                             }`}
                           />
@@ -377,18 +371,15 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User Context & Branch Footer */}
-        <div className="p-3 border-t border-border/80 shrink-0 bg-card/60 backdrop-blur-sm">
+        {/* ─── User Footer ─── */}
+        <div className="p-2 border-t border-border shrink-0">
           {!collapsed && (
-            <div className="flex items-center gap-2 mb-2.5 p-2 rounded-xl border border-border/70 bg-muted/30 text-xs">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Building2 className="w-3.5 h-3.5" />
-              </div>
+            <div className="flex items-center gap-2 mb-2 p-2 rounded-md bg-accent/50 text-xs">
+              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <div className="truncate flex-1">
-                <p className="font-semibold text-foreground truncate">
-                  {isSuperAdmin ? 'Global Headquarters (Admin)' : 'Branch Store #1'}
+                <p className="font-medium text-foreground truncate text-[11px]">
+                  {isSuperAdmin ? 'Headquarters' : 'Branch #1'}
                 </p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">Active Location</p>
               </div>
             </div>
           )}
@@ -396,25 +387,25 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
           <div className="flex items-center justify-between">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2.5 overflow-hidden text-left hover:opacity-80 transition-opacity cursor-pointer">
-                  <Avatar className="h-8 w-8 shrink-0 border border-border/80 shadow-2xs">
-                    <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
+                <button className="flex items-center gap-2 overflow-hidden text-left hover:opacity-80 transition-opacity cursor-pointer">
+                  <Avatar className="h-7 w-7 shrink-0 border border-border">
+                    <AvatarFallback className="bg-primary/15 text-primary font-semibold text-xs">
                       {user.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   {!collapsed && (
                     <div className="truncate">
-                      <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{user.name}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                     </div>
                   )}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/80 bg-card/95 backdrop-blur-md shadow-xl">
+              <DropdownMenuContent align="end" className="w-52 rounded-lg border-border bg-card shadow-lg">
                 <DropdownMenuLabel className="text-xs">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
+                <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer text-xs">
+                  <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -423,9 +414,9 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
                     clear();
                     navigate('/login');
                   }}
-                  className="text-destructive focus:text-destructive cursor-pointer"
+                  className="text-destructive focus:text-destructive cursor-pointer text-xs"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 h-3.5 w-3.5" />
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -437,101 +428,101 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
                   clear();
                   navigate('/login');
                 }}
-                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors cursor-pointer"
                 title="Sign out"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* ─── Main Content ─── */}
       <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col min-w-0 overflow-hidden outline-none">
         {/* Top Header */}
-        <header className="h-16 border-b border-border/80 bg-card/70 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shrink-0 shadow-2xs">
+        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-foreground"
+              className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Breadcrumb Navigation */}
-            <div className="hidden sm:flex items-center gap-2 text-xs font-medium border-l border-border/80 pl-3 ml-1">
-              <span className="text-muted-foreground/70">{SECTION_LABELS[activeItem?.section || 'Core']}</span>
-              <span className="text-muted-foreground/30">/</span>
-              <span className="text-foreground font-semibold flex items-center gap-1.5">
+            {/* Breadcrumb */}
+            <div className="hidden sm:flex items-center gap-1.5 text-sm">
+              <span className="text-muted-foreground">{SECTION_LABELS[activeItem?.section || 'Core']}</span>
+              <span className="text-muted-foreground/40">/</span>
+              <span className="text-foreground font-medium flex items-center gap-1.5">
                 {activeItem && <activeItem.icon className="w-3.5 h-3.5 text-primary" />}
                 {activeItem?.name || 'Dashboard'}
               </span>
             </div>
 
-            {/* Quick Command Palette Launcher */}
+            {/* Search */}
             <button
               onClick={() => setCmdOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/70 text-xs text-muted-foreground hover:text-foreground transition-all w-44 sm:w-60 justify-between cursor-pointer shadow-2xs group"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background hover:bg-accent text-xs text-muted-foreground hover:text-foreground transition-colors w-44 sm:w-56 justify-between cursor-pointer"
             >
               <span className="flex items-center gap-2 truncate">
-                <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="truncate">Search or Cmd+K...</span>
+                <Search className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Search...</span>
               </span>
-              <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-background/80 px-1.5 py-0.5 rounded-md border border-border/80 text-muted-foreground">
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px] bg-accent px-1.5 py-0.5 rounded border border-border text-muted-foreground">
                 <span>⌘</span>K
               </kbd>
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Multi-Experience Workspace Switcher (Spec §151–§176) */}
+          <div className="flex items-center gap-2">
+            {/* Workspace Switcher */}
             <WorkspaceSwitcher />
 
-            {/* Online / Offline Indicator */}
+            {/* Online/Offline */}
             {isOnline ? (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Online
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10">
                 <WifiOff className="w-3 h-3" />
                 Offline
               </span>
             )}
 
-            {/* Theme Toggle Button with Smooth Transition */}
+            {/* Theme Toggle */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg transition-transform hover:scale-105"
-                  title={`Current theme: ${theme}. Click for options.`}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md"
+                  title={`Current theme: ${theme}`}
                 >
                   {theme === 'dark' ? (
-                    <Moon className="h-4 w-4 text-blue-400" />
+                    <Moon className="h-4 w-4" />
                   ) : theme === 'light' ? (
-                    <Sun className="h-4 w-4 text-amber-500" />
+                    <Sun className="h-4 w-4" />
                   ) : (
                     <Laptop className="h-4 w-4" />
                   )}
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center gap-2 cursor-pointer">
-                  <Sun className="h-4 w-4 text-amber-500" />
-                  <span>Light</span>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center gap-2 cursor-pointer text-xs">
+                  <Sun className="h-3.5 w-3.5" />
+                  Light
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center gap-2 cursor-pointer">
-                  <Moon className="h-4 w-4 text-blue-400" />
-                  <span>Dark</span>
+                <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center gap-2 cursor-pointer text-xs">
+                  <Moon className="h-3.5 w-3.5" />
+                  Dark
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('system')} className="flex items-center gap-2 cursor-pointer">
-                  <Laptop className="h-4 w-4 text-muted-foreground" />
-                  <span>System</span>
+                <DropdownMenuItem onClick={() => setTheme('system')} className="flex items-center gap-2 cursor-pointer text-xs">
+                  <Laptop className="h-3.5 w-3.5" />
+                  System
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -539,24 +530,22 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             {/* Notification Bell */}
             <button
               onClick={() => navigate('/notifications')}
-              className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors cursor-pointer"
+              className="relative p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
               title={`Notifications (${notifStats?.unreadInApp || 0} unread)`}
               aria-label="View notifications"
             >
               <Bell className="w-4 h-4" />
               {Boolean(notifStats?.unreadInApp && notifStats.unreadInApp > 0) ? (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-xs animate-in zoom-in">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
                   {notifStats!.unreadInApp > 99 ? '99+' : notifStats!.unreadInApp}
                 </span>
-              ) : (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-card" />
-              )}
+              ) : null}
             </button>
           </div>
         </header>
 
-        {/* Page Content Viewport */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background">
           <div className="mx-auto max-w-7xl">
             <Suspense fallback={<PageSkeleton variant="table" />}>
               {children || <Outlet />}

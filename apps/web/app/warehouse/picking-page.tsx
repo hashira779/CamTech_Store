@@ -141,9 +141,9 @@ export function PickingPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Banner with Real-Time Alert Status */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-zinc-900 to-zinc-900 border border-amber-500/20 shadow-lg">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-amber-950/40 via-zinc-900 to-zinc-900 border border-amber-500/20 shadow-lg">
         <div className="flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
             <Boxes className="w-8 h-8" />
           </div>
           <div>
@@ -193,32 +193,32 @@ export function PickingPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs text-zinc-400 font-medium">To Pick (Pending)</span>
             <p className="text-2xl font-black text-amber-400 mt-1">{pendingOrders.length}</p>
           </div>
-          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs text-zinc-400 font-medium">Picked & Handed to Courier</span>
             <p className="text-2xl font-black text-emerald-400 mt-1">{pickedOrders.length}</p>
           </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs text-zinc-400 font-medium">Total Orders Today</span>
             <p className="text-2xl font-black text-sky-400 mt-1">{orders.length}</p>
           </div>
-          <div className="p-3 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          <div className="p-3 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <Package className="w-5 h-5" />
           </div>
         </div>
@@ -226,7 +226,7 @@ export function PickingPage() {
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-lg border border-zinc-800 w-full sm:w-auto">
           <button
             onClick={() => setFilter('PENDING')}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
@@ -265,7 +265,7 @@ export function PickingPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search order #, customer, address..."
-            className="pl-9 bg-zinc-900 border-zinc-800 text-xs text-white placeholder:text-zinc-500 rounded-xl"
+            className="pl-9 bg-zinc-900 border-zinc-800 text-xs text-white placeholder:text-zinc-500 rounded-lg"
           />
         </div>
       </div>
@@ -274,7 +274,7 @@ export function PickingPage() {
       {isLoading ? (
         <div className="text-center py-16 text-zinc-500 text-sm">Synchronizing warehouse orders...</div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-20 p-6 bg-zinc-900/40 rounded-2xl border border-dashed border-zinc-800 space-y-2">
+        <div className="text-center py-20 p-6 bg-zinc-900/40 rounded-lg border border-dashed border-zinc-800 space-y-2">
           <CheckCircle2 className="w-12 h-12 text-zinc-600 mx-auto" />
           <h3 className="text-base font-semibold text-zinc-300">No Orders in this Queue</h3>
           <p className="text-xs text-zinc-500">
@@ -290,7 +290,7 @@ export function PickingPage() {
             return (
               <div
                 key={order.id}
-                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 ${
+                className={`p-5 rounded-lg border transition-all flex flex-col justify-between space-y-4 ${
                   isPending
                     ? 'bg-zinc-900 border-amber-500/30 hover:border-amber-500/50 shadow-md'
                     : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
@@ -319,7 +319,7 @@ export function PickingPage() {
                   </div>
 
                   {/* Items Preview */}
-                  <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800/80 space-y-1.5">
+                  <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80 space-y-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
                       Items to Assemble ({order.itemCount})
                     </span>
@@ -352,7 +352,7 @@ export function PickingPage() {
                         setSelectedOrder(order);
                         setCheckedItems({});
                       }}
-                      className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-xl shadow-sm"
+                      className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-lg shadow-sm"
                     >
                       Open Picking Checklist
                     </Button>
@@ -365,7 +365,7 @@ export function PickingPage() {
                         setCheckedItems(allChecked);
                       }}
                       variant="outline"
-                      className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs rounded-xl"
+                      className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs rounded-lg"
                     >
                       View Details
                     </Button>
@@ -379,7 +379,7 @@ export function PickingPage() {
 
       {/* Picking Checklist Modal */}
       <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-w-lg rounded-2xl">
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-w-lg rounded-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center justify-between">
               <span>Picking Checklist: {selectedOrder?.saleNumber}</span>
@@ -413,7 +413,7 @@ export function PickingPage() {
                   <div
                     key={it.id}
                     onClick={() => selectedOrder.wmsStatus === 'PENDING_PICKING' && toggleItemCheck(it.id)}
-                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                    className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
                       isChecked
                         ? 'bg-emerald-950/20 border-emerald-500/30'
                         : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
@@ -461,7 +461,7 @@ export function PickingPage() {
               variant="outline"
               size="sm"
               onClick={() => setSelectedOrder(null)}
-              className="border-zinc-700 text-zinc-300 text-xs rounded-xl"
+              className="border-zinc-700 text-zinc-300 text-xs rounded-lg"
             >
               Close
             </Button>
@@ -473,7 +473,7 @@ export function PickingPage() {
                   selectedOrder &&
                   fulfillMutation.mutate({ saleId: selectedOrder.id, notes: packingNotes })
                 }
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-lg flex items-center gap-1.5"
               >
                 <Truck className="w-4 h-4" />
                 Mark Picked & Hand to Courier

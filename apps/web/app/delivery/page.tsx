@@ -49,13 +49,14 @@ import {
 import { toast } from 'sonner';
 
 const STATUS_BADGES: Record<DeliveryStatus, { label: string; className: string }> = {
+  PREPARING: { label: 'Preparing', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
   PENDING: { label: 'Pending Dispatch', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
   DISPATCHED: { label: 'Dispatched', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
   IN_TRANSIT: { label: 'In Transit', className: 'bg-sky-500/10 text-sky-400 border-sky-500/20 animate-pulse' },
   DELIVERED: { label: 'Delivered', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
   FAILED: { label: 'Failed', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
   CANCELLED: { label: 'Cancelled', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
-  RETURNED: { label: 'Returned', className: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  RETURNED: { label: 'Returned', className: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
 };
 
 export function DeliveryPage() {
@@ -381,6 +382,7 @@ export function DeliveryPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
                   <option value="">All Statuses</option>
+                  <option value="PREPARING">Preparing</option>
                   <option value="PENDING">Pending</option>
                   <option value="DISPATCHED">Dispatched</option>
                   <option value="IN_TRANSIT">In Transit</option>
@@ -390,7 +392,7 @@ export function DeliveryPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-xs">
+            <div className="rounded-lg border border-border/60 bg-card overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider">
@@ -566,7 +568,7 @@ export function DeliveryPage() {
             </div>
 
             {activeDrivers.length === 0 && (
-              <div className="p-4 rounded-xl border border-dashed border-border/70 bg-card/40 text-center space-y-2">
+              <div className="p-4 rounded-lg border border-dashed border-border/70 bg-card/40 text-center space-y-2">
                 <Truck className="w-7 h-7 text-muted-foreground mx-auto opacity-50" />
                 <p className="text-xs font-semibold text-foreground">No Fleet Drivers Yet</p>
                 <p className="text-[11px] text-muted-foreground">
@@ -591,7 +593,7 @@ export function DeliveryPage() {
                   <div
                     key={drv.id}
                     onClick={() => setSelectedDriverId(drv.id)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-sky-500/10 border-sky-500/40 shadow-md ring-1 ring-sky-500/30'
                         : 'bg-card border-border/60 hover:bg-muted/30'
@@ -664,7 +666,7 @@ export function DeliveryPage() {
                   {pendingDrivers.map((drv) => (
                     <div
                       key={drv.id}
-                      className="p-3 rounded-xl border bg-amber-500/5 border-amber-500/20 flex flex-col gap-3"
+                      className="p-3 rounded-lg border bg-amber-500/5 border-amber-500/20 flex flex-col gap-3"
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">

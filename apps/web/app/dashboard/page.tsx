@@ -140,7 +140,7 @@ export default function DashboardPage() {
             change={dashboard?.metrics.averageOrderValue.changePct ?? undefined}
             changeLabel={dashboard?.metrics.averageOrderValue.changePct != null ? "vs comparison period" : "current period"}
             icon={Receipt}
-            iconColor="text-indigo-500"
+            iconColor="text-primary"
             isLoading={dashboardLoading}
           />
           <KpiCard
@@ -149,7 +149,7 @@ export default function DashboardPage() {
             change={dashboard?.metrics.customers.changePct ?? undefined}
             changeLabel={dashboard?.metrics.customers.changePct != null ? "vs comparison period" : "registered"}
             icon={Users}
-            iconColor="text-purple-500"
+            iconColor="text-orange-500"
             isLoading={dashboardLoading}
           />
         </div>
@@ -157,18 +157,18 @@ export default function DashboardPage() {
         {/* Analytics Section: Revenue Trend & Channel Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Revenue Chart (8 cols) */}
-          <Card className="lg:col-span-8 shadow-sm rounded-2xl border-border/80 bg-card/80 backdrop-blur-md">
+          <Card className="lg:col-span-8 shadow-sm rounded-lg border-border/80 bg-card/80 ">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle className="text-base font-bold">Sales Revenue Performance</CardTitle>
                 <CardDescription className="text-xs">Daily revenue trajectory across all sales channels</CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/60">
                 <Button
                   variant={chartRange === '7d' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setChartRange('7d')}
-                  className="h-7 text-xs px-2.5 rounded-lg shadow-2xs font-semibold"
+                  className="h-7 text-xs px-2.5 rounded-lg shadow-sm font-semibold"
                 >
                   Last 7 Days
                 </Button>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
                   variant={chartRange === '30d' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setChartRange('30d')}
-                  className="h-7 text-xs px-2.5 rounded-lg shadow-2xs font-semibold"
+                  className="h-7 text-xs px-2.5 rounded-lg shadow-sm font-semibold"
                 >
                   Last 30 Days
                 </Button>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="rounded-xl border border-border/80 bg-card/95 p-3 shadow-xl backdrop-blur-md text-xs space-y-1">
+                            <div className="rounded-lg border border-border/80 bg-card/95 p-3 shadow-sm  text-xs space-y-1">
                               <p className="font-semibold text-muted-foreground">{label}</p>
                               <p className="text-base font-bold text-foreground tabular-nums">
                                 {money.format(Number(payload[0].value))}
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Sales Channel Mix (4 cols) */}
-          <Card className="lg:col-span-4 shadow-sm rounded-2xl border-border/80 bg-card/80 backdrop-blur-md flex flex-col justify-between">
+          <Card className="lg:col-span-4 shadow-sm rounded-lg border-border/80 bg-card/80  flex flex-col justify-between">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               {channelBreakdown.map((channel, idx) => {
                 const pct = totalRevenue > 0 ? Math.round((channel.amount / totalRevenue) * 100) : 0;
-                const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-amber-500'];
+                const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-amber-500'];
                 const color = colors[idx % colors.length];
 
                 return (
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                 );
               })}
 
-              <div className="p-3 rounded-xl border border-border/80 bg-muted/30 mt-4 text-xs text-muted-foreground flex items-center justify-between">
+              <div className="p-3 rounded-lg border border-border/80 bg-muted/30 mt-4 text-xs text-muted-foreground flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Transactions synced
@@ -295,7 +295,7 @@ export default function DashboardPage() {
         {/* 2-Column Operational Grid: Recent Sales & Action Center */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Recent Orders Ledger (7 cols) */}
-          <Card className="lg:col-span-7 shadow-sm rounded-2xl border-border/80 bg-card/80 backdrop-blur-md">
+          <Card className="lg:col-span-7 shadow-sm rounded-lg border-border/80 bg-card/80 ">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
                 <CardTitle className="text-base font-bold">Recent Orders & Activity</CardTitle>
@@ -312,10 +312,10 @@ export default function DashboardPage() {
                 {(salesData?.items ?? []).slice(0, 5).map((sale) => (
                   <div
                     key={sale.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors text-xs group"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors text-xs group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform shrink-0">
                         <ShoppingBag className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -355,7 +355,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Actionable operational alerts (5 cols) */}
-          <Card className="lg:col-span-5 shadow-sm rounded-2xl border-border/80 bg-card/80 backdrop-blur-md">
+          <Card className="lg:col-span-5 shadow-sm rounded-lg border-border/80 bg-card/80 ">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function DashboardPage() {
                   <Link
                     key={alert.id}
                     to={alert.href}
-                    className={`flex items-center justify-between rounded-xl border p-3 text-xs transition-all hover:-translate-y-0.5 shadow-2xs ${
+                    className={`flex items-center justify-between rounded-lg border p-3 text-xs transition-all  shadow-sm ${
                       alert.severity === 'critical'
                         ? 'border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10'
                         : alert.severity === 'warning'

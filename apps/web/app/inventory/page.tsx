@@ -305,7 +305,7 @@ export function InventoryPage() {
             title="Active Catalog SKUs"
             value={inventoryItems.length}
             icon={Package}
-            iconColor="text-indigo-500"
+            iconColor="text-primary"
             isLoading={isLoading}
           />
           <KpiCard

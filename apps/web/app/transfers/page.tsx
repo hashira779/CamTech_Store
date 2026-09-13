@@ -159,7 +159,7 @@ export default function TransfersPage() {
     const styles: Record<StockTransferStatus, string> = {
       DRAFT: 'bg-muted/30 text-muted-foreground border-border',
       REQUESTED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      APPROVED: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      APPROVED: 'bg-primary/10 text-primary border-primary/20',
       IN_TRANSIT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
       RECEIVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
       CANCELLED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
@@ -203,7 +203,7 @@ export default function TransfersPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <ArrowLeftRight className="w-5 h-5" />
               </div>
               <div>
@@ -215,7 +215,7 @@ export default function TransfersPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
                 <Truck className="w-5 h-5" />
               </div>
               <div>
@@ -227,7 +227,7 @@ export default function TransfersPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
                 <PackageCheck className="w-5 h-5" />
               </div>
               <div>
@@ -239,7 +239,7 @@ export default function TransfersPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
+              <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
@@ -316,7 +316,7 @@ export default function TransfersPage() {
                             <button
                               type="button"
                               onClick={() => statusMutation.mutate({ id: t.id, status: 'APPROVED' })}
-                              className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 font-semibold"
+                              className="px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 font-semibold"
                             >
                               Approve
                             </button>
@@ -363,8 +363,8 @@ export default function TransfersPage() {
 
         {/* New Stock Transfer Drawer */}
         {isCreateOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
-            <div className="w-full max-w-lg bg-card border-l border-border h-full flex flex-col p-6 shadow-2xl overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex justify-end">
+            <div className="w-full max-w-lg bg-card border-l border-border h-full flex flex-col p-6 shadow-md overflow-y-auto">
               <div className="flex justify-between items-center pb-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <ArrowLeftRight className="w-5 h-5 text-primary" />
@@ -561,8 +561,8 @@ export default function TransfersPage() {
 
         {/* Receive Goods Modal */}
         {receiveModalTransfer && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-lg w-full p-6 border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-lg w-full p-6 border-border shadow-md bg-card">
               <div className="flex justify-between items-center pb-3 border-b border-border mb-4">
                 <div className="flex items-center gap-2">
                   <PackageCheck className="w-5 h-5 text-emerald-400" />
@@ -669,8 +669,8 @@ export default function TransfersPage() {
 
         {/* Transfer Detail Inspector Drawer */}
         {inspectTransfer && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
-            <div className="w-full max-w-md bg-card border-l border-border h-full flex flex-col p-6 shadow-2xl overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex justify-end">
+            <div className="w-full max-w-md bg-card border-l border-border h-full flex flex-col p-6 shadow-md overflow-y-auto">
               <div className="flex justify-between items-center pb-4 border-b border-border mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground font-mono">

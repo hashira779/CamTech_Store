@@ -75,7 +75,7 @@ export function PosPage() {
               placeholder="Search products, scan barcode..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 rounded-2xl pl-12 pr-4 py-4 text-zinc-100 placeholder:text-zinc-500 transition-all text-lg shadow-inner outline-none"
+              className="w-full bg-zinc-900 border border-zinc-800 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 rounded-lg pl-12 pr-4 py-4 text-zinc-100 placeholder:text-zinc-500 transition-all text-lg shadow-inner outline-none"
             />
           </div>
 
@@ -86,7 +86,7 @@ export function PosPage() {
                 <button
                   key={item.variant.id}
                   onClick={() => addToCart(item)}
-                  className="bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/50 rounded-2xl p-4 text-left transition-all duration-200 group flex flex-col justify-between aspect-square"
+                  className="bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 text-left transition-all duration-200 group flex flex-col justify-between aspect-square"
                 >
                   <div>
                     <h3 className="font-semibold text-zinc-100 line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">{item.master.name}</h3>
@@ -103,7 +103,7 @@ export function PosPage() {
         </div>
 
         {/* Right Side - Cart */}
-        <div className="lg:col-span-4 flex flex-col bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden">
+        <div className="lg:col-span-4 flex flex-col bg-zinc-900 rounded-lg border border-zinc-800 shadow-lg overflow-hidden">
           <div className="p-5 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md flex items-center justify-between z-10">
             <h2 className="text-lg font-bold flex items-center gap-2 text-white">
               <ShoppingCart className="w-5 h-5 text-emerald-400" />
@@ -122,12 +122,12 @@ export function PosPage() {
               </div>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className="bg-zinc-900 p-3 rounded-2xl border border-zinc-800 flex gap-3 items-center group">
+                <div key={item.id} className="bg-zinc-900 p-3 rounded-lg border border-zinc-800 flex gap-3 items-center group">
                   <div className="flex-1 min-w-0">
                     <h4 className="text-zinc-100 font-medium truncate">{item.master.name}</h4>
                     <p className="text-emerald-400 font-bold mt-0.5 tabular-nums">${item.variant.sellPrice.toFixed(2)}</p>
                   </div>
-                  <div className="flex items-center gap-3 bg-zinc-950 rounded-xl p-1 border border-zinc-800">
+                  <div className="flex items-center gap-3 bg-zinc-950 rounded-md p-1 border border-zinc-800">
                     <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors" onClick={() => setCart(c => c.map(i => i.id === item.id ? {...i, qty: Math.max(1, i.qty - 1)} : i))}>
                       <Minus className="w-4 h-4" />
                     </button>
@@ -136,7 +136,7 @@ export function PosPage() {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1" onClick={() => setCart(c => c.filter(i => i.id !== item.id))}>
+                  <button className="w-10 h-10 flex items-center justify-center rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1" onClick={() => setCart(c => c.filter(i => i.id !== item.id))}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -162,7 +162,7 @@ export function PosPage() {
 
             {lastSale && (
               <div
-                className={`rounded-xl p-3 text-sm font-semibold ${
+                className={`rounded-md p-3 text-sm font-semibold ${
                   lastSale.error
                     ? 'bg-red-500/10 text-red-400'
                     : 'bg-emerald-500/10 text-emerald-400'
@@ -178,7 +178,7 @@ export function PosPage() {
               <button
                 onClick={() => handleCheckout('CASH')}
                 disabled={cart.length === 0 || isSubmitting}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Banknote className="w-6 h-6" />
                 {isSubmitting ? '...' : 'Cash'}
@@ -186,7 +186,7 @@ export function PosPage() {
               <button
                 onClick={() => handleCheckout('QR')}
                 disabled={cart.length === 0 || isSubmitting}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <QrCode className="w-6 h-6" />
                 KHQR
@@ -194,7 +194,7 @@ export function PosPage() {
               <button
                 onClick={() => handleCheckout('CARD')}
                 disabled={cart.length === 0 || isSubmitting}
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700 font-bold active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <CreditCard className="w-6 h-6" />
                 Card

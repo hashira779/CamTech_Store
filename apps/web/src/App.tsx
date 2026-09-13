@@ -37,7 +37,7 @@ export function App() {
   // 1. Subdomain matching (production multi-subdomain routing §228)
   if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
     CurrentApp = PosApp;
-  } else if (hostname.startsWith('hr.')) {
+  } else if (hostname.startsWith('hr.') || hostname.startsWith('hrms.')) {
     CurrentApp = HrApp;
   } else if (hostname.startsWith('delivery.')) {
     CurrentApp = DeliveryApp;
@@ -47,13 +47,13 @@ export function App() {
     CurrentApp = FinanceApp;
   } else if (hostname.startsWith('shop.') || hostname.startsWith('store.')) {
     CurrentApp = CustomerApp;
-  } else if (hostname.startsWith('ceo.')) {
+  } else if (hostname.startsWith('ceo.') || hostname.startsWith('business.')) {
     CurrentApp = CeoApp;
   } else if (hostname.startsWith('support.') || hostname.startsWith('desk.')) {
     CurrentApp = SupportApp;
   } else if (hostname.startsWith('partner.') || hostname.startsWith('developer.') || hostname.startsWith('dev.')) {
     CurrentApp = PartnerApp;
-  } else if (hostname.startsWith('admin.')) {
+  } else if (hostname.startsWith('admin.') || hostname.startsWith('adminconsol.')) {
     CurrentApp = AdminApp;
   } else {
     // 2. Dynamic route-based simulation for local development & DomainBar switcher

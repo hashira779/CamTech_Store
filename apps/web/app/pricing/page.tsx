@@ -326,8 +326,8 @@ export default function PricingPage() {
 
         {/* MODAL 1: CREATE PRICE LIST */}
         {createModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 border-border shadow-xl">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 border-border shadow-sm">
               <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
                 <Coins className="w-5 h-5 text-primary" />
                 New Price List
@@ -460,8 +460,8 @@ export default function PricingPage() {
 
         {/* MODAL 2: MANAGE TIERS & QUANTITY BREAKS */}
         {manageListId && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-3xl w-full p-6 border-border shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-3xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start border-b border-border pb-4 mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">

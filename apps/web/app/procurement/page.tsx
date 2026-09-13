@@ -36,7 +36,7 @@ const PO_STATUS_COLORS: Record<PurchaseOrderStatus, string> = {
   DRAFT: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
   SUBMITTED: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   APPROVED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  PARTIALLY_RECEIVED: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  PARTIALLY_RECEIVED: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
   COMPLETED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
@@ -593,8 +593,8 @@ export default function ProcurementPage() {
 
         {/* MODAL 1: CREATE PURCHASE ORDER */}
         {createPoModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-3xl w-full p-6 border-border shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-3xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold text-foreground mb-1">New Purchase Order</h3>
               <p className="text-xs text-muted-foreground mb-4">
                 Draft a supplier purchase order. Stock will increment upon shipment receipt.
@@ -818,8 +818,8 @@ export default function ProcurementPage() {
 
         {/* MODAL 2: RECEIVE GOODS (GRN) */}
         {receiveModalPo && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-2xl w-full p-6 border-border shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-2xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
                 <PackageCheck className="w-5 h-5 text-emerald-400" />
                 Inbound Goods Receipt (GRN)
@@ -926,8 +926,8 @@ export default function ProcurementPage() {
 
         {/* MODAL 3: VIEW PO DETAILS */}
         {viewPoModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-2xl w-full p-6 border-border shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-2xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start border-b border-border pb-4 mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -1008,8 +1008,8 @@ export default function ProcurementPage() {
 
         {/* MODAL 4: ADD SUPPLIER */}
         {createSupplierModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 border-border shadow-xl">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 border-border shadow-sm">
               <h3 className="text-lg font-bold text-foreground mb-1">Register Supplier</h3>
               <p className="text-xs text-muted-foreground mb-4">
                 Add a new vendor or distributor to your enterprise registry.

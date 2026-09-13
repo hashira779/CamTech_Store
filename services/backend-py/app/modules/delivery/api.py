@@ -56,7 +56,7 @@ async def list_delivery_tasks(
 ):
     """
     Courier App & Driver Dispatch Endpoint for apps/delivery (Port 5004).
-    Returns real-time tasks dispatched from customer storefront checkout.
+    Returns delivery tasks and their preparation/dispatch state.
     """
     target_org = resolve_org_id(user)
     orders = await svc.list_orders(db, org_id=target_org, status=status, search=search)
@@ -101,8 +101,8 @@ async def create_public_delivery_order(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Live Storefront Checkout Dispatch Endpoint.
-    When an order is confirmed in apps/store, this immediately dispatches a live task to apps/delivery.
+    Public delivery-order creation endpoint.
+    Orders created here are immediately ready for courier dispatch.
     """
     target_org = resolve_org_id(user)
     return await svc.create_order(db, org_id=target_org, inp=inp)

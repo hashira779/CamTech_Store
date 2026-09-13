@@ -53,7 +53,7 @@ export function DeliveryMiniMap({
   const delta = 0.007;
 
   return (
-    <div className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group ${className}`}>
+    <div className={`relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group ${className}`}>
       <iframe
         title={`Mini-Map-${safeLat}-${safeLng}`}
         src={`https://www.openstreetmap.org/export/embed.html?bbox=${safeLng - delta}%2C${safeLat - delta * 0.7}%2C${safeLng + delta}%2C${safeLat + delta * 0.7}&layer=mapnik&marker=${safeLat}%2C${safeLng}`}
@@ -76,7 +76,7 @@ export function DeliveryMiniMap({
       </button>
 
       {/* Destination address badge at bottom */}
-      <div className="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-700 shadow-sm border border-slate-100 flex items-center justify-between pointer-events-none">
+      <div className="absolute bottom-2 left-2 right-2 bg-white/90  px-2.5 py-1 rounded-lg text-[10px] font-medium text-slate-700 shadow-sm border border-slate-100 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-1 truncate">
           <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
           <span className="truncate">{address}</span>
@@ -100,7 +100,7 @@ export default function DriverAppPage() {
   const [isPodOpen, setIsPodOpen] = useState(false);
   const [podNotes, setPodNotes] = useState('');
   const [podSignature, setPodSignature] = useState('');
-  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('AVAILABLE');
 
   // Mobile & Desktop Detection
   const [isDesktop, setIsDesktop] = useState(false);
@@ -229,7 +229,6 @@ export default function DriverAppPage() {
     },
   });
 
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const prevPendingRef = useRef<number>(0);
 
   const pendingOrders = orders.filter((o) => o.status === 'PENDING');
@@ -243,10 +242,11 @@ export default function DriverAppPage() {
 
   useEffect(() => {
     if (pendingOrders.length > prevPendingRef.current && prevPendingRef.current >= 0) {
+      setOrderTab('AVAILABLE');
       toast.info(`New Order! (${pendingOrders.length} unassigned)`);
     }
     prevPendingRef.current = pendingOrders.length;
-  }, [pendingOrders.length, soundEnabled]);
+  }, [pendingOrders.length]);
 
   return (
     <div className="min-h-screen bg-[#F7F7F9] text-slate-900 flex flex-col items-center relative font-sans">
@@ -295,7 +295,7 @@ export default function DriverAppPage() {
             {authState === 'UNREGISTERED' && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <div className="w-16 h-16 rounded-3xl bg-amber-100 flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 rounded-lg bg-amber-100 flex items-center justify-center mb-6">
                     <Phone className="w-8 h-8 text-amber-600" />
                   </div>
                   <h2 className="text-3xl font-bold tracking-tight text-slate-900">Driver Registration</h2>
@@ -307,7 +307,7 @@ export default function DriverAppPage() {
                     placeholder="e.g. 012345678"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="bg-slate-50 border-slate-200 rounded-2xl px-6 h-14 text-lg font-medium text-slate-900 placeholder:text-slate-400"
+                    className="bg-slate-50 border-slate-200 rounded-lg px-6 h-14 text-lg font-medium text-slate-900 placeholder:text-slate-400"
                   />
                   <Button
                     onClick={handleInitRegister}
@@ -323,7 +323,7 @@ export default function DriverAppPage() {
             {authState === 'OTP_PENDING' && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <div className="w-16 h-16 rounded-3xl bg-emerald-100 flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 rounded-lg bg-emerald-100 flex items-center justify-center mb-6">
                     <ShieldCheck className="w-8 h-8 text-emerald-600" />
                   </div>
                   <h2 className="text-3xl font-bold tracking-tight text-slate-900">Enter OTP</h2>
@@ -338,7 +338,7 @@ export default function DriverAppPage() {
                     maxLength={6}
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    className="bg-slate-50 border-slate-200 rounded-2xl text-center text-3xl tracking-[0.5em] font-mono font-bold text-slate-900 h-16"
+                    className="bg-slate-50 border-slate-200 rounded-lg text-center text-3xl tracking-[0.5em] font-mono font-bold text-slate-900 h-16"
                   />
                   <Button
                     onClick={handleVerifyOtp}
@@ -401,14 +401,14 @@ export default function DriverAppPage() {
                 <h3 className="text-lg font-bold text-slate-900">Shipment Overview</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-5 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
+                <div className="bg-white p-5 rounded-lg shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-900">
                       <Package className="w-5 h-5" />
                    </div>
                    <div className="text-2xl font-bold text-slate-900">{orders.length}</div>
                    <div className="text-xs text-slate-500 mt-1 font-medium">Today's Shipments</div>
                 </div>
-                <div className="bg-white p-5 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
+                <div className="bg-white p-5 rounded-lg shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-900">
                       <DollarSign className="w-5 h-5" />
                    </div>
@@ -435,14 +435,14 @@ export default function DriverAppPage() {
             ) : orderTab === 'AVAILABLE' ? (
               /* ─── AVAILABLE ORDERS ─── */
               pendingOrders.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-100 shadow-sm">
                   <CheckCircle2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                   <h3 className="text-base font-bold text-slate-900">No Pending Requests</h3>
                   <p className="text-sm text-slate-500 mt-1">You're all caught up for now.</p>
                 </div>
               ) : (
                 pendingOrders.map((order) => (
-                  <div key={order.id} className="bg-white p-5 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 space-y-4">
+                  <div key={order.id} className="bg-white p-5 rounded-lg shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                          <span className="text-xs font-bold text-slate-500">{order.trackingNumber}</span>
@@ -453,7 +453,7 @@ export default function DriverAppPage() {
                       </Badge>
                     </div>
                     
-                    <div className="bg-slate-50 p-4 rounded-2xl flex items-start gap-3">
+                    <div className="bg-slate-50 p-4 rounded-lg flex items-start gap-3">
                        <MapPin className="w-5 h-5 text-slate-400 shrink-0" />
                        <p className="text-sm font-medium text-slate-700 leading-tight">{order.deliveryAddress}</p>
                     </div>
@@ -491,14 +491,14 @@ export default function DriverAppPage() {
             ) : orderTab === 'ACTIVE' ? (
               /* ─── ACTIVE ORDERS ─── */
               activeOrders.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-100 shadow-sm">
                   <Package className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                   <h3 className="text-base font-bold text-slate-900">Route is Empty</h3>
                   <p className="text-sm text-slate-500 mt-1">Accept pending orders to start your route.</p>
                 </div>
               ) : (
                 activeOrders.map((order) => (
-                  <div key={order.id} className="bg-white p-5 rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 space-y-4">
+                  <div key={order.id} className="bg-white p-5 rounded-lg shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                          <span className="text-xs font-bold text-slate-500">{order.trackingNumber}</span>
@@ -509,7 +509,7 @@ export default function DriverAppPage() {
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-50 p-4 rounded-2xl flex items-start gap-3">
+                    <div className="bg-slate-50 p-4 rounded-lg flex items-start gap-3">
                        <MapPin className="w-5 h-5 text-slate-400 shrink-0" />
                        <p className="text-sm font-medium text-slate-700 leading-tight">{order.deliveryAddress}</p>
                     </div>
@@ -577,7 +577,7 @@ export default function DriverAppPage() {
             ) : (
               /* ─── COMPLETED ORDERS ─── */
               completedOrders.map((order) => (
-                <div key={order.id} className="bg-white p-5 rounded-3xl border border-slate-100 space-y-3 opacity-75">
+                <div key={order.id} className="bg-white p-5 rounded-lg border border-slate-100 space-y-3 opacity-75">
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-xs font-bold text-slate-400">{order.trackingNumber}</span>
@@ -596,7 +596,7 @@ export default function DriverAppPage() {
           </main>
 
           {/* ─── Floating Bottom Navigation (Dribbble Style Black Pill) ─── */}
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 rounded-full px-2 py-2 flex items-center gap-2 shadow-2xl z-40 border border-slate-800">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 rounded-full px-2 py-2 flex items-center gap-2 shadow-md z-40 border border-slate-800">
              <button 
                onClick={() => setOrderTab('AVAILABLE')}
                className={`flex items-center justify-center w-12 h-12 rounded-full transition-all ${orderTab === 'AVAILABLE' ? 'bg-white text-slate-900' : 'text-slate-400 hover:text-white'}`}
@@ -633,7 +633,7 @@ export default function DriverAppPage() {
 
       {/* ─── 4. Proof of Delivery (POD) Bottom Sheet Modal ─── */}
       <Dialog open={isPodOpen} onOpenChange={setIsPodOpen}>
-        <DialogContent className="max-w-sm bg-white border-slate-100 rounded-t-[2rem] rounded-b-none sm:rounded-[2rem] text-slate-900 mt-auto mb-0 sm:my-auto p-8 border-b-0 shadow-2xl">
+        <DialogContent className="max-w-sm bg-white border-slate-100 rounded-t-[2rem] rounded-b-none sm:rounded-[2rem] text-slate-900 mt-auto mb-0 sm:my-auto p-8 border-b-0 shadow-md">
           <DialogHeader className="text-left space-y-1 mb-4">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
             <DialogTitle className="text-2xl font-bold tracking-tight">Complete Delivery</DialogTitle>
@@ -645,7 +645,7 @@ export default function DriverAppPage() {
           {selectedOrder && (
             <div className="space-y-5">
               {Number(selectedOrder.codAmount) > 0 && (
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-between">
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-between">
                   <span className="text-sm font-bold text-amber-900">COD to Collect</span>
                   <span className="text-xl font-bold text-amber-700">${Number(selectedOrder.codAmount).toFixed(2)}</span>
                 </div>
@@ -657,7 +657,7 @@ export default function DriverAppPage() {
                   placeholder="e.g. Sokha Chem"
                   value={podSignature}
                   onChange={(e) => setPodSignature(e.target.value)}
-                  className="bg-slate-50 border-slate-200 rounded-xl h-12 font-medium text-slate-900"
+                  className="bg-slate-50 border-slate-200 rounded-lg h-12 font-medium text-slate-900"
                 />
               </div>
 
@@ -667,7 +667,7 @@ export default function DriverAppPage() {
                   placeholder="e.g. Left at front desk"
                   value={podNotes}
                   onChange={(e) => setPodNotes(e.target.value)}
-                  className="bg-slate-50 border-slate-200 rounded-xl h-12 font-medium text-slate-900"
+                  className="bg-slate-50 border-slate-200 rounded-lg h-12 font-medium text-slate-900"
                 />
               </div>
 

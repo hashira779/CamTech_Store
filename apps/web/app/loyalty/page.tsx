@@ -169,7 +169,7 @@ export default function LoyaltyPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <Users className="w-5 h-5" />
               </div>
               <div>
@@ -181,7 +181,7 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
                 <Coins className="w-5 h-5" />
               </div>
               <div>
@@ -195,7 +195,7 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
                 <CreditCard className="w-5 h-5" />
               </div>
               <div>
@@ -209,12 +209,12 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+              <div className="p-2.5 rounded-lg bg-orange-500/10 text-orange-500">
                 <Crown className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Platinum VIPs</p>
-                <p className="text-xl font-bold text-purple-400 font-mono">{platinumMembers}</p>
+                <p className="text-xl font-bold text-orange-500 font-mono">{platinumMembers}</p>
               </div>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function LoyaltyPage() {
                               tx.type === 'EARN'
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                 : tx.type === 'REDEEM'
-                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
                                 : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                             }`}
                           >
@@ -505,14 +505,14 @@ export default function LoyaltyPage() {
                   <span className="font-mono font-bold text-amber-400">1.5x Points</span>
                 </div>
 
-                <div className="p-3 rounded-lg border border-border bg-purple-500/10 border-purple-500/20 flex justify-between items-center">
+                <div className="p-3 rounded-lg border border-border bg-orange-500/10 border-orange-500/20 flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-purple-400 block flex items-center gap-1">
+                    <span className="font-bold text-orange-500 block flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> PLATINUM ELITE
                     </span>
                     <span className="text-[11px] text-muted-foreground">Annual spend $5,000+</span>
                   </div>
-                  <span className="font-mono font-bold text-purple-400">2.0x Points</span>
+                  <span className="font-mono font-bold text-orange-500">2.0x Points</span>
                 </div>
               </div>
             </div>
@@ -521,8 +521,8 @@ export default function LoyaltyPage() {
 
         {/* Manual Adjustment Modal */}
         {isAdjustOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 border-border shadow-md bg-card">
               <div className="flex justify-between items-center pb-3 border-b border-border mb-4">
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-primary" />

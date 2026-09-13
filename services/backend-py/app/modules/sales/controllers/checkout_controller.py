@@ -68,7 +68,7 @@ async def store_checkout(
         "storeNotes": payload.notes or "Online Store Checkout",
     }
     
-    # Fix order state bug: Set status to PENDING/PREPARING initially instead of COMPLETED.
+    # The sale remains pending while the warehouse prepares its delivery.
     sale = Sale(
         id=sale_id,
         organization_id=target_org,

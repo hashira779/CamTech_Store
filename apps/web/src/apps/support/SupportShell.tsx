@@ -26,7 +26,7 @@ export function SupportShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="bg-cyan-500/10 p-2 rounded-xl text-cyan-400 border border-cyan-500/20">
+            <div className="bg-cyan-500/10 p-2 rounded-md text-cyan-400 border border-cyan-500/20">
               <LifeBuoy className="w-6 h-6" />
             </div>
             <div>
@@ -35,7 +35,7 @@ export function SupportShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <nav className="hidden md:flex items-center gap-1.5 bg-slate-950 p-1 rounded-md border border-slate-800">
             {tabs.map((tab) => {
               const active = location.pathname.startsWith(tab.path);
               const Icon = tab.icon;

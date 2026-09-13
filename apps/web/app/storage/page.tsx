@@ -147,7 +147,7 @@ export default function StoragePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
@@ -159,7 +159,7 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
                 <HardDrive className="w-5 h-5" />
               </div>
               <div>
@@ -173,7 +173,7 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
                 <FolderArchive className="w-5 h-5" />
               </div>
               <div>
@@ -187,7 +187,7 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
@@ -324,8 +324,8 @@ export default function StoragePage() {
 
         {/* Upload Document Modal */}
         {isUploadOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 border-border shadow-md bg-card">
               <div className="flex justify-between items-center pb-3 border-b border-border mb-4">
                 <div className="flex items-center gap-2">
                   <Upload className="w-5 h-5 text-primary" />

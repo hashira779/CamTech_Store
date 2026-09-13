@@ -19,14 +19,14 @@ export function HrLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-primary-500/30">
       <Toaster position="top-right" richColors />
       
       {/* HR Top Navigation */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white border-b border-zinc-200 shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-500/10 p-2 rounded-xl text-indigo-600 border border-indigo-500/20">
+            <div className="bg-primary-500/10 p-2 rounded-md text-primary-600 border border-primary-500/20">
               <Users className="w-6 h-6" />
             </div>
             <div>
@@ -35,7 +35,7 @@ export function HrLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1 ml-4 bg-zinc-100/50 p-1 rounded-xl border border-zinc-200">
+          <nav className="hidden md:flex items-center gap-1 ml-4 bg-zinc-100/50 p-1 rounded-md border border-zinc-200">
             {tabs.map((tab) => {
               const active = location.pathname.startsWith(tab.path);
               const Icon = tab.icon;
@@ -45,7 +45,7 @@ export function HrLayout({ children }: { children: React.ReactNode }) {
                   to={tab.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                     active 
-                      ? 'bg-white text-indigo-600 shadow-sm border border-zinc-200' 
+                      ? 'bg-white text-primary-600 shadow-sm border border-zinc-200' 
                       : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
                   }`}
                 >

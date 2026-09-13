@@ -48,9 +48,9 @@ const PROMO_TYPE_BADGES: Record<
   },
   BUY_X_GET_Y: {
     label: 'Buy X Get Y',
-    bg: 'bg-purple-500/10',
-    text: 'text-purple-400',
-    border: 'border-purple-500/20',
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-500',
+    border: 'border-orange-500/20',
     icon: Gift,
   },
   ORDER_THRESHOLD: {
@@ -390,8 +390,8 @@ export default function PromotionsPage() {
 
         {/* MODAL: CREATE CAMPAIGN */}
         {createModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-xl w-full p-6 border-border shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
                 <Tag className="w-5 h-5 text-primary" />
                 Create Promotional Campaign
@@ -498,7 +498,7 @@ export default function PromotionsPage() {
                 </div>
 
                 {promoForm.type === 'BUY_X_GET_Y' && (
-                  <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
                     <div>
                       <label className="block font-medium text-foreground mb-1">Buy Quantity</label>
                       <input

@@ -420,7 +420,7 @@ export default function FinancePage() {
                     const typeBadge: Record<AccountType, string> = {
                       ASSET: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
                       LIABILITY: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                      EQUITY: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                      EQUITY: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
                       REVENUE: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
                       EXPENSE: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                     };
@@ -734,7 +734,7 @@ export default function FinancePage() {
                 </div>
 
                 {/* Net Income */}
-                <div className="flex justify-between text-base font-bold p-4 rounded-xl bg-primary/10 border border-primary/20">
+                <div className="flex justify-between text-base font-bold p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <span>Net Income / (Loss):</span>
                   <span className={`font-mono ${incomeStatement.netIncome >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     ${incomeStatement.netIncome.toFixed(2)}
@@ -792,7 +792,7 @@ export default function FinancePage() {
 
                 {/* Equity */}
                 <div className="space-y-2">
-                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-purple-400">
+                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-orange-500">
                     <span>Equity & Retained Earnings</span>
                     <span>Amount</span>
                   </div>
@@ -811,7 +811,7 @@ export default function FinancePage() {
                 </div>
 
                 {/* Equation Verification Banner */}
-                <div className="flex justify-between text-sm font-bold p-4 rounded-xl bg-accent/40 border border-border">
+                <div className="flex justify-between text-sm font-bold p-4 rounded-lg bg-accent/40 border border-border">
                   <span>Liabilities + Equity:</span>
                   <span className="font-mono">
                     ${(balanceSheet.totalLiabilities + balanceSheet.totalEquity).toFixed(2)}
@@ -824,8 +824,8 @@ export default function FinancePage() {
 
         {/* MODAL: NEW ACCOUNT */}
         {isAccountModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Create New Account</h3>
                 <button onClick={() => setIsAccountModalOpen(false)} className="text-muted-foreground hover:text-foreground">
@@ -907,8 +907,8 @@ export default function FinancePage() {
 
         {/* MODAL: CREATE BALANCED JOURNAL ENTRY */}
         {isJournalModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="card w-full max-w-2xl p-6 border-border shadow-xl bg-card my-8">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4 overflow-y-auto">
+            <div className="card w-full max-w-2xl p-6 border-border shadow-sm bg-card my-8">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-base font-bold text-foreground">Create Double-Entry Journal Transaction</h3>
@@ -1017,7 +1017,7 @@ export default function FinancePage() {
                 </div>
 
                 {/* Real-time Double-Entry Balancer */}
-                <div className={`p-4 rounded-xl border flex items-center justify-between text-xs font-mono ${isModalBalanced ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                <div className={`p-4 rounded-lg border flex items-center justify-between text-xs font-mono ${isModalBalanced ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
                   <div className="flex items-center gap-2">
                     {isModalBalanced ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                     <span>

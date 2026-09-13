@@ -245,24 +245,18 @@ class CheckoutOrchestrator:
             saleId=sale_id,
             notes=f"Storefront Order {sale_num} ({len(line_entities)} items)"
         )
-        deliv_order = await delivery_svc.create_order(db, org_id=target_org, inp=deliv_input)
-        
-        # Override the status to PENDING / PREPARING if not already
-        from app.modules.delivery.models import DeliveryOrder
-        db_deliv = await db.execute(select(DeliveryOrder).where(DeliveryOrder.id == deliv_order.id))
-        db_deliv_obj = db_deliv.scalar_one_or_none()
-        if db_deliv_obj:
-            db_deliv_obj.status = "PENDING"
-            deliv_order.status = "PENDING"
-        
+        deliv_order = await delivery_svc.create_order(
+            db, org_id=target_org, inp=deliv_input, initial_status="PREPARING"
+        )
+
         deliv_alert = NotificationRecord(
             id=str(uuid.uuid4()),
             organization_id=target_org,
             user_id=None,
             channel="IN_APP",
             type="ORDER_CREATED",
-            title=f"🚚 New Delivery Order #{sale_num}",
-            message=f"Customer {name_clean} ordered {len(line_entities)} items for delivery to {deliv_addr}. Tracking: {deliv_order.trackingNumber}.",
+            title=f"🚚 Delivery Order Preparing #{sale_num}",
+            message=f"Customer {name_clean} ordered {len(line_entities)} items for delivery to {deliv_addr}. Courier dispatch will begin after packing. Tracking: {deliv_order.trackingNumber}.",
             status="SENT",
             is_read=False,
             sent_at=now,

@@ -133,7 +133,7 @@ export function AiCopilotDrawer() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 border border-white/20 group"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 border border-white/20 group"
           title="Open AI Copilot (Cmd+J)"
         >
           <Sparkles className="w-4 h-4 animate-spin-slow group-hover:rotate-12 transition-transform" />
@@ -144,11 +144,11 @@ export function AiCopilotDrawer() {
 
       {/* ─── Slide-Over Copilot Panel ─── */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-4rem)] rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-sky-500/30 shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6">
+        <div className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-4rem)] rounded-lg bg-slate-950/95  border border-sky-500/30 shadow-md flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6">
           {/* Top Bar */}
           <div className="p-4 bg-slate-900/80 border-b border-border/40 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
@@ -185,7 +185,7 @@ export function AiCopilotDrawer() {
                 )}
 
                 <div
-                  className={`max-w-[82%] rounded-2xl p-3 shadow-md ${
+                  className={`max-w-[82%] rounded-lg p-3 shadow-md ${
                     m.sender === 'user'
                       ? 'bg-sky-600 text-white rounded-br-xs'
                       : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-xs'

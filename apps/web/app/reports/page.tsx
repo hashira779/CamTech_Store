@@ -170,7 +170,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Global Filters & Presets Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card/60 backdrop-blur-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card/60 ">
           {/* Date Presets */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mr-2">
@@ -295,7 +295,7 @@ export default function ReportsPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Inventory Asset Value
               </span>
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
                 <Boxes className="w-4 h-4" />
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function ReportsPage() {
               </div>
 
               {timeSeries.length === 0 ? (
-                <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-xl">
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-lg">
                   <ShoppingBag className="w-8 h-8 text-muted-foreground mb-2" />
                   <p className="text-sm font-medium text-foreground">No completed sales recorded in this period</p>
                   <p className="text-xs text-muted-foreground mt-1">Try selecting a broader date range above.</p>
@@ -422,7 +422,7 @@ export default function ReportsPage() {
               </div>
 
               {payments.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-xl">
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-border rounded-lg">
                   <Coins className="w-8 h-8 text-muted-foreground mb-2" />
                   <p className="text-sm font-medium text-foreground">No payments recorded</p>
                 </div>
@@ -434,7 +434,7 @@ export default function ReportsPage() {
                       BAKONG_KHQR: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
                       KHQR: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
                       CARD: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                      STORE_CREDIT: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                      STORE_CREDIT: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
                     };
                     return (
                       <div key={p.method} className="space-y-1.5">
@@ -585,7 +585,7 @@ export default function ReportsPage() {
             {/* Inventory Alerts Card */}
             <div className="card p-6 border-border shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400">
+                <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>

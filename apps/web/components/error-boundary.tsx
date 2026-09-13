@@ -49,12 +49,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return (
       <div className="flex min-h-[100dvh] w-full items-center justify-center p-6 bg-[#0a0a0a] relative overflow-hidden font-sans">
         {/* Animated background blobs for premium aesthetic */}
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/20 blur-[120px] animate-pulse pointer-events-none" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] animate-pulse pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-600/20 blur-[120px] animate-pulse pointer-events-none" style={{ animationDelay: '1.5s' }} />
         
         {/* Glassmorphic card */}
-        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl backdrop-blur-xl transition-all hover:border-white/20">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-rose-500 to-orange-400 text-white shadow-[0_0_30px_rgba(244,63,94,0.4)] transform transition-transform duration-500 hover:scale-110">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-lg border border-white/10 bg-white/5 p-8 text-center shadow-md  transition-all hover:border-white/20">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-to-tr from-rose-500 to-orange-400 text-white shadow-[0_0_30px_rgba(244,63,94,0.4)] transform transition-transform duration-500 hover:scale-110">
             <AlertTriangle className="h-8 w-8" />
           </div>
           
@@ -66,7 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             Our system caught an unexpected error in this view. The rest of your session is safely isolated and continues to run seamlessly.
           </p>
           
-          <div className="mt-8 text-left rounded-xl bg-black/40 border border-white/5 p-4 overflow-hidden">
+          <div className="mt-8 text-left rounded-lg bg-black/40 border border-white/5 p-4 overflow-hidden">
             <div className="flex items-center gap-2 mb-3">
               <div className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -83,7 +83,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <button
               type="button"
               onClick={this.reset}
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-6 py-3 font-medium text-black transition duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-white px-6 py-3 font-medium text-black transition duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Retry Connection
@@ -92,7 +92,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 py-3 font-medium text-white transition duration-300 hover:bg-white/10 hover:border-white/20 active:scale-95"
+              className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 py-3 font-medium text-white transition duration-300 hover:bg-white/10 hover:border-white/20 active:scale-95"
             >
               Reload Application
             </button>

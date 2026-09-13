@@ -72,14 +72,14 @@ const PURPOSE_CONFIG: Record<
   FINANCE: {
     label: 'Finance & Approvals',
     icon: Landmark,
-    color: 'text-purple-400',
-    badgeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    color: 'text-orange-500',
+    badgeClass: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
   },
   SUPPORT: {
     label: 'Customer Support',
     icon: LifeBuoy,
-    color: 'text-indigo-400',
-    badgeClass: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    color: 'text-primary',
+    badgeClass: 'bg-primary/10 text-primary border-primary/20',
   },
   GENERAL: {
     label: 'General Operations',
@@ -433,7 +433,7 @@ export default function TelegramPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/80 pb-6">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
                 <Send className="w-6 h-6" />
               </div>
               <div>
@@ -456,7 +456,7 @@ export default function TelegramPage() {
                 refetchBots();
                 refetchBindings();
               }}
-              className="p-2.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted text-muted-foreground transition-colors"
+              className="p-2.5 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted text-muted-foreground transition-colors"
               title="Refresh All"
             >
               <RefreshCw className="w-4 h-4" />
@@ -466,13 +466,13 @@ export default function TelegramPage() {
                 setBroadcastSelectedBot('');
                 setIsBroadcastModalOpen(true);
               }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors flex items-center gap-1.5"
             >
               <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" /> Dispatch Broadcast
             </button>
             <button
               onClick={() => setIsBindModalOpen(true)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-border/80 bg-muted/40 hover:bg-muted text-foreground transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-semibold border border-border/80 bg-muted/40 hover:bg-muted text-foreground transition-colors flex items-center gap-1.5"
             >
               <Users className="w-3.5 h-3.5 text-primary" /> Bind Chat ID
             </button>
@@ -481,7 +481,7 @@ export default function TelegramPage() {
                 resetBotForm();
                 setIsAddBotModalOpen(true);
               }}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> Add Telegram Bot
             </button>
@@ -505,7 +505,7 @@ export default function TelegramPage() {
           {isLoadingBots ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-44 rounded-2xl bg-muted/20 border border-border/60 animate-pulse" />
+                <div key={i} className="h-44 rounded-lg bg-muted/20 border border-border/60 animate-pulse" />
               ))}
             </div>
           ) : bots.length === 0 ? (
@@ -527,7 +527,7 @@ export default function TelegramPage() {
                 return (
                   <div
                     key={bot.id}
-                    className={`relative flex flex-col justify-between p-5 rounded-2xl border transition-all duration-200 bg-card/80 backdrop-blur-sm ${
+                    className={`relative flex flex-col justify-between p-5 rounded-lg border transition-all duration-200 bg-card/80  ${
                       bot.isPrimary
                         ? 'border-primary/40 shadow-sm shadow-primary/5 ring-1 ring-primary/20'
                         : 'border-border/80 hover:border-border'
@@ -537,7 +537,7 @@ export default function TelegramPage() {
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2.5">
-                          <div className={`p-2 rounded-xl border ${purposeInfo.badgeClass}`}>
+                          <div className={`p-2 rounded-lg border ${purposeInfo.badgeClass}`}>
                             <PurposeIcon className="w-4 h-4" />
                           </div>
                           <div>
@@ -609,7 +609,7 @@ export default function TelegramPage() {
                       {/* Test feedback preview if run */}
                       {testResult && (
                         <div
-                          className={`mt-2 p-2 rounded-xl text-[11px] font-mono border ${
+                          className={`mt-2 p-2 rounded-lg text-[11px] font-mono border ${
                             testResult.success
                               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                               : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
@@ -683,30 +683,30 @@ export default function TelegramPage() {
 
         {/* SECTION 2: COMMAND REFERENCE BANNER */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="card p-4 rounded-2xl border-border/80 shadow-sm bg-card/60 backdrop-blur-sm">
+          <div className="card p-4 rounded-lg border-border/80 shadow-sm bg-card/60 ">
             <span className="font-mono font-bold text-sky-400 text-xs">/sales</span>
             <p className="text-xs text-foreground font-semibold mt-1">Live Sales Velocity</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Returns today’s total revenue, ticket count, and AOV.</p>
           </div>
-          <div className="card p-4 rounded-2xl border-border/80 shadow-sm bg-card/60 backdrop-blur-sm">
+          <div className="card p-4 rounded-lg border-border/80 shadow-sm bg-card/60 ">
             <span className="font-mono font-bold text-amber-400 text-xs">/stock</span>
             <p className="text-xs text-foreground font-semibold mt-1">Inventory Depletion</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Lists depleted SKUs and items requiring purchase orders.</p>
           </div>
-          <div className="card p-4 rounded-2xl border-border/80 shadow-sm bg-card/60 backdrop-blur-sm">
+          <div className="card p-4 rounded-lg border-border/80 shadow-sm bg-card/60 ">
             <span className="font-mono font-bold text-emerald-400 text-xs">/orders</span>
             <p className="text-xs text-foreground font-semibold mt-1">Orders Tracker</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Shows completed volume vs. workflows awaiting review.</p>
           </div>
-          <div className="card p-4 rounded-2xl border-border/80 shadow-sm bg-card/60 backdrop-blur-sm">
-            <span className="font-mono font-bold text-purple-400 text-xs">/status</span>
+          <div className="card p-4 rounded-lg border-border/80 shadow-sm bg-card/60 ">
+            <span className="font-mono font-bold text-orange-500 text-xs">/status</span>
             <p className="text-xs text-foreground font-semibold mt-1">System Health</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Returns active bots count, DB sync, and fleet state.</p>
           </div>
         </div>
 
         {/* SECTION 3: BOUND CHATS TABLE */}
-        <div className="card rounded-2xl border border-border/80 shadow-sm overflow-hidden bg-card/80 backdrop-blur-sm">
+        <div className="card rounded-lg border border-border/80 shadow-sm overflow-hidden bg-card/80 ">
           <div className="p-4 border-b border-border/80 bg-muted/20 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
@@ -812,7 +812,7 @@ export default function TelegramPage() {
         </div>
 
         {/* SECTION 4: INTERACTIVE BOT COMMAND SIMULATOR */}
-        <div className="card p-6 rounded-2xl border border-border/80 shadow-sm flex flex-col gap-4 bg-card/80 backdrop-blur-sm">
+        <div className="card p-6 rounded-lg border border-border/80 shadow-sm flex flex-col gap-4 bg-card/80 ">
           <div className="flex items-center gap-2">
             <Terminal className="w-5 h-5 text-primary" />
             <h3 className="text-sm font-bold text-foreground">Interactive Bot Webhook Simulator</h3>
@@ -827,12 +827,12 @@ export default function TelegramPage() {
               placeholder="Target Chat ID (optional)"
               value={simChatId}
               onChange={(e) => setSimChatId(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-border/80 bg-background text-xs font-mono w-full sm:w-56"
+              className="px-3 py-2 rounded-lg border border-border/80 bg-background text-xs font-mono w-full sm:w-56"
             />
             <select
               value={simCommand}
               onChange={(e) => setSimCommand(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-border/80 bg-background text-xs font-mono"
+              className="px-3 py-2 rounded-lg border border-border/80 bg-background text-xs font-mono"
             >
               <option value="/sales">/sales (Live Revenue & Volume)</option>
               <option value="/stock">/stock (Depleted SKUs)</option>
@@ -843,14 +843,14 @@ export default function TelegramPage() {
             <button
               type="submit"
               disabled={isSimulating}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-1.5 shadow-sm transition-all"
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-1.5 shadow-sm transition-all"
             >
               <Play className="w-3.5 h-3.5" /> {isSimulating ? 'Executing...' : 'Run Simulation'}
             </button>
           </form>
 
           {simResponse && (
-            <div className="p-4 rounded-xl bg-black/60 border border-border/80 font-mono text-xs whitespace-pre-wrap text-emerald-400">
+            <div className="p-4 rounded-lg bg-black/60 border border-border/80 font-mono text-xs whitespace-pre-wrap text-emerald-400">
               {simResponse}
             </div>
           )}
@@ -858,8 +858,8 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: ADD TELEGRAM BOT ────────────────────────────────────── */}
         {isAddBotModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-lg p-6 rounded-2xl border border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
+            <div className="card w-full max-w-lg p-6 rounded-lg border border-border shadow-md bg-card">
               <div className="flex justify-between items-center mb-5 pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <Bot className="w-5 h-5 text-primary" />
@@ -894,7 +894,7 @@ export default function TelegramPage() {
                     value={botName}
                     onChange={(e) => setBotName(e.target.value)}
                     placeholder="e.g. Sales Alerts Bot or Fleet Dispatcher"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   />
                 </div>
 
@@ -905,7 +905,7 @@ export default function TelegramPage() {
                   <select
                     value={botPurpose}
                     onChange={(e) => setBotPurpose(e.target.value as TelegramBotPurpose)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   >
                     <option value="SALES">Sales & POS (Checkout & Cashier notifications)</option>
                     <option value="DELIVERY">Delivery & Fleet (Driver dispatch & live tracking)</option>
@@ -941,13 +941,13 @@ export default function TelegramPage() {
                         setTestTokenResult(null);
                       }}
                       placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono text-xs"
                     />
                     <button
                       type="button"
                       onClick={handleTestToken}
                       disabled={!botToken.trim() || isTestingToken}
-                      className="shrink-0 px-3.5 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                      className="shrink-0 px-3.5 py-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
                       title="Verify token live with Telegram getMe API before saving"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isTestingToken ? 'animate-spin' : ''}`} />
@@ -961,7 +961,7 @@ export default function TelegramPage() {
                   {/* Live Verification Feedback Card */}
                   {testTokenResult && (
                     <div
-                      className={`mt-2 p-3 rounded-xl text-xs border ${
+                      className={`mt-2 p-3 rounded-lg text-xs border ${
                         testTokenResult.success
                           ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                           : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
@@ -1000,7 +1000,7 @@ export default function TelegramPage() {
                     value={botDefaultChatId}
                     onChange={(e) => setBotDefaultChatId(e.target.value)}
                     placeholder="e.g. -100123456789"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
                   />
                 </div>
 
@@ -1012,7 +1012,7 @@ export default function TelegramPage() {
                     value={botDescription}
                     onChange={(e) => setBotDescription(e.target.value)}
                     placeholder="e.g. Dedicated channel for Phnom Penh retail store"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   />
                 </div>
 
@@ -1033,14 +1033,14 @@ export default function TelegramPage() {
                   <button
                     type="button"
                     onClick={() => setIsAddBotModalOpen(false)}
-                    className="px-3.5 py-2 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
+                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={createBotMutation.isPending}
-                    className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
                   >
                     {createBotMutation.isPending ? 'Verifying & Saving...' : 'Register Bot'}
                   </button>
@@ -1052,8 +1052,8 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: EDIT TELEGRAM BOT ─────────────────────────────────────── */}
         {editingBot && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-lg p-6 rounded-2xl border border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
+            <div className="card w-full max-w-lg p-6 rounded-lg border border-border shadow-md bg-card">
               <div className="flex justify-between items-center mb-5 pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <Edit2 className="w-5 h-5 text-primary" />
@@ -1090,7 +1090,7 @@ export default function TelegramPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   />
                 </div>
 
@@ -1101,7 +1101,7 @@ export default function TelegramPage() {
                   <select
                     value={editPurpose}
                     onChange={(e) => setEditPurpose(e.target.value as TelegramBotPurpose)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   >
                     <option value="SALES">Sales & POS</option>
                     <option value="DELIVERY">Delivery & Fleet</option>
@@ -1136,13 +1136,13 @@ export default function TelegramPage() {
                         setEditTestTokenResult(null);
                       }}
                       placeholder="Enter new token only if rotating credentials..."
-                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono text-xs"
                     />
                     <button
                       type="button"
                       onClick={handleTestEditToken}
                       disabled={!editToken.trim() || isTestingEditToken}
-                      className="shrink-0 px-3.5 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                      className="shrink-0 px-3.5 py-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
                       title="Verify new token live with Telegram getMe API before saving"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isTestingEditToken ? 'animate-spin' : ''}`} />
@@ -1153,7 +1153,7 @@ export default function TelegramPage() {
                   {/* Live Verification Feedback Card */}
                   {editTestTokenResult && (
                     <div
-                      className={`mt-2 p-3 rounded-xl text-xs border ${
+                      className={`mt-2 p-3 rounded-lg text-xs border ${
                         editTestTokenResult.success
                           ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                           : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
@@ -1192,7 +1192,7 @@ export default function TelegramPage() {
                     value={editDefaultChatId}
                     onChange={(e) => setEditDefaultChatId(e.target.value)}
                     placeholder="e.g. -100123456789"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
                   />
                 </div>
 
@@ -1228,14 +1228,14 @@ export default function TelegramPage() {
                   <button
                     type="button"
                     onClick={() => setEditingBot(null)}
-                    className="px-3.5 py-2 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
+                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={updateBotMutation.isPending}
-                    className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
                   >
                     {updateBotMutation.isPending ? 'Saving...' : 'Update Bot'}
                   </button>
@@ -1247,8 +1247,8 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: BIND CHAT DESTINATION ───────────────────────────────── */}
         {isBindModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-sm p-6 rounded-2xl border border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
+            <div className="card w-full max-w-sm p-6 rounded-lg border border-border shadow-md bg-card">
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/60">
                 <h3 className="text-base font-bold text-foreground">Bind Telegram Destination</h3>
                 <button onClick={() => setIsBindModalOpen(false)}>
@@ -1277,7 +1277,7 @@ export default function TelegramPage() {
                     value={bindChatId}
                     onChange={(e) => setBindChatId(e.target.value)}
                     placeholder="e.g. 987654321 or -100123456"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
                   />
                 </div>
                 <div>
@@ -1288,7 +1288,7 @@ export default function TelegramPage() {
                     value={bindChatTitle}
                     onChange={(e) => setBindChatTitle(e.target.value)}
                     placeholder="e.g. Phnom Penh Cashiers Group"
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   />
                 </div>
                 <div>
@@ -1298,7 +1298,7 @@ export default function TelegramPage() {
                   <select
                     value={bindBotId}
                     onChange={(e) => setBindBotId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   >
                     <option value="">Default / Primary Bot</option>
                     {bots.map((b) => (
@@ -1315,7 +1315,7 @@ export default function TelegramPage() {
                   <select
                     value={bindRole}
                     onChange={(e) => setBindRole(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   >
                     <option value="OPERATOR">OPERATOR (Sales, stock, orders)</option>
                     <option value="BRANCH_MANAGER">BRANCH_MANAGER (All commands + approvals)</option>
@@ -1328,14 +1328,14 @@ export default function TelegramPage() {
                   <button
                     type="button"
                     onClick={() => setIsBindModalOpen(false)}
-                    className="px-3 py-1.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted"
+                    className="px-3 py-1.5 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={bindMutation.isPending}
-                    className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground font-semibold"
+                    className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold"
                   >
                     {bindMutation.isPending ? 'Binding...' : 'Authorize'}
                   </button>
@@ -1347,8 +1347,8 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: TARGETED BROADCAST ──────────────────────────────────── */}
         {isBroadcastModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 rounded-2xl border border-border shadow-2xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
+            <div className="card w-full max-w-md p-6 rounded-lg border border-border shadow-md bg-card">
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <Radio className="w-4 h-4 text-rose-400" />
@@ -1376,7 +1376,7 @@ export default function TelegramPage() {
                   <select
                     value={broadcastSelectedBot}
                     onChange={(e) => setBroadcastSelectedBot(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   >
                     <option value="">All Active Bots / Primary Bot</option>
                     {bots.map((b) => (
@@ -1397,7 +1397,7 @@ export default function TelegramPage() {
                     value={broadcastMessage}
                     onChange={(e) => setBroadcastMessage(e.target.value)}
                     placeholder="Type broadcast message (markdown supported)..."
-                    className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background"
+                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
                   />
                 </div>
 
@@ -1441,14 +1441,14 @@ export default function TelegramPage() {
                   <button
                     type="button"
                     onClick={() => setIsBroadcastModalOpen(false)}
-                    className="px-3.5 py-2 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted font-medium"
+                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={broadcastMutation.isPending}
-                    className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow-sm transition-all"
+                    className="px-4 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow-sm transition-all"
                   >
                     {broadcastMutation.isPending ? 'Broadcasting...' : 'Send Broadcast'}
                   </button>
@@ -1460,10 +1460,10 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: CONFIRM UNBIND DESTINATION ─────────────────────────── */}
         {deletingBinding && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 rounded-2xl border border-destructive/30 shadow-2xl bg-card space-y-4">
+          <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 rounded-lg border border-destructive/30 shadow-md bg-card space-y-4">
               <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-destructive/15 text-destructive shrink-0">
+                <div className="p-2.5 rounded-lg bg-destructive/15 text-destructive shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -1482,7 +1482,7 @@ export default function TelegramPage() {
                   type="button"
                   disabled={deleteBindingMutation.isPending}
                   onClick={() => setDeletingBinding(null)}
-                  className="px-3.5 py-2 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                  className="px-3.5 py-2 rounded-lg border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
                 >
                   Cancel
                 </button>
@@ -1493,7 +1493,7 @@ export default function TelegramPage() {
                     console.log('[Telegram] Confirmed unbind destination:', deletingBinding.id);
                     deleteBindingMutation.mutate(deletingBinding.id);
                   }}
-                  className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
                 >
                   {deleteBindingMutation.isPending ? (
                     <>
@@ -1512,10 +1512,10 @@ export default function TelegramPage() {
 
         {/* ─── MODAL: CONFIRM DELETE BOT ──────────────────────────────────── */}
         {deletingBot && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 rounded-2xl border border-destructive/30 shadow-2xl bg-card space-y-4">
+          <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
+            <div className="card max-w-md w-full p-6 rounded-lg border border-destructive/30 shadow-md bg-card space-y-4">
               <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-destructive/15 text-destructive shrink-0">
+                <div className="p-2.5 rounded-lg bg-destructive/15 text-destructive shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -1533,7 +1533,7 @@ export default function TelegramPage() {
                   type="button"
                   disabled={deleteBotMutation.isPending}
                   onClick={() => setDeletingBot(null)}
-                  className="px-3.5 py-2 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                  className="px-3.5 py-2 rounded-lg border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
                 >
                   Cancel
                 </button>
@@ -1544,7 +1544,7 @@ export default function TelegramPage() {
                     console.log('[Telegram] Confirmed delete bot ID:', deletingBot.id);
                     deleteBotMutation.mutate(deletingBot.id);
                   }}
-                  className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
                 >
                   {deleteBotMutation.isPending ? (
                     <>

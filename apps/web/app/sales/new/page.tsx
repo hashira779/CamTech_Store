@@ -515,8 +515,8 @@ export default function NewSalePOSPage() {
 
         {/* Modal Success Overlay */}
         {completedSale && (
-          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-card border border-border shadow-2xl rounded-2xl p-6 text-center space-y-4">
+          <div className="fixed inset-0 z-50 bg-background/80  flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-card border border-border shadow-md rounded-lg p-6 text-center space-y-4">
               {completedSale.isOffline ? (
                 <>
                   <div className="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto">
@@ -545,7 +545,7 @@ export default function NewSalePOSPage() {
                 </>
               )}
 
-              <div className="bg-secondary/40 p-4 rounded-xl space-y-2 text-sm text-left">
+              <div className="bg-secondary/40 p-4 rounded-lg space-y-2 text-sm text-left">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Grand Total</span>
                   <span className="font-bold text-foreground">
@@ -931,8 +931,8 @@ export default function NewSalePOSPage() {
 
         {/* Offline Queue Modal */}
         {queueModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-lg w-full p-6 border-border shadow-xl">
+          <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
+            <div className="card max-w-lg w-full p-6 border-border shadow-sm">
               <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <Inbox className="w-5 h-5 text-amber-400" />
@@ -1006,8 +1006,8 @@ export default function NewSalePOSPage() {
         )}
         {/* KHQR Modal (Bakong EMVCo standard - Spec §20, §21) */}
         {khqrModalOpen && khqrIntent && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card max-w-sm w-full p-6 border-border shadow-2xl bg-card flex flex-col items-center text-center">
+          <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
+            <div className="card max-w-sm w-full p-6 border-border shadow-md bg-card flex flex-col items-center text-center">
               {/* Official KHQR Branded Header */}
               <div className="w-full bg-red-600 text-white rounded-t-xl py-2 px-4 mb-4 flex items-center justify-between">
                 <span className="font-extrabold tracking-widest text-sm flex items-center gap-1.5">
@@ -1028,7 +1028,7 @@ export default function NewSalePOSPage() {
               </div>
 
               {/* Dynamic QR Graphic */}
-              <div className="p-4 bg-white rounded-xl border border-border shadow-inner mb-4 flex flex-col items-center justify-center w-52 h-52 relative group">
+              <div className="p-4 bg-white rounded-lg border border-border shadow-inner mb-4 flex flex-col items-center justify-center w-52 h-52 relative group">
                 <div className="w-44 h-44 grid grid-cols-6 grid-rows-6 gap-1 p-2 bg-slate-900 rounded-lg relative">
                   <div className="col-span-2 row-span-2 bg-white rounded-xs p-1">
                     <div className="w-full h-full bg-slate-900 rounded-xs" />

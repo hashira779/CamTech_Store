@@ -231,7 +231,7 @@ export default function AutomationsPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <div className="p-2.5 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+              <div className="p-2.5 rounded-lg bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
                 <Workflow className="w-6 h-6" />
               </div>
               <div>
@@ -275,7 +275,7 @@ export default function AutomationsPage() {
               <span className="text-[11px] font-bold uppercase text-muted-foreground">Total Flows</span>
               <p className="text-2xl font-bold text-foreground mt-1">{flows.length}</p>
             </div>
-            <div className="p-3 rounded-xl bg-primary/10 text-primary">
+            <div className="p-3 rounded-lg bg-primary/10 text-primary">
               <Layers className="w-5 h-5" />
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function AutomationsPage() {
                 {flows.filter((f) => f.isActive).length}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400">
               <Zap className="w-5 h-5" />
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function AutomationsPage() {
               <span className="text-[11px] font-bold uppercase text-muted-foreground">Recorded Executions</span>
               <p className="text-2xl font-bold text-foreground mt-1">{executions.length}</p>
             </div>
-            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400">
+            <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
               <Clock className="w-5 h-5" />
             </div>
           </div>
@@ -626,8 +626,8 @@ export default function AutomationsPage() {
 
         {/* MODAL: EDIT NODE CONFIGURATION */}
         {selectedNodeToEdit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   <Settings2 className="w-4 h-4 text-primary" />
@@ -737,8 +737,8 @@ export default function AutomationsPage() {
 
         {/* MODAL: CREATE NEW FLOW */}
         {isNewFlowModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Create Automation Flow</h3>
                 <button onClick={() => setIsNewFlowModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -791,8 +791,8 @@ export default function AutomationsPage() {
 
         {/* MODAL: RUN TEST SIMULATOR */}
         {isTestRunModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-lg p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-lg p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Execute Automation Test</h3>
                 <button onClick={() => setIsTestRunModalOpen(false)}><X className="w-4 h-4" /></button>

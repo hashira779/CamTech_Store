@@ -262,8 +262,8 @@ export default function ApprovalsPage() {
 
         {/* MODAL: NEW APPROVAL REQUEST */}
         {isSubmitModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Initiate Approval Request</h3>
                 <button onClick={() => setIsSubmitModalOpen(false)} className="text-muted-foreground hover:text-foreground">

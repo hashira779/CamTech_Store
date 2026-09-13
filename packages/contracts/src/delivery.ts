@@ -10,6 +10,7 @@ export const DRIVER_STATUSES = ['IDLE', 'EN_ROUTE', 'OFFLINE'] as const;
 export type DriverStatus = (typeof DRIVER_STATUSES)[number];
 
 export const DELIVERY_STATUSES = [
+  'PREPARING',
   'PENDING',
   'DISPATCHED',
   'IN_TRANSIT',

@@ -135,7 +135,7 @@ export default function NotificationsPage() {
       case 'ORDER_CREATED':
         return <ShoppingBag className="w-4 h-4 text-emerald-400" />;
       case 'TRANSFER_DISPATCHED':
-        return <ArrowLeftRight className="w-4 h-4 text-purple-400" />;
+        return <ArrowLeftRight className="w-4 h-4 text-orange-500" />;
       case 'PO_APPROVED':
         return <CheckCircle2 className="w-4 h-4 text-blue-400" />;
       case 'PAYMENT_RECEIVED':
@@ -161,7 +161,7 @@ export default function NotificationsPage() {
         );
       case 'SMS':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center gap-1">
             <Smartphone className="w-3 h-3" /> SMS
           </span>
         );
@@ -223,7 +223,7 @@ export default function NotificationsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                 <Send className="w-5 h-5" />
               </div>
               <div>
@@ -235,7 +235,7 @@ export default function NotificationsPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
+              <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function NotificationsPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400">
+              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-400">
                 <Radio className="w-5 h-5" />
               </div>
               <div>
@@ -261,7 +261,7 @@ export default function NotificationsPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>

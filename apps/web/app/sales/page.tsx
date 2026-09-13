@@ -261,10 +261,10 @@ export function SalesPage() {
           if ((channel === 'STORE' || channel === 'ONLINE') && deliveryStatus) {
              return (
               <Badge
-                variant={deliveryStatus === 'DELIVERED' ? 'success' : deliveryStatus === 'PENDING' ? 'secondary' : 'default'}
+                variant={deliveryStatus === 'DELIVERED' ? 'success' : deliveryStatus === 'PREPARING' ? 'secondary' : 'default'}
                 className="text-[10px] font-semibold uppercase"
               >
-                {deliveryStatus === 'PENDING' ? 'PREPARING' : deliveryStatus}
+                {deliveryStatus === 'PENDING' ? 'READY FOR COURIER' : deliveryStatus}
               </Badge>
             );
           }
@@ -617,7 +617,7 @@ export function SalesPage() {
             title="Average Order Value"
             value={`$${avgOrderValue.toFixed(2)}`}
             icon={Receipt}
-            iconColor="text-indigo-500"
+            iconColor="text-primary"
             isLoading={isLoading}
           />
           <KpiCard
@@ -671,7 +671,7 @@ export function SalesPage() {
         <Sheet open={Boolean(selectedSaleId)} onOpenChange={(open) => !open && setSelectedSaleId(null)}>
           <SheetContent
             side="right"
-            className="w-full sm:max-w-3xl lg:max-w-4xl p-0 overflow-y-auto bg-[#fafafa] dark:bg-[#090a0f] border-l border-border/80 shadow-2xl"
+            className="w-full sm:max-w-3xl lg:max-w-4xl p-0 overflow-y-auto bg-[#fafafa] dark:bg-[#090a0f] border-l border-border/80 shadow-md"
           >
             {isLoadingDetail ? (
               <div className="py-32 flex flex-col items-center justify-center text-center space-y-3">
@@ -702,13 +702,13 @@ export function SalesPage() {
                 </div>
 
                 {voidError && (
-                  <div className="p-3.5 rounded-xl bg-destructive/15 text-destructive border border-destructive/30 text-xs font-medium">
+                  <div className="p-3.5 rounded-lg bg-destructive/15 text-destructive border border-destructive/30 text-xs font-medium">
                     {voidError}
                   </div>
                 )}
 
                 {/* 5-Column Order Metadata Card */}
-                <div className="bg-card border border-border/70 rounded-2xl p-5 shadow-xs grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
+                <div className="bg-card border border-border/70 rounded-lg p-5 shadow-xs grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
                   <div>
                     <span className="text-muted-foreground font-medium block">Order Number</span>
                     <p className="font-mono font-bold text-foreground mt-1 text-sm">
@@ -756,7 +756,7 @@ export function SalesPage() {
                 </div>
 
                 {/* Order Tracking 5-Stage Visual Stepper */}
-                <div className="bg-card border border-border/70 rounded-2xl p-6 shadow-xs space-y-6">
+                <div className="bg-card border border-border/70 rounded-lg p-6 shadow-xs space-y-6">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base text-foreground">Order Tracking</h3>
@@ -803,7 +803,7 @@ export function SalesPage() {
                         return (
                           <div key={st.label} className="flex flex-col items-center text-center max-w-[80px]">
                             <div
-                              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
                                 isDone
                                   ? 'bg-[#ff007a] text-white shadow-md shadow-pink-500/30'
                                   : isActive
@@ -831,7 +831,7 @@ export function SalesPage() {
 
                   {/* Driver & Telemetry Bar / Admin Dispatch Bar */}
                   {selectedSale.driverName ? (
-                    <div className="p-4 rounded-xl bg-muted/40 border border-border/80 flex items-center justify-between flex-wrap gap-3">
+                    <div className="p-4 rounded-lg bg-muted/40 border border-border/80 flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-950/60 text-[#ff007a] flex items-center justify-center font-bold text-sm">
                           <Bike className="w-5 h-5" />
@@ -861,7 +861,7 @@ export function SalesPage() {
                         {selectedSale.driverPhone && (
                           <a
                             href={`tel:${selectedSale.driverPhone}`}
-                            className="p-2 rounded-xl bg-card border border-border hover:bg-muted text-foreground transition-colors"
+                            className="p-2 rounded-lg bg-card border border-border hover:bg-muted text-foreground transition-colors"
                             title="Call Driver"
                           >
                             <Phone className="w-4 h-4 text-emerald-600" />
@@ -871,7 +871,7 @@ export function SalesPage() {
                           href={googleMapsUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
                         >
                           <MapPin className="w-3.5 h-3.5" />
                           <span>Google Maps</span>
@@ -892,7 +892,7 @@ export function SalesPage() {
                           size="sm"
                           onClick={() => createDeliveryMutation.mutate(selectedSale)}
                           disabled={createDeliveryMutation.isPending}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 h-8 text-xs font-medium"
+                          className="bg-primary hover:bg-primary/90 text-white gap-1.5 h-8 text-xs font-medium"
                         >
                           {createDeliveryMutation.isPending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -975,7 +975,7 @@ export function SalesPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   {/* Left Column: Items from the order */}
                   <div className="lg:col-span-7 space-y-4">
-                    <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs">
+                    <div className="bg-card border border-border/70 rounded-lg overflow-hidden shadow-xs">
                       <div className="p-4 border-b border-border/70 flex items-center justify-between">
                         <h3 className="font-bold text-sm text-foreground">Items from the order</h3>
                         <span className="text-xs text-muted-foreground font-mono">
@@ -990,7 +990,7 @@ export function SalesPage() {
                             className="p-4 flex items-center justify-between gap-3 text-xs"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-pink-50 dark:bg-zinc-800 border border-pink-100 dark:border-zinc-700 flex items-center justify-center text-[#ff007a] font-bold text-lg shadow-2xs">
+                              <div className="w-12 h-12 rounded-lg bg-pink-50 dark:bg-zinc-800 border border-pink-100 dark:border-zinc-700 flex items-center justify-center text-[#ff007a] font-bold text-lg shadow-sm">
                                 🛋️
                               </div>
                               <div>
@@ -1018,7 +1018,7 @@ export function SalesPage() {
                     </div>
 
                     {/* Customer & Address Details */}
-                    <div className="bg-card border border-border/70 rounded-2xl p-4 shadow-xs text-xs space-y-2">
+                    <div className="bg-card border border-border/70 rounded-lg p-4 shadow-xs text-xs space-y-2">
                       <h4 className="font-bold text-foreground">Recipient & Delivery Destination</h4>
                       <p className="text-muted-foreground">
                         <strong className="text-foreground">{selectedSale.customer?.name || 'Walk-in Customer'}</strong>
@@ -1063,7 +1063,7 @@ export function SalesPage() {
 
                   {/* Right Column: Signature Pop-Couch Dark Navy Summary Card (Image 2) */}
                   <div className="lg:col-span-5">
-                    <div className="bg-[#0f0b29] text-white p-6 rounded-3xl shadow-2xl border border-white/10 space-y-5">
+                    <div className="bg-[#0f0b29] text-white p-6 rounded-lg shadow-md border border-white/10 space-y-5">
                       <h3 className="font-bold text-lg text-white">Summary</h3>
 
                       <div className="space-y-3 text-xs text-zinc-300">
@@ -1097,7 +1097,7 @@ export function SalesPage() {
 
                       {/* Promo Code Box */}
                       <div className="pt-2">
-                        <div className="relative flex items-center bg-white/5 border border-white/15 rounded-2xl p-1.5 focus-within:border-pink-500/50 transition-colors">
+                        <div className="relative flex items-center bg-white/5 border border-white/15 rounded-lg p-1.5 focus-within:border-pink-500/50 transition-colors">
                           <Tag className="w-4 h-4 ml-2.5 text-zinc-400" />
                           <input
                             type="text"
@@ -1136,7 +1136,7 @@ export function SalesPage() {
 
                         <button
                           onClick={() => handleDownloadInvoice(selectedSale)}
-                          className="w-full bg-[#ff007a] hover:bg-[#e0006c] text-white font-bold py-3.5 px-5 rounded-2xl flex items-center justify-between shadow-lg shadow-pink-500/30 hover:shadow-pink-500/45 transition-all cursor-pointer group"
+                          className="w-full bg-[#ff007a] hover:bg-[#e0006c] text-white font-bold py-3.5 px-5 rounded-lg flex items-center justify-between shadow-lg shadow-pink-500/30 hover:shadow-pink-500/45 transition-all cursor-pointer group"
                         >
                           <span className="text-sm">Download Official Invoice</span>
                           <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />

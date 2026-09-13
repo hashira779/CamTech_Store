@@ -352,7 +352,7 @@ export function ProductsPage() {
             </SheetHeader>
             {selectedRow && (
               <div className="space-y-6 py-4">
-                <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/20">
                   <div>
                     <h3 className="font-bold text-lg text-foreground">{selectedRow.name}</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">

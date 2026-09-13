@@ -416,8 +416,8 @@ export default function HrPage() {
 
         {/* MODAL: NEW EMPLOYEE */}
         {isEmployeeModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Add New Employee</h3>
                 <button onClick={() => setIsEmployeeModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -471,8 +471,8 @@ export default function HrPage() {
 
         {/* MODAL: NEW DEPARTMENT */}
         {isDeptModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-sm p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-sm p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Create Department</h3>
                 <button onClick={() => setIsDeptModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -500,8 +500,8 @@ export default function HrPage() {
 
         {/* MODAL: RUN PAYROLL */}
         {isPayrollModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Execute Payroll Run</h3>
                 <button onClick={() => setIsPayrollModalOpen(false)}><X className="w-4 h-4" /></button>

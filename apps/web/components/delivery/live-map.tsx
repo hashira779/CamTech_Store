@@ -59,7 +59,7 @@ export function LiveMap({
   };
 
   return (
-    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden bg-slate-950 border border-border/40 shadow-2xl select-none">
+    <div className="relative w-full h-[520px] rounded-lg overflow-hidden bg-slate-950 border border-border/40 shadow-md select-none">
       
       {/* ─── Real Street Map (OpenStreetMap) ─── */}
       <Map 
@@ -144,7 +144,7 @@ export function LiveMap({
 
                 {/* Vehicle Icon Circle */}
                 <div
-                  className={`relative w-9 h-9 rounded-full flex items-center justify-center shadow-2xl transition-all ${
+                  className={`relative w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all ${
                     isSelected
                       ? 'bg-gradient-to-tr from-sky-600 to-cyan-400 text-white ring-4 ring-sky-400/40 scale-110'
                       : isMoving
@@ -182,7 +182,7 @@ export function LiveMap({
 
       {/* Top Left: System Status & Live Radar Tag */}
       <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
-        <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/50 shadow-lg pointer-events-auto">
+        <div className="flex items-center gap-2 bg-slate-900/80  px-3 py-1.5 rounded-lg border border-slate-700/50 shadow-lg pointer-events-auto">
           <div className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
@@ -202,7 +202,7 @@ export function LiveMap({
       </div>
 
       {/* Top Right: Map Controls */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1 rounded-xl border border-slate-700/50 shadow-lg">
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/80  p-1 rounded-lg border border-slate-700/50 shadow-lg">
         <Button
           size="icon"
           variant="ghost"
@@ -234,10 +234,10 @@ export function LiveMap({
 
       {/* Bottom Floating Telemetry Panel (When Driver is Selected) */}
       {activeDriver && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 backdrop-blur-lg border border-sky-500/30 rounded-2xl p-4 shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
+        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-sky-500/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+              <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                 {activeDriver.vehicleType === 'VAN' ? (
                   <Truck className="w-5 h-5" />
                 ) : (
@@ -284,10 +284,10 @@ export function LiveMap({
 
       {/* Bottom Floating Order Destination Panel (When Order is Selected) */}
       {activeOrder && !activeDriver && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 backdrop-blur-lg border border-sky-500/30 rounded-2xl p-4 shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
+        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-sky-500/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
@@ -305,7 +305,7 @@ export function LiveMap({
               href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrder.destLat || 11.5564},${activeOrder.destLng || 104.9282}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-10 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition shrink-0 active:scale-95"
+              className="h-10 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition shrink-0 active:scale-95"
             >
               <Navigation className="w-4 h-4 fill-white" />
               <span>Google Maps</span>

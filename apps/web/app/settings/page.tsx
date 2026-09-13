@@ -272,7 +272,7 @@ export default function SettingsPage() {
             {/* Dynamic Feature Flags / Module Toggle (Spec §76, §98) */}
             <div className="card p-5 border-border">
               <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
-                <Sliders className="w-4 h-4 text-purple-400" />
+                <Sliders className="w-4 h-4 text-orange-500" />
                 <div>
                   <h2 className="font-bold text-foreground text-sm">Enterprise Feature Modules</h2>
                   <p className="text-muted-foreground text-[11px]">

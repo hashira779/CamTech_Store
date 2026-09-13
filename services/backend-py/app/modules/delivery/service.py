@@ -318,7 +318,7 @@ async def track_order(db: AsyncSession, org_id: str, identifier: str) -> Optiona
     items_list = None
     sale_num = None
     total_amt = None
-    wms_st = "PREPARING" if order.status == "PENDING" else ("OUT_FOR_DELIVERY" if order.status in ("DISPATCHED", "IN_TRANSIT") else "DELIVERED")
+    wms_st = "PREPARING" if order.status == "PREPARING" else ("READY_FOR_COURIER" if order.status == "PENDING" else ("OUT_FOR_DELIVERY" if order.status in ("DISPATCHED", "IN_TRANSIT") else "DELIVERED"))
 
     if order.sale_id:
         try:
@@ -350,7 +350,10 @@ async def track_order(db: AsyncSession, org_id: str, identifier: str) -> Optiona
 
 
 async def create_order(
-    db: AsyncSession, org_id: str, inp: CreateDeliveryOrderInput
+    db: AsyncSession,
+    org_id: str,
+    inp: CreateDeliveryOrderInput,
+    initial_status: str = "PENDING",
 ) -> DeliveryOrderDto:
     """Create a new delivery order, optionally pre-assigning a driver."""
     now = utc_now()
@@ -373,7 +376,7 @@ async def create_order(
         organization_id=org_id,
         tracking_number=tracking_num,
         sale_id=inp.saleId,
-        status="PENDING",
+        status=initial_status.upper(),
         recipient_name=recipient_name,
         recipient_phone=recipient_phone,
         delivery_address=inp.deliveryAddress,
@@ -419,7 +422,7 @@ async def assign_driver(
         )
     )
     order = result.scalar_one_or_none()
-    if not order:
+    if not order or order.status != "PENDING":
         return None
 
     drv_result = await db.execute(
@@ -477,7 +480,7 @@ async def update_order_status(
         )
     )
     order = result.scalar_one_or_none()
-    if not order:
+    if not order or order.status == "PREPARING":
         return None
 
     # Auto-assign claiming driver if order is unassigned and driver exists in delivery_drivers

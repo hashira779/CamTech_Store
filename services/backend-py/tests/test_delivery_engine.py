@@ -17,6 +17,8 @@ def test_eta_calculation():
     assert eta_truck >= eta_moto
 
 def test_status_transitions():
+    assert DeliveryEngine.validate_status_transition("PREPARING", "PENDING") is True
+    assert DeliveryEngine.validate_status_transition("PREPARING", "DISPATCHED") is False
     assert DeliveryEngine.validate_status_transition("PENDING", "DISPATCHED") is True
     assert DeliveryEngine.validate_status_transition("DISPATCHED", "IN_TRANSIT") is True
     assert DeliveryEngine.validate_status_transition("IN_TRANSIT", "DELIVERED") is True

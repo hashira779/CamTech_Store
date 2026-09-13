@@ -214,8 +214,8 @@ export default function ProjectsPage() {
 
         {/* MODAL: NEW PROJECT */}
         {isProjectModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-md p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-md p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Create New Project</h3>
                 <button onClick={() => setIsProjectModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -247,8 +247,8 @@ export default function ProjectsPage() {
 
         {/* MODAL: NEW TASK */}
         {isTaskModalOpen && selectedProjectId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-sm p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-sm p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Add Project Task</h3>
                 <button onClick={() => setIsTaskModalOpen(false)}><X className="w-4 h-4" /></button>
@@ -279,8 +279,8 @@ export default function ProjectsPage() {
 
         {/* MODAL: LOG TIMESHEET */}
         {isTimesheetModalOpen && selectedTaskId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="card w-full max-w-sm p-6 border-border shadow-xl bg-card">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50  p-4">
+            <div className="card w-full max-w-sm p-6 border-border shadow-sm bg-card">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-foreground">Log Worked Hours</h3>
                 <button onClick={() => setIsTimesheetModalOpen(false)}><X className="w-4 h-4" /></button>

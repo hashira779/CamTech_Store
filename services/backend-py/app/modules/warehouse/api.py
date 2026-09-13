@@ -12,6 +12,7 @@ from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_current_user, TenantUser
 from app.models.entities import StockTransfer, NotificationRecord
 from app.modules.sales.models import Sale, SaleLineItem
+from app.modules.delivery.models import DeliveryOrder
 from .schemas import (
     StockTransferDto,
     PickingOrderDto,
@@ -158,6 +159,23 @@ async def fulfill_picking_order(
     if inp.notes:
         notes_dict["packingNotes"] = inp.notes
     sale.notes = json.dumps(notes_dict)
+
+    delivery_result = await db.execute(
+        select(DeliveryOrder).where(
+            DeliveryOrder.sale_id == sale.id,
+            DeliveryOrder.organization_id == user.organization_id,
+        )
+    )
+    delivery_order = delivery_result.scalar_one_or_none()
+    if not delivery_order:
+        raise HTTPException(status_code=409, detail="Linked delivery order not found")
+    if delivery_order.status == "PREPARING":
+        delivery_order.status = "PENDING"
+    elif delivery_order.status != "PENDING":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Delivery order cannot be prepared from status {delivery_order.status}",
+        )
 
     # Dispatch notification to Delivery Couriers that package is ready for pickup
     dock_note = NotificationRecord(

@@ -57,12 +57,12 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; desc: string }
   },
   FINANCE_MANAGER: {
     label: 'Finance Manager',
-    color: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    color: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
     desc: 'General ledger, charts of accounts, tax reporting, and payment reconciliations.'
   },
   SALES_MANAGER: {
     label: 'Sales Manager',
-    color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+    color: 'bg-primary/10 text-primary border-primary/30',
     desc: 'Price lists, customer tiers, bulk orders, wholesale accounts, and sales pipelines.'
   },
   WAREHOUSE_MANAGER: {
@@ -304,7 +304,7 @@ export default function UsersPage() {
         {activeTab === 'DIRECTORY' && (
           <div className="space-y-4">
             {/* Search & Filters */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border rounded-xl p-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border rounded-lg p-3">
               <div className="relative w-full sm:w-80">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -334,7 +334,7 @@ export default function UsersPage() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/50 text-muted-foreground font-semibold border-b border-border">
@@ -463,7 +463,7 @@ export default function UsersPage() {
 
         {activeTab === 'ROLES_MATRIX' && (
           <div className="space-y-4">
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="bg-card border border-border rounded-lg p-5">
               <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
                 Enterprise Role Hierarchy & Scopes
@@ -482,7 +482,7 @@ export default function UsersPage() {
                   return (
                     <div
                       key={r}
-                      className="border border-border rounded-xl p-4 bg-background/50 hover:bg-background transition-colors flex flex-col justify-between"
+                      className="border border-border rounded-lg p-4 bg-background/50 hover:bg-background transition-colors flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
@@ -506,8 +506,8 @@ export default function UsersPage() {
 
       {/* MODAL: CREATE USER */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80  flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg w-full max-w-lg shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -583,7 +583,7 @@ export default function UsersPage() {
                   <span>Assign Roles</span>
                   <span className="text-[10px] text-muted-foreground font-normal">Select one or more</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-xl bg-background/50">
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-lg bg-background/50">
                   {ROLES.filter(r => r !== 'SUPER_ADMIN' || isSuperAdmin).map((r) => {
                     const isSelected = createRoles.includes(r);
                     return (
@@ -628,8 +628,8 @@ export default function UsersPage() {
 
       {/* MODAL: EDIT USER */}
       {isEditOpen && editingUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80  flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg w-full max-w-lg shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -696,7 +696,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background/50">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50">
                 <div>
                   <span className="text-xs font-semibold text-foreground block">Account Status</span>
                   <span className="text-[11px] text-muted-foreground">
@@ -721,7 +721,7 @@ export default function UsersPage() {
                   <span>Assigned Roles</span>
                   <span className="text-[10px] text-muted-foreground font-normal">Select one or more</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-xl bg-background/50">
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-lg bg-background/50">
                   {ROLES.filter(r => r !== 'SUPER_ADMIN' || isSuperAdmin).map((r) => {
                     const isSelected = editRoles.includes(r);
                     return (

@@ -119,7 +119,7 @@ interface DeliveryTask {
   deliveryAddress: string;
   destLat?: number;
   destLng?: number;
-  status: 'PENDING' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED';
+  status: 'PREPARING' | 'PENDING' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED';
   codAmount: number;
   paymentMethod?: string;
   proofOfDelivery?: string;
@@ -152,7 +152,7 @@ export function App() {
   const [loginPassword, setLoginPassword] = useState('');
 
   // UI state
-  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [orderTab, setOrderTab] = useState<'AVAILABLE' | 'ACTIVE' | 'COMPLETED'>('AVAILABLE');
   const [selectedOrder, setSelectedOrder] = useState<DeliveryTask | null>(null);
   const [isPodOpen, setIsPodOpen] = useState(false);
   const [podNotes, setPodNotes] = useState('');
@@ -161,7 +161,7 @@ export function App() {
   // Real-Time Incoming Order Popup Alert State
   const [incomingOrder, setIncomingOrder] = useState<DeliveryTask | null>(null);
   const [isIncomingModalOpen, setIsIncomingModalOpen] = useState(false);
-  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const knownOrderStatusesRef = useRef<Map<string, DeliveryTask['status']>>(new Map());
   const isInitialLoadRef = useRef(true);
 
   // Audio Synthesizer Chime for Instant Dispatch Alert
@@ -440,27 +440,26 @@ export function App() {
     if (!orders || orders.length === 0) return;
 
     if (isInitialLoadRef.current) {
-      // First load: record existing orders so we don't trigger alerts on boot
-      orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+      orders.forEach((o) => knownOrderStatusesRef.current.set(o.id, o.status));
       isInitialLoadRef.current = false;
+      if (orders.some((o) => o.status === 'PENDING')) setOrderTab('AVAILABLE');
       return;
     }
 
-    // Subsequent polls: detect if a new PENDING order has arrived
-    const newlyArrivedPending = orders.find(
-      (o) => o.status === 'PENDING' && !knownOrderIdsRef.current.has(o.id)
+    const newlyReadyOrder = orders.find(
+      (o) => o.status === 'PENDING' && knownOrderStatusesRef.current.get(o.id) !== 'PENDING'
     );
 
-    // Update known IDs
-    orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+    orders.forEach((o) => knownOrderStatusesRef.current.set(o.id, o.status));
 
-    if (newlyArrivedPending) {
-      setIncomingOrder(newlyArrivedPending);
+    if (newlyReadyOrder) {
+      setIncomingOrder(newlyReadyOrder);
       setIsIncomingModalOpen(true);
+      setOrderTab('AVAILABLE');
       playIncomingChime();
       triggerTelegramHaptic();
-      toast.info(`🔔 New Delivery Order #${newlyArrivedPending.trackingNumber}!`, {
-        description: `${newlyArrivedPending.recipientName} • ${newlyArrivedPending.deliveryAddress}`,
+      toast.info(`🔔 New Delivery Order #${newlyReadyOrder.trackingNumber}!`, {
+        description: `${newlyReadyOrder.recipientName} • ${newlyReadyOrder.deliveryAddress}`,
         duration: 12000,
       });
     }
