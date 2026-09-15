@@ -148,8 +148,8 @@ run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
 
 echo "🚀 Deploying updated frontend containers..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d $FRONTEND_SERVICES
-echo "🔄 Reloading Nginx ingress post-frontend deploy..."
-run_cmd docker exec mystore-nginx-ingress nginx -s reload 2>/dev/null || true
+echo "🔄 Recreating Nginx ingress to pick up configuration inode changes..."
+run_cmd docker compose -f "$COMPOSE_FILE" up -d --force-recreate nginx-ingress
 
 # Ensure mystore-admin-app is reachable by external Cloudflare tunnel expecting admin-web
 run_cmd docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
