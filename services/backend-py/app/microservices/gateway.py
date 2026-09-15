@@ -146,8 +146,10 @@ http_client = httpx.AsyncClient(
 )
 
 # Persistent streaming client for SSE & telemetry streaming
+# connect timeout = 5s prevents attackers from holding connection slots open
+# read timeout = None is intentional — real SSE streams are long-lived
 sse_client = httpx.AsyncClient(
-    timeout=None,
+    timeout=httpx.Timeout(None, connect=5.0),
     limits=httpx.Limits(max_keepalive_connections=200, max_connections=1500, keepalive_expiry=300.0),
 )
 

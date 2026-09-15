@@ -109,12 +109,40 @@ def apply_enterprise_layer(app: FastAPI) -> None:
             response.headers["traceparent"] = traceparent
             return response
 
+        # ── IP Ban Check (highest priority — before any business logic) ─────
+        if path.startswith("/api/v1/"):
+            from app.core.rate_limiter import ip_ban_list
+            client_ip = (
+                request.headers.get("X-Real-IP")
+                or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
+                or (request.client.host if request.client else "unknown")
+            ).strip()
+            if await ip_ban_list.is_banned(client_ip):
+                logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
+                return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content={
+                        "success": False,
+                        "code": "IP_BANNED",
+                        "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
+                        "requestId": req_id,
+                    },
+                    headers={"X-Request-Id": req_id},
+                )
+
         response = await call_next(request)
         process_time = (time.time() - start_time) * 1000
         response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
         response.headers["X-Request-Id"] = req_id
         response.headers["X-Trace-Id"] = trace_id
         response.headers["traceparent"] = traceparent
+
+        # ── Security Response Headers ─────────────────────────────────────────
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
 
         if path not in ["/favicon.ico"]:
             logger.info(

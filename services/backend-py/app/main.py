@@ -19,6 +19,7 @@ from app.routers.data_exchange_routes import router as data_exchange_router
 from app.routers.event_routes import router as event_router
 from app.routers.app_registry_routes import router as app_registry_router
 from app.routers.outbox_routes import router as outbox_router
+from app.routers.security_routes import router as security_router
 from app.core.database import engine
 from app.core.telemetry import (
     setup_structured_logging, current_trace_id, current_span_id,
@@ -190,12 +191,65 @@ async def response_envelope_middleware(request: Request, call_next):
         response.headers["traceparent"] = traceparent
         return response
 
+    # ── IP Ban Check (highest priority — checked before anything else) ─────────
+    if path.startswith("/api/v1/"):
+        from app.core.rate_limiter import ip_ban_list
+        client_ip = (
+            request.headers.get("X-Real-IP")
+            or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
+            or (request.client.host if request.client else "unknown")
+        ).strip()
+        if await ip_ban_list.is_banned(client_ip):
+            logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "success": False,
+                    "code": "IP_BANNED",
+                    "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
+                    "requestId": req_id,
+                },
+                headers={"X-Request-Id": req_id},
+            )
+
+    # ── Global IP-based rate limiting on all /api/v1/ endpoints ──────────────
+    # Python-layer backstop behind nginx; protects direct-container access too.
+    if path.startswith("/api/v1/"):
+        from app.core.rate_limiter import api_rate_limiter
+        try:
+            await api_rate_limiter.check(request)
+        except Exception as rate_exc:
+            # Re-raise HTTP exceptions (429), absorb non-HTTP errors gracefully
+            from fastapi import HTTPException as FastAPIHTTPException
+            if isinstance(rate_exc, FastAPIHTTPException):
+                raise
+
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
     response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
     response.headers["X-Request-Id"] = req_id
     response.headers["X-Trace-Id"] = trace_id
     response.headers["traceparent"] = traceparent
+
+    # ── Security Response Headers (applied to every API response) ─────────────
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none';"
+    )
+    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
 
     if path not in ["/favicon.ico"]:
         logger.info(
@@ -285,6 +339,7 @@ app.include_router(data_exchange_router, prefix="/api/v1")
 app.include_router(event_router, prefix="/api/v1")
 app.include_router(app_registry_router, prefix="/api/v1")
 app.include_router(outbox_router, prefix="/api/v1")
+app.include_router(security_router, prefix="/api/v1")
 
 
 

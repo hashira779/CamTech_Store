@@ -22,6 +22,7 @@ from app.routers.data_exchange_routes import router as data_exchange_router
 from app.routers.event_routes import router as event_router
 from app.routers.app_registry_routes import router as app_registry_router
 from app.routers.outbox_routes import router as outbox_router
+from app.routers.security_routes import router as security_router
 
 app = create_microservice(
     name="Platform & Experience Microservice",
@@ -47,6 +48,7 @@ for _router in (
     event_router,
     app_registry_router,
     outbox_router,
+    security_router,
 ):
     app.include_router(_router, prefix="/api/v1")
 
