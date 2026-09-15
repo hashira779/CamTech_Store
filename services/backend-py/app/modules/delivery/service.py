@@ -480,7 +480,11 @@ async def update_order_status(
         )
     )
     order = result.scalar_one_or_none()
-    if not order or order.status == "PREPARING":
+    if not order:
+        return None
+
+    # Prevent drivers from updating orders that are still preparing, except to move them to PENDING
+    if order.status == "PREPARING" and inp.status.upper() != "PENDING":
         return None
 
     # Auto-assign claiming driver if order is unassigned and driver exists in delivery_drivers
