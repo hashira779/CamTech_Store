@@ -306,7 +306,7 @@ export default function ProcurementPage() {
           >
             <FileText className="w-4 h-4" />
             Purchase Orders
-            {posData?.meta.total ? (
+            {posData?.meta?.total ? (
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
                 {posData.meta.total}
               </span>
@@ -333,7 +333,7 @@ export default function ProcurementPage() {
           >
             <Building2 className="w-4 h-4" />
             Suppliers & Vendors
-            {suppliersData?.meta.total ? (
+            {suppliersData?.meta?.total ? (
               <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
                 {suppliersData.meta.total}
               </span>
