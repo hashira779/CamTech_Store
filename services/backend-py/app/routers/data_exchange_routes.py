@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import Product, ProductVariant, Customer, InventoryItem, Sale, Account
 
 router = APIRouter(prefix="/exchange", tags=["Bulk Data Import & Export (Spec §85, §86)"])
@@ -29,7 +29,7 @@ class ImportDataInput(BaseModel):
 async def export_entity_data(
     entity: str,
     format: str = "csv",
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["data:export"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -110,7 +110,7 @@ async def export_entity_data(
 async def import_entity_data(
     entity: str,
     inp: ImportDataInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["data:import"]))
 ):
     """
     Validates and ingests bulk records with optional dry-run preview.

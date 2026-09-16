@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.industry_engine import IndustryEngine, INDUSTRY_PRESETS
 from app.modules.sales.models import Sale, SaleLineItem
 
@@ -74,7 +74,7 @@ class WarrantyCheckInput(BaseModel):
     serialNumber: Optional[str] = None
 
 @router.get("/config", response_model=IndustryConfigDto)
-async def get_industry_config(user: TenantUser = Depends(get_current_user)):
+async def get_industry_config(user: TenantUser = Depends(RequirePermissions(["industry:read"]))):
     preset = _TENANT_PRESET_MAP.get(user.organization_id, "RETAIL")
     preset_features = {
         "RETAIL": ["POS", "Inventory", "Barcode Scanner", "Customer Loyalty"],
@@ -95,7 +95,7 @@ async def get_industry_config(user: TenantUser = Depends(get_current_user)):
 @router.post("/setup", response_model=IndustryConfigDto)
 async def setup_industry_preset(
     inp: SetupIndustryInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["industry:setup"]))
 ):
     target = inp.preset.upper()
     if target not in INDUSTRY_PRESETS:
@@ -111,14 +111,14 @@ async def setup_industry_preset(
 # ──────────────────────────────────────────────────────────────────────────────
 
 @router.get("/restaurant/tables", response_model=List[TableDto])
-async def list_tables(user: TenantUser = Depends(get_current_user)):
+async def list_tables(user: TenantUser = Depends(RequirePermissions(["industry:read"]))):
     org_id = user.organization_id
     if org_id not in _TABLES_STORE:
         _TABLES_STORE[org_id] = []
     return [TableDto(**t) for t in _TABLES_STORE[org_id]]
 
 @router.post("/restaurant/tables", response_model=TableDto)
-async def create_table(inp: CreateTableInput, user: TenantUser = Depends(get_current_user)):
+async def create_table(inp: CreateTableInput, user: TenantUser = Depends(RequirePermissions(["industry:write"]))):
     org_id = user.organization_id
     if org_id not in _TABLES_STORE:
         _TABLES_STORE[org_id] = []
@@ -137,7 +137,7 @@ async def create_table(inp: CreateTableInput, user: TenantUser = Depends(get_cur
 async def update_table_status(
     table_id: str,
     new_status: str,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["industry:write"]))
 ):
     org_id = user.organization_id
     tables = _TABLES_STORE.get(org_id, [])
@@ -155,7 +155,7 @@ async def update_table_status(
 
 @router.get("/restaurant/kds", response_model=List[KDSTicketDto])
 async def list_kds_tickets(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["industry:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -229,7 +229,7 @@ async def list_kds_tickets(
 @router.post("/restaurant/kds", response_model=KDSTicketDto)
 async def create_kds_ticket(
     inp: CreateKDSTicketInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["industry:write"]))
 ):
     """Manually dispatch an ad-hoc ticket directly to the kitchen display."""
     org_id = user.organization_id
@@ -253,7 +253,7 @@ async def create_kds_ticket(
 async def update_kds_status(
     ticket_id: str,
     new_status: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["industry:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     org_id = user.organization_id
@@ -291,7 +291,7 @@ async def update_kds_status(
 # ──────────────────────────────────────────────────────────────────────────────
 
 @router.post("/fuel/reconcile")
-async def reconcile_fuel(inp: FuelReconciliationInput, user: TenantUser = Depends(get_current_user)):
+async def reconcile_fuel(inp: FuelReconciliationInput, user: TenantUser = Depends(RequirePermissions(["industry:write"]))):
     return IndustryEngine.reconcile_fuel_shift(
         opening_meter=inp.openingMeter,
         closing_meter=inp.closingMeter,
@@ -302,14 +302,14 @@ async def reconcile_fuel(inp: FuelReconciliationInput, user: TenantUser = Depend
     )
 
 @router.post("/pharmacy/check-expiry")
-async def check_drug_expiry(inp: DrugExpiryCheckInput, user: TenantUser = Depends(get_current_user)):
+async def check_drug_expiry(inp: DrugExpiryCheckInput, user: TenantUser = Depends(RequirePermissions(["industry:read"]))):
     return IndustryEngine.evaluate_drug_expiry_risk(
         expiry_date_str=inp.expiryDate,
         threshold_days=inp.thresholdDays or 90
     )
 
 @router.post("/electronics/check-warranty")
-async def check_warranty(inp: WarrantyCheckInput, user: TenantUser = Depends(get_current_user)):
+async def check_warranty(inp: WarrantyCheckInput, user: TenantUser = Depends(RequirePermissions(["industry:read"]))):
     return IndustryEngine.validate_serial_warranty(
         sold_at_str=inp.soldAt,
         warranty_months=inp.warrantyMonths

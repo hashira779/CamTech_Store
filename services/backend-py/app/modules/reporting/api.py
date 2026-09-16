@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 
 from app.core.database import get_read_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 
 from app.modules.sales.models import Sale, SaleLineItem, SalePayment
 from app.modules.catalog.models import Product, ProductVariant, Category
@@ -275,7 +275,7 @@ async def get_executive_report_summary(
     endDate: Optional[str] = Query(None),
     locationId: Optional[str] = Query(None),
     interval: Optional[str] = Query(None),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["reports:read"])),
     db: AsyncSession = Depends(get_read_db),
 ):
     """Executive BI summary computed from real sales, inventory and location data
@@ -293,7 +293,7 @@ async def export_report_csv(
     startDate: Optional[str] = Query(None),
     endDate: Optional[str] = Query(None),
     locationId: Optional[str] = Query(None),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["reports:export"])),
     db: AsyncSession = Depends(get_read_db),
 ):
     """Export a report as CSV (type = SALES | INVENTORY | PRODUCTS)."""
@@ -347,7 +347,7 @@ def _dashboard_metric(value: float, previous_value: float) -> dict:
 @router.get("/reports/dashboard")
 async def get_business_dashboard(
     rangeDays: int = Query(30, ge=7, le=90),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["reports:read"])),
     db: AsyncSession = Depends(get_read_db),
 ):
     """Decision-grade dashboard with comparison periods and operational alerts."""

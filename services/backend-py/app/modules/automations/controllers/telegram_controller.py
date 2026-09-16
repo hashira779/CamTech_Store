@@ -6,7 +6,7 @@ from sqlalchemy import select, update, or_
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.core.crypto import EncryptionService
 from app.domain.enterprise_engines import TelegramCommandRouter
 from ..models import TelegramBot, TelegramChatBinding
@@ -67,7 +67,7 @@ def _telegram_binding_dto(b: TelegramChatBinding) -> TelegramBindingDto:
 
 @router.get("/telegram/bots", response_model=List[TelegramBotDto])
 async def list_telegram_bots(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -80,7 +80,7 @@ async def list_telegram_bots(
 @router.post("/telegram/bots", response_model=TelegramBotDto)
 async def create_telegram_bot(
     data: CreateTelegramBotInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     bot_username = data.botUsername
@@ -134,7 +134,7 @@ async def create_telegram_bot(
 @router.get("/telegram/bots/{bot_id}", response_model=TelegramBotDto)
 async def get_telegram_bot(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -152,7 +152,7 @@ async def get_telegram_bot(
 async def update_telegram_bot(
     bot_id: str,
     data: UpdateTelegramBotInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -206,7 +206,7 @@ async def update_telegram_bot(
 @router.delete("/telegram/bots/{bot_id}")
 async def delete_telegram_bot(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -235,7 +235,7 @@ async def delete_telegram_bot(
 @router.post("/telegram/bots/test-token")
 async def test_telegram_token(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
 ):
     raw_token = (data.get("botToken") or data.get("token") or "").strip()
     if not raw_token:
@@ -278,7 +278,7 @@ async def test_telegram_token(
 @router.post("/telegram/bots/{bot_id}/test")
 async def test_telegram_bot(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -330,7 +330,7 @@ async def test_telegram_bot(
 async def broadcast_from_bot(
     bot_id: str,
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:broadcast"])),
     db: AsyncSession = Depends(get_db)
 ):
     message = (data.get("message") or "").strip()
@@ -395,7 +395,7 @@ async def broadcast_from_bot(
 
 @router.get("/telegram/bindings", response_model=List[TelegramBindingDto])
 async def list_telegram_bindings(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -408,7 +408,7 @@ async def list_telegram_bindings(
 @router.post("/telegram/bindings", response_model=TelegramBindingDto)
 async def bind_telegram_chat(
     data: TelegramBindingInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     binding = TelegramChatBinding(
@@ -431,7 +431,7 @@ async def bind_telegram_chat(
 async def update_telegram_binding(
     binding_id: str,
     data: UpdateTelegramBindingInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -465,7 +465,7 @@ async def update_telegram_binding(
 @router.delete("/telegram/bindings/{binding_id}")
 async def delete_telegram_binding(
     binding_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -484,7 +484,7 @@ async def delete_telegram_binding(
 @router.post("/telegram/broadcast")
 async def telegram_broadcast(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["telegram:broadcast"])),
     db: AsyncSession = Depends(get_db)
 ):
     message = (data.get("message") or "").strip()
@@ -517,7 +517,7 @@ async def telegram_broadcast(
 @router.post("/telegram/command")
 async def execute_telegram_command(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["telegram:write"]))
 ):
     command = data.get("command", "/help")
     params = data.get("params", "")

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from decimal import Decimal
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.hierarchy_engine import HierarchyEngine
 
 from .models import Product, ProductVariant, Category
@@ -77,7 +77,7 @@ async def list_products(
     search: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -128,7 +128,7 @@ async def list_products(
 @router.post("/products", response_model=ProductDto)
 async def create_product(
     input_data: CreateProductInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     product = Product(
@@ -193,7 +193,7 @@ async def create_product(
 @router.get("/categories", response_model=List[CategoryDto])
 async def list_categories(
     parentId: Optional[str] = None,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Category).where(Category.organization_id == user.organization_id)
@@ -228,7 +228,7 @@ async def list_categories(
 
 @router.get("/categories/tree", response_model=List[CategoryTreeNodeDto])
 async def get_categories_tree(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -258,7 +258,7 @@ async def get_categories_tree(
 @router.post("/categories", response_model=CategoryDto)
 async def create_category(
     cat_in: CreateCategoryInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     if cat_in.parentId:
@@ -295,7 +295,7 @@ async def create_category(
 async def update_category(
     category_id: str,
     cat_in: UpdateCategoryInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -340,7 +340,7 @@ async def update_category(
 @router.delete("/categories/{category_id}")
 async def delete_category(
     category_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["catalog:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

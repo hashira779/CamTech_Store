@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.core.crypto import EncryptionService
 from app.modules.automations.models import TelegramBot
 from ..models import BotCommand, gen_id
@@ -37,7 +37,7 @@ def _command_dto(c: BotCommand) -> BotCommandDto:
 @router.get("/bot-builder/bots/{bot_id}/commands", response_model=List[BotCommandDto])
 async def list_bot_commands(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -53,7 +53,7 @@ async def list_bot_commands(
 async def create_bot_command(
     bot_id: str,
     data: CreateBotCommandInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     # Normalize command
@@ -81,7 +81,7 @@ async def create_bot_command(
 async def update_bot_command(
     command_id: str,
     data: UpdateBotCommandInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -115,7 +115,7 @@ async def update_bot_command(
 @router.delete("/bot-builder/commands/{command_id}")
 async def delete_bot_command(
     command_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:delete"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -135,7 +135,7 @@ async def delete_bot_command(
 @router.post("/bot-builder/bots/{bot_id}/commands/sync")
 async def sync_commands_to_telegram(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Push all active commands for this bot to Telegram via setMyCommands."""

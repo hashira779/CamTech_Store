@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import Project, Timesheet, ProjectTask
 from .schemas import ProjectDto, TimesheetDto
 
@@ -12,7 +12,7 @@ router = APIRouter(tags=["Projects & Timesheets"])
 
 @router.get("/projects", response_model=List[ProjectDto])
 async def list_projects(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["projects:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -33,7 +33,7 @@ async def list_projects(
 @router.get("/projects/{project_id}/timesheets", response_model=List[TimesheetDto])
 async def list_project_timesheets(
     project_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["projects:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     proj_res = await db.execute(

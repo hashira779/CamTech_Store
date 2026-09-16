@@ -7,7 +7,7 @@ from sqlalchemy import select, desc
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.core.db_enums import ENUM_LABELS
 from app.models.entities import Employee, Department, LeaveRequest
 from app.domain.enterprise_engines import PayrollCalculator
@@ -63,7 +63,7 @@ def _leave_to_dto(l: LeaveRequest, emp_name: Optional[str] = None) -> LeaveReque
 # --- DEPARTMENTS ---
 @router.get("/hr/departments", response_model=List[DepartmentDto])
 async def list_departments(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -85,7 +85,7 @@ async def list_departments(
 @router.post("/hr/departments", response_model=DepartmentDto, status_code=status.HTTP_201_CREATED)
 async def create_department(
     input_data: CreateDepartmentInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     dept = Department(
@@ -111,7 +111,7 @@ async def create_department(
 # --- EMPLOYEES ---
 @router.get("/hr/employees", response_model=List[EmployeeDto])
 async def list_employees(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -132,7 +132,7 @@ async def list_employees(
 @router.get("/hr/employees/{employee_id}", response_model=EmployeeDto)
 async def get_employee(
     employee_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -156,7 +156,7 @@ async def get_employee(
 @router.post("/hr/employees", response_model=EmployeeDto, status_code=status.HTTP_201_CREATED)
 async def create_employee(
     input_data: CreateEmployeeInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     emp_status = input_data.status.upper() if input_data.status else "FULL_TIME"
@@ -206,7 +206,7 @@ async def create_employee(
 # --- LEAVES ---
 @router.get("/hr/leaves", response_model=List[LeaveRequestDto])
 async def list_leave_requests(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -225,7 +225,7 @@ async def list_leave_requests(
 @router.post("/hr/leaves", response_model=LeaveRequestDto, status_code=status.HTTP_201_CREATED)
 async def create_leave_request(
     input_data: CreateLeaveRequestInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     leave_type = input_data.type.upper() if input_data.type else "ANNUAL"
@@ -271,7 +271,7 @@ async def create_leave_request(
 @router.post("/hr/leaves/{leave_id}/approve", response_model=LeaveRequestDto)
 async def approve_leave_request(
     leave_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:approve"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -298,7 +298,7 @@ async def approve_leave_request(
 @router.post("/hr/leaves/{leave_id}/reject", response_model=LeaveRequestDto)
 async def reject_leave_request(
     leave_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["hr:approve"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -326,7 +326,7 @@ async def reject_leave_request(
 @router.post("/hr/payroll/calculate", response_model=PayrollCalculateResponse)
 async def calculate_payroll(
     data: PayrollCalculateInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["hr:payroll"]))
 ):
     base = Decimal(str(data.baseSalary))
     allow = Decimal(str(data.allowances))

@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.enterprise_engines import ApiKeyGenerator
 from ..models import DeveloperApp, ApiKey
 
@@ -16,7 +16,7 @@ router = APIRouter(tags=["Developer Apps & API Keys"])
 
 @router.get("/developers/apps")
 async def list_developer_apps(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -41,7 +41,7 @@ async def list_developer_apps(
 @router.post("/developers/apps")
 async def create_developer_app(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     name = (data.get("name") or "").strip()
@@ -73,7 +73,7 @@ async def create_developer_app(
 
 @router.get("/developers/keys")
 async def list_api_keys(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -102,7 +102,7 @@ async def list_api_keys(
 @router.post("/developers/keys")
 async def create_api_key(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     name = (data.get("name") or "Default Key").strip()
@@ -150,7 +150,7 @@ async def create_api_key(
 @router.delete("/developers/keys/{key_id}")
 async def revoke_api_key(
     key_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

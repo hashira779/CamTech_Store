@@ -6,7 +6,7 @@ from sqlalchemy import select, desc
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.enterprise_engines import FlowExecutionEngine
 from ..models import AutomationFlow, FlowExecution
 from ..schemas import AutomationFlowDto, CreateFlowInput, FlowExecutionDto
@@ -15,7 +15,7 @@ router = APIRouter(tags=["Automation Flows"])
 
 @router.get("/flows", response_model=List[AutomationFlowDto])
 async def list_flows(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -40,7 +40,7 @@ async def list_flows(
 @router.post("/flows", response_model=AutomationFlowDto)
 async def create_flow(
     flow_in: CreateFlowInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     flow = AutomationFlow(
@@ -72,7 +72,7 @@ async def create_flow(
 @router.get("/flows/{flow_id}", response_model=AutomationFlowDto)
 async def get_flow(
     flow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -101,7 +101,7 @@ async def get_flow(
 async def update_flow(
     flow_id: str,
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -143,7 +143,7 @@ async def update_flow(
 @router.delete("/flows/{flow_id}")
 async def delete_flow(
     flow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -163,7 +163,7 @@ async def delete_flow(
 async def execute_flow(
     flow_id: str,
     payload: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:execute"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -207,7 +207,7 @@ async def execute_flow(
 @router.get("/flows/{flow_id}/executions", response_model=List[FlowExecutionDto])
 async def list_flow_executions(
     flow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["automations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

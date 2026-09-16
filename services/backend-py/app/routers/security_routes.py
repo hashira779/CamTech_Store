@@ -8,21 +8,15 @@ import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import TenantUser, RequirePermissions
 from app.core.rate_limiter import ip_ban_list, AUTO_BAN_DURATION_SECONDS, PERM_BAN_DURATION_SECONDS
 
 router = APIRouter(prefix="/security", tags=["Security — IP Management"])
 
-ADMIN_ROLES = {"ORG_ADMIN", "SUPER_ADMIN"}
-
-
-def _require_admin(user: TenantUser = Depends(get_current_user)) -> TenantUser:
-    if not any(r in ADMIN_ROLES for r in user.roles):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Security management requires ORG_ADMIN or SUPER_ADMIN role.",
-        )
-    return user
+# "security:manage" is admin-only by construction (absent from every role row in
+# PERMISSIONS_MATRIX), so this keeps the previous ORG_ADMIN/SUPER_ADMIN-only
+# behaviour while routing the check through the shared RBAC matrix.
+_require_admin = RequirePermissions(["security:manage"])
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────

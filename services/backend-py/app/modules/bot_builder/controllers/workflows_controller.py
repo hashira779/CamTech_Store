@@ -10,7 +10,7 @@ from sqlalchemy import select, desc
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from ..models import (
     BotWorkflow, BotWorkflowVersion, BotCommand,
     gen_id,
@@ -79,7 +79,7 @@ def _version_dto(v: BotWorkflowVersion) -> BotWorkflowVersionDto:
 @router.get("/bot-builder/bots/{bot_id}/workflows", response_model=List[BotWorkflowDto])
 async def list_bot_workflows(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -95,7 +95,7 @@ async def list_bot_workflows(
 async def create_bot_workflow(
     bot_id: str,
     data: CreateBotWorkflowInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     # Build initial start node for the canvas
@@ -128,7 +128,7 @@ async def create_bot_workflow(
 @router.post("/bot-builder/workflows", response_model=BotWorkflowDto, status_code=201)
 async def create_bot_workflow_root(
     data: CreateBotWorkflowInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     if not data.botId:
@@ -139,7 +139,7 @@ async def create_bot_workflow_root(
 @router.get("/bot-builder/workflows/{workflow_id}", response_model=BotWorkflowDto)
 async def get_bot_workflow(
     workflow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -158,7 +158,7 @@ async def get_bot_workflow(
 async def update_bot_workflow(
     workflow_id: str,
     data: UpdateBotWorkflowInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -193,7 +193,7 @@ async def update_bot_workflow(
 @router.delete("/bot-builder/workflows/{workflow_id}")
 async def delete_bot_workflow(
     workflow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:delete"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -216,7 +216,7 @@ async def delete_bot_workflow(
 async def publish_workflow(
     workflow_id: str,
     data: PublishWorkflowInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:publish"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Snapshot current draft → create immutable version → point workflow to it."""
@@ -311,7 +311,7 @@ async def publish_workflow(
 async def rollback_workflow(
     workflow_id: str,
     version_number: int,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:publish"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Rollback production to a previous version without touching the draft."""
@@ -350,7 +350,7 @@ async def rollback_workflow(
 @router.get("/bot-builder/workflows/{workflow_id}/versions", response_model=List[BotWorkflowVersionDto])
 async def list_workflow_versions(
     workflow_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -366,7 +366,7 @@ async def list_workflow_versions(
 async def get_workflow_version(
     workflow_id: str,
     version_number: int,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

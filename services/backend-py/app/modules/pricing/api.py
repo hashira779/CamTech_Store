@@ -7,7 +7,7 @@ from sqlalchemy import select, desc
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import TaxRate, PriceList, Promotion, LoyaltyTransaction, ProductVariant, Customer
 from app.domain.commerce_engines import (
     TaxCalculator, PromotionEvaluator, PricingResolver, LoyaltyCalculator
@@ -52,7 +52,7 @@ def _promo_to_dto(p: Promotion) -> PromotionDto:
 # --- TAXES ---
 @router.get("/taxes", response_model=List[TaxRateDto])
 async def list_taxes(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -78,7 +78,7 @@ async def list_taxes(
 @router.post("/taxes/calculate")
 async def calculate_tax(
     data: TaxCalculateInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"]))
 ):
     amount = Decimal(str(data.amount))
     rate_pct = Decimal(str(data.ratePct))
@@ -88,7 +88,7 @@ async def calculate_tax(
 # --- PRICING ---
 @router.get("/pricing", response_model=List[PriceListDto])
 async def list_pricing(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -113,7 +113,7 @@ async def list_pricing(
 @router.post("/pricing/resolve")
 async def resolve_price(
     data: PriceResolveInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     customer_tier = str(data.customerTier or "REGULAR").upper()
@@ -196,7 +196,7 @@ async def resolve_price(
 # --- PROMOTIONS ---
 @router.get("/promotions", response_model=List[PromotionDto])
 async def list_promotions(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -211,7 +211,7 @@ async def list_promotions(
 @router.post("/promotions", response_model=PromotionDto, status_code=status.HTTP_201_CREATED)
 async def create_promotion(
     input_data: CreatePromotionInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     valid_types = {"PERCENTAGE", "FIXED_AMOUNT", "BUY_X_GET_Y", "ORDER_THRESHOLD"}
@@ -267,7 +267,7 @@ async def create_promotion(
 async def update_promotion(
     promo_id: str,
     input_data: UpdatePromotionInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     res = await db.execute(
@@ -308,7 +308,7 @@ async def update_promotion(
 @router.delete("/promotions/{promo_id}")
 async def delete_promotion(
     promo_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["pricing:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     res = await db.execute(
@@ -329,7 +329,7 @@ async def delete_promotion(
 @router.post("/promotions/evaluate")
 async def evaluate_promotion(
     data: PromotionEvaluateInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["pricing:read"]))
 ):
     promo_type = data.type
     promo_val = Decimal(str(data.value))
@@ -347,7 +347,7 @@ async def evaluate_promotion(
 @router.get("/loyalty/customer/{customer_id}", response_model=LoyaltySummaryDto)
 async def get_customer_loyalty(
     customer_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["customers:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

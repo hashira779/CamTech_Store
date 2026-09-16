@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 
 router = APIRouter(prefix="/apps", tags=["Multi-Domain / Multi-Subdomain Architecture (Spec §228-§258)"])
 
@@ -216,7 +216,7 @@ async def resolve_domain(host: str = Query(..., description="Hostname or subdoma
 @router.post("/custom-domain")
 async def register_custom_domain(
     inp: CustomDomainInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["org:domains"]))
 ):
     """
     Registers a custom subdomain or domain for the tenant (Spec §241).

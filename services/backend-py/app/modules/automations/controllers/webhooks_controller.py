@@ -5,14 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from ..models import WebhookSubscription
 
 router = APIRouter(tags=["Webhooks"])
 
 @router.get("/developers/webhooks")
 async def list_webhooks(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -37,7 +37,7 @@ async def list_webhooks(
 @router.post("/developers/webhooks")
 async def create_webhook(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     url = (data.get("url") or "").strip()
@@ -75,7 +75,7 @@ async def create_webhook(
 @router.delete("/developers/webhooks/{webhook_id}")
 async def delete_webhook(
     webhook_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

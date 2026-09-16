@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.outbox_engine import (
     outbox_repo,
     outbox_relay,
@@ -25,7 +25,7 @@ class ConsumeEventInput(BaseModel):
     event: EventContract
 
 @router.get("/status")
-async def get_outbox_status(user: TenantUser = Depends(get_current_user)):
+async def get_outbox_status(user: TenantUser = Depends(RequirePermissions(["platform:admin"]))):
     """
     Returns the current transactional outbox metrics and pending queues (Spec §210).
     """
@@ -52,7 +52,7 @@ async def get_outbox_status(user: TenantUser = Depends(get_current_user)):
     }
 
 @router.post("/publish")
-async def trigger_outbox_relay(user: TenantUser = Depends(get_current_user)):
+async def trigger_outbox_relay(user: TenantUser = Depends(RequirePermissions(["platform:admin"]))):
     """
     Pulls PENDING outbox events and publishes them to the platform event bus (Spec §210).
     """
@@ -74,7 +74,7 @@ async def trigger_outbox_relay(user: TenantUser = Depends(get_current_user)):
 @router.post("/saga/test")
 async def test_order_saga(
     inp: TriggerSagaInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["platform:admin"]))
 ):
     """
     Executes a multi-step Saga with automated compensations on failure (Spec §212).
@@ -91,7 +91,7 @@ async def test_order_saga(
 @router.post("/consume")
 async def consume_event_idempotently(
     inp: ConsumeEventInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["platform:admin"]))
 ):
     """
     Consumes an event with strict idempotent deduplication (Spec §211).

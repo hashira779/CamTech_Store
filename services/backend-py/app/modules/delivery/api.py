@@ -51,7 +51,7 @@ async def track_delivery_order(
 async def list_delivery_tasks(
     status: Optional[str] = None,
     search: Optional[str] = None,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -83,7 +83,7 @@ async def list_delivery_tasks(
 
 @router.get("/drivers/public", response_model=List[DeliveryDriverDto])
 async def list_public_drivers(
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(RequirePermissions(["delivery:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -111,7 +111,7 @@ async def create_public_delivery_order(
 async def update_delivery_task_status(
     order_id: str,
     inp: UpdateDeliveryStatusInput,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(RequireAnyPermission(["delivery:manage", "delivery:update_own"])),
     db: AsyncSession = Depends(get_db),
 ):
     """

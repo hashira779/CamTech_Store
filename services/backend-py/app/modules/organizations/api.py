@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 
 from .models import Organization
 from .schemas import (
@@ -79,7 +79,7 @@ def map_org_to_dto(org: Organization) -> OrganizationDto:
 
 @router.get("/current", response_model=OrganizationDto)
 async def get_current_organization(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["org:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -94,7 +94,7 @@ async def get_current_organization(
 @router.put("/current/settings", response_model=OrganizationDto)
 async def update_current_organization_settings(
     settings_in: UpdateOrganizationSettingsInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["org:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -149,7 +149,7 @@ async def update_current_organization_settings(
 @router.patch("/current", response_model=OrganizationDto)
 async def update_current_organization(
     org_in: UpdateOrganizationInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["org:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

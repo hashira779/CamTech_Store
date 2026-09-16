@@ -7,7 +7,7 @@ from sqlalchemy import select, func, or_, case
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, get_optional_user, TenantUser
+from app.core.dependencies import get_current_user, get_optional_user, TenantUser, RequirePermissions
 from app.core.config import settings
 from app.core.db_enums import ENUM_LABELS
 from app.modules.organizations.models import Organization
@@ -268,7 +268,7 @@ async def sync_customer_cart(
 
 @router.get("/customers", response_model=PaginatedResponse[CustomerDto])
 async def list_customers(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["customers:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -282,7 +282,7 @@ async def list_customers(
 @router.post("/customers", response_model=CustomerDto, status_code=status.HTTP_201_CREATED)
 async def create_customer(
     input_data: CreateCustomerInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["customers:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     _validate_type(input_data.type)
@@ -323,7 +323,7 @@ async def create_customer(
 async def update_customer(
     customer_id: str,
     input_data: UpdateCustomerInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["customers:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

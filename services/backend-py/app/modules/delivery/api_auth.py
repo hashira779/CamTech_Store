@@ -14,7 +14,7 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.datetime_utils import utc_now
 from app.core.security import create_access_token
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from .models import DeliveryDriver, OtpVerification
 
 logger = logging.getLogger(__name__)
@@ -281,7 +281,7 @@ async def auto_login(req: AutoLoginRequest, db: AsyncSession = Depends(get_db)):
     return {"success": True, "auth_status": driver.auth_status}
 
 @router.patch("/approve/{driver_id}")
-async def approve_driver(driver_id: str, user: TenantUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def approve_driver(driver_id: str, user: TenantUser = Depends(RequirePermissions(["delivery:manage"])), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(DeliveryDriver).filter(DeliveryDriver.id == driver_id))
     driver = result.scalars().first()
     

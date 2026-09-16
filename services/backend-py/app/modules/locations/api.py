@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.hierarchy_engine import HierarchyEngine
 
 from .models import Location
@@ -22,7 +22,7 @@ async def list_locations(
     search: Optional[str] = None,
     type: Optional[str] = None,
     parentId: Optional[str] = None,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Location).where(Location.organization_id == user.organization_id)
@@ -85,7 +85,7 @@ async def list_locations(
 
 @router.get("/tree", response_model=List[LocationTreeNodeDto])
 async def get_locations_tree(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -118,7 +118,7 @@ async def get_locations_tree(
 @router.get("/{location_id}/breadcrumbs")
 async def get_location_breadcrumbs(
     location_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -145,7 +145,7 @@ async def get_location_breadcrumbs(
 @router.get("/{location_id}/descendants")
 async def get_location_descendants(
     location_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -164,7 +164,7 @@ async def get_location_descendants(
 @router.post("", response_model=LocationDto)
 async def create_location(
     loc_in: CreateLocationInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     parent_loc = None
@@ -235,7 +235,7 @@ async def create_location(
 async def update_location(
     location_id: str,
     loc_in: UpdateLocationInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -314,7 +314,7 @@ async def update_location(
 @router.delete("/{location_id}")
 async def delete_location(
     location_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["locations:delete"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

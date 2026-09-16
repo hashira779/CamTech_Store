@@ -7,7 +7,7 @@ from sqlalchemy import select, desc, func, update
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import NotificationRecord, NotificationConfig
 from app.modules.identity.models import User
 from .schemas import (
@@ -41,7 +41,7 @@ def _dto_from_record(n: NotificationRecord) -> NotificationRecordDto:
 
 @router.get("/notifications/stats", response_model=NotificationStatsDto)
 async def get_notification_stats(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     total_q = await db.execute(
@@ -80,7 +80,7 @@ async def get_notification_stats(
 
 @router.get("/notifications/config", response_model=NotificationConfigDto)
 async def get_notification_config(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:config"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(NotificationConfig).where(NotificationConfig.organization_id == user.organization_id)
@@ -120,7 +120,7 @@ async def get_notification_config(
 @router.patch("/notifications/config", response_model=NotificationConfigDto)
 async def update_notification_config(
     input_data: UpdateNotificationConfigInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:config"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(NotificationConfig).where(NotificationConfig.organization_id == user.organization_id)
@@ -174,7 +174,7 @@ async def list_notifications(
     type: Optional[str] = None,
     isRead: Optional[bool] = None,
     limit: int = Query(50, ge=1, le=100),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -198,7 +198,7 @@ async def list_notifications(
 @router.post("/notifications/send", response_model=NotificationRecordDto)
 async def send_notification(
     data: SendNotificationInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:send"])),
     db: AsyncSession = Depends(get_db)
 ):
     now = utc_now()
@@ -232,7 +232,7 @@ async def send_notification(
 @router.patch("/notifications/{note_id}/read", response_model=NotificationRecordDto)
 async def mark_notification_read(
     note_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(NotificationRecord).where(
@@ -254,7 +254,7 @@ async def mark_notification_read(
 
 @router.post("/notifications/read-all")
 async def mark_all_notifications_read(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     now = utc_now()
@@ -273,7 +273,7 @@ async def mark_all_notifications_read(
 
 @router.post("/notifications/test", response_model=NotificationRecordDto)
 async def send_test_notification(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["notifications:send"])),
     db: AsyncSession = Depends(get_db)
 ):
     now = utc_now()

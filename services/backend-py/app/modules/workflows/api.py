@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import (
     WorkflowInstance,
     WorkflowStep,
@@ -90,7 +90,7 @@ def _build_instance_dto(
 @router.get("/workflows/instances", response_model=List[WorkflowInstanceDto])
 async def list_workflow_instances(
     status: Optional[str] = Query(None),
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(WorkflowInstance).where(
@@ -130,7 +130,7 @@ async def list_workflow_instances(
 @router.get("/workflows/instances/{instance_id}", response_model=WorkflowInstanceDto)
 async def get_workflow_instance(
     instance_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -158,7 +158,7 @@ async def get_workflow_instance(
 @router.post("/workflows/instances", response_model=WorkflowInstanceDto, status_code=201)
 async def submit_workflow_instance(
     data: SubmitApprovalInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     steps_data = data.steps if data.steps and len(data.steps) > 0 else [
@@ -219,7 +219,7 @@ async def review_workflow_step(
     instance_id: str,
     step_id: str,
     data: ReviewWorkflowStepInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:approve"])),
     db: AsyncSession = Depends(get_db),
 ):
     inst_res = await db.execute(
@@ -303,7 +303,7 @@ async def review_workflow_step(
 
 @router.get("/approvals", response_model=List[ApprovalRequestDto])
 async def list_approvals(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -327,7 +327,7 @@ async def list_approvals(
 async def sign_approval(
     req_id: str,
     data: ApprovalDecisionInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["workflows:approve"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

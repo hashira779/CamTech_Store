@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import DocumentRecord
 from .schemas import DocumentRecordDto, UploadIntentInput, UploadIntentResponse, StorageStatsDto
 
@@ -14,7 +14,7 @@ router = APIRouter(tags=["Documents & Storage"])
 
 @router.get("/storage", response_model=List[DocumentRecordDto])
 async def list_documents(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["documents:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -34,7 +34,7 @@ async def list_documents(
 
 @router.get("/storage/stats", response_model=StorageStatsDto)
 async def get_storage_stats(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["documents:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -59,7 +59,7 @@ async def get_storage_stats(
 @router.post("/storage/upload-intent", response_model=UploadIntentResponse)
 async def create_upload_intent(
     data: UploadIntentInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["documents:write"]))
 ):
     filename = data.fileName or "upload.pdf"
     token = secrets.token_hex(16)

@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.modules.catalog.models import ProductVariant, Product
 from app.modules.locations.models import Location
 
@@ -27,7 +27,7 @@ async def list_inventory(
     lowStockOnly: Optional[bool] = False,
     page: int = 1,
     limit: int = 50,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["inventory:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     query = (
@@ -73,7 +73,7 @@ async def list_inventory(
 @router.post("/inventory/adjust", response_model=InventoryItemDto)
 async def adjust_inventory(
     input_data: AdjustInventoryInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["inventory:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     valid_types = {"ADJUSTMENT_IN", "ADJUSTMENT_OUT", "DAMAGE", "EXPIRED", "COUNT"}
@@ -187,7 +187,7 @@ async def adjust_inventory(
 @router.get("/inventory/{variant_id}/movements", response_model=List[StockMovementDto])
 async def list_movements(
     variant_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["inventory:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (

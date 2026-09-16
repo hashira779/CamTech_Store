@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.ai_copilot_engine import AiCopilotEngine
 
 router = APIRouter(prefix="/ai", tags=["AI Copilot & Assistant (Spec §68-§71)"])
@@ -21,7 +21,7 @@ class CopilotChatResponse(BaseModel):
 @router.post("/chat", response_model=CopilotChatResponse)
 async def copilot_chat(
     inp: CopilotChatInput,
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["copilot:use"]))
 ):
     """
     Processes natural language enterprise queries with contextual data and RBAC tool security.
@@ -35,7 +35,7 @@ async def copilot_chat(
 @router.get("/suggestions")
 async def get_copilot_suggestions(
     context: Optional[str] = "dashboard",
-    user: TenantUser = Depends(get_current_user)
+    user: TenantUser = Depends(RequirePermissions(["copilot:use"]))
 ):
     """
     Returns contextual prompt recommendations based on the user's active page.

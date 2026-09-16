@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.core.db_enums import ENUM_LABELS
 from app.domain.enterprise_engines import DepreciationCalculator
 
@@ -68,7 +68,7 @@ def _journal_to_dto(e: JournalEntry) -> JournalEntryDto:
 
 @router.get("/finance/accounts", response_model=List[AccountDto])
 async def list_accounts(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -83,7 +83,7 @@ async def list_accounts(
 @router.post("/finance/accounts", response_model=AccountDto, status_code=status.HTTP_201_CREATED)
 async def create_account(
     input_data: CreateAccountInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     acc_type = input_data.type.upper()
@@ -126,7 +126,7 @@ async def create_account(
 async def update_account(
     account_id: str,
     input_data: UpdateAccountInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -154,7 +154,7 @@ async def update_account(
 @router.get("/finance/journal-entries", response_model=List[JournalEntryDto])
 async def list_journal_entries(
     status: Optional[str] = None,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -174,7 +174,7 @@ async def list_journal_entries(
 @router.get("/finance/journal-entries/{entry_id}", response_model=JournalEntryDto)
 async def get_journal_entry(
     entry_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -195,7 +195,7 @@ async def get_journal_entry(
 @router.post("/finance/journal-entries", response_model=JournalEntryDto, status_code=status.HTTP_201_CREATED)
 async def create_journal_entry(
     input_data: CreateJournalEntryInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     if len(input_data.lines) < 2:
@@ -283,7 +283,7 @@ async def create_journal_entry(
 @router.post("/finance/journal-entries/{entry_id}/post", response_model=JournalEntryDto)
 async def post_journal_entry(
     entry_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:post"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -315,7 +315,7 @@ async def post_journal_entry(
 @router.post("/finance/journal-entries/{entry_id}/void", response_model=JournalEntryDto)
 async def void_journal_entry(
     entry_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:void"])),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
@@ -340,7 +340,7 @@ async def void_journal_entry(
 
 @router.get("/assets", response_model=List[FixedAssetDto])
 async def list_fixed_assets(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -368,7 +368,7 @@ async def list_fixed_assets(
 @router.post("/assets/{asset_id}/depreciate")
 async def run_asset_depreciation(
     asset_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["finance:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

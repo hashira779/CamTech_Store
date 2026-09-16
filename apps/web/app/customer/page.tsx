@@ -44,17 +44,37 @@ export default function CustomerPortalPage() {
   const [supportMessage, setSupportMessage] = useState('');
   const [isSupportSubmitted, setIsSupportSubmitted] = useState(false);
 
-  // Fetch real customer orders from delivery dispatch service with 2-second live sync
+  // Fetch this customer's own orders with 2-second live sync.
+  // Uses the customer-scoped /customers/orders endpoint — the dispatch endpoint
+  // (/delivery/tasks) returns the whole organization's delivery book and is
+  // restricted to staff holding `delivery:read`.
   const { data: realOrders = [], isLoading: isOrdersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ['customer-portal-orders', user?.email, user?.name],
     queryFn: async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/v1/delivery/tasks`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        if (!user?.email) return [];
+        const res = await fetch(
+          `${BASE_URL}/api/v1/customers/orders?email=${encodeURIComponent(user.email)}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        );
         if (!res.ok) return [];
         const json = await res.json();
-        const serverItems: any[] = json.data?.items || json.items || json.data || [];
+        const sales: any[] = json.data?.items || json.items || json.data || [];
+
+        // Normalise SaleDto -> the delivery-task shape this page renders.
+        const serverItems: any[] = sales.map((s) => ({
+          id: s.deliveryOrderId || s.id,
+          orderNumber: s.saleNumber || s.trackingNumber,
+          trackingNumber: s.trackingNumber,
+          recipientName: s.customerName,
+          deliveryAddress: s.deliveryAddress,
+          destinationAddress: s.deliveryAddress,
+          status: s.deliveryStatus || s.status,
+          codAmount: s.grandTotal,
+          totalAmount: s.grandTotal,
+          notes: (s.lineItems || []).map((li: any) => li.name).join(', '),
+          createdAt: s.createdAt,
+        }));
 
         // Also load recent orders from this browser's checkout session
         let localOrders: any[] = [];
@@ -92,26 +112,21 @@ export default function CustomerPortalPage() {
           }
         }
 
-        // 2. Add any server tasks matching user or add all if no local orders existed
+        // 2. Add the remaining server orders. No client-side owner matching is
+        // needed any more — the server already scoped these to this customer.
         for (const srv of serverItems) {
-          const trk = srv.trackingNumber;
+          const trk = srv.trackingNumber || srv.id;
           if (trk && !seenTracking.has(trk)) {
-            const matchesUser = user?.name && (
-              srv.recipientName?.toLowerCase().includes(user.name.toLowerCase()) ||
-              (user.email && srv.notes?.toLowerCase().includes(user.email.toLowerCase()))
-            );
-            if (matchesUser || mergedList.length === 0) {
-              seenTracking.add(trk);
-              mergedList.push({
-                ...srv,
-                orderNumber: srv.trackingNumber,
-                totalAmount: srv.codAmount || 0,
-              });
-            }
+            seenTracking.add(trk);
+            mergedList.push({
+              ...srv,
+              orderNumber: srv.orderNumber || srv.trackingNumber,
+              totalAmount: srv.totalAmount || srv.codAmount || 0,
+            });
           }
         }
 
-        return mergedList.length > 0 ? mergedList : serverItems;
+        return mergedList;
       } catch {
         return [];
       }

@@ -214,3 +214,21 @@ class RequireAnyPermission:
             )
         return current_user
 
+
+class RequireStreamingPermissions:
+    """
+    Same contract as RequirePermissions, but resolves the caller through
+    get_streaming_user so SSE/WebSocket clients can authenticate with a `?token=`
+    query parameter (browsers cannot set Authorization headers on EventSource).
+    """
+    def __init__(self, required_permissions: List[str]):
+        self.required_permissions = required_permissions
+
+    def __call__(self, current_user: TenantUser = Depends(get_streaming_user)):
+        if not has_permission(current_user.roles, self.required_permissions):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: Requires permissions {self.required_permissions}",
+            )
+        return current_user
+

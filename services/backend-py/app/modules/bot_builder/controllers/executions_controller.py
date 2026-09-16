@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from ..models import BotExecution
 from ..schemas import BotExecutionDto, BotExecutionTraceItemDto
 
@@ -66,7 +66,7 @@ async def list_bot_executions(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     status: Optional[str] = None,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(BotExecution).where(
@@ -84,7 +84,7 @@ async def list_bot_executions(
 @router.get("/bot-builder/executions/{execution_id}", response_model=BotExecutionDto)
 async def get_execution(
     execution_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -102,7 +102,7 @@ async def get_execution(
 @router.get("/bot-builder/bots/{bot_id}/analytics")
 async def bot_analytics(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Basic analytics for a bot: total executions, success rate, unique users."""

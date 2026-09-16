@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.core.crypto import EncryptionService
 from app.modules.automations.models import TelegramBot
 from ..models import (
@@ -37,7 +37,7 @@ router = APIRouter(tags=["Bot Builder — Runtime"])
 async def register_webhook(
     bot_id: str,
     data: RegisterWebhookInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     bot = await _get_bot(db, bot_id, user.organization_id)
@@ -59,7 +59,7 @@ async def register_webhook(
 @router.post("/bot-builder/bots/{bot_id}/remove-webhook")
 async def remove_webhook(
     bot_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["bots:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     bot = await _get_bot(db, bot_id, user.organization_id)

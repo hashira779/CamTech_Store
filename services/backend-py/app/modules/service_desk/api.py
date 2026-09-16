@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 
 from .models import ServiceTicket, TicketComment
 from .schemas import ServiceTicketDto
@@ -13,7 +13,7 @@ router = APIRouter(tags=["Service Desk"])
 
 @router.get("/tickets", response_model=List[ServiceTicketDto])
 async def list_tickets(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["tickets:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(

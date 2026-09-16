@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.models.entities import StockTransfer, NotificationRecord
 from app.modules.sales.models import Sale, SaleLineItem
 from app.modules.delivery.models import DeliveryOrder
@@ -24,7 +24,7 @@ router = APIRouter(tags=["Warehouse & Transfers"])
 
 @router.get("/wms/transfers", response_model=List[StockTransferDto])
 async def list_stock_transfers(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["warehouse:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -47,7 +47,7 @@ async def list_stock_transfers(
 @router.get("/wms/transfers/{transfer_id}", response_model=StockTransferDto)
 async def get_stock_transfer(
     transfer_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["warehouse:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -83,7 +83,7 @@ def _parse_sale_notes(raw: Optional[str]) -> dict:
 
 @router.get("/wms/picking-orders", response_model=List[PickingOrderDto])
 async def list_picking_orders(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["warehouse:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -134,7 +134,7 @@ async def list_picking_orders(
 async def fulfill_picking_order(
     sale_id: str,
     inp: FulfillPickingInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["warehouse:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
