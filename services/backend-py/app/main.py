@@ -38,6 +38,7 @@ from typing import Optional
 from fastapi.responses import HTMLResponse
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from app.core.docs_protection import is_admin_request, get_docs_lock_html, get_request_token
+from app.core.static_assets import mount_static
 
 app = FastAPI(
     title="MyStore Universal Enterprise API (FastAPI)",
@@ -47,6 +48,9 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+# Serves the docs lock page's compiled Tailwind CSS from 'self'.
+mount_static(app)
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui(request: Request, token: Optional[str] = None):
@@ -240,7 +244,9 @@ async def response_envelope_middleware(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://static.cloudflareinsights.com; "
+        # cdn.tailwindcss.com is intentionally absent: the server-rendered pages
+        # now load compiled CSS from 'self' instead of the Tailwind Play CDN.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https:; "

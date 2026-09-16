@@ -7,6 +7,7 @@ from starlette.background import BackgroundTask
 from starlette.middleware.gzip import GZipMiddleware
 from app.core.config import settings
 from app.microservices.gateway_dashboard import get_gateway_dashboard_html
+from app.core.static_assets import mount_static
 
 # The in-process fallback (the full monolith) is imported LAZILY and guarded, so a
 # syntax/import error in ANY single module can never stop the gateway from booting.
@@ -170,6 +171,12 @@ def custom_openapi():
     return super(FastAPI, gateway).openapi()
 
 gateway.openapi = custom_openapi
+
+# Serves the dashboard's compiled Tailwind CSS from 'self'. Registered here, and
+# not further down, because the /{path:path} proxy below matches everything and
+# Starlette resolves routes in registration order.
+mount_static(gateway)
+
 
 @gateway.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def gateway_root():

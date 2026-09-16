@@ -30,6 +30,7 @@
     "py:dev": "python -m uvicorn app.main:app --app-dir services/backend-py --port 4000 --reload",
     "py:test": "python -m pytest services/backend-py/tests",
     "py:migrate": "python services/backend-py/scripts/auto_migrate.py",
+    "py:build:css": "cd services/backend-py && node ../../apps/web/node_modules/tailwindcss/lib/cli.js -c assets/tailwind.config.js -i assets/tailwind.css -o app/static/css/gateway.css --minify",
     "ms:all": "concurrently -n \"gw,auth,catalog,sales,delivery,hr,finance,platform,bot\" -c \"blue,green,yellow,magenta,cyan,white,red,gray,magentaBright\" \"pnpm ms:gateway\" \"pnpm ms:auth\" \"pnpm ms:catalog\" \"pnpm ms:sales\" \"pnpm ms:delivery\" \"pnpm ms:hr\" \"pnpm ms:finance\" \"pnpm ms:platform\" \"pnpm ms:bot-builder\"",
     "ms:gateway": "python -m uvicorn app.microservices.gateway:gateway --app-dir services/backend-py --port 4000 --reload",
     "ms:auth": "python -m uvicorn app.microservices.auth_service:app --app-dir services/backend-py --port 4001 --reload",

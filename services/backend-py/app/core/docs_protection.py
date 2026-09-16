@@ -5,6 +5,7 @@ from fastapi import Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from app.core.security import decode_access_token
+from app.core.static_assets import GATEWAY_CSS_URL
 
 
 def get_request_token(request: Request, token: Optional[str] = None) -> Optional[str]:
@@ -63,23 +64,10 @@ def get_docs_lock_html(target_path: str = "/docs") -> str:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Authorization Required — CamTech API Documentation</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{GATEWAY_CSS_URL}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {{
-      darkMode: 'class',
-      theme: {{
-        extend: {{
-          fontFamily: {{
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-          }},
-        }}
-      }}
-    }}
-  </script>
 </head>
 <body class="min-h-screen bg-[#09090b] text-zinc-100 font-sans antialiased flex items-center justify-center p-4 relative overflow-hidden selection:bg-indigo-500 selection:text-white">
   

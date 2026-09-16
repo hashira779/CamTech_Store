@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ambient hero glow on the gateway dashboard. Lives here rather than in an
+   inline <style> block so the page needs no inline styles of its own. */
+@keyframes pulseGlow {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(1.05);
+  }
+}
+
+.ambient-glow {
+  animation: pulseGlow 8s ease-in-out infinite;
+}

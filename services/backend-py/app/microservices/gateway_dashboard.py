@@ -3,48 +3,26 @@
 # High-Aesthetics, Responsive Edge Command Center (2026-2030 Standard)
 # ==============================================================================
 
+from app.core.static_assets import GATEWAY_CSS_URL
+
+
 def get_gateway_dashboard_html() -> str:
-    return """<!DOCTYPE html>
+    # __CSS_URL__ is substituted rather than f-string interpolated: the markup
+    # below contains literal braces (the curl JSON example) that an f-string
+    # would force us to double-escape.
+    return _DASHBOARD_TEMPLATE.replace("__CSS_URL__", GATEWAY_CSS_URL)
+
+
+_DASHBOARD_TEMPLATE = """<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CamTech Universal API Gateway — Enterprise Microservices</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="__CSS_URL__">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-          },
-          colors: {
-            brand: {
-              50: '#eef2ff',
-              100: '#e0e7ff',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.15; transform: scale(1); }
-      50% { opacity: 0.25; transform: scale(1.05); }
-    }
-    .ambient-glow {
-      animation: pulseGlow 8s ease-in-out infinite;
-    }
-  </style>
 </head>
 <body class="min-h-screen bg-[#09090b] text-zinc-100 font-sans antialiased relative overflow-x-hidden selection:bg-indigo-500 selection:text-white">
 
