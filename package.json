@@ -63,10 +63,5 @@
     "file-type": ">=21.3.2",
     "webpack": ">=5.104.1",
     "body-parser": ">=1.20.6"
-  },
-  "pnpm": {
-    "overrides": {
-      "multer": ">=2.3.0"
-    }
   }
 }

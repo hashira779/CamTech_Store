@@ -12,6 +12,8 @@ allowBuilds:
   prisma: true
   "@scarf/scarf": false
   esbuild: true
+  "@parcel/watcher": true
+  unrs-resolver: true
 
 overrides:
   "@nestjs/core": ">=11.1.18"
