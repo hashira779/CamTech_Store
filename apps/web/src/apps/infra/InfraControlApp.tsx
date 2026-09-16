@@ -19,11 +19,14 @@ const ThreatsPage    = lazy(() => import('./pages/ThreatsPage'));
 const IncidentsPage  = lazy(() => import('./pages/IncidentsPage'));
 const AuditPage      = lazy(() => import('./pages/AuditPage'));
 
+const LoginPage      = lazy(() => import('@/app/login/page'));
+
 const PageFallback = () => <PageSkeleton variant="cards" />;
 
 export function InfraControlApp() {
   return (
     <Routes>
+      <Route path="/login" element={<Suspense fallback={<PageFallback />}><LoginPage /></Suspense>} />
       {/* Redirect root → overview */}
       <Route path="/" element={<Navigate to="/infra/overview" replace />} />
 
