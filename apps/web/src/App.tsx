@@ -34,10 +34,12 @@ export function App() {
   const location = useLocation();
   const hostname = window.location.hostname.toLowerCase();
   let CurrentApp = AdminApp; // Default fallback
+  let isInfraApp = false;
 
   // 1. Subdomain matching (production multi-subdomain routing §228)
   if (hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.')) {
     CurrentApp = InfraControlApp;
+    isInfraApp = true;
   } else if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
     CurrentApp = PosApp;
   } else if (hostname.startsWith('hr.') || hostname.startsWith('hrms.')) {
@@ -68,6 +70,7 @@ export function App() {
 
     if (isPath('/infra') || isPath('/soc') || isPath('/noc')) {
       CurrentApp = InfraControlApp;
+      isInfraApp = true;
     } else if (isPath('/pos')) {
       CurrentApp = PosApp;
     } else if (isPath('/driver')) {
@@ -88,7 +91,7 @@ export function App() {
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
-      <DomainBar />
+      {!isInfraApp && <DomainBar />}
       {/* DomainBar stays outside the boundary, so if the active experience
           crashes the user can still navigate to another one. resetKeys clears
           the error automatically on route change. */}
