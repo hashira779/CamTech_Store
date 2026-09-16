@@ -213,6 +213,9 @@ class RequirePermissions:
         self.required_permissions = required_permissions
 
     def __call__(self, current_user: TenantUser = Depends(get_current_user)):
+        if "SUPER_ADMIN" in current_user.roles or "ORG_ADMIN" in current_user.roles:
+            return current_user
+            
         if not has_permission(current_user.permissions, self.required_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -228,6 +231,9 @@ class RequireAnyPermission:
         self.required_permissions = required_permissions
 
     def __call__(self, current_user: TenantUser = Depends(get_current_user)):
+        if "SUPER_ADMIN" in current_user.roles or "ORG_ADMIN" in current_user.roles:
+            return current_user
+            
         if not has_any_permission(current_user.permissions, self.required_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

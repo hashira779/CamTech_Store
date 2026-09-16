@@ -13,7 +13,7 @@ export interface AuthenticatedUser {
   email: string;
   name: string;
   organizationId: string;
-  roles: Role[];
+  roles: string[];
   permissions: string[];
 }
 
@@ -28,7 +28,7 @@ export interface UserDetailDto {
   organizationId: string;
   email: string;
   name: string;
-  roles: Role[];
+  roles: string[];
   isActive: boolean;
   locationId?: string | null;
   createdAt?: string | null;
@@ -38,13 +38,13 @@ export interface CreateUserInput {
   name: string;
   email: string;
   password: string;
-  roles: Role[];
+  roles: string[];
   locationId?: string | null;
 }
 
 export interface UpdateUserInput {
   name?: string;
-  roles?: Role[];
+  roles?: string[];
   isActive?: boolean;
   password?: string;
   locationId?: string | null;

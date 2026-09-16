@@ -64,6 +64,7 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
         is_active=True,
         roles=json.dumps(roles)
     )
+    db.add(new_user)
     # Synchronize relational user_roles
     for r in roles:
         r_obj = (await db.execute(select(Role).where(Role.name == r, or_(Role.organization_id == org_id, Role.is_system == True)))).scalars().first()
