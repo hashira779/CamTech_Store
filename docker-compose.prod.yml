@@ -412,6 +412,19 @@ services:
     networks:
       - mystore-net
 
+  # ── INFRA & SECURITY CONTROL CENTER (DEDICATED CONTAINER · PORT 5009) ────────
+  infra-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile.prod
+      target: infra-app
+    container_name: mystore-infra-app
+    restart: always
+    ports:
+      - '${INFRA_PORT_HOST:-5009}:80'
+    networks:
+      - mystore-net
+
   # ── MAIN EDGE REVERSE PROXY (PORT 80 & 443) ──────────────────────────────────
   nginx-ingress:
     image: nginx:1.27-alpine
@@ -431,6 +444,7 @@ services:
       - delivery-app
       - hr-app
       - ceo-app
+      - infra-app
     networks:
       - mystore-net
 

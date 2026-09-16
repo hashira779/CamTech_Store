@@ -145,7 +145,7 @@ fi
 
 # ── 5. Build & Deploy Frontend Web Application Containers ─────────────────────
 echo "🔨 Building frontend web applications..."
-FRONTEND_SERVICES="store-app admin-app pos-app delivery-app hr-app ceo-app nginx-ingress"
+FRONTEND_SERVICES="store-app admin-app pos-app delivery-app hr-app ceo-app infra-app nginx-ingress"
 export COMPOSE_PARALLEL_LIMIT=1
 run_cmd docker compose -f "$COMPOSE_FILE" build delivery-app admin-app || true
 run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
@@ -225,6 +225,18 @@ fi
 DELIVERY_PORT="${DELIVERY_PORT_HOST:-5004}"
 if ! check_endpoint "http://127.0.0.1:${DELIVERY_PORT}/" "Courier Delivery App (Port ${DELIVERY_PORT})" 10; then
     echo "   ⚠️ Notice: Courier Delivery app container not responding directly on ${DELIVERY_PORT}"
+fi
+
+# Verify CEO Dashboard
+CEO_PORT="${CEO_PORT_HOST:-5008}"
+if ! check_endpoint "http://127.0.0.1:${CEO_PORT}/" "CEO Dashboard App (Port ${CEO_PORT})" 10; then
+    WARN_FAILED=1
+fi
+
+# Verify Infra Control Center
+INFRA_PORT="${INFRA_PORT_HOST:-5009}"
+if ! check_endpoint "http://127.0.0.1:${INFRA_PORT}/" "Infra Control Center App (Port ${INFRA_PORT})" 10; then
+    echo "   ⚠️ Notice: Infra Control Center app not responding on ${INFRA_PORT}"
 fi
 
 # Verify Main Ingress Proxy
