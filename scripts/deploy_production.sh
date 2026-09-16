@@ -155,8 +155,9 @@ run_cmd docker compose -f "$COMPOSE_FILE" up -d $FRONTEND_SERVICES
 echo "🔄 Recreating Nginx ingress to pick up configuration inode changes..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d --force-recreate nginx-ingress
 
-# Ensure mystore-admin-app is reachable by external Cloudflare tunnel expecting admin-web
+# Ensure containers are reachable by external Cloudflare tunnel expecting *-web aliases
 run_cmd docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
+run_cmd docker network connect --alias infra-web camtech_camtech-net mystore-infra-app 2>/dev/null || true
 
 # ── 6. Smoke Tests & Health Check Loop ───────────────────────────────────────
 echo "🔍 Waiting 10s for containers to stabilize before health checks..."
