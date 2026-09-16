@@ -64,14 +64,14 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
         is_active=True,
         roles=json.dumps(roles)
     )
-    db.add(new_user)
     # Synchronize relational user_roles
     for r in roles:
-        r_obj = await db.get(Role, r)
+        r_obj = (await db.execute(select(Role).where(Role.name == r, or_(Role.organization_id == org_id, Role.is_system == True)))).scalars().first()
         if not r_obj:
-            db.add(Role(name=r, description=f"{r} role"))
+            r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=org_id, permissions=[], is_system=False)
+            db.add(r_obj)
             await db.flush()
-        db.add(UserRole(user_id=user_id, role_name=r))
+        db.add(UserRole(user_id=user_id, role_id=r_obj.id))
     await db.commit()
 
     # 4. Asynchronous Event-Driven Decoupling: Drop event into Redis & Queue
@@ -321,14 +321,16 @@ async def list_users(
 ):
     """List all users/staff in the organization. Requires admin access."""
     
-    stmt = select(User).options(selectinload(User.user_roles)).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
+    stmt = select(User).options(
+        selectinload(User.user_roles).selectinload(UserRole.role)
+    ).where(User.organization_id == user.organization_id).order_by(User.created_at.desc())
     res = await db.execute(stmt)
     users = res.scalars().all()
     
     out = []
     for u in users:
         if u.user_roles:
-            roles_list = [ur.role_name for ur in u.user_roles]
+            roles_list = [ur.role.name for ur in u.user_roles if ur.role]
         else:
             roles_list = json.loads(u.roles) if isinstance(u.roles, str) else (u.roles or [])
         out.append(UserDetailDto(
@@ -383,11 +385,12 @@ async def create_user(
     db.add(new_user)
     # Synchronize relational user_roles
     for r in roles:
-        r_obj = await db.get(Role, r)
+        r_obj = (await db.execute(select(Role).where(Role.name == r, or_(Role.organization_id == user.organization_id, Role.is_system == True)))).scalars().first()
         if not r_obj:
-            db.add(Role(name=r, description=f"{r} role"))
+            r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=user.organization_id, permissions=[], is_system=False)
+            db.add(r_obj)
             await db.flush()
-        db.add(UserRole(user_id=user_id, role_name=r))
+        db.add(UserRole(user_id=user_id, role_id=r_obj.id))
     await db.commit()
     await db.refresh(new_user)
     
@@ -428,11 +431,15 @@ async def update_user(
         # Synchronize relational user_roles
         await db.execute(delete(UserRole).where(UserRole.user_id == target.id))
         for r in roles:
-            r_obj = await db.get(Role, r)
+            r_obj = (await db.execute(select(Role).where(
+                Role.name == r,
+                or_(Role.organization_id == user.organization_id, Role.is_system == True)
+            ))).scalars().first()
             if not r_obj:
-                db.add(Role(name=r, description=f"{r} role"))
+                r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=user.organization_id, permissions=[], is_system=False)
+                db.add(r_obj)
                 await db.flush()
-            db.add(UserRole(user_id=target.id, role_name=r))
+            db.add(UserRole(user_id=target.id, role_id=r_obj.id))
     if inp.isActive is not None:
         target.is_active = inp.isActive
     if inp.locationId is not None:
@@ -476,9 +483,140 @@ async def delete_user(
 
 
 
+# ==============================================================================
+# ROLES & PERMISSIONS MANAGEMENT
+# ==============================================================================
+from .schemas import RoleDto, CreateRoleInput, UpdateRoleInput
+
+@router.get("/roles", response_model=List[RoleDto])
+async def list_roles(
+    user: TenantUser = Depends(RequirePermissions(["users:read"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all system roles + organization custom roles."""
+    stmt = select(Role).where(
+        or_(
+            Role.organization_id == user.organization_id,
+            Role.is_system == True
+        )
+    ).order_by(Role.name)
+    res = await db.execute(stmt)
+    roles = res.scalars().all()
+    
+    return [
+        RoleDto(
+            id=r.id,
+            organizationId=r.organization_id,
+            name=r.name,
+            description=r.description,
+            permissions=r.permissions if isinstance(r.permissions, list) else (json.loads(r.permissions) if isinstance(r.permissions, str) else []),
+            isSystem=bool(r.is_system)
+        )
+        for r in roles
+    ]
+
+@router.post("/roles", response_model=RoleDto, status_code=status.HTTP_201_CREATED)
+async def create_role(
+    inp: CreateRoleInput,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new custom role."""
+    # Check if a role with same name exists for this org
+    exist = (await db.execute(select(Role).where(
+        Role.name == inp.name,
+        Role.organization_id == user.organization_id
+    ))).scalar_one_or_none()
+    if exist:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Role with name '{inp.name}' already exists"
+        )
+    
+    new_role = Role(
+        id=f"rol_{uuid.uuid4().hex[:10]}",
+        organization_id=user.organization_id,
+        name=inp.name,
+        description=inp.description,
+        permissions=inp.permissions,
+        is_system=False
+    )
+    db.add(new_role)
+    await db.commit()
+    await db.refresh(new_role)
+    
+    return RoleDto(
+        id=new_role.id,
+        organizationId=new_role.organization_id,
+        name=new_role.name,
+        description=new_role.description,
+        permissions=new_role.permissions,
+        isSystem=bool(new_role.is_system)
+    )
+
+@router.patch("/roles/{role_id}", response_model=RoleDto)
+async def update_role(
+    role_id: str,
+    inp: UpdateRoleInput,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update custom role permissions."""
+    role = (await db.execute(select(Role).where(Role.id == role_id))).scalar_one_or_none()
+    if not role:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        
+    if role.is_system:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot modify system roles")
+        
+    if role.organization_id != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to modify this role")
+    
+    if inp.name is not None:
+        role.name = inp.name
+    if inp.description is not None:
+        role.description = inp.description
+    if inp.permissions is not None:
+        role.permissions = inp.permissions
+        
+    await db.commit()
+    await db.refresh(role)
+    
+    return RoleDto(
+        id=role.id,
+        organizationId=role.organization_id,
+        name=role.name,
+        description=role.description,
+        permissions=role.permissions if isinstance(role.permissions, list) else json.loads(role.permissions),
+        isSystem=bool(role.is_system)
+    )
+
+@router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_role(
+    role_id: str,
+    user: TenantUser = Depends(RequirePermissions(["users:write"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete custom role."""
+    role = (await db.execute(select(Role).where(Role.id == role_id))).scalar_one_or_none()
+    if not role:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        
+    if role.is_system:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete system roles")
+        
+    if role.organization_id != user.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this role")
+        
+    await db.delete(role)
+    await db.commit()
+    return {"success": True}
+
+
 # Passkey (WebAuthn) routes live in their own module but mount under the same
 # /api/v1/auth prefix, so both the monolith and the auth microservice expose
 # them without either having to know about the split.
 from .passkey_api import router as passkey_router  # noqa: E402
 
 router.include_router(passkey_router)
+

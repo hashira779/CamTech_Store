@@ -55,8 +55,11 @@ async def init_test_database():
             
             # Ensure roles exist
             await conn.execute(text("""
-                INSERT INTO roles (name) VALUES ('SUPER_ADMIN'), ('ORG_ADMIN') ON CONFLICT DO NOTHING;
-            """))
+                INSERT INTO roles (id, name, description, "organizationId", permissions, "isSystem") VALUES 
+                ('rol_super_admin', 'SUPER_ADMIN', 'Super Admin', :org_id, '["*"]', true),
+                ('rol_org_admin', 'ORG_ADMIN', 'Org Admin', :org_id, '["*"]', true)
+                ON CONFLICT DO NOTHING;
+            """), {"org_id": org_id})
             
             await conn.execute(text("""
                 INSERT INTO users (id, "organizationId", email, name, "passwordHash", roles, "isActive", "createdAt", "updatedAt")
@@ -72,9 +75,9 @@ async def init_test_database():
             actual_user_id = user_row[0]
             
             await conn.execute(text("""
-                INSERT INTO user_roles ("userId", "roleName") VALUES 
-                    (:user_id, 'SUPER_ADMIN'),
-                    (:user_id, 'ORG_ADMIN')
+                INSERT INTO user_roles ("userId", "roleId") VALUES 
+                    (:user_id, 'rol_super_admin'),
+                    (:user_id, 'rol_org_admin')
                 ON CONFLICT DO NOTHING;
             """), {"user_id": actual_user_id})
 

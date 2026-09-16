@@ -19,17 +19,27 @@ from app.core.datetime_utils import utc_now
 def gen_id():
     return str(uuid.uuid4())
 
+from sqlalchemy.dialects.postgresql import JSONB
+
 class Role(Base):
     __tablename__ = "roles"
 
-    name = Column(String, primary_key=True)
+    id = Column(String, primary_key=True, default=gen_id)
+    organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=True)
+    name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    permissions = Column(JSONB, default=list, nullable=False)
+    is_system = Column("isSystem", Boolean, default=False, nullable=False)
+    
+    __table_args__ = (
+        Index("ix_roles_org_id", "organizationId"),
+    )
 
 class UserRole(Base):
     __tablename__ = "user_roles"
 
     user_id = Column("userId", String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    role_name = Column("roleName", String, ForeignKey("roles.name", ondelete="CASCADE"), primary_key=True)
+    role_id = Column("roleId", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
 
     user = relationship("User", back_populates="user_roles")
     role = relationship("Role")

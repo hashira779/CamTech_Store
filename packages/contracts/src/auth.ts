@@ -63,3 +63,24 @@ export interface PasskeyDto {
   createdAt?: string | null;
   lastUsedAt?: string | null;
 }
+
+export interface RoleDto {
+  id: string;
+  organizationId?: string | null;
+  name: string;
+  description?: string | null;
+  permissions: string[];
+  isSystem: boolean;
+}
+
+export interface CreateRoleInput {
+  name: string;
+  description?: string | null;
+  permissions?: string[];
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  description?: string | null;
+  permissions?: string[];
+}

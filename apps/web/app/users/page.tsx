@@ -5,14 +5,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
-import type { UserDetailDto, CreateUserInput, UpdateUserInput, Role } from '@mystore/contracts';
-import { ROLES } from '@mystore/contracts';
+import type { UserDetailDto, CreateUserInput, UpdateUserInput, RoleDto, CreateRoleInput, UpdateRoleInput } from '@mystore/contracts';
 import {
   Users,
   UserPlus,
   Shield,
   ShieldCheck,
-  KeyRound,
   Search,
   RefreshCw,
   Edit2,
@@ -21,76 +19,22 @@ import {
   XCircle,
   X,
   Save,
-  Lock,
-  Building,
-  Sparkles,
-  Info,
   Eye,
-  EyeOff
+  EyeOff,
+  PlusCircle,
+  Trash2
 } from 'lucide-react';
 
-const ROLE_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
-  SUPER_ADMIN: {
-    label: 'Super Admin',
-    color: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    desc: 'Unrestricted system-wide authority across all branches, databases, and platform features.'
-  },
-  PLATFORM_ADMIN: {
-    label: 'Platform Admin',
-    color: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-    desc: 'Full platform administration, integrations, webhooks, and cloud infrastructure.'
-  },
-  ORG_ADMIN: {
-    label: 'Organization Admin',
-    color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-    desc: 'Enterprise owner: manage company locations, pricing, finance, HR, and staff.'
-  },
-  COMPANY_ADMIN: {
-    label: 'Company Admin',
-    color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-    desc: 'Division administrator for multi-entity corporate structures.'
-  },
-  BRANCH_MANAGER: {
-    label: 'Branch / Store Manager',
-    color: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    desc: 'Manage store inventory, cashiers, shifts, discounts, and daily reconciliation.'
-  },
-  FINANCE_MANAGER: {
-    label: 'Finance Manager',
-    color: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
-    desc: 'General ledger, charts of accounts, tax reporting, and payment reconciliations.'
-  },
-  SALES_MANAGER: {
-    label: 'Sales Manager',
-    color: 'bg-primary/10 text-primary border-primary/30',
-    desc: 'Price lists, customer tiers, bulk orders, wholesale accounts, and sales pipelines.'
-  },
-  WAREHOUSE_MANAGER: {
-    label: 'Warehouse Manager',
-    color: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-    desc: 'WMS inventory control, inter-branch transfers, bin locations, and procurement receipts.'
-  },
-  CASHIER: {
-    label: 'Cashier',
-    color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    desc: 'Front-counter POS checkout, Bakong KHQR, cash sessions, and receipt printing.'
-  },
-  ACCOUNTANT: {
-    label: 'Accountant',
-    color: 'bg-violet-500/10 text-violet-400 border-violet-500/30',
-    desc: 'Journal entries, bank reconciliation, invoices, and asset depreciation.'
-  },
-  STAFF: {
-    label: 'General Staff',
-    color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30',
-    desc: 'Standard employee access: task execution, stock lookup, and self-service.'
-  },
-  CUSTOMER: {
-    label: 'Customer',
-    color: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
-    desc: 'Online storefront customer portal: orders, tracking, and loyalty rewards.'
-  }
-};
+const SYSTEM_PERMISSIONS = [
+  "sales:read", "sales:write", "sales:refund",
+  "catalog:read", "catalog:write",
+  "inventory:read", "inventory:write",
+  "users:read", "users:write",
+  "reports:read",
+  "delivery:read", "delivery:manage", "delivery:update_own",
+  "apps:read", "apps:write", "apps:delete",
+  "telegram:read", "telegram:write"
+];
 
 export default function UsersPage() {
   const { token, user: currentUser } = useAuth();
@@ -105,26 +49,41 @@ export default function UsersPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDetailDto | null>(null);
 
-  // Form State - Create
+  // Form State - Create User
   const [createName, setCreateName] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [showCreatePassword, setShowCreatePassword] = useState(false);
-  const [createRoles, setCreateRoles] = useState<Role[]>(['STAFF']);
+  const [createRoles, setCreateRoles] = useState<string[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Form State - Edit
+  // Form State - Edit User
   const [editName, setEditName] = useState('');
-  const [editRoles, setEditRoles] = useState<Role[]>([]);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editIsActive, setEditIsActive] = useState(true);
   const [editNewPassword, setEditNewPassword] = useState('');
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Form State - Roles
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<RoleDto | null>(null);
+  const [roleName, setRoleName] = useState('');
+  const [roleDescription, setRoleDescription] = useState('');
+  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
+  const [roleError, setRoleError] = useState<string | null>(null);
+
   // Query: Users List
   const { data: users = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['usersList'],
     queryFn: () => api.listUsers(token!),
+    enabled: Boolean(token),
+  });
+
+  // Query: Roles List
+  const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
+    queryKey: ['rolesList'],
+    queryFn: () => api.listRoles(token!),
     enabled: Boolean(token),
   });
 
@@ -137,7 +96,7 @@ export default function UsersPage() {
       setCreateName('');
       setCreateEmail('');
       setCreatePassword('');
-      setCreateRoles(['STAFF']);
+      setCreateRoles([]);
       setCreateError(null);
     },
     onError: (err: any) => {
@@ -168,6 +127,30 @@ export default function UsersPage() {
     }
   });
 
+  // Mutation: Create/Update Role
+  const saveRoleMutation = useMutation({
+    mutationFn: (input: { id?: string; data: any }) => 
+      input.id 
+        ? api.updateRole(token!, input.id, input.data) 
+        : api.createRole(token!, input.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rolesList'] });
+      setIsRoleModalOpen(false);
+      setEditingRole(null);
+    },
+    onError: (err: any) => {
+      setRoleError(err instanceof ApiClientError ? err.message : 'Failed to save role');
+    }
+  });
+
+  // Mutation: Delete Role
+  const deleteRoleMutation = useMutation({
+    mutationFn: (roleId: string) => api.deleteRole(token!, roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rolesList'] });
+    }
+  });
+
   const handleOpenEdit = (user: UserDetailDto) => {
     setEditingUser(user);
     setEditName(user.name);
@@ -178,23 +161,47 @@ export default function UsersPage() {
     setIsEditOpen(true);
   };
 
-  const handleToggleCreateRole = (role: Role) => {
-    if (createRoles.includes(role)) {
-      if (createRoles.length > 1) {
-        setCreateRoles(createRoles.filter(r => r !== role));
-      }
+  const handleOpenRoleModal = (role?: RoleDto) => {
+    setRoleError(null);
+    if (role) {
+      setEditingRole(role);
+      setRoleName(role.name);
+      setRoleDescription(role.description || '');
+      setRolePermissions(role.permissions.includes('*') ? [...SYSTEM_PERMISSIONS] : [...role.permissions]);
     } else {
-      setCreateRoles([...createRoles, role]);
+      setEditingRole(null);
+      setRoleName('');
+      setRoleDescription('');
+      setRolePermissions([]);
+    }
+    setIsRoleModalOpen(true);
+  };
+
+  const handleTogglePermission = (perm: string) => {
+    if (rolePermissions.includes(perm)) {
+      setRolePermissions(rolePermissions.filter(p => p !== perm));
+    } else {
+      setRolePermissions([...rolePermissions, perm]);
     }
   };
 
-  const handleToggleEditRole = (role: Role) => {
-    if (editRoles.includes(role)) {
-      if (editRoles.length > 1) {
-        setEditRoles(editRoles.filter(r => r !== role));
+  const handleToggleCreateRole = (roleName: string) => {
+    if (createRoles.includes(roleName)) {
+      if (createRoles.length > 1) {
+        setCreateRoles(createRoles.filter(r => r !== roleName));
       }
     } else {
-      setEditRoles([...editRoles, role]);
+      setCreateRoles([...createRoles, roleName]);
+    }
+  };
+
+  const handleToggleEditRole = (roleName: string) => {
+    if (editRoles.includes(roleName)) {
+      if (editRoles.length > 1) {
+        setEditRoles(editRoles.filter(r => r !== roleName));
+      }
+    } else {
+      setEditRoles([...editRoles, roleName]);
     }
   };
 
@@ -209,7 +216,7 @@ export default function UsersPage() {
       name: createName,
       email: createEmail,
       password: createPassword,
-      roles: createRoles
+      roles: createRoles.length > 0 ? createRoles : ['CASHIER']
     });
   };
 
@@ -219,7 +226,7 @@ export default function UsersPage() {
     setEditError(null);
     const payload: UpdateUserInput = {
       name: editName,
-      roles: editRoles,
+      roles: editRoles.length > 0 ? editRoles : undefined,
       isActive: editIsActive
     };
     if (editNewPassword.trim()) {
@@ -228,11 +235,27 @@ export default function UsersPage() {
     updateMutation.mutate({ id: editingUser.id, input: payload });
   };
 
+  const handleRoleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleName) {
+      setRoleError('Role name is required');
+      return;
+    }
+    saveRoleMutation.mutate({
+      id: editingRole?.id,
+      data: {
+        name: roleName,
+        description: roleDescription,
+        permissions: rolePermissions
+      }
+    });
+  };
+
   const filteredUsers = users.filter(u => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'ALL' || u.roles.includes(roleFilter as Role);
+    const matchesRole = roleFilter === 'ALL' || u.roles.includes(roleFilter);
     return matchesSearch && matchesRole;
   });
 
@@ -250,18 +273,18 @@ export default function UsersPage() {
               </div>
               <h1 className="text-2xl font-bold tracking-tight">Users & Access Control</h1>
               <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
-                Live RBAC
+                Dynamic RBAC
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Manage administrators, managers, cashiers, and fine-grained role permissions.
+              Manage administrators, staff, and fine-grained custom roles and permissions.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => refetch()}
-              disabled={isFetching}
+              onClick={() => { refetch(); queryClient.invalidateQueries({ queryKey: ['rolesList'] }); }}
+              disabled={isFetching || isLoadingRoles}
               className="btn btn-secondary btn-sm flex items-center gap-1.5"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
@@ -297,7 +320,7 @@ export default function UsersPage() {
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
-            Roles & Capabilities Matrix
+            Roles & Capabilities Matrix ({roles.length})
           </button>
         </div>
 
@@ -324,9 +347,9 @@ export default function UsersPage() {
                   className="input text-xs bg-background py-1 px-2.5 h-8 rounded-lg"
                 >
                   <option value="ALL">All Roles</option>
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_CONFIG[r]?.label || r}
+                  {roles.map((r: RoleDto) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
                     </option>
                   ))}
                 </select>
@@ -393,17 +416,16 @@ export default function UsersPage() {
 
                             <td className="py-3.5 px-4">
                               <div className="flex flex-wrap gap-1.5">
-                                {u.roles.map((r) => {
-                                  const cfg = ROLE_CONFIG[r] || {
-                                    label: r,
-                                    color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
-                                  };
+                                {u.roles.map((rName) => {
+                                  const rObj = roles.find((r: RoleDto) => r.name === rName);
                                   return (
                                     <span
-                                      key={r}
-                                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${cfg.color}`}
+                                      key={rName}
+                                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                                        rObj?.isSystem ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/30'
+                                      }`}
                                     >
-                                      {cfg.label}
+                                      {rName}
                                     </span>
                                   );
                                 })}
@@ -463,70 +485,124 @@ export default function UsersPage() {
 
         {activeTab === 'ROLES_MATRIX' && (
           <div className="space-y-4">
-            <div className="bg-card border border-border rounded-lg p-5">
-              <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                Enterprise Role Hierarchy & Scopes
-              </h2>
-              <p className="text-xs text-muted-foreground mb-6">
-                Each role inherits precise operational domains. A user can hold multiple roles simultaneously.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ROLES.map((r) => {
-                  const cfg = ROLE_CONFIG[r] || {
-                    label: r,
-                    color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-                    desc: 'Standard enterprise access profile.'
-                  };
-                  return (
-                    <div
-                      key={r}
-                      className="border border-border rounded-lg p-4 bg-background/50 hover:bg-background transition-colors flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${cfg.color}`}>
-                            {cfg.label}
-                          </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">{r}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {cfg.desc}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="flex justify-between items-center bg-card border border-border rounded-lg p-5">
+              <div>
+                <h2 className="text-base font-semibold mb-1 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-primary" />
+                  Dynamic Role Management
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Create custom roles with specific permissions, or view system roles.
+                </p>
               </div>
+              <button
+                onClick={() => handleOpenRoleModal()}
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Create Role
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isLoadingRoles ? (
+                <div className="col-span-full py-12 text-center text-muted-foreground">
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />
+                  Loading roles...
+                </div>
+              ) : roles.map((r: RoleDto) => (
+                <div
+                  key={r.id}
+                  className="border border-border rounded-lg p-4 bg-background/50 hover:bg-background transition-colors flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${
+                        r.isSystem ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/30'
+                      }`}>
+                        {r.name}
+                      </span>
+                      {r.isSystem && <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 px-1 rounded">SYSTEM</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                      {r.description || 'No description provided.'}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {r.permissions.includes('*') ? (
+                        <span className="text-[9px] font-mono bg-amber-500/20 text-amber-400 px-1 rounded">ALL PERMISSIONS (*)</span>
+                      ) : (
+                        r.permissions.map(p => (
+                          <span key={p} className="text-[9px] font-mono bg-muted text-muted-foreground px-1 rounded">{p}</span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  
+                  {!r.isSystem && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-border mt-auto">
+                      <button
+                        onClick={() => handleOpenRoleModal(r)}
+                        className="flex-1 btn btn-secondary btn-sm h-7 text-[10px]"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete role ${r.name}?`)) {
+                            deleteRoleMutation.mutate(r.id);
+                          }
+                        }}
+                        className="p-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL: CREATE USER */}
-      {isCreateOpen && (
+      {/* MODAL: CREATE / EDIT USER */}
+      {(isCreateOpen || isEditOpen) && (
         <div className="fixed inset-0 z-50 bg-black/80  flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-lg w-full max-w-lg shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                  <UserPlus className="w-4 h-4" />
+                  {isEditOpen ? <Edit2 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
                 </div>
-                <h3 className="font-bold text-base text-foreground">Create New Admin / Staff User</h3>
+                <h3 className="font-bold text-base text-foreground">
+                  {isEditOpen ? 'Edit User Profile' : 'Create New User'}
+                </h3>
               </div>
               <button
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
                 className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-5 space-y-4">
-              {createError && (
+            <form onSubmit={isEditOpen ? handleEditSubmit : handleCreateSubmit} className="p-5 space-y-4">
+              {(createError || editError) && (
                 <div className="p-3 text-xs bg-destructive/10 border border-destructive/20 text-destructive rounded-lg">
-                  {createError}
+                  {createError || editError}
+                </div>
+              )}
+
+              {isEditOpen && editingUser && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Email / Username</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editingUser.email}
+                    className="input text-xs w-full bg-muted/50 text-muted-foreground cursor-not-allowed font-mono"
+                  />
                 </div>
               )}
 
@@ -536,47 +612,71 @@ export default function UsersPage() {
                   type="text"
                   required
                   placeholder="e.g. Sreymom Keo"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
+                  value={isEditOpen ? editName : createName}
+                  onChange={(e) => isEditOpen ? setEditName(e.target.value) : setCreateName(e.target.value)}
                   className="input text-xs w-full bg-background"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Email / Username (Login)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. cashier01@camtechstore or name@camtech.cam"
-                  value={createEmail}
-                  onChange={(e) => setCreateEmail(e.target.value)}
-                  className="input text-xs w-full bg-background"
-                />
-              </div>
+              {!isEditOpen && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Email / Username (Login)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. cashier01@camtechstore or name@camtech.cam"
+                    value={createEmail}
+                    onChange={(e) => setCreateEmail(e.target.value)}
+                    className="input text-xs w-full bg-background"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Initial Password</label>
+                <label className="text-xs font-medium text-foreground">
+                  {isEditOpen ? 'Reset Password (optional)' : 'Initial Password'}
+                </label>
                 <div className="relative">
                   <input
-                    type={showCreatePassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={createPassword}
-                    onChange={(e) => setCreatePassword(e.target.value)}
+                    type={isEditOpen ? (showEditPassword ? 'text' : 'password') : (showCreatePassword ? 'text' : 'password')}
+                    required={!isEditOpen}
+                    placeholder={isEditOpen ? 'Leave blank to keep existing password' : '••••••••'}
+                    value={isEditOpen ? editNewPassword : createPassword}
+                    onChange={(e) => isEditOpen ? setEditNewPassword(e.target.value) : setCreatePassword(e.target.value)}
                     className="input text-xs w-full bg-background pr-9"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowCreatePassword((prev) => !prev)}
+                    onClick={() => isEditOpen ? setShowEditPassword(!showEditPassword) : setShowCreatePassword(!showCreatePassword)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                    title={showCreatePassword ? 'Hide password' : 'Show password'}
-                    aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
                     tabIndex={-1}
                   >
-                    {showCreatePassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {(isEditOpen ? showEditPassword : showCreatePassword) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
+
+              {isEditOpen && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50">
+                  <div>
+                    <span className="text-xs font-semibold text-foreground block">Account Status</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {editIsActive ? 'Active: can authenticate' : 'Suspended: access blocked'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditIsActive(!editIsActive)}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                      editIsActive
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    }`}
+                  >
+                    {editIsActive ? 'ACTIVE' : 'SUSPENDED'}
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-2 pt-1">
                 <label className="text-xs font-medium text-foreground flex items-center justify-between">
@@ -584,20 +684,20 @@ export default function UsersPage() {
                   <span className="text-[10px] text-muted-foreground font-normal">Select one or more</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-lg bg-background/50">
-                  {ROLES.filter(r => r !== 'SUPER_ADMIN' || isSuperAdmin).map((r) => {
-                    const isSelected = createRoles.includes(r);
+                  {roles.filter((r: RoleDto) => r.name !== 'SUPER_ADMIN' || isSuperAdmin).map((r: RoleDto) => {
+                    const isSelected = (isEditOpen ? editRoles : createRoles).includes(r.name);
                     return (
                       <button
                         type="button"
-                        key={r}
-                        onClick={() => handleToggleCreateRole(r)}
+                        key={r.id}
+                        onClick={() => isEditOpen ? handleToggleEditRole(r.name) : handleToggleCreateRole(r.name)}
                         className={`text-left p-2 rounded-lg border text-xs transition-colors flex items-center justify-between ${
                           isSelected
                             ? 'bg-primary/10 border-primary text-foreground font-semibold'
                             : 'bg-card border-border/60 text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        <span>{ROLE_CONFIG[r]?.label || r}</span>
+                        <span>{r.name}</span>
                         {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
                       </button>
                     );
@@ -608,17 +708,18 @@ export default function UsersPage() {
               <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsCreateOpen(false)}
+                  onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
                   className="btn btn-secondary btn-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="btn btn-primary btn-sm flex items-center gap-1.5"
                 >
-                  {createMutation.isPending ? 'Provisioning...' : 'Provision User'}
+                  {isEditOpen ? <Save className="w-3.5 h-3.5" /> : null}
+                  {isEditOpen ? (updateMutation.isPending ? 'Saving...' : 'Save Changes') : (createMutation.isPending ? 'Provisioning...' : 'Provision User')}
                 </button>
               </div>
             </form>
@@ -626,117 +727,78 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MODAL: EDIT USER */}
-      {isEditOpen && editingUser && (
-        <div className="fixed inset-0 z-50 bg-black/80  flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-lg w-full max-w-lg shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      {/* MODAL: CREATE / EDIT ROLE */}
+      {isRoleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg w-full max-w-2xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                  <Edit2 className="w-4 h-4" />
+                  <Shield className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-base text-foreground">Edit User Profile & Roles</h3>
+                <h3 className="font-bold text-base text-foreground">
+                  {editingRole ? 'Edit Custom Role' : 'Create Custom Role'}
+                </h3>
               </div>
               <button
-                onClick={() => setIsEditOpen(false)}
+                onClick={() => setIsRoleModalOpen(false)}
                 className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="p-5 space-y-4">
-              {editError && (
+            <form onSubmit={handleRoleSubmit} className="p-5 space-y-4">
+              {roleError && (
                 <div className="p-3 text-xs bg-destructive/10 border border-destructive/20 text-destructive rounded-lg">
-                  {editError}
+                  {roleError}
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Email / Username</label>
-                <input
-                  type="text"
-                  disabled
-                  value={editingUser.email}
-                  className="input text-xs w-full bg-muted/50 text-muted-foreground cursor-not-allowed font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="input text-xs w-full bg-background"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Reset Password (optional)</label>
-                <div className="relative">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Role Name</label>
                   <input
-                    type={showEditPassword ? 'text' : 'password'}
-                    placeholder="Leave blank to keep existing password"
-                    value={editNewPassword}
-                    onChange={(e) => setEditNewPassword(e.target.value)}
-                    className="input text-xs w-full bg-background pr-9"
+                    type="text"
+                    required
+                    placeholder="e.g. INVENTORY_MANAGER"
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                    className="input text-xs w-full bg-background uppercase font-mono"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowEditPassword((prev) => !prev)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                    title={showEditPassword ? 'Hide password' : 'Show password'}
-                    aria-label={showEditPassword ? 'Hide password' : 'Show password'}
-                    tabIndex={-1}
-                  >
-                    {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Description</label>
+                  <input
+                    type="text"
+                    placeholder="Brief description of this role"
+                    value={roleDescription}
+                    onChange={(e) => setRoleDescription(e.target.value)}
+                    className="input text-xs w-full bg-background"
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50">
-                <div>
-                  <span className="text-xs font-semibold text-foreground block">Account Status</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {editIsActive ? 'Active: can authenticate & perform actions' : 'Suspended: access blocked'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditIsActive(!editIsActive)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
-                    editIsActive
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  }`}
-                >
-                  {editIsActive ? 'ACTIVE' : 'SUSPENDED'}
-                </button>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <label className="text-xs font-medium text-foreground flex items-center justify-between">
-                  <span>Assigned Roles</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Select one or more</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-lg bg-background/50">
-                  {ROLES.filter(r => r !== 'SUPER_ADMIN' || isSuperAdmin).map((r) => {
-                    const isSelected = editRoles.includes(r);
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-medium text-foreground">Select Permissions</label>
+                <div className="bg-background/50 border border-border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                  {SYSTEM_PERMISSIONS.map(perm => {
+                    const isSelected = rolePermissions.includes(perm);
                     return (
                       <button
                         type="button"
-                        key={r}
-                        onClick={() => handleToggleEditRole(r)}
-                        className={`text-left p-2 rounded-lg border text-xs transition-colors flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-primary/10 border-primary text-foreground font-semibold'
-                            : 'bg-card border-border/60 text-muted-foreground hover:text-foreground'
+                        key={perm}
+                        onClick={() => handleTogglePermission(perm)}
+                        className={`text-left text-[11px] px-2 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${
+                          isSelected 
+                            ? 'bg-primary/20 border-primary text-primary font-medium' 
+                            : 'bg-card border-border hover:border-primary/50 text-muted-foreground'
                         }`}
                       >
-                        <span>{ROLE_CONFIG[r]?.label || r}</span>
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                          {isSelected && <CheckCircle2 className="w-2.5 h-2.5" />}
+                        </div>
+                        {perm}
                       </button>
                     );
                   })}
@@ -746,18 +808,18 @@ export default function UsersPage() {
               <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsEditOpen(false)}
+                  onClick={() => setIsRoleModalOpen(false)}
                   className="btn btn-secondary btn-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={updateMutation.isPending}
+                  disabled={saveRoleMutation.isPending}
                   className="btn btn-primary btn-sm flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  {saveRoleMutation.isPending ? 'Saving...' : 'Save Role'}
                 </button>
               </div>
             </form>

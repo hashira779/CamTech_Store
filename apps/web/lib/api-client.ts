@@ -429,6 +429,29 @@ export const api = {
       token,
     }),
 
+  listRoles: (token: string) =>
+    request<any[]>('/auth/roles', { token }),
+
+  createRole: (token: string, input: any) =>
+    request<any>('/auth/roles', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateRole: (token: string, roleId: string, input: any) =>
+    request<any>(`/auth/roles/${roleId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteRole: (token: string, roleId: string) =>
+    request<{ success: boolean }>(`/auth/roles/${roleId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
   // ─── Products ──────────────────────────────────────────────────
   listProducts: (token: string, params: { page?: number; limit?: number; search?: string } = {}) => {
     const qs = new URLSearchParams();

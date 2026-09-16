@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   Fingerprint,
+  Server,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPasskeyAssertion, isPasskeySupported, PasskeyCancelledError } from '@/lib/passkey';
@@ -36,9 +37,11 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isPasskeyPending, setIsPasskeyPending] = useState(false);
-  // Resolved in an effect, not inline: the check touches `window`, which is not
-  // present during the server render pass.
   const [passkeySupported, setPasskeySupported] = useState(false);
+
+  // Check if we're on the infra subdomain
+  const hostname = window.location.hostname.toLowerCase();
+  const isInfra = hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.') || window.location.pathname.startsWith('/infra');
 
   useEffect(() => {
     setPasskeySupported(isPasskeySupported());
@@ -129,35 +132,54 @@ export default function LoginPage() {
       <div className="relative z-10 hidden w-1/2 flex-col justify-between p-12 lg:flex bg-card border-r border-border">
         <div className="flex items-center gap-2.5 text-xl font-bold tracking-tight">
           <div className="bg-primary grid h-10 w-10 place-items-center rounded-lg text-primary-foreground">
-            <Store className="h-5 w-5" />
+            {isInfra ? <Server className="h-5 w-5" /> : <Store className="h-5 w-5" />}
           </div>
-          MyStore
+          {isInfra ? 'CamTech Infra' : 'MyStore'}
         </div>
 
         <div className="max-w-lg">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-border bg-accent px-3 py-1 text-xs font-medium text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Enterprise Platform
-          </p>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight">
-            Run your entire
-            <br />
-            <span className="text-primary">business empire</span>
-          </h1>
-          <p className="mt-4 max-w-md text-base text-muted-foreground">
-            POS, inventory, finance, CRM &amp; delivery — unified across every branch, in real time.
-          </p>
+          {isInfra ? (
+            <>
+              <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                NOC Control Panel
+              </p>
+              <h1 className="text-4xl font-bold leading-tight tracking-tight">
+                Infrastructure
+                <br />
+                <span className="text-blue-500">Command Center</span>
+              </h1>
+              <p className="mt-4 max-w-md text-base text-muted-foreground">
+                Centralized monitoring, service topology, and critical alerts for the CamTech production environment.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-border bg-accent px-3 py-1 text-xs font-medium text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Enterprise Platform
+              </p>
+              <h1 className="text-4xl font-bold leading-tight tracking-tight">
+                Run your entire
+                <br />
+                <span className="text-primary">business empire</span>
+              </h1>
+              <p className="mt-4 max-w-md text-base text-muted-foreground">
+                POS, inventory, finance, CRM &amp; delivery — unified across every branch, in real time.
+              </p>
+            </>
+          )}
 
           {/* Stats card */}
           <div className="mt-8 max-w-sm">
             <div className="rounded-lg border border-border bg-card p-5">
               <div className="flex items-center gap-3">
-                <div className="bg-primary grid h-10 w-10 place-items-center rounded-lg font-bold text-primary-foreground text-sm">
-                  MS
+                <div className={`grid h-10 w-10 place-items-center rounded-lg font-bold text-sm ${isInfra ? 'bg-blue-600 text-white' : 'bg-primary text-primary-foreground'}`}>
+                  {isInfra ? 'NOC' : 'MS'}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold leading-tight">MyStore Enterprise</p>
-                  <p className="truncate text-xs text-muted-foreground">Universal Business Platform</p>
+                  <p className="truncate font-semibold leading-tight">{isInfra ? 'Production Cluster' : 'MyStore Enterprise'}</p>
+                  <p className="truncate text-xs text-muted-foreground">{isInfra ? 'Region: us-east-1' : 'Universal Business Platform'}</p>
                 </div>
                 <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -168,34 +190,70 @@ export default function LoginPage() {
               <div className="my-4 h-px bg-border" />
 
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Modules</p>
-                  <p className="font-semibold">30+ Suites</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Deployment</p>
-                  <p className="font-semibold">Multi-Branch</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Uptime</p>
-                  <p className="font-semibold">99.98%</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Security</p>
-                  <p className="font-semibold">RBAC · Isolated</p>
-                </div>
+                {isInfra ? (
+                  <>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Microservices</p>
+                      <p className="font-semibold text-blue-500">7 Active</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Nodes</p>
+                      <p className="font-semibold">3 Workers</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Cluster State</p>
+                      <p className="font-semibold text-emerald-500">Healthy</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Load</p>
+                      <p className="font-semibold text-amber-500">14% CPU</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Modules</p>
+                      <p className="font-semibold">30+ Suites</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Deployment</p>
+                      <p className="font-semibold">Multi-Branch</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Uptime</p>
+                      <p className="font-semibold">99.98%</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Security</p>
+                      <p className="font-semibold">RBAC · Isolated</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-6 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" /> Enterprise Security
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> Real-time Sync
-          </span>
+          {isInfra ? (
+            <>
+              <span className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-blue-500" /> Zero Trust Auth
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Zap className="h-4 w-4 text-blue-500" /> Live Telemetry
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Enterprise Security
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" /> Real-time Sync
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -204,9 +262,9 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px]">
           <div className="mb-8 flex items-center justify-center gap-2 text-xl font-bold tracking-tight lg:hidden">
             <div className="bg-primary grid h-9 w-9 place-items-center rounded-lg text-primary-foreground">
-              <Store className="h-5 w-5" />
+              {isInfra ? <Server className="h-5 w-5" /> : <Store className="h-5 w-5" />}
             </div>
-            MyStore
+            {isInfra ? 'CamTech Infra' : 'MyStore'}
           </div>
 
           <div className="mb-8 text-center lg:text-left">

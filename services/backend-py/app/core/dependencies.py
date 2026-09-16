@@ -12,12 +12,13 @@ from app.modules.identity.models import User, Role
 security_scheme = HTTPBearer(auto_error=False)
 
 class TenantUser:
-    def __init__(self, user: Any, roles: List[str]):
+    def __init__(self, user: Any, roles: List[str], permissions: List[str] = None):
         self.id: str = user.id
         self.organization_id: str = user.organization_id
         self.email: str = getattr(user, "email", getattr(user, "phone", ""))
         self.name: str = user.name
         self.roles: List[str] = roles
+        self.permissions: List[str] = permissions or []
         self.location_id: Optional[str] = getattr(user, "location_id", None)
 
     def has_role(self, role: str) -> bool:
@@ -27,13 +28,30 @@ class TenantUser:
 def extract_user_roles(user: User) -> List[str]:
     """Strictly use relational user_roles table."""
     if getattr(user, "user_roles", None):
-        return [ur.role_name for ur in user.user_roles]
+        return [ur.role.name for ur in user.user_roles if getattr(ur, "role", None)]
     return ["CASHIER"]
+
+def extract_user_permissions(user: User) -> List[str]:
+    perms = set()
+    if getattr(user, "user_roles", None):
+        for ur in user.user_roles:
+            if getattr(ur, "role", None) and ur.role.permissions:
+                if isinstance(ur.role.permissions, str):
+                    try:
+                        perms.update(json.loads(ur.role.permissions))
+                    except:
+                        pass
+                else:
+                    perms.update(ur.role.permissions)
+    return list(perms)
 
 async def _fetch_user_with_roles(db: AsyncSession, user_id: str) -> Optional[User]:
     try:
+        from app.modules.identity.models import UserRole
         result = await db.execute(
-            select(User).options(selectinload(User.user_roles)).where(User.id == user_id)
+            select(User).options(
+                selectinload(User.user_roles).selectinload(UserRole.role)
+            ).where(User.id == user_id)
         )
         user = result.scalar_one_or_none()
         if user:
@@ -89,7 +107,7 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Driver not found",
             )
-        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]), permissions=["delivery:read", "delivery:update_own"])
     else:
         user = await _fetch_user_with_roles(db, user_id)
         if not user:
@@ -98,7 +116,8 @@ async def get_current_user(
                 detail="User not found",
             )
         roles_list = extract_user_roles(user)
-        return TenantUser(user=user, roles=roles_list)
+        permissions_list = extract_user_permissions(user)
+        return TenantUser(user=user, roles=roles_list, permissions=permissions_list)
 
 
 async def get_streaming_user(
@@ -139,7 +158,7 @@ async def get_streaming_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Driver not found",
             )
-        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+        return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]), permissions=["delivery:read", "delivery:update_own"])
     else:
         user = await _fetch_user_with_roles(db, user_id)
         if not user:
@@ -148,7 +167,8 @@ async def get_streaming_user(
                 detail="User not found",
             )
         roles_list = extract_user_roles(user)
-        return TenantUser(user=user, roles=roles_list)
+        permissions_list = extract_user_permissions(user)
+        return TenantUser(user=user, roles=roles_list, permissions=permissions_list)
 
 
 async def get_optional_user(
@@ -171,13 +191,14 @@ async def get_optional_user(
             driver = result.scalar_one_or_none()
             if not driver:
                 return None
-            return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]))
+            return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]), permissions=["delivery:read", "delivery:update_own"])
         else:
             user = await _fetch_user_with_roles(db, user_id)
             if not user:
                 return None
             roles_list = extract_user_roles(user)
-            return TenantUser(user=user, roles=roles_list)
+            permissions_list = extract_user_permissions(user)
+            return TenantUser(user=user, roles=roles_list, permissions=permissions_list)
     except Exception:
         return None
 
@@ -192,7 +213,7 @@ class RequirePermissions:
         self.required_permissions = required_permissions
 
     def __call__(self, current_user: TenantUser = Depends(get_current_user)):
-        if not has_permission(current_user.roles, self.required_permissions):
+        if not has_permission(current_user.permissions, self.required_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied: Requires permissions {self.required_permissions}",
@@ -207,7 +228,7 @@ class RequireAnyPermission:
         self.required_permissions = required_permissions
 
     def __call__(self, current_user: TenantUser = Depends(get_current_user)):
-        if not has_any_permission(current_user.roles, self.required_permissions):
+        if not has_any_permission(current_user.permissions, self.required_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied: Requires at least one of these permissions: {self.required_permissions}",
