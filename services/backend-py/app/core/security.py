@@ -19,12 +19,25 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
+# Token "type" values that count as an access token. "delivery" is the courier
+# mini-app's subject type: app/modules/delivery/api_auth.py mints it so that
+# get_current_user resolves the subject against delivery_drivers instead of
+# users. "refresh" is deliberately excluded — a refresh token must never be
+# accepted as an access token.
+ACCESS_TOKEN_TYPES = frozenset({"access", "delivery"})
+
+
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[datetime.timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.datetime.now(datetime.timezone.utc) + (
         expires_delta or datetime.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode["exp"] = expire
+    # setdefault, not update: an unconditional {"type": "access"} silently
+    # overwrote the caller's type, which broke every delivery-driver request.
+    # Anything unrecognised still falls back to a plain access token.
+    if to_encode.get("type") not in ACCESS_TOKEN_TYPES:
+        to_encode["type"] = "access"
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
 
 def create_refresh_token(data: Dict[str, Any], expires_delta: Optional[datetime.timedelta] = None) -> str:
@@ -38,7 +51,9 @@ def create_refresh_token(data: Dict[str, Any], expires_delta: Optional[datetime.
 def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
-        if payload.get("type") and payload.get("type") != "access":
+        token_type = payload.get("type")
+        # An absent type is tolerated for tokens issued before types existed.
+        if token_type and token_type not in ACCESS_TOKEN_TYPES:
             return None
         return payload
     except jwt.PyJWTError:

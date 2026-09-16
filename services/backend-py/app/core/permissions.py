@@ -28,6 +28,9 @@ PERMISSIONS_MATRIX: Dict[str, List[str]] = {
         "users:read", "users:write",
         "reports:read",
         "delivery:read", "delivery:manage",
+        # Deliberately no "apps:delete": a MANAGER may create and revoke API
+        # credentials but not permanently erase them. Only SUPER_ADMIN and
+        # ORG_ADMIN hold it, via their "*" wildcard above.
         "apps:read", "apps:write",
         "telegram:read", "telegram:write"
     ],

@@ -512,8 +512,16 @@ export function SalesPage() {
     if (st === 'DELIVERED') return 3;
     if (st === 'IN_TRANSIT') return 2;
     if (st === 'DISPATCHED' || st === 'PACKED') return 1;
-    return 0; // Placed (PENDING)
+    return 0; // Placed — either PREPARING or PENDING
   }, [selectedSale]);
+
+  // PREPARING means the order is still being packed. It is the state every
+  // storefront checkout starts in, and the only status it may move to is
+  // PENDING, so the stage-0 action has to branch on it.
+  const isAwaitingPacking = useMemo(
+    () => (selectedSale?.deliveryStatus || '').toUpperCase() === 'PREPARING',
+    [selectedSale],
+  );
 
   const totalItemsCount = useMemo(() => {
     if (!selectedSale?.lineItems) return 1;
@@ -904,19 +912,26 @@ export function SalesPage() {
                       ) : (
                         <>
                           {currentStage === 0 && (
+                            // Stage 0 covers two distinct backend states, and they
+                            // have different legal next steps: PREPARING may only
+                            // advance to PENDING ("packed, waiting for a courier"),
+                            // and PENDING is what the driver apps list as Available.
+                            // Sending DISPATCHED straight from PREPARING is rejected
+                            // by the service, which is what left storefront orders
+                            // stuck and invisible to every driver.
                             <Button
                               size="sm"
                               onClick={() =>
                                 updateDeliveryStatusMutation.mutate({
                                   orderId: selectedSale.deliveryOrderId!,
-                                  status: 'DISPATCHED',
+                                  status: isAwaitingPacking ? 'PENDING' : 'DISPATCHED',
                                 })
                               }
                               disabled={updateDeliveryStatusMutation.isPending}
                               className="bg-[#ff007a] hover:bg-[#e0006c] text-white gap-1.5 h-8 text-xs font-medium"
                             >
                               <Package className="w-3.5 h-3.5" />
-                              Mark as Packed
+                              {isAwaitingPacking ? 'Mark as Packed' : 'Hand to Courier'}
                             </Button>
                           )}
                           {currentStage === 1 && (

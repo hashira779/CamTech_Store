@@ -1,18 +1,31 @@
+# syntax=docker/dockerfile:1
 # ==============================================================================
 # Multi-Stage Production Frontend Builder & Lightweight Nginx Runners
 # ==============================================================================
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy repository dependency manifests & source code
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+# ── Layer 1: dependency manifests only (cached unless lockfile changes) ──
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/ui/package.json         ./packages/ui/
+COPY apps/web/package.json            ./apps/web/
+COPY apps/store/package.json          ./apps/store/
+COPY apps/cashier/package.json        ./apps/cashier/
+COPY apps/delivery/package.json       ./apps/delivery/
+COPY apps/hr/package.json             ./apps/hr/
+COPY apps/ceo/package.json            ./apps/ceo/
+
+# ── Layer 2: install deps (BuildKit cache mount reuses pnpm store across builds) ──
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ── Layer 3: source code (changes often, but install layer stays cached) ──
+COPY turbo.json tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/ ./apps/
-
-# Install exact dependencies
-RUN pnpm install --frozen-lockfile
 
 ARG VITE_SUPABASE_URL=https://ypfztbwdvkfdupsniixw.supabase.co
 ARG VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZnp0YndkdmtmZHVwc25paXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjY1MDgsImV4cCI6MjEwNDEwMjUwOH0.0xU0S2_S45a9xHjHR6fdSJwRuHdc1w6i3Pm7Ahq8pQ0

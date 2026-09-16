@@ -102,6 +102,7 @@ SALES = os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003")
 PLATFORM_SERVICE_URL = os.getenv("PLATFORM_SERVICE_URL", "http://127.0.0.1:4007")
 
 BOT_BUILDER_SERVICE_URL = os.getenv("BOT_BUILDER_SERVICE_URL", "http://127.0.0.1:4008")
+INFRA_SERVICE_URL = os.getenv("INFRA_SERVICE_URL", "http://127.0.0.1:4009")
 
 ROUTING_MAP = {
     "/api/v1/auth": AUTH,
@@ -138,6 +139,7 @@ ROUTING_MAP = {
     "/api/v1/notifications": PLATFORM_SERVICE_URL,
     "/api/v1/reports": PLATFORM_SERVICE_URL,
     "/api/v1/dashboard": PLATFORM_SERVICE_URL,
+    "/api/v1/infra": INFRA_SERVICE_URL,
 }
 
 # High-Concurrency Enterprise HTTP Connection Pool (sustains 3,000+ simultaneous requests)

@@ -256,6 +256,9 @@ async def response_envelope_middleware(request: Request, call_next):
     response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
     response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    # Companion to COEP: require-corp makes browsers demand this on no-cors
+    # subresources (favicons included). CORS-mode fetch/XHR is unaffected.
+    response.headers["Cross-Origin-Resource-Policy"] = "same-site"
 
     if path not in ["/favicon.ico"]:
         logger.info(
@@ -337,6 +340,8 @@ app.include_router(workflows_router, prefix="/api/v1")
 app.include_router(reporting_router, prefix="/api/v1")
 app.include_router(bot_builder_router, prefix="/api/v1")
 
+from app.modules.infra.api import router as infra_router
+
 # Mount Supporting API Routers
 app.include_router(delivery_router, prefix="/api/v1")
 app.include_router(industry_router, prefix="/api/v1")
@@ -346,6 +351,8 @@ app.include_router(event_router, prefix="/api/v1")
 app.include_router(app_registry_router, prefix="/api/v1")
 app.include_router(outbox_router, prefix="/api/v1")
 app.include_router(security_router, prefix="/api/v1")
+app.include_router(infra_router, prefix="/api/v1")
+
 
 
 

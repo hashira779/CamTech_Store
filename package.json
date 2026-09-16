@@ -16,7 +16,7 @@
     "test:e2e": "pnpm --filter @mystore/web test:e2e",
     "preview": "pnpm --filter @mystore/web preview",
     "typecheck": "turbo run typecheck --filter=!@mystore/backend --concurrency=2",
-    "audit:check": "python services/backend-py/scripts/schema_audit.py && pnpm py:test && pnpm typecheck",
+    "audit:check": "python services/backend-py/scripts/schema_audit.py && concurrently -g --names pytest,typecheck \"pnpm py:test\" \"pnpm typecheck\"",
     "store:dev": "pnpm --filter @mystore/store dev",
     "admin:dev": "pnpm --filter @mystore/web dev",
     "cashier:dev": "pnpm --filter @mystore/cashier dev",
@@ -31,7 +31,7 @@
     "py:test": "python -m pytest services/backend-py/tests",
     "py:migrate": "python services/backend-py/scripts/auto_migrate.py",
     "py:build:css": "cd services/backend-py && node ../../apps/web/node_modules/tailwindcss/lib/cli.js -c assets/tailwind.config.js -i assets/tailwind.css -o app/static/css/gateway.css --minify",
-    "ms:all": "concurrently -n \"gw,auth,catalog,sales,delivery,hr,finance,platform,bot\" -c \"blue,green,yellow,magenta,cyan,white,red,gray,magentaBright\" \"pnpm ms:gateway\" \"pnpm ms:auth\" \"pnpm ms:catalog\" \"pnpm ms:sales\" \"pnpm ms:delivery\" \"pnpm ms:hr\" \"pnpm ms:finance\" \"pnpm ms:platform\" \"pnpm ms:bot-builder\"",
+    "ms:all": "concurrently -n \"gw,auth,catalog,sales,delivery,hr,finance,platform,bot,infra\" -c \"blue,green,yellow,magenta,cyan,white,red,gray,magentaBright,blueBright\" \"pnpm ms:gateway\" \"pnpm ms:auth\" \"pnpm ms:catalog\" \"pnpm ms:sales\" \"pnpm ms:delivery\" \"pnpm ms:hr\" \"pnpm ms:finance\" \"pnpm ms:platform\" \"pnpm ms:bot-builder\" \"pnpm ms:infra\"",
     "ms:gateway": "python -m uvicorn app.microservices.gateway:gateway --app-dir services/backend-py --port 4000 --reload",
     "ms:auth": "python -m uvicorn app.microservices.auth_service:app --app-dir services/backend-py --port 4001 --reload",
     "ms:catalog": "python -m uvicorn app.microservices.catalog_service:app --app-dir services/backend-py --port 4002 --reload",
@@ -40,7 +40,9 @@
     "ms:hr": "python -m uvicorn app.microservices.hr_service:app --app-dir services/backend-py --port 4005 --reload",
     "ms:finance": "python -m uvicorn app.microservices.finance_service:app --app-dir services/backend-py --port 4006 --reload",
     "ms:platform": "python -m uvicorn app.microservices.platform_service:app --app-dir services/backend-py --port 4007 --reload",
-    "ms:bot-builder": "python -m uvicorn app.microservices.bot_builder_service:app --app-dir services/backend-py --port 4008 --reload"
+    "ms:bot-builder": "python -m uvicorn app.microservices.bot_builder_service:app --app-dir services/backend-py --port 4008 --reload",
+    "ms:infra": "python -m uvicorn app.microservices.infra_service:app --app-dir services/backend-py --port 4009 --reload"
+
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

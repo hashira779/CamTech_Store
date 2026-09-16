@@ -118,6 +118,10 @@ if [ -f "$APP_DIR/.env" ]; then
 fi
 
 # ── 4. Build Python Backend Microservices First (Fast, Shared Cache, Zero-Downtime) ─
+# Enable BuildKit for efficient layer caching and cache mounts
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 echo "🔨 Building core Python backend microservices..."
 BACKEND_SERVICES="api-gateway delivery-service auth-service catalog-service sales-service hr-service finance-service platform-service bot-builder-service"
 if ! run_cmd docker compose -f "$COMPOSE_FILE" build $BACKEND_SERVICES; then
@@ -264,11 +268,12 @@ if [ "$WARN_FAILED" -eq 1 ]; then
     echo "⚠️ Notice: Some frontend services took longer to boot, but core API Gateway & Delivery microservices are healthy."
 fi
 
-# ── 8. Cleanup & Prune Unused Containers and Build Artifacts ──────────────────
-echo "🧹 Pruning old stopped containers, dangling images, and build caches..."
+# ── 8. Cleanup & Prune Unused Containers (preserve builder cache for fast rebuilds) ─
+echo "🧹 Pruning old stopped containers and dangling images..."
 run_cmd docker container prune -f 2>/dev/null || true
 run_cmd docker image prune -f 2>/dev/null || true
-run_cmd docker builder prune -af --filter "until=24h" 2>/dev/null || true
+# NOTE: Do NOT prune builder cache — it's what makes subsequent builds fast.
+# Old build layers expire naturally via Docker's GC. Only prune manually if disk is critically low.
 
 # ── 9. Send Telegram Deployment Success Alert ─────────────────────────────────
 TG_BOT="${TELEGRAM_ALERT_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN}}"

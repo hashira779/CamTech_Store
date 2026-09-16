@@ -19,6 +19,7 @@ const CustomerApp = lazy(() => import('./apps/customer/CustomerApp'));
 const CeoApp = lazy(() => import('./apps/ceo/CeoApp'));
 const SupportApp = lazy(() => import('./apps/support/SupportApp'));
 const PartnerApp = lazy(() => import('./apps/partner/PartnerApp'));
+const InfraControlApp = lazy(() => import('./apps/infra/InfraControlApp'));
 
 import { AppShellSkeleton } from '@/components/page-skeleton';
 
@@ -35,7 +36,9 @@ export function App() {
   let CurrentApp = AdminApp; // Default fallback
 
   // 1. Subdomain matching (production multi-subdomain routing §228)
-  if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
+  if (hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.')) {
+    CurrentApp = InfraControlApp;
+  } else if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
     CurrentApp = PosApp;
   } else if (hostname.startsWith('hr.') || hostname.startsWith('hrms.')) {
     CurrentApp = HrApp;
@@ -63,7 +66,9 @@ export function App() {
     const p = location.pathname;
     const isPath = (prefix: string) => p === prefix || p.startsWith(`${prefix}/`);
 
-    if (isPath('/pos')) {
+    if (isPath('/infra') || isPath('/soc') || isPath('/noc')) {
+      CurrentApp = InfraControlApp;
+    } else if (isPath('/pos')) {
       CurrentApp = PosApp;
     } else if (isPath('/driver')) {
       CurrentApp = DeliveryApp;

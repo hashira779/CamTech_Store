@@ -50,3 +50,16 @@ export interface UpdateUserInput {
   locationId?: string | null;
 }
 
+
+/** A registered WebAuthn credential. `rpId` records which relying party it was
+ *  created under — staff apps and the storefront use different ones, so a
+ *  credential is only valid within its own trust domain. */
+export interface PasskeyDto {
+  id: string;
+  name: string;
+  rpId: string;
+  backedUp: boolean;
+  transports: string[];
+  createdAt?: string | null;
+  lastUsedAt?: string | null;
+}

@@ -474,3 +474,11 @@ async def delete_user(
     await db.commit()
     return {"success": True, "message": f"User '{target.email}' deactivated successfully"}
 
+
+
+# Passkey (WebAuthn) routes live in their own module but mount under the same
+# /api/v1/auth prefix, so both the monolith and the auth microservice expose
+# them without either having to know about the split.
+from .passkey_api import router as passkey_router  # noqa: E402
+
+router.include_router(passkey_router)

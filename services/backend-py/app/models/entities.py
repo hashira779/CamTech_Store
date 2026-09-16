@@ -597,3 +597,11 @@ from app.modules.bot_builder.models import (
     BotWorkflow, BotWorkflowVersion, BotCommand,
     BotConversationState, BotExecution,
 )
+
+# CamTech Infra & Security Control Center
+from app.modules.infra.models import (
+    InfraService, InfraServiceDependency, InfraSecurityEvent,
+    InfraIncident, InfraIncidentTimeline, InfraDeployment,
+    InfraBreakGlassSession,
+)
+

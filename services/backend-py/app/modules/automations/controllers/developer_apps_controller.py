@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
-from app.core.dependencies import get_current_user, TenantUser
+from app.core.dependencies import get_current_user, TenantUser, RequirePermissions
 from app.domain.enterprise_engines import ApiKeyGenerator
 from ..models import DeveloperApp, ApiKey
 
@@ -73,7 +73,7 @@ async def create_developer_app(
 
 @router.get("/developers/keys")
 async def list_api_keys(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
@@ -102,7 +102,7 @@ async def list_api_keys(
 @router.post("/developers/keys")
 async def create_api_key(
     data: Dict[str, Any],
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     name = (data.get("name") or "Default Key").strip()
@@ -150,9 +150,10 @@ async def create_api_key(
 @router.delete("/developers/keys/{key_id}")
 async def revoke_api_key(
     key_id: str,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(RequirePermissions(["apps:write"])),
     db: AsyncSession = Depends(get_db)
 ):
+    """Soft-revoke: the key stops working but the row is retained for audit."""
     result = await db.execute(
         select(ApiKey).where(ApiKey.id == key_id, ApiKey.organization_id == user.organization_id)
     )
@@ -178,3 +179,39 @@ async def revoke_api_key(
         "status": "REVOKED",
         "createdAt": key_record.created_at.isoformat() if key_record.created_at else None
     }
+
+
+@router.delete("/developers/keys/{key_id}/permanent")
+async def delete_api_key(
+    key_id: str,
+    user: TenantUser = Depends(RequirePermissions(["apps:delete"])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently erase an API key row. Admin only (SUPER_ADMIN / ORG_ADMIN).
+
+    Distinct from the soft revoke above, which keeps the row for audit. A key
+    must be revoked first, so that deleting can never be the action that cuts a
+    live integration off — revoking is the reversible, visible step.
+    """
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.id == key_id, ApiKey.organization_id == user.organization_id)
+    )
+    key_record = result.scalar_one_or_none()
+    if not key_record:
+        raise HTTPException(status_code=404, detail="API Key not found")
+
+    if not key_record.revoked_at:
+        raise HTTPException(
+            status_code=409,
+            detail="Revoke this API key before deleting it permanently."
+        )
+
+    deleted = {
+        "id": key_record.id,
+        "name": key_record.name,
+        "keyPrefix": key_record.key_prefix,
+    }
+    await db.delete(key_record)
+    await db.commit()
+
+    return {"deleted": True, **deleted}

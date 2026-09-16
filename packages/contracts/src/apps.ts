@@ -9,7 +9,8 @@ export type AppId =
   | 'customer'
   | 'ceo'
   | 'admin'
-  | 'support';
+  | 'support'
+  | 'infra';
 
 export interface AppRegistryItem {
   id: AppId;
@@ -225,5 +226,22 @@ export const APP_REGISTRY: Record<AppId, AppRegistryItem> = {
     },
     modules: ['tickets', 'sla', 'comments', 'knowledge_base'],
     features: ['ticket_queue', 'sla_timers', 'customer_history'],
+  },
+  infra: {
+    id: 'infra',
+    name: 'Infra & Security Control Center',
+    subdomain: 'infra',
+    defaultDomain: 'infra.camtech.cam',
+    purpose: 'Centralized observability, microservice health, live API traffic, incident response, and security operations.',
+    audience: ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_ADMIN', 'DEVOPS', 'STAFF'],
+    allowedRoles: ['SUPER_ADMIN', 'ORG_ADMIN', 'SECURITY_ADMIN', 'DEVOPS', 'STAFF'],
+    defaultRoute: '/infra',
+    theme: {
+      primaryColor: '#0ea5e9', // sky-500
+      accentColor: '#38bdf8',
+      mode: 'dark',
+    },
+    modules: ['overview', 'services', 'topology', 'traffic', 'security', 'incidents', 'audit'],
+    features: ['live_topology', 'break_glass', 'ip_ban_enforcement', 'sse_telemetry', 'incident_timeline'],
   },
 };

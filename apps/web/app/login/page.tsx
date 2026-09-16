@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,8 +9,21 @@ import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { useThemeStore } from '@/lib/theme-store';
 import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
-import { Store, KeyRound, ArrowRight, ShieldCheck, Zap, Mail, Sun, Moon, Eye, EyeOff } from 'lucide-react';
+import {
+  Store,
+  KeyRound,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Mail,
+  Sun,
+  Moon,
+  Eye,
+  EyeOff,
+  Fingerprint,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { getPasskeyAssertion, isPasskeySupported, PasskeyCancelledError } from '@/lib/passkey';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,6 +35,14 @@ export default function LoginPage() {
   const { resolveDefaultExperience, setExperience } = useExperienceStore();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isPasskeyPending, setIsPasskeyPending] = useState(false);
+  // Resolved in an effect, not inline: the check touches `window`, which is not
+  // present during the server render pass.
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
+  useEffect(() => {
+    setPasskeySupported(isPasskeySupported());
+  }, []);
 
   const {
     register,
@@ -32,18 +53,22 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
+  // Shared by both sign-in paths so a passkey login lands in exactly the same
+  // experience and route a password login would.
+  const completeSignIn = (result: Awaited<ReturnType<typeof api.login>>, description: string) => {
+    setAuth(result.accessToken, result.user);
+    const targetExp = resolveDefaultExperience(result.user.roles || []);
+    setExperience(targetExp);
+    const targetRoute = EXPERIENCE_CONFIGS[targetExp]?.defaultRoute || '/dashboard';
+    toast.success(`Welcome back, ${result.user.name || 'Admin'}!`, { description });
+    navigate(targetRoute);
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
     try {
       const result = await api.login(values.email, values.password);
-      setAuth(result.accessToken, result.user);
-      const targetExp = resolveDefaultExperience(result.user.roles || []);
-      setExperience(targetExp);
-      const targetRoute = EXPERIENCE_CONFIGS[targetExp]?.defaultRoute || '/dashboard';
-      toast.success(`Welcome back, ${result.user.name || 'Admin'}!`, {
-        description: 'Signed in successfully.',
-      });
-      navigate(targetRoute);
+      completeSignIn(result, 'Signed in successfully.');
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : 'Login failed. Please check your credentials.';
       setServerError(msg);
@@ -52,6 +77,29 @@ export default function LoginPage() {
       });
     }
   });
+
+  const onPasskeySignIn = async () => {
+    setServerError(null);
+    setIsPasskeyPending(true);
+    try {
+      // No email is sent: the credential is discoverable, so the authenticator
+      // tells us who is signing in and nothing is revealed before it does.
+      const { handle, options } = await api.passkeyLoginOptions();
+      const credential = await getPasskeyAssertion(options);
+      const result = await api.passkeyLoginVerify({ handle, credential });
+      completeSignIn(result, 'Signed in with your passkey.');
+    } catch (err) {
+      if (err instanceof PasskeyCancelledError) {
+        // User backed out of the OS prompt; not an error worth shouting about.
+        return;
+      }
+      const msg = err instanceof ApiClientError ? err.message : 'Passkey sign-in failed.';
+      setServerError(msg);
+      toast.error('Passkey Sign-In Failed', { description: msg });
+    } finally {
+      setIsPasskeyPending(false);
+    }
+  };
 
   return (
     <main className="relative flex min-h-screen overflow-hidden bg-background text-foreground transition-colors">
@@ -241,6 +289,26 @@ export default function LoginPage() {
               {isSubmitting ? 'Authenticating…' : 'Sign In'}
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
             </button>
+
+            {passkeySupported && (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground">or</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onPasskeySignIn}
+                  disabled={isPasskeyPending || isSubmitting}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-accent/40 disabled:opacity-60"
+                >
+                  <Fingerprint className="h-4 w-4" />
+                  {isPasskeyPending ? 'Waiting for your device…' : 'Sign in with a passkey'}
+                </button>
+              </>
+            )}
           </form>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">

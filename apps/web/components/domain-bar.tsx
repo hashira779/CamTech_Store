@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { type AppId } from '@mystore/contracts';
 import { useExperienceStore, type ExperienceType } from '@/lib/experience-store';
+import { resolvePortalUrl } from '@/lib/domain-resolver';
 import { Globe, ChevronUp, ChevronDown, X } from 'lucide-react';
 
 export function DomainBar() {
@@ -13,18 +14,29 @@ export function DomainBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
-  const domainApps: Array<{ id: AppId; name: string; domain: string; route: string; exp: ExperienceType }> = [
-    { id: 'admin', name: 'Enterprise ERP', domain: 'adminconsol.camtech.cam', route: '/dashboard', exp: 'EXECUTIVE' },
-    { id: 'ceo', name: 'Executive Suite', domain: 'business.camtech.cam', route: '/ceo', exp: 'EXECUTIVE' },
-    { id: 'cashier', name: 'POS Terminal', domain: 'pos.camtech.cam', route: '/pos', exp: 'POS_CASHIER' },
-    { id: 'warehouse', name: 'WMS Logistics', domain: 'warehouse.camtech.cam', route: '/wms', exp: 'WAREHOUSE_WMS' },
-    { id: 'delivery', name: 'Fleet Dispatch', domain: 'delivery.camtech.cam', route: '/driver', exp: 'DELIVERY_DRIVER' },
-    { id: 'store', name: 'Public Storefront', domain: 'store.camtech.cam', route: '/shop', exp: 'CUSTOMER_STORE' },
-    { id: 'hr', name: 'HR & People', domain: 'hrms.camtech.cam', route: '/hr', exp: 'HR_OPERATIONS' },
-    { id: 'finance', name: 'General Ledger', domain: 'finance.camtech.cam', route: '/finance', exp: 'FINANCE_LEDGER' },
-    { id: 'customer', name: 'Customer Portal', domain: 'customer.camtech.cam', route: '/customer', exp: 'CUSTOMER_STORE' },
-    { id: 'partner', name: 'Developer Hub', domain: 'partner.camtech.cam', route: '/developers', exp: 'EXECUTIVE' },
-    { id: 'support', name: 'Service Desk', domain: 'support.camtech.cam', route: '/tickets', exp: 'EXECUTIVE' },
+  // `published` marks the portals that have their own deployment and subdomain
+  // (the published applications behind the tunnel). The others are pages inside
+  // this console only, and must be reached by in-app routing.
+  const domainApps: Array<{
+    id: AppId;
+    name: string;
+    domain: string;
+    route: string;
+    exp: ExperienceType;
+    published: boolean;
+  }> = [
+    { id: 'admin', name: 'Enterprise ERP', domain: 'adminconsol.camtech.cam', route: '/dashboard', exp: 'EXECUTIVE', published: true },
+    { id: 'ceo', name: 'Executive Suite', domain: 'business.camtech.cam', route: '/ceo', exp: 'EXECUTIVE', published: true },
+    { id: 'cashier', name: 'POS Terminal', domain: 'pos.camtech.cam', route: '/pos', exp: 'POS_CASHIER', published: true },
+    { id: 'warehouse', name: 'WMS Logistics', domain: 'warehouse.camtech.cam', route: '/wms', exp: 'WAREHOUSE_WMS', published: false },
+    { id: 'delivery', name: 'Fleet Dispatch', domain: 'delivery.camtech.cam', route: '/driver', exp: 'DELIVERY_DRIVER', published: true },
+    { id: 'store', name: 'Public Storefront', domain: 'store.camtech.cam', route: '/shop', exp: 'CUSTOMER_STORE', published: true },
+    { id: 'hr', name: 'HR & People', domain: 'hrms.camtech.cam', route: '/hr', exp: 'HR_OPERATIONS', published: true },
+    { id: 'finance', name: 'General Ledger', domain: 'finance.camtech.cam', route: '/finance', exp: 'FINANCE_LEDGER', published: false },
+    { id: 'customer', name: 'Customer Portal', domain: 'customer.camtech.cam', route: '/customer', exp: 'CUSTOMER_STORE', published: false },
+    { id: 'partner', name: 'Developer Hub', domain: 'partner.camtech.cam', route: '/developers', exp: 'EXECUTIVE', published: false },
+    { id: 'support', name: 'Service Desk', domain: 'support.camtech.cam', route: '/tickets', exp: 'EXECUTIVE', published: false },
+    { id: 'infra', name: 'Infra & Security Control', domain: 'infra.camtech.cam', route: '/infra', exp: 'EXECUTIVE', published: true },
   ];
 
   const currentApp =
@@ -34,8 +46,25 @@ export function DomainBar() {
 
   const handleDomainSelect = (app: (typeof domainApps)[0]) => {
     setExperience(app.exp);
-    navigate(app.route);
     setIsOpen(false);
+
+    // Each portal is its own deployment on its own subdomain (see the published
+    // applications in Cloudflare). A react-router navigate() only ever changes
+    // the path on the host you are already on, so picking "Fleet Dispatch" from
+    // the admin console used to land on adminconsol.camtech.cam/driver — the
+    // embedded copy of the driver UI — instead of delivery.camtech.cam, even
+    // though the menu shows the real domain under the name.
+    // Only jump for portals that actually have their own deployment. The rest
+    // exist solely as pages inside this console, so sending the browser to a
+    // subdomain that was never published would just produce a DNS error.
+    const target = app.published ? resolvePortalUrl(app.domain) : null;
+    if (target) {
+      window.location.assign(target);
+      return;
+    }
+
+    // Local dev, previews, and console-only portals stay in-app.
+    navigate(app.route);
   };
 
   if (isDismissed) {

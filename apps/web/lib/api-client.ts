@@ -6,6 +6,7 @@ import type {
   CreateSaleInput,
   AdjustInventoryInput,
   LoginResult,
+  PasskeyDto,
   UserDetailDto,
   CreateUserInput,
   UpdateUserInput,
@@ -299,6 +300,26 @@ async function request<T>(
   throw new ApiClientError(rawJson?.code, rawJson?.message, rawJson?.requestId);
 }
 
+export const apiClient = {
+  get: <T>(url: string, options?: RequestInit & { token?: string }) =>
+    request<T>(url.replace(/^\/api\/v1/, ''), { method: 'GET', ...options }),
+  post: <T>(url: string, body?: any, options?: RequestInit & { token?: string }) =>
+    request<T>(url.replace(/^\/api\/v1/, ''), {
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+  put: <T>(url: string, body?: any, options?: RequestInit & { token?: string }) =>
+    request<T>(url.replace(/^\/api\/v1/, ''), {
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+  delete: <T>(url: string, options?: RequestInit & { token?: string }) =>
+    request<T>(url.replace(/^\/api\/v1/, ''), { method: 'DELETE', ...options }),
+  baseUrl: BASE_URL,
+};
+
 export const api = {
   // ─── Delivery Auth ─────────────────────────────────────────────
   deliveryAuthInit: (phone_number: string, telegram_init_data: string) =>
@@ -336,6 +357,52 @@ export const api = {
     request<LoginResult>('/auth/oauth-sync', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  // ─── Passkeys (WebAuthn) ─────────────────────────────────────────────────
+  // Each ceremony is two calls: the server issues options plus an opaque
+  // `handle`, and the handle must be echoed back so it can match the assertion
+  // to the single-use challenge it stored.
+
+  passkeyRegisterOptions: (token: string, name?: string) =>
+    request<{ handle: string; options: any }>('/auth/passkeys/register/options', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ name }),
+    }),
+
+  passkeyRegisterVerify: (token: string, input: { handle: string; credential: unknown; name?: string }) =>
+    request<PasskeyDto>('/auth/passkeys/register/verify', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  passkeyLoginOptions: (email?: string) =>
+    request<{ handle: string; options: any }>('/auth/passkeys/login/options', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  passkeyLoginVerify: (input: { handle: string; credential: unknown }) =>
+    request<LoginResult>('/auth/passkeys/login/verify', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  listPasskeys: (token: string) => request<PasskeyDto[]>('/auth/passkeys', { token }),
+
+  renamePasskey: (token: string, id: string, name: string) =>
+    request<PasskeyDto>(`/auth/passkeys/${id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ name }),
+    }),
+
+  deletePasskey: (token: string, id: string) =>
+    request<{ deleted: boolean; id: string }>(`/auth/passkeys/${id}`, {
+      method: 'DELETE',
+      token,
     }),
 
   // ─── Users & Access Control ──────────────────────────────────
@@ -1289,6 +1356,16 @@ export const api = {
       method: 'DELETE',
       token,
     }),
+
+  /** Permanently erases the key row. Admin only, and only after it is revoked. */
+  deleteApiKey: (token: string, id: string) =>
+    request<{ deleted: boolean; id: string; name: string; keyPrefix: string }>(
+      `/developers/keys/${id}/permanent`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    ),
 
   listWebhookSubscriptions: (token: string) =>
     request<WebhookSubscriptionDto[]>('/developers/webhooks', { token }),

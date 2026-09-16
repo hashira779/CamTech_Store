@@ -14,3 +14,6 @@ pytest>=8.3.0
 pytest-asyncio>=0.24.0
 redis>=5.0.0
 requests>=2.31.0
+# WebAuthn/passkey ceremonies (app/modules/identity/passkey_api.py). Pulls in
+# cbor2 and bumps cryptography, which pyjwt[crypto] also depends on.
+webauthn>=3.0.0

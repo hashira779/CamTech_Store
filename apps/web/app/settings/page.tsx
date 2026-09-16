@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
+import { PasskeyManager } from '@/components/passkey-manager';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Settings,
@@ -357,6 +358,13 @@ export default function SettingsPage() {
             )}
           </form>
         )}
+
+        {/* Personal sign-in security. Sits outside the organization form above:
+            these are the signed-in user's own credentials, not tenant policy,
+            and its buttons must not submit that form. */}
+        <div className="mt-6 text-xs">
+          <PasskeyManager />
+        </div>
       </div>
     </EnterpriseShell>
   );

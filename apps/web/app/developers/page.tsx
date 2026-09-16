@@ -57,7 +57,10 @@ const ALL_EVENTS: WebhookEvent[] = [
 ];
 
 export default function DevelopersPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  // Mirrors the server-side RequirePermissions(["apps:delete"]) guard, which only
+  // SUPER_ADMIN / ORG_ADMIN satisfy. This hides the button; the API enforces it.
+  const canDeleteKeys = hasPermission('apps:delete');
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'KEYS' | 'WEBHOOKS' | 'APPS'>('KEYS');
@@ -117,6 +120,12 @@ export default function DevelopersPage() {
     mutationFn: (id: string) => api.revokeApiKey(token!, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['developerApiKeys'] }),
     onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to revoke API key'),
+  });
+
+  const deleteKeyMutation = useMutation({
+    mutationFn: (id: string) => api.deleteApiKey(token!, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['developerApiKeys'] }),
+    onError: (err: any) => alert(err instanceof ApiClientError ? err.message : 'Failed to delete API key'),
   });
 
   const createWebhookMutation = useMutation({
@@ -307,7 +316,7 @@ export default function DevelopersPage() {
                           </span>
                         </td>
                         <td className="p-3 text-right">
-                          {!isRevoked && (
+                          {!isRevoked ? (
                             <button
                               onClick={() => {
                                 if (confirm(`Revoke API key '${key.name}'? Applications using it will be cut off.`)) {
@@ -318,6 +327,26 @@ export default function DevelopersPage() {
                             >
                               Revoke
                             </button>
+                          ) : (
+                            // A revoked key is already inert, so the only action left is
+                            // clearing the row — restricted to admins server-side too.
+                            canDeleteKeys && (
+                              <button
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `Permanently delete API key '${key.name}' (${key.keyPrefix})? This erases the audit record and cannot be undone.`,
+                                    )
+                                  ) {
+                                    deleteKeyMutation.mutate(key.id);
+                                  }
+                                }}
+                                disabled={deleteKeyMutation.isPending}
+                                className="btn btn-secondary py-1 px-2.5 text-[11px] text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                              >
+                                Delete
+                              </button>
+                            )
                           )}
                         </td>
                       </tr>

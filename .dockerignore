@@ -1,6 +1,7 @@
 .git
 .github
 .turbo
+.claude
 node_modules
 dist
 .next
@@ -10,3 +11,10 @@ __pycache__
 *.log
 .env.local
 .DS_Store
+
+# Exclude non-frontend directories from build context
+services/
+scratch/
+docs/
+infra/
+temp_compiled.css
