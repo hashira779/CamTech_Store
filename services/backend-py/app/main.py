@@ -299,6 +299,44 @@ async def response_envelope_middleware(request: Request, call_next):
 # High-concurrency GZip compression applied outermost (compresses enveloped responses >= 1KB)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# ==============================================================================
+# OBSERVABILITY TELEMETRY CAPTURE
+# ==============================================================================
+# Records one row per served request so the Infra & Security Control Center
+# reads measured traffic instead of estimates. Capture is non-blocking and
+# best-effort: it buffers in-process and writes in batches on a background
+# task, and it swallows its own failures, so a telemetry outage can never
+# affect a response. See app/modules/observability/.
+from app.modules.observability import (
+    ObservabilityCaptureMiddleware,
+    start_ingestion,
+    stop_ingestion,
+)
+from app.modules.observability.eventbus import event_bus
+from app.modules.observability.scheduler import start_detection, stop_detection
+
+app.add_middleware(ObservabilityCaptureMiddleware)
+
+
+async def _start_observability() -> None:
+    # Provisions time partitions, then starts the batching writer.
+    await start_ingestion(engine)
+    # Cross-worker fan-out for the live operator stream.
+    await event_bus.start()
+    # Evaluates the detectors on an interval. Records and alerts only; every
+    # defensive action stays operator-initiated and audited.
+    await start_detection(engine)
+
+
+async def _stop_observability() -> None:
+    await stop_detection()
+    await event_bus.stop()
+    await stop_ingestion()
+
+
+app.add_event_handler("startup", _start_observability)
+app.add_event_handler("shutdown", _stop_observability)
+
 from app.modules.identity.api import router as auth_router
 from app.modules.organizations.api import router as org_router
 from app.modules.locations.api import router as location_router
@@ -341,6 +379,8 @@ app.include_router(reporting_router, prefix="/api/v1")
 app.include_router(bot_builder_router, prefix="/api/v1")
 
 from app.modules.infra.api import router as infra_router
+from app.modules.observability.api import router as observability_router
+from app.modules.observability.security_api import router as obs_security_router
 
 # Mount Supporting API Routers
 app.include_router(delivery_router, prefix="/api/v1")
@@ -352,6 +392,8 @@ app.include_router(app_registry_router, prefix="/api/v1")
 app.include_router(outbox_router, prefix="/api/v1")
 app.include_router(security_router, prefix="/api/v1")
 app.include_router(infra_router, prefix="/api/v1")
+app.include_router(observability_router, prefix="/api/v1")
+app.include_router(obs_security_router, prefix="/api/v1")
 
 
 

@@ -45,6 +45,11 @@ _DEFAULT_CONFLICT_MARKERS = (
 )
 
 
+def _literal(moment: datetime.datetime) -> str:
+    """Render a partition bound as an unambiguous SQL timestamp literal."""
+    return moment.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _month_start(moment: datetime.datetime) -> datetime.datetime:
     return datetime.datetime(moment.year, moment.month, 1)
 
@@ -126,16 +131,20 @@ async def ensure_partitions(
 
             for lower, upper in month_windows(reference, months_ahead):
                 name = _partition_name(table, lower)
+                # Partition bounds must be literals — Postgres rejects bound
+                # parameters in a FOR VALUES clause. These are formatted from
+                # datetime objects computed here, never from caller input, so
+                # there is no untrusted text in the statement.
                 statement = text(
                     f'CREATE TABLE IF NOT EXISTS "{name}" '
                     f'PARTITION OF "{table}" '
-                    f"FOR VALUES FROM (:lower) TO (:upper)"
+                    f"FOR VALUES FROM ('{_literal(lower)}') TO ('{_literal(upper)}')"
                 )
                 try:
                     # Savepoint per partition: one failure must not abort the
                     # provisioning of the others in this transaction.
                     async with conn.begin_nested():
-                        await conn.execute(statement, {"lower": lower, "upper": upper})
+                        await conn.execute(statement)
                     made.append(name)
                 except Exception as exc:  # noqa: BLE001 - classified below
                     message = str(exc).lower()

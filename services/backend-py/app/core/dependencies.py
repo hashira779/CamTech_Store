@@ -26,14 +26,23 @@ class TenantUser:
 
 
 def extract_user_roles(user: User) -> List[str]:
-    """Strictly use relational user_roles table."""
-    if getattr(user, "user_roles", None):
+    """Use relational user_roles table if available, else fallback to JSON roles column."""
+    if getattr(user, "user_roles", None) and len(user.user_roles) > 0:
         return [ur.role.name for ur in user.user_roles if getattr(ur, "role", None)]
+    
+    if user.roles:
+        if isinstance(user.roles, str):
+            try:
+                return json.loads(user.roles)
+            except:
+                pass
+        elif isinstance(user.roles, list):
+            return user.roles
     return ["CASHIER"]
 
 def extract_user_permissions(user: User) -> List[str]:
     perms = set()
-    if getattr(user, "user_roles", None):
+    if getattr(user, "user_roles", None) and len(user.user_roles) > 0:
         for ur in user.user_roles:
             if getattr(ur, "role", None) and ur.role.permissions:
                 if isinstance(ur.role.permissions, str):

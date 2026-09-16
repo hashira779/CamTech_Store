@@ -678,18 +678,34 @@ class PostgresTelemetryRepository:
         a partitioned telemetry table is a full scan, and running that on every
         health poll would make the monitoring platform its own worst tenant.
         """
+        # Rows and bytes live in the partitions, not the parent: asking
+        # pg_total_relation_size about a partitioned parent reports 0. The
+        # partition tree has to be summed, or the storage panel silently claims
+        # the telemetry tables are empty.
         return {
             "tables": await self._fetch_all(
                 """
-                SELECT c.relname AS "table",
-                       GREATEST(c.reltuples, 0)::bigint AS "estimatedRows",
-                       pg_size_pretty(pg_total_relation_size(c.oid)) AS "totalSize",
-                       pg_total_relation_size(c.oid) AS "totalBytes"
-                FROM pg_class c
-                JOIN pg_namespace n ON n.oid = c.relnamespace
+                SELECT parent.relname AS "table",
+                       (COALESCE(SUM(GREATEST(child.reltuples, 0)), 0)
+                        + CASE WHEN COUNT(child.oid) = 0
+                               THEN GREATEST(parent.reltuples, 0) ELSE 0 END)::bigint AS "estimatedRows",
+                       pg_size_pretty(
+                           COALESCE(SUM(pg_total_relation_size(child.oid)), 0)
+                           + CASE WHEN COUNT(child.oid) = 0
+                                  THEN pg_total_relation_size(parent.oid) ELSE 0 END
+                       ) AS "totalSize",
+                       (COALESCE(SUM(pg_total_relation_size(child.oid)), 0)
+                        + CASE WHEN COUNT(child.oid) = 0
+                               THEN pg_total_relation_size(parent.oid) ELSE 0 END)::bigint AS "totalBytes",
+                       COUNT(child.oid)::bigint AS "partitionCount"
+                FROM pg_class parent
+                JOIN pg_namespace n ON n.oid = parent.relnamespace
+                LEFT JOIN pg_inherits i ON i.inhparent = parent.oid
+                LEFT JOIN pg_class child ON child.oid = i.inhrelid
                 WHERE n.nspname = ANY (current_schemas(false))
-                  AND c.relname IN ('obs_api_requests', 'obs_spans', 'obs_log_events')
-                ORDER BY c.relname
+                  AND parent.relname IN ('obs_api_requests', 'obs_spans', 'obs_log_events')
+                GROUP BY parent.relname, parent.oid
+                ORDER BY parent.relname
                 """,
                 {},
             )

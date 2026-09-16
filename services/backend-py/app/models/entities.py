@@ -605,3 +605,9 @@ from app.modules.infra.models import (
     InfraBreakGlassSession,
 )
 
+# Observability telemetry storage. High-volume, time-partitioned, and kept out
+# of the transactional tables on purpose — see app/modules/observability/models.py.
+from app.modules.observability.models import (
+    ObsApiRequest, ObsSpan, ObsLogEvent,
+)
+
