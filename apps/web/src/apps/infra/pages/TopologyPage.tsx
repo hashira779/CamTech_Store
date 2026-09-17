@@ -4,12 +4,13 @@ import { type InfraTopologyGraphDTO } from '@mystore/contracts';
 import { apiClient } from '@/lib/api-client';
 import { PageSkeleton } from '@/components/page-skeleton';
 import { TopologyGraph } from '../components/TopologyGraph';
+import { stopPollingOnAuthFailure } from '@/lib/query-polling';
 
 export default function TopologyPage() {
   const { data: topology, isLoading } = useQuery<InfraTopologyGraphDTO>({
     queryKey: ['infra-topology'],
     queryFn: () => apiClient.get<InfraTopologyGraphDTO>('/api/v1/infra/topology'),
-    refetchInterval: 30_000,
+    refetchInterval: stopPollingOnAuthFailure(30_000),
   });
 
   return (

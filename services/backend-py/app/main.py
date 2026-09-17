@@ -116,14 +116,27 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     resp_headers = {"X-Request-Id": req_id}
     if exc.headers:
         resp_headers.update(exc.headers)
+
+    # A handler may raise a structured detail (a dict) when the plain message is
+    # not enough to act on — the Control Center's authorization denial reports
+    # which roles the caller holds versus which are required. str() on that
+    # produced a Python repr in the response body, so the useful fields arrived
+    # as an unparseable string. Keep the structure, and keep `message` a string
+    # so existing clients that read it still work.
+    body = {
+        "success": False,
+        "code": code,
+        "requestId": req_id,
+    }
+    if isinstance(exc.detail, dict):
+        body["message"] = str(exc.detail.get("message") or "Request failed")
+        body["details"] = exc.detail
+    else:
+        body["message"] = str(exc.detail)
+
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "success": False,
-            "code": code,
-            "message": str(exc.detail),
-            "requestId": req_id
-        },
+        content=body,
         headers=resp_headers
     )
 

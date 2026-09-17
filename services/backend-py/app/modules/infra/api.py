@@ -32,11 +32,38 @@ AUTHORIZED_ROLES = {"SUPER_ADMIN", "ORG_ADMIN", "SECURITY_ADMIN", "DEVOPS", "STA
 
 
 def require_infra_operator(user: TenantUser = Depends(get_current_user)) -> TenantUser:
-    """Restricts Control Center operations to authorized operations & security staff."""
-    if not any(r in AUTHORIZED_ROLES for r in user.roles):
+    """Restricts Control Center operations to authorized operations & security staff.
+
+    The denial is self-diagnosing on purpose. A bare "access restricted" gave an
+    operator no way to tell an intended restriction apart from a role that
+    failed to resolve, which turned a role-mapping problem into an unexplainable
+    403 on every panel at once. The caller is already authenticated and is
+    being told only about their own roles, so this reveals nothing they could
+    not read from their own token.
+    """
+    resolved = list(user.roles or [])
+    if not any(r in AUTHORIZED_ROLES for r in resolved):
+        logger.warning(
+            "Infra Control Center access denied for user %s (roles=%s, required one of=%s)",
+            getattr(user, "id", "unknown"),
+            resolved,
+            sorted(AUTHORIZED_ROLES),
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access restricted to authorized CamTech infrastructure & security personnel.",
+            detail={
+                "message": "Access restricted to authorized CamTech infrastructure & security personnel.",
+                "yourRoles": resolved,
+                "requiredAnyOf": sorted(AUTHORIZED_ROLES),
+                # Distinguishes "you are not authorized" from "your roles did
+                # not load", which are very different problems to chase.
+                "hint": (
+                    "No roles resolved for this account — check its user_roles rows "
+                    "and the roles table."
+                    if not resolved or resolved == ["CASHIER"]
+                    else "This account's roles are not permitted on the Control Center."
+                ),
+            },
         )
     return user
 
@@ -199,17 +226,46 @@ async def stream_infra_events(
 ):
     """
     Continuous Server-Sent Events (SSE) telemetry connection.
-    Delivers live status updates and 15s heartbeats to keep Cloudflare tunnels alive.
+
+    Subscribes to the observability event bus, so detections reach the console
+    the moment they are raised rather than on the next poll. Previously this
+    generator only emitted heartbeats, which meant the stream was a live
+    connection carrying no live data.
+
+    Heartbeats are kept between events to hold the Cloudflare tunnel open.
     """
+    from app.modules.observability.eventbus import envelope, event_bus
+    from app.modules.observability.ingestion import get_ingestor
+    from app.modules.observability.scheduler import get_scheduler
+
     async def event_generator():
-        # Immediate welcome event
-        yield f"data: {json.dumps({'event': 'CONNECTED', 'message': 'CamTech NOC/SOC Telemetry Stream Active', 'timestamp': time.time()})}\n\n"
-        while True:
-            if await request.is_disconnected():
-                break
-            await asyncio.sleep(15)
-            # Heartbeat keep-alive ping
-            yield f": ping\n\n"
+        async with event_bus.subscribe() as queue:
+            ingestor = get_ingestor()
+            scheduler = get_scheduler()
+            hello = envelope(
+                "CONNECTED",
+                {
+                    "message": "CamTech NOC/SOC Telemetry Stream Active",
+                    # Surfaced on connect so the console can immediately warn
+                    # that the feed is degraded instead of showing an empty
+                    # Threat Center as though it were an all-clear.
+                    "pipeline": ingestor.stats().as_dict() if ingestor else None,
+                    "detection": scheduler.stats() if scheduler else None,
+                    "bus": event_bus.stats(),
+                },
+            )
+            yield f"data: {json.dumps(hello, default=str)}\n\n"
+
+            while True:
+                if await request.is_disconnected():
+                    return
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=15.0)
+                except asyncio.TimeoutError:
+                    # Comment frame: EventSource ignores it, proxies do not.
+                    yield ": ping\n\n"
+                    continue
+                yield f"data: {json.dumps(message, default=str)}\n\n"
 
     return StreamingResponse(
         event_generator(),

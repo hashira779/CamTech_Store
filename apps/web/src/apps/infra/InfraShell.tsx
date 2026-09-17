@@ -52,10 +52,13 @@ export function InfraShell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Redirect unauthenticated users
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  // NOTE: the unauthenticated redirect deliberately lives at the BOTTOM of this
+  // component, after every hook. Returning early here skipped the 13 hooks
+  // below, so the moment `user` went from set to null — a 403 cascade, or
+  // simply clicking Sign out, which calls clear() — React saw a different
+  // number of hooks between renders and threw "Rendered fewer hooks than
+  // expected" (#300), white-screening the console instead of navigating.
+  // Hooks must run unconditionally; only the render output may branch.
 
   // ── Clocks ──────────────────────────────────────────────────────────────────
   const [utcTime, setUtcTime] = useState('');
@@ -76,6 +79,12 @@ export function InfraShell() {
   const [sseConnected, setSseConnected] = useState(false);
 
   useEffect(() => {
+    // Hook runs unconditionally (see the note above); the body is what skips
+    // work when there is nobody signed in to stream to.
+    if (!user) {
+      setSseConnected(false);
+      return;
+    }
     const baseUrl = (apiClient as any).baseUrl ?? '';
     let es: EventSource | null = null;
     try {
@@ -102,7 +111,9 @@ export function InfraShell() {
       setSseConnected(false);
     }
     return () => es?.close();
-  }, [queryClient]);
+    // `user` is a dependency so the stream opens on sign-in and closes on
+    // sign-out rather than leaking an EventSource across sessions.
+  }, [queryClient, user]);
 
   // ── Break-Glass modal state ──────────────────────────────────────────────────
   const [bgOpen, setBgOpen] = useState(false);
@@ -149,6 +160,11 @@ export function InfraShell() {
         ? 'bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-300 border-l-2 border-cyan-400 shadow-sm'
         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border-l-2 border-transparent'
     }`;
+
+  // Every hook above has now run, so branching the output here is safe.
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">

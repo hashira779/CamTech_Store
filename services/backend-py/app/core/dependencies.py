@@ -28,8 +28,21 @@ class TenantUser:
 def extract_user_roles(user: User) -> List[str]:
     """Use relational user_roles table if available, else fallback to JSON roles column."""
     if getattr(user, "user_roles", None) and len(user.user_roles) > 0:
-        return [ur.role.name for ur in user.user_roles if getattr(ur, "role", None)]
-    
+        # Resolve through the relationship, but only trust a NON-EMPTY result.
+        #
+        # A user can hold user_roles rows whose `roleId` matches no row in
+        # `roles` — the id scheme changed during the RBAC migration and both
+        # `rol_org_admin`-style and UUID-style ids now coexist, so a row written
+        # under one scheme is orphaned against the other. Returning the empty
+        # list here (as an earlier version did) silently stripped every role
+        # from a legitimate admin, which surfaced as an unexplained 403 on the
+        # Control Center while `users.roles` still held the correct value.
+        relational = [ur.role.name for ur in user.user_roles if getattr(ur, "role", None)]
+        if relational:
+            return relational
+        # Otherwise fall through to the JSON column rather than treating an
+        # unresolvable join as "this user has no roles".
+
     if user.roles:
         if isinstance(user.roles, str):
             try:

@@ -4,6 +4,7 @@ import { type IncidentDTO, type IncidentSeverity } from '@mystore/contracts';
 import { apiClient } from '@/lib/api-client';
 import { PageSkeleton } from '@/components/page-skeleton';
 import { IncidentsView } from '../views/IncidentsView';
+import { stopPollingOnAuthFailure } from '@/lib/query-polling';
 
 export default function IncidentsPage() {
   const queryClient = useQueryClient();
@@ -11,7 +12,7 @@ export default function IncidentsPage() {
   const { data: incidents, isLoading } = useQuery<IncidentDTO[]>({
     queryKey: ['infra-incidents'],
     queryFn: () => apiClient.get<IncidentDTO[]>('/api/v1/infra/incidents'),
-    refetchInterval: 10_000,
+    refetchInterval: stopPollingOnAuthFailure(10_000),
   });
 
   const handleCreateIncident = async (

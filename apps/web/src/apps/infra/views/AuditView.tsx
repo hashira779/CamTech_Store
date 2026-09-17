@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../../../../lib/api-client';
 import { InfraAuditEntryDTO } from '@mystore/contracts';
+import { stopPollingOnAuthFailure } from '@/lib/query-polling';
 
 export const AuditView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +24,7 @@ export const AuditView: React.FC = () => {
       const res = await apiClient.get<InfraAuditEntryDTO[]>('/api/v1/infra/audit');
       return res || [];
     },
-    refetchInterval: 15000,
+    refetchInterval: stopPollingOnAuthFailure(15000),
   });
 
   const filteredLogs = auditLogs.filter((log: InfraAuditEntryDTO) => {

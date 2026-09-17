@@ -232,3 +232,102 @@ saturated buffer drops and counts rather than blocking; a failing sink is
 recorded without killing the worker).
 
 The load test for ingestion throughput required by §38 is not yet written.
+
+---
+
+## Detection engine & real-time stream
+
+`detection.py` turns measured telemetry into security events. Before it existed,
+`infra_security_events` had a table, a schema and a UI — and **no writer**, so
+the Threat Center could never report anything.
+
+Seven detectors, each a query over `obs_api_requests`:
+
+| Rule | Detects | Note |
+|---|---|---|
+| `AUTH-001` | Repeated failed authentication from one source | escalates on rate and on zero successes |
+| `DIST-001` | Password spraying across many sources on one endpoint | per-source rate limits cannot see this |
+| `ENUM-001` | Probing for undocumented endpoints (many distinct 404s) | |
+| `AUTHZ-001` | Repeated authorization denials across endpoints | |
+| `RATE-001` | Sustained rate-limit violations | records defence working, not a breach |
+| `SPIKE-001` | Volume far above the source's own baseline | new sources need extreme absolute volume, not just "no baseline" |
+| `SESS-001` | One account active from many addresses | roaming/NAT cause this legitimately — MEDIUM only |
+
+### The §17 discipline, enforced structurally
+
+Every stored event separates four things, and `Finding.signal_payload()` is what
+guarantees it:
+
+- `observed` — measured counts. Facts.
+- `signals` — which thresholds those facts crossed, each with its own plain
+  explanation, so the reasoning is auditable.
+- `risk` — sum of triggered signal weights, capped at 100. A triage aid, carrying
+  an explicit statement that it is *not* a finding of intent.
+- `suggestedActions` — what an operator may choose to do. Never executed.
+
+`actionTaken` is always `DETECTED_ONLY`. Detection raises and alerts; blocking,
+throttling and account actions stay operator-initiated, confirmed and audited
+(§21). An automated blocker driven by a heuristic is one false positive away
+from locking out a real integration, or the operators themselves.
+
+### False positives were the hard part
+
+A first version of `SPIKE-001` treated "no baseline" as anomalous, which flagged
+**any** new source exceeding 100 requests — every first-time mobile user, CI job
+and fresh integration. A test caught it. A source with no history is *new*, not
+spiking, so it now has to clear a much higher absolute bar, and the signal says
+plainly that no baseline exists. Guard tests cover ordinary successful traffic,
+a few mistyped passwords, and a handful of 404s all staying quiet.
+
+### Real-time
+
+`eventbus.py` fans out to local SSE subscribers instantly and across workers via
+Redis pub/sub — needed because a detection on worker A must reach an operator
+whose stream is pinned to worker B. Delivery is lossy per subscriber on purpose:
+a stalled browser tab drops events rather than applying back-pressure to the
+detectors.
+
+`/api/v1/infra/events/stream` (which `InfraShell.tsx` already subscribes to) was
+previously emitting only `: ping` heartbeats — a live connection with no live
+data. It now relays the bus, and reports pipeline and detection health on
+connect so the console can warn that the feed is degraded instead of presenting
+an empty Threat Center as an all-clear.
+
+Verified end-to-end: a staged brute-force attack was pushed down that endpoint
+as a `SECURITY_EVENT` with its signals and observed facts intact.
+
+### Endpoints
+
+| Route | Permission |
+|---|---|
+| `GET /observability/security/events` | `security.events.read` |
+| `GET /observability/security/rules` | `security.events.read` |
+| `POST /observability/security/evaluate` | `security.events.read` |
+| `GET /observability/sources/{ip}/dossier` | `security.events.read` |
+| `GET /observability/stream` | `infra.services.read` |
+
+`/security/rules` publishes the catalogue and thresholds so detection logic is
+auditable rather than opaque.
+
+### The source dossier, and its limits
+
+`/sources/{ip}/dossier` collects everything the platform observed about one
+address: request totals, response codes, endpoints touched, user agents,
+per-minute volume, a 100-request timeline, triggered detections, and the
+defensive measures already in force.
+
+Bounded deliberately. It performs no external lookup and makes no attempt to
+determine a person, organisation, location or contact detail from an address.
+Only accounts CamTech's own systems already authenticated are shown. Those
+limits ship in the response body as a `limits` object, so a consumer cannot
+present the data as more than it is.
+
+### Configuration
+
+`OBS_DETECTION_WINDOW_MINUTES` (10), `OBS_DETECTION_INTERVAL_SECONDS` (60),
+`OBS_DETECTION_COOLDOWN_MINUTES` (15), and per-rule `OBS_DETECT_*` thresholds.
+Cooldown suppresses repeats of the same rule and source, so one ongoing attack
+does not bury the operator in duplicates of a single event.
+
+Tests: `tests/test_detection.py` — 17 tests, weighted towards false-positive
+guards and the fact/inference/suggestion separation.

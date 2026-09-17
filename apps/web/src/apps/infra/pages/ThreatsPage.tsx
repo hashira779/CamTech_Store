@@ -4,6 +4,7 @@ import { type SecurityEventDTO, type ActiveBanDTO } from '@mystore/contracts';
 import { apiClient } from '@/lib/api-client';
 import { PageSkeleton } from '@/components/page-skeleton';
 import { SecurityThreatView } from '../views/SecurityThreatView';
+import { stopPollingOnAuthFailure } from '@/lib/query-polling';
 
 export default function ThreatsPage() {
   const queryClient = useQueryClient();
@@ -11,13 +12,13 @@ export default function ThreatsPage() {
   const { data: events, isLoading } = useQuery<SecurityEventDTO[]>({
     queryKey: ['infra-security-events'],
     queryFn: () => apiClient.get<SecurityEventDTO[]>('/api/v1/infra/security/events'),
-    refetchInterval: 10_000,
+    refetchInterval: stopPollingOnAuthFailure(10_000),
   });
 
   const { data: bansData } = useQuery<{ total: number; bans: ActiveBanDTO[] }>({
     queryKey: ['infra-bans'],
     queryFn: () => apiClient.get<{ total: number; bans: ActiveBanDTO[] }>('/api/v1/infra/security/bans'),
-    refetchInterval: 10_000,
+    refetchInterval: stopPollingOnAuthFailure(10_000),
   });
 
   const handleBanIp = async (ip: string, reason: string, durationHours?: number) => {
