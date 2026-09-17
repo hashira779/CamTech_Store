@@ -17,16 +17,16 @@ export default function TopologyPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Live Service Mesh &amp; Topology</h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <h2 className="text-xl font-bold text-foreground">Live Service Mesh &amp; Topology</h2>
+          <p className="text-xs text-muted-foreground font-mono">
             Interactive real-time node dependency graph
           </p>
         </div>
-        <span className="text-xs font-mono px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400">
+        <span className="text-xs font-mono px-3 py-1 bg-card border border-border rounded-lg text-muted-foreground">
           Auto-Discovered Architecture
         </span>
       </div>
-      <div className="h-[650px] bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md">
+      <div className="h-[60vh] min-h-[320px] sm:h-[500px] lg:h-[650px] bg-card border border-border rounded-xl overflow-hidden">
         <TopologyGraph data={topology} />
       </div>
     </div>

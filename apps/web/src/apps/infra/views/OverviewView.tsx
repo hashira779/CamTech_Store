@@ -74,7 +74,7 @@ export function OverviewView({
         <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400">
             <span className="text-[11px] font-mono uppercase tracking-wider">Global Error Rate</span>
-            <Zap className="w-4 h-4 text-cyan-400" />
+            <Zap className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-extrabold text-white mt-1">
             {((overview?.errorRatePct ?? 0.02) * 100).toFixed(2)}%
