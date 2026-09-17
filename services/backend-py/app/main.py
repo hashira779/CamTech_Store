@@ -34,11 +34,37 @@ SERVER_START_TIME = time.time()
 
 
 
+from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi.responses import HTMLResponse
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from app.core.docs_protection import is_admin_request, get_docs_lock_html, get_request_token
 from app.core.static_assets import mount_static
+from app.modules.observability import (
+    ObservabilityCaptureMiddleware,
+    start_ingestion,
+    stop_ingestion,
+)
+from app.modules.observability.eventbus import event_bus
+from app.modules.observability.scheduler import start_detection, stop_detection
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Provisions time partitions, then starts the batching writer.
+    await start_ingestion(engine)
+    # Cross-worker fan-out for the live operator stream.
+    await event_bus.start()
+    # Evaluates the detectors on an interval. Records and alerts only; every
+    # defensive action stays operator-initiated and audited.
+    await start_detection(engine)
+    try:
+        yield
+    finally:
+        await stop_detection()
+        await event_bus.stop()
+        await stop_ingestion()
+
 
 app = FastAPI(
     title="MyStore Universal Enterprise API (FastAPI)",
@@ -47,6 +73,7 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
+    lifespan=lifespan,
 )
 
 # Serves the docs lock page's compiled Tailwind CSS from 'self'.
@@ -320,35 +347,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # best-effort: it buffers in-process and writes in batches on a background
 # task, and it swallows its own failures, so a telemetry outage can never
 # affect a response. See app/modules/observability/.
-from app.modules.observability import (
-    ObservabilityCaptureMiddleware,
-    start_ingestion,
-    stop_ingestion,
-)
-from app.modules.observability.eventbus import event_bus
-from app.modules.observability.scheduler import start_detection, stop_detection
-
 app.add_middleware(ObservabilityCaptureMiddleware)
-
-
-async def _start_observability() -> None:
-    # Provisions time partitions, then starts the batching writer.
-    await start_ingestion(engine)
-    # Cross-worker fan-out for the live operator stream.
-    await event_bus.start()
-    # Evaluates the detectors on an interval. Records and alerts only; every
-    # defensive action stays operator-initiated and audited.
-    await start_detection(engine)
-
-
-async def _stop_observability() -> None:
-    await stop_detection()
-    await event_bus.stop()
-    await stop_ingestion()
-
-
-app.add_event_handler("startup", _start_observability)
-app.add_event_handler("shutdown", _stop_observability)
 
 from app.modules.identity.api import router as auth_router
 from app.modules.organizations.api import router as org_router
