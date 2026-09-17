@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 from typing import Any, Dict, List, Optional, Protocol, Sequence, runtime_checkable
 
@@ -62,6 +63,17 @@ class TelemetryQuery(Protocol):
     ) -> Dict[str, Any]: ...
 
 
+# Provisioning state is process-wide, not per-instance: a fresh repository is
+# constructed per API call, and re-running provisioning on each one would be
+# pure waste. The lock stops concurrent first-writes racing each other into
+# duplicate CREATE TABLE statements.
+_partitions_ready = False
+_partition_lock = asyncio.Lock()
+
+# Postgres' message when no partition covers the row being inserted.
+_PARTITION_MISSING = "no partition of relation"
+
+
 class PostgresTelemetryRepository:
     """PostgreSQL-backed adapter for both ports.
 
@@ -73,6 +85,48 @@ class PostgresTelemetryRepository:
 
     def __init__(self, engine: AsyncEngine):
         self._engine = engine
+
+    async def _ensure_partitions_ready(self) -> None:
+        """Provision partitions before the first write in this process.
+
+        `create_all` builds the partitioned parent but no partitions, so a
+        database created that way — CI does exactly this — accepts the table
+        and then rejects every insert with "no partition of relation found for
+        row". Doing it lazily here means the write path is correct regardless of
+        whether startup provisioning ran, which also covers a worker that boots
+        from a restored dump.
+        """
+        global _partitions_ready
+        if _partitions_ready:
+            return
+        async with _partition_lock:
+            if _partitions_ready:
+                return
+            from .partitioning import ensure_partitions
+
+            await ensure_partitions(self._engine)
+            _partitions_ready = True
+
+    async def _write(self, statement, payload: list[dict]) -> int:
+        """Execute a telemetry insert, self-healing a missing partition.
+
+        The retry matters for a long-running process: the month rolls over, the
+        new partition has not been provisioned yet, and without this every write
+        would fail until a restart.
+        """
+        await self._ensure_partitions_ready()
+        try:
+            async with self._engine.begin() as conn:
+                await conn.execute(statement, payload)
+        except Exception as exc:  # noqa: BLE001 - re-raised unless it is the partition case
+            if _PARTITION_MISSING not in str(exc).lower():
+                raise
+            from .partitioning import ensure_partitions
+
+            await ensure_partitions(self._engine)
+            async with self._engine.begin() as conn:
+                await conn.execute(statement, payload)
+        return len(payload)
 
     # ── Write path ────────────────────────────────────────────────────────────
 
@@ -131,9 +185,7 @@ class PostgresTelemetryRepository:
             }
             for r in records
         ]
-        async with self._engine.begin() as conn:
-            await conn.execute(statement, payload)
-        return len(payload)
+        return await self._write(statement, payload)
 
     async def write_spans(self, records: Sequence[SpanRecord]) -> int:
         if not records:
@@ -170,9 +222,7 @@ class PostgresTelemetryRepository:
             }
             for r in records
         ]
-        async with self._engine.begin() as conn:
-            await conn.execute(statement, payload)
-        return len(payload)
+        return await self._write(statement, payload)
 
     async def write_log_events(self, records: Sequence[LogEventRecord]) -> int:
         if not records:
@@ -212,9 +262,7 @@ class PostgresTelemetryRepository:
             }
             for r in records
         ]
-        async with self._engine.begin() as conn:
-            await conn.execute(statement, payload)
-        return len(payload)
+        return await self._write(statement, payload)
 
     # ── Read path ─────────────────────────────────────────────────────────────
 

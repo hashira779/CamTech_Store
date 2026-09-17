@@ -573,3 +573,65 @@ async def test_unsupported_timeseries_bucket_is_rejected():
             until=now,
             bucket="1 minute'; DROP TABLE obs_api_requests; --",
         )
+
+
+async def test_first_write_provisions_partitions_on_a_create_all_database():
+    """Regression: CI builds the schema with create_all on an empty Postgres.
+
+    create_all produces the partitioned PARENT and zero partitions, so the
+    table exists and then rejects every insert with "no partition of relation
+    found for row". The write path provisions lazily so it is correct whether
+    or not startup provisioning ran — which also covers a worker booting from a
+    restored dump, and a month rolling over in a long-lived process.
+    """
+    from sqlalchemy import text
+
+    from app.core.database import Base, engine
+    from app.modules.observability import repository as repo_module
+    from app.modules.observability.repository import PostgresTelemetryRepository
+
+    names = ("obs_api_requests", "obs_spans", "obs_log_events")
+    async with engine.begin() as conn:
+        for name in names:
+            await conn.execute(text(f"DROP TABLE IF EXISTS {name} CASCADE"))
+        await conn.run_sync(
+            Base.metadata.create_all,
+            tables=[Base.metadata.tables[n] for n in names],
+            checkfirst=True,
+        )
+
+    async def partition_count() -> int:
+        async with engine.connect() as conn:
+            return await conn.scalar(
+                text(
+                    "SELECT COUNT(*) FROM pg_inherits i "
+                    "JOIN pg_class p ON p.oid = i.inhparent "
+                    "WHERE p.relname = 'obs_api_requests'"
+                )
+            )
+
+    assert await partition_count() == 0, "create_all should leave the parent unpartitioned"
+
+    # Force the lazy bootstrap to run again for this fresh schema.
+    repo_module._partitions_ready = False
+
+    written = await PostgresTelemetryRepository(engine).write_api_requests(
+        [_probe_record()]
+    )
+
+    assert written == 1
+    assert await partition_count() > 0, "the first write must provision partitions"
+
+
+def _probe_record() -> ApiRequestRecord:
+    return ApiRequestRecord(
+        occurred_at=datetime.datetime.utcnow(),
+        request_id="partition-probe",
+        trace_id="partition-probe",
+        service="probe-service",
+        method="GET",
+        route="/probe",
+        path="/probe",
+        status_code=200,
+        duration_ms=1.0,
+    )
