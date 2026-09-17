@@ -106,7 +106,15 @@ export function InfraShell() {
           } else if (payload.event === 'INCIDENT') {
             invalidate([['infra-incidents'], ['infra-overview']]);
           } else if (payload.event === 'API_TRAFFIC') {
-            invalidate([['infra-traffic']]);
+            if (payload.data && payload.data.requestId) {
+              queryClient.setQueryData<any[]>(['infra-traffic'], (old = []) => {
+                const existing = old.find((r) => r.requestId === payload.data.requestId);
+                if (existing) return old;
+                return [payload.data, ...old].slice(0, 100);
+              });
+            } else {
+              invalidate([['infra-traffic']]);
+            }
           }
         } catch {
           // heartbeat keepalive — ignore parse errors

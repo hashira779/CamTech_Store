@@ -24,7 +24,7 @@ def gen_id():
 # 1. CORE TENANT & USER
 # ==============================================================================
 from app.modules.organizations.models import Organization
-from app.modules.identity.models import User, Role, UserRole
+from app.modules.identity.models import User, Role, UserRole, UserPasskey
 from app.modules.locations.models import Location
 
 class AuditLog(Base):

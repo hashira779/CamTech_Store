@@ -124,14 +124,10 @@ def _passkey_dto(pk: UserPasskey) -> Dict[str, Any]:
     }
 
 
+from app.core.dependencies import extract_user_roles, extract_user_permissions
+
 def _roles_of(user: User) -> List[str]:
-    if getattr(user, "user_roles", None):
-        return [ur.role_name for ur in user.user_roles]
-    try:
-        parsed = json.loads(user.roles) if isinstance(user.roles, str) else user.roles
-    except (TypeError, ValueError):
-        return ["CASHIER"]
-    return parsed or ["CASHIER"]
+    return extract_user_roles(user)
 
 
 # ─── Registration (authenticated) ───────────────────────────────────────────
@@ -347,10 +343,13 @@ async def passkey_login_verify(
         raise HTTPException(status_code=401, detail="Passkey signature counter regressed.")
 
     from sqlalchemy.orm import selectinload
+    from app.modules.identity.models import UserRole
 
     user = (
         await db.execute(
-            select(User).options(selectinload(User.user_roles)).where(User.id == record.user_id)
+            select(User)
+            .options(selectinload(User.user_roles).selectinload(UserRole.role))
+            .where(User.id == record.user_id)
         )
     ).scalar_one_or_none()
     if not user or not user.is_active:
@@ -361,7 +360,8 @@ async def passkey_login_verify(
     record.last_used_at = utc_now()
     await db.commit()
 
-    roles = _roles_of(user)
+    roles = extract_user_roles(user)
+    permissions = extract_user_permissions(user)
     token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
     refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
 
@@ -374,7 +374,7 @@ async def passkey_login_verify(
             email=user.email,
             name=user.name,
             roles=roles,
-            permissions=[],
+            permissions=permissions,
             locationId=user.location_id,
         ),
     )

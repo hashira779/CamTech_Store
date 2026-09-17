@@ -27,9 +27,26 @@ def get_fallback_app():
     return _fallback_app
 
 from typing import Optional
+from contextlib import asynccontextmanager
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.responses import JSONResponse
 from app.core.docs_protection import is_admin_request, get_docs_lock_html, get_request_token
+
+
+@asynccontextmanager
+async def gateway_lifespan(app: FastAPI):
+    try:
+        from app.modules.observability.eventbus import event_bus
+        await event_bus.start()
+    except Exception as exc:
+        print(f"[gateway] Event bus relay skipped: {exc}")
+    yield
+    try:
+        from app.modules.observability.eventbus import event_bus
+        await event_bus.stop()
+    except Exception:
+        pass
+
 
 gateway = FastAPI(
     title="MyStore Universal Enterprise API Gateway (Port 4000)",
@@ -38,6 +55,7 @@ gateway = FastAPI(
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
+    lifespan=gateway_lifespan,
 )
 
 @gateway.get("/docs", include_in_schema=False)
@@ -207,15 +225,43 @@ async def gateway_health():
         "mode": "Dynamic Reverse Proxy with In-Process Resilient Fallback"
     }
 
+def _record_gateway_traffic(request: Request, full_path: str, status_code: int, start_time: float, target_name: str):
+    if not full_path.startswith("/api/v1") or "/events/stream" in full_path:
+        return
+    duration_ms = (time.time() - start_time) * 1000.0
+    client_ip = (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
+        or (request.client.host if request.client else "127.0.0.1")
+    ).strip()
+    try:
+        from app.modules.infra.service import LiveTrafficMonitor
+        LiveTrafficMonitor.record(
+            method=request.method,
+            path=full_path,
+            status_code=status_code,
+            duration_ms=duration_ms,
+            client_ip=client_ip,
+            target_service=target_name,
+            request_id=request.headers.get("x-request-id"),
+            trace_id=request.headers.get("x-trace-id"),
+        )
+    except Exception:
+        pass
+
+
 @gateway.api_route("/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 async def route_gateway(request: Request, path: str):
+    start_time = time.time()
     full_path = f"/{path}"
     
     # 1. Determine destination microservice
     target_base = None
+    target_service_name = "platform-service"
     for prefix, target_url in ROUTING_MAP.items():
         if full_path.startswith(prefix):
             target_base = target_url
+            target_service_name = target_url.split("//")[-1]
             break
 
     # Every other /api/v1 route is owned by the Platform & Experience service, so
@@ -223,6 +269,7 @@ async def route_gateway(request: Request, path: str):
     # safety net, never the primary path.
     if target_base is None and full_path.startswith("/api/v1"):
         target_base = PLATFORM_SERVICE_URL
+        target_service_name = "platform-service"
 
     is_sse = "text/event-stream" in request.headers.get("accept", "") or "/events/stream" in full_path
 
@@ -262,6 +309,8 @@ async def route_gateway(request: Request, path: str):
             resp_headers = dict(proxy_resp.headers)
             for hop in ("transfer-encoding", "content-encoding", "connection", "keep-alive"):
                 resp_headers.pop(hop, None)
+
+            _record_gateway_traffic(request, full_path, proxy_resp.status_code, start_time, target_service_name)
 
             return Response(
                 content=proxy_resp.content,
@@ -324,6 +373,7 @@ async def route_gateway(request: Request, path: str):
     await fallback_app(scope, receive, send)
     
     headers_dict = {k.decode("latin1"): v.decode("latin1") for k, v in response_headers}
+    _record_gateway_traffic(request, full_path, response_status, start_time, "in-process-fallback")
     return Response(
         content=b"".join(response_body),
         status_code=response_status,

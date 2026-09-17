@@ -12,6 +12,8 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { apiClient } from '@/lib/api-client';
+
 interface ApiTrafficViewProps {
   requests?: ApiTrafficRequestDTO[];
 }
@@ -20,6 +22,18 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [methodFilter, setMethodFilter] = useState<string>('ALL');
   const [selectedReq, setSelectedReq] = useState<ApiTrafficRequestDTO | null>(null);
+  const [isPinging, setIsPinging] = useState(false);
+
+  const handlePingGateway = async () => {
+    setIsPinging(true);
+    try {
+      await apiClient.get('/api/v1/infra/overview');
+    } catch {
+      // ignore
+    } finally {
+      setIsPinging(false);
+    }
+  };
 
   const filtered = requests.filter((r) => {
     const matchesSearch =
@@ -90,6 +104,16 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
               {method}
             </button>
           ))}
+
+          <button
+            onClick={handlePingGateway}
+            disabled={isPinging}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition cursor-pointer disabled:opacity-50 ml-2"
+            title="Test real-time edge packet transmission"
+          >
+            <Zap className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin' : ''}`} />
+            <span>Ping Gateway</span>
+          </button>
         </div>
       </div>
 
@@ -110,7 +134,33 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
-              {filtered.map((r) => {
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-12 text-center text-zinc-500 font-mono">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold text-xs">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Real-Time Monitor Listening on API Gateway (:4000)
+                      </div>
+                      <p className="text-zinc-400 text-xs max-w-md">
+                        Zero-database memory stream active. Requests from cashiers, shoppers, and API clients stream here live.
+                      </p>
+                      <button
+                        onClick={handlePingGateway}
+                        disabled={isPinging}
+                        className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-medium transition cursor-pointer disabled:opacity-50 mt-1"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Send Test Ping to Gateway</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((r) => {
                 const is2xx = r.statusCode >= 200 && r.statusCode < 300;
                 const is4xx = r.statusCode >= 400 && r.statusCode < 500;
                 return (
@@ -161,7 +211,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

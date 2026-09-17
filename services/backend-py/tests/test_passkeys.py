@@ -34,6 +34,7 @@ def test_staff_and_storefront_are_separate_relying_parties():
         ("https://pos.camtech.cam", "staff"),
         ("https://ceo.camtech.cam", "staff"),
         ("https://hr.camtech.cam", "staff"),
+        ("https://infra.camtech.cam", "staff"),
         ("https://store.camtech.cam", "storefront"),
     ],
 )

@@ -150,6 +150,27 @@ def apply_enterprise_layer(app: FastAPI) -> None:
                 extra={"durationMs": round(process_time, 2), "statusCode": response.status_code}
             )
 
+        if path.startswith("/api/v1/") and path not in _RAW_PATHS and not path.startswith("/api/v1/infra/events/stream"):
+            try:
+                from app.modules.infra.service import LiveTrafficMonitor
+                c_ip = (
+                    request.headers.get("X-Real-IP")
+                    or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
+                    or (request.client.host if request.client else "127.0.0.1")
+                ).strip()
+                LiveTrafficMonitor.record(
+                    method=request.method,
+                    path=path,
+                    status_code=response.status_code,
+                    duration_ms=process_time,
+                    client_ip=c_ip,
+                    target_service=getattr(app, "title", "microservice").split("(")[0].strip(),
+                    request_id=req_id,
+                    trace_id=trace_id,
+                )
+            except Exception:
+                pass
+
         content_type = response.headers.get("content-type", "")
         if response.status_code < 400 and "application/json" in content_type:
             body = [chunk async for chunk in response.body_iterator]

@@ -62,6 +62,7 @@ STAFF = RelyingParty(
                 f"https://driver.{_ROOT_DOMAIN}",
                 f"https://hr.{_ROOT_DOMAIN}",
                 f"https://ceo.{_ROOT_DOMAIN}",
+                f"https://infra.{_ROOT_DOMAIN}",
             ]
         ),
     ),

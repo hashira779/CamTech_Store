@@ -2,6 +2,9 @@ import asyncio
 import time
 import json
 import logging
+import secrets
+import uuid
+from collections import deque
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 import httpx
@@ -29,6 +32,7 @@ from app.modules.infra.schemas import (
     TopologyEdgeSchema,
     TopologyNodeData,
     ApiTrafficRequestSchema,
+    ApproximateGeoSchema,
     SecurityEventSchema,
     IncidentSchema,
     IncidentTimelineSchema,
@@ -50,6 +54,106 @@ MICROSERVICE_DEFINITIONS = [
     {"id": "bot-builder-service", "name": "Telegram Bot & AI Flow", "port": 4008, "role": "AUTOMATIONS", "version": "2.0.0", "dependencies": ["postgres", "redis"]},
     {"id": "infra-service", "name": "Infra & Security Control Center", "port": 4009, "role": "CONTROL_PLANE", "version": "2.0.0", "dependencies": ["postgres", "redis"]},
 ]
+
+
+class LiveTrafficMonitor:
+    """Zero-database in-memory circular buffer for real-time edge monitoring."""
+    _buffer: deque = deque(maxlen=200)
+
+    @classmethod
+    def record(
+        cls,
+        method: str,
+        path: str,
+        status_code: int,
+        duration_ms: float,
+        client_ip: str,
+        target_service: str = "api-gateway",
+        request_id: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        timestamp: Optional[datetime] = None,
+    ) -> ApiTrafficRequestSchema:
+        if not request_id:
+            request_id = str(uuid.uuid4())
+        if not trace_id:
+            trace_id = secrets.token_hex(16)
+        if not timestamp:
+            timestamp = utc_now()
+
+        # Deduce Geo/ASN
+        country = "Cambodia"
+        country_code = "KH"
+        asn = "Enterprise Edge"
+        region = "Phnom Penh"
+        if client_ip in ("127.0.0.1", "localhost", "::1"):
+            country = "Local Cloud"
+            asn = "Internal Localhost"
+        elif client_ip.startswith("10.") or client_ip.startswith("192.168.") or client_ip.startswith("172."):
+            country = "Private Mesh"
+            asn = "Private Subnet"
+        elif client_ip.startswith("103."):
+            asn = "AS136173 SINET"
+        elif client_ip.startswith("96.9."):
+            asn = "AS38234 Smart Axiata"
+        elif client_ip.startswith("118.107."):
+            asn = "AS9928 Cellcard"
+
+        item = ApiTrafficRequestSchema(
+            requestId=request_id,
+            traceId=trace_id,
+            timestamp=timestamp,
+            method=method,
+            path=path,
+            targetService=target_service,
+            statusCode=status_code,
+            durationMs=round(float(duration_ms), 2),
+            clientIp=client_ip,
+            approximateGeo=ApproximateGeoSchema(
+                country=country,
+                countryCode=country_code,
+                region=region,
+                city=region,
+                asn=asn,
+            ),
+        )
+        cls._buffer.appendleft(item)
+
+        # Broadcast immediately to event_bus for real-time SSE push
+        try:
+            from app.modules.observability.eventbus import event_bus
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(event_bus.publish("API_TRAFFIC", item.model_dump(mode="json")))
+            except RuntimeError:
+                pass
+        except Exception:
+            pass
+
+        return item
+
+    @classmethod
+    def get_recent(cls, limit: int = 50) -> List[ApiTrafficRequestSchema]:
+        return list(cls._buffer)[:limit]
+
+    @classmethod
+    def get_stats(cls) -> Dict[str, Any]:
+        items = list(cls._buffer)
+        if not items:
+            return {"requestsPerSec": 0.0, "errorRatePct": 0.0, "p95LatencyMs": 0.0, "p50": 0.0, "p99": 0.0, "total": 0}
+        latencies = sorted([r.durationMs for r in items])
+        n = len(latencies)
+        p50 = latencies[int(n * 0.50)]
+        p95 = latencies[int(n * 0.95)] if n > 1 else latencies[0]
+        p99 = latencies[int(n * 0.99)] if n > 1 else latencies[-1]
+        errors = sum(1 for r in items if r.statusCode >= 500)
+        return {
+            "requestsPerSec": round(len(items) / 60.0, 2),
+            "errorRatePct": round((errors / len(items)) * 100, 2),
+            "p95LatencyMs": round(p95, 2),
+            "p50": round(p50, 2),
+            "p99": round(p99, 2),
+            "total": len(items),
+        }
 
 
 class InfraControlService:
@@ -97,21 +201,24 @@ class InfraControlService:
         )
         active_incidents = len(inc_query.scalars().all())
 
-        # 4. Real telemetry traffic summary from obs_api_requests
-        requests_per_sec = 0.0
-        error_rate_pct = 0.0
-        p95_latency_ms = 0.0
-        try:
-            from app.modules.observability.repository import PostgresTelemetryRepository
-            repo = PostgresTelemetryRepository(engine)
-            until = now
-            since = until - timedelta(minutes=15)
-            summary = await repo.traffic_summary(since=since, until=until)
-            requests_per_sec = summary.get("requestsPerSecond") or 0.0
-            error_rate_pct = summary.get("errorRatePct") or 0.0
-            p95_latency_ms = summary.get("p95LatencyMs") or 0.0
-        except Exception as exc:
-            logger.debug("Telemetry summary query skipped: %s", exc)
+        # 4. Real telemetry traffic summary from LiveTrafficMonitor (with DB fallback)
+        live_stats = LiveTrafficMonitor.get_stats()
+        requests_per_sec = live_stats["requestsPerSec"]
+        error_rate_pct = live_stats["errorRatePct"]
+        p95_latency_ms = live_stats["p95LatencyMs"]
+
+        if live_stats["total"] == 0:
+            try:
+                from app.modules.observability.repository import PostgresTelemetryRepository
+                repo = PostgresTelemetryRepository(engine)
+                until = now
+                since = until - timedelta(minutes=15)
+                summary = await repo.traffic_summary(since=since, until=until)
+                requests_per_sec = summary.get("requestsPerSecond") or 0.0
+                error_rate_pct = summary.get("errorRatePct") or 0.0
+                p95_latency_ms = summary.get("p95LatencyMs") or 0.0
+            except Exception as exc:
+                logger.debug("Telemetry summary query skipped: %s", exc)
 
         return InfraOverviewResponse(
             globalStatus="HEALTHY" if active_incidents == 0 else ("DEGRADED" if active_incidents < 3 else "DOWN"),
@@ -252,14 +359,18 @@ class InfraControlService:
         return InfraTopologyGraphResponse(nodes=nodes, edges=edges)
 
     async def get_recent_traffic(self, limit: int = 50) -> List[ApiTrafficRequestSchema]:
-        """Retrieves real-time HTTP API transactions captured by the edge gateway and middleware."""
+        """Retrieves real-time HTTP API transactions captured by the live in-memory buffer."""
+        in_memory = LiveTrafficMonitor.get_recent(limit=limit)
+        if in_memory:
+            return in_memory
+
         rows = []
         try:
             from app.modules.observability.repository import PostgresTelemetryRepository
             repo = PostgresTelemetryRepository(engine)
             rows = await repo.recent_requests(limit=limit)
         except Exception as exc:
-            logger.warning("Failed to fetch real telemetry rows from database: %s", exc)
+            logger.debug("Telemetry repository query skipped: %s", exc)
 
         requests = []
         for r in rows:
