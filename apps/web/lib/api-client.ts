@@ -392,6 +392,23 @@ export const api = {
 
   listPasskeys: (token: string) => request<PasskeyDto[]>('/auth/passkeys', { token }),
 
+  /** Authoritative permission catalogue for the role editor. Served by the
+   *  backend so the editor cannot drift as guarded endpoints are added. */
+  listPermissionCatalog: (token: string) =>
+    request<{
+      wildcard: string;
+      categories: Array<{
+        name: string;
+        permissions: Array<{
+          key: string;
+          label: string;
+          description: string;
+          enforced: boolean;
+          platformScope: boolean;
+        }>;
+      }>;
+    }>('/auth/permissions', { token }),
+
   renamePasskey: (token: string, id: string, name: string) =>
     request<PasskeyDto>(`/auth/passkeys/${id}`, {
       method: 'PATCH',

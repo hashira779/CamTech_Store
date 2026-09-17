@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
@@ -25,7 +25,18 @@ import {
   Trash2
 } from 'lucide-react';
 
-const SYSTEM_PERMISSIONS = [
+/**
+ * Fallback only — used if the catalogue request fails.
+ *
+ * This array used to BE the permission list, and it rotted: it omitted five
+ * permissions that guard real endpoints (the Infra & Security Control Center
+ * ones), so no custom role could be granted Control Center access, while
+ * offering eight that gate nothing. The live list now comes from
+ * GET /api/v1/auth/permissions, which is generated from the backend catalogue
+ * and covered by a test that fails when a new guarded endpoint is added
+ * without a catalogue entry.
+ */
+const FALLBACK_PERMISSIONS = [
   "sales:read", "sales:write", "sales:refund",
   "catalog:read", "catalog:write",
   "inventory:read", "inventory:write",
@@ -36,9 +47,53 @@ const SYSTEM_PERMISSIONS = [
   "telegram:read", "telegram:write"
 ];
 
+interface PermissionCatalogEntry {
+  key: string;
+  label: string;
+  description: string;
+  enforced: boolean;
+  platformScope: boolean;
+}
+
+interface PermissionCatalogCategory {
+  name: string;
+  permissions: PermissionCatalogEntry[];
+}
+
 export default function UsersPage() {
   const { token, user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+
+  // The permission catalogue is served by the backend so this editor cannot
+  // drift out of date as guarded endpoints are added.
+  const { data: permissionCatalog } = useQuery<{ categories: PermissionCatalogCategory[] }>({
+    queryKey: ['permission-catalog'],
+    queryFn: () => api.listPermissionCatalog(token!),
+    enabled: Boolean(token),
+    staleTime: 1000 * 60 * 30, // changes only on deploy
+  });
+
+  const permissionCategories: PermissionCatalogCategory[] = useMemo(() => {
+    if (permissionCatalog?.categories?.length) return permissionCatalog.categories;
+    // Degrade to the legacy flat list rather than rendering an empty editor.
+    return [
+      {
+        name: 'Permissions',
+        permissions: FALLBACK_PERMISSIONS.map((key) => ({
+          key,
+          label: key,
+          description: '',
+          enforced: true,
+          platformScope: false,
+        })),
+      },
+    ];
+  }, [permissionCatalog]);
+
+  const allPermissionKeys = useMemo(
+    () => permissionCategories.flatMap((c) => c.permissions.map((p) => p.key)),
+    [permissionCategories],
+  );
 
   const [activeTab, setActiveTab] = useState<'DIRECTORY' | 'ROLES_MATRIX'>('DIRECTORY');
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,7 +222,7 @@ export default function UsersPage() {
       setEditingRole(role);
       setRoleName(role.name);
       setRoleDescription(role.description || '');
-      setRolePermissions(role.permissions.includes('*') ? [...SYSTEM_PERMISSIONS] : [...role.permissions]);
+      setRolePermissions(role.permissions.includes('*') ? [...allPermissionKeys] : [...role.permissions]);
     } else {
       setEditingRole(null);
       setRoleName('');
@@ -781,27 +836,59 @@ export default function UsersPage() {
 
               <div className="space-y-2 pt-2">
                 <label className="text-xs font-medium text-foreground">Select Permissions</label>
-                <div className="bg-background/50 border border-border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                  {SYSTEM_PERMISSIONS.map(perm => {
-                    const isSelected = rolePermissions.includes(perm);
-                    return (
-                      <button
-                        type="button"
-                        key={perm}
-                        onClick={() => handleTogglePermission(perm)}
-                        className={`text-left text-[11px] px-2 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${
-                          isSelected 
-                            ? 'bg-primary/20 border-primary text-primary font-medium' 
-                            : 'bg-card border-border hover:border-primary/50 text-muted-foreground'
-                        }`}
-                      >
-                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
-                          {isSelected && <CheckCircle2 className="w-2.5 h-2.5" />}
-                        </div>
-                        {perm}
-                      </button>
-                    );
-                  })}
+                <div className="bg-background/50 border border-border rounded-lg p-3 space-y-3 max-h-72 overflow-y-auto">
+                  {permissionCategories.map((category) => (
+                    <div key={category.name}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {category.name}
+                        </span>
+                        <span className="h-px flex-1 bg-border" />
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {category.permissions.map((perm) => {
+                          const isSelected = rolePermissions.includes(perm.key);
+                          return (
+                            <button
+                              type="button"
+                              key={perm.key}
+                              onClick={() => handleTogglePermission(perm.key)}
+                              title={
+                                [
+                                  perm.description,
+                                  perm.enforced ? '' : 'Not yet enforced by any endpoint.',
+                                  perm.platformScope ? 'Platform scope: exposes cross-tenant data.' : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ')
+                              }
+                              className={`text-left text-[11px] px-2 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-primary/20 border-primary text-primary font-medium'
+                                  : 'bg-card border-border hover:border-primary/50 text-muted-foreground'
+                              }`}
+                            >
+                              <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                                {isSelected && <CheckCircle2 className="w-2.5 h-2.5" />}
+                              </div>
+                              <span className="truncate">{perm.key}</span>
+                              {/* A permission that gates nothing must not look like an active control. */}
+                              {!perm.enforced && (
+                                <span className="ml-auto text-[9px] text-amber-500/80 shrink-0" title="Defined but not enforced">
+                                  n/e
+                                </span>
+                              )}
+                              {perm.platformScope && (
+                                <span className="ml-auto text-[9px] text-rose-400/80 shrink-0" title="Platform scope">
+                                  plat
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

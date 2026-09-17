@@ -621,3 +621,19 @@ from .passkey_api import router as passkey_router  # noqa: E402
 
 router.include_router(passkey_router)
 
+
+
+@router.get("/permissions", summary="Authoritative permission catalogue for the role editor")
+async def list_permission_catalog(
+    user: TenantUser = Depends(RequirePermissions(["users:read"])),
+):
+    """Every permission the platform defines, grouped for the role editor.
+
+    Served from app/core/permission_catalog.py so the Create Custom Role dialog
+    stops rendering a hardcoded frontend array. That array was missing five
+    permissions that are actually enforced — Control Center access could not be
+    granted to a custom role at all — while offering eight that gate nothing.
+    """
+    from app.core.permission_catalog import as_payload
+
+    return as_payload()
