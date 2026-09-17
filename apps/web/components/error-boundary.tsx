@@ -30,6 +30,22 @@ export class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Surface it for debugging without taking the app down.
     console.error('[ErrorBoundary] contained a crash:', error, info.componentStack);
+
+    // Auto-recover from stale dynamic chunk deployment errors
+    const msg = error?.message || '';
+    if (
+      msg.includes('dynamically imported module') ||
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('disallowed MIME type')
+    ) {
+      const lastReload = sessionStorage.getItem('chunk_reload_ts');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('chunk_reload_ts', String(now));
+        window.location.reload();
+      }
+    }
   }
 
   componentDidUpdate(prev: Props) {
