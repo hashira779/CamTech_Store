@@ -159,19 +159,19 @@ export function InfraShell() {
   const handleBreakGlass = async (e: React.FormEvent) => {
     e.preventDefault();
     setBgError('');
-    if (bgConfirm !== 'I CONFIRM BREAK GLASS') {
+    if (bgConfirm.trim() !== 'I CONFIRM BREAK GLASS') {
       setBgError("Must type exactly: 'I CONFIRM BREAK GLASS'");
       return;
     }
-    if (!bgReason.trim()) {
-      setBgError('Operational reason is required.');
+    if (bgReason.trim().length < 10) {
+      setBgError('Operational justification must be at least 10 characters long.');
       return;
     }
     try {
       setBgLoading(true);
       const res = await apiClient.post<{ message: string; session: { expires_at?: string } }>(
         '/api/v1/infra/break-glass',
-        { reason: bgReason.trim(), confirmation: bgConfirm },
+        { reason: bgReason.trim(), confirmation: bgConfirm.trim() },
       );
       setBgSession({ active: true, expiresAt: res.session?.expires_at });
       setBgOpen(false);
@@ -180,7 +180,11 @@ export function InfraShell() {
       queryClient.invalidateQueries({ queryKey: ['infra-audit'] });
       queryClient.invalidateQueries({ queryKey: ['infra-overview'] });
     } catch (err: any) {
-      setBgError(err?.message ?? 'Failed to activate break-glass protocol.');
+      const errorMsg =
+        typeof err?.response?.data?.detail === 'string'
+          ? err.response.data.detail
+          : (err?.message ?? 'Failed to activate break-glass protocol.');
+      setBgError(errorMsg);
     } finally {
       setBgLoading(false);
     }
