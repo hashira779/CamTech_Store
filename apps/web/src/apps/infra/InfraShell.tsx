@@ -50,7 +50,7 @@ const NAV_SECTIONS = [
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export function InfraShell() {
-  const { user, clear } = useAuth();
+  const { user, token, clear } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -90,7 +90,10 @@ export function InfraShell() {
     const baseUrl = (apiClient as any).baseUrl ?? '';
     let es: EventSource | null = null;
     try {
-      es = new EventSource(`${baseUrl}/api/v1/infra/events/stream`);
+      const streamUrl = token
+        ? `${baseUrl}/api/v1/infra/events/stream?token=${encodeURIComponent(token)}`
+        : `${baseUrl}/api/v1/infra/events/stream`;
+      es = new EventSource(streamUrl);
       es.onopen = () => setSseConnected(true);
       es.onerror = () => setSseConnected(false);
       es.onmessage = (ev) => {
@@ -113,9 +116,9 @@ export function InfraShell() {
       setSseConnected(false);
     }
     return () => es?.close();
-    // `user` is a dependency so the stream opens on sign-in and closes on
+    // `user` and `token` are dependencies so the stream opens on sign-in and closes on
     // sign-out rather than leaking an EventSource across sessions.
-  }, [queryClient, user]);
+  }, [queryClient, user, token]);
 
   // ── Mobile navigation drawer ────────────────────────────────────────────────
   // The sidebar was a hard w-64 with no responsive class: on a 375px phone it

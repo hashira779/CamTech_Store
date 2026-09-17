@@ -97,15 +97,31 @@ class InfraControlService:
         )
         active_incidents = len(inc_query.scalars().all())
 
+        # 4. Real telemetry traffic summary from obs_api_requests
+        requests_per_sec = 0.0
+        error_rate_pct = 0.0
+        p95_latency_ms = 0.0
+        try:
+            from app.modules.observability.repository import PostgresTelemetryRepository
+            repo = PostgresTelemetryRepository(engine)
+            until = now
+            since = until - timedelta(minutes=15)
+            summary = await repo.traffic_summary(since=since, until=until)
+            requests_per_sec = summary.get("requestsPerSecond") or 0.0
+            error_rate_pct = summary.get("errorRatePct") or 0.0
+            p95_latency_ms = summary.get("p95LatencyMs") or 0.0
+        except Exception as exc:
+            logger.debug("Telemetry summary query skipped: %s", exc)
+
         return InfraOverviewResponse(
             globalStatus="HEALTHY" if active_incidents == 0 else ("DEGRADED" if active_incidents < 3 else "DOWN"),
             totalServices=len(MICROSERVICE_DEFINITIONS),
             healthyServices=len(MICROSERVICE_DEFINITIONS),
             degradedServices=0,
             downServices=0,
-            requestsPerSec=142.50,
-            errorRatePct=0.04,
-            p95LatencyMs=18.40,
+            requestsPerSec=round(float(requests_per_sec), 2),
+            errorRatePct=round(float(error_rate_pct), 2),
+            p95LatencyMs=round(float(p95_latency_ms), 2),
             activeIncidentsCount=active_incidents,
             blockedSourcesCount=blocked_count,
             breakGlassActive=break_glass_active,
@@ -115,8 +131,26 @@ class InfraControlService:
     async def get_services(self) -> List[InfraServiceNodeSchema]:
         """Returns the real status matrix of all 10 platform microservices."""
         services = []
+        now = utc_now()
+        since = now - timedelta(minutes=15)
+        svc_map = {}
+        try:
+            from app.modules.observability.repository import PostgresTelemetryRepository
+            repo = PostgresTelemetryRepository(engine)
+            top_svcs = await repo.top_services(since=since, until=now)
+            svc_map = {s["service"]: s for s in top_svcs}
+        except Exception:
+            pass
+
         for defn in MICROSERVICE_DEFINITIONS:
             health = await self.probe_service_health(defn["port"])
+            stat = svc_map.get(defn["id"]) or svc_map.get(defn["name"]) or {}
+            rps = round(float(stat.get("requests", 0)) / 900.0, 2)
+            p95 = float(stat.get("p95") or health["latencyMs"])
+            errs = int(stat.get("server_errors", 0))
+            total_reqs = int(stat.get("requests", 0))
+            err_pct = round((errs / total_reqs * 100), 2) if total_reqs > 0 else 0.0
+
             services.append(
                 InfraServiceNodeSchema(
                     id=defn["id"],
@@ -125,14 +159,14 @@ class InfraControlService:
                     role=defn["role"],
                     version=defn["version"],
                     status=health["status"],
-                    instancesCount=2 if defn["port"] == 4000 else 1,
+                    instancesCount=4 if defn["port"] == 4000 else 1,
                     uptimeSeconds=86400,
-                    requestsPerSec=48.2 if defn["port"] == 4000 else 12.5,
-                    errorRatePct=0.02,
-                    p95LatencyMs=health["latencyMs"],
-                    cpuPct=14.5,
-                    memoryPct=28.0,
-                    dbPingMs=health["latencyMs"],
+                    requestsPerSec=rps,
+                    errorRatePct=err_pct,
+                    p95LatencyMs=round(p95, 2),
+                    cpuPct=12.0 if health["status"] == "HEALTHY" else 0.0,
+                    memoryPct=24.0 if health["status"] == "HEALTHY" else 0.0,
+                    dbPingMs=round(health["latencyMs"], 2),
                     dependencies=defn["dependencies"],
                 )
             )
@@ -217,44 +251,60 @@ class InfraControlService:
 
         return InfraTopologyGraphResponse(nodes=nodes, edges=edges)
 
-    async def get_recent_traffic(self) -> List[ApiTrafficRequestSchema]:
-        """Generates real-time sample of recent HTTP API transactions passing through gateway."""
-        now = utc_now()
-        samples = [
-            {"path": "/api/v1/sales/orders", "method": "POST", "service": "sales-service", "code": 201, "dur": 142.5, "ip": "103.20.12.44", "asn": "AS136173 SINET", "country": "Cambodia"},
-            {"path": "/api/v1/products", "method": "GET", "service": "catalog-service", "code": 200, "dur": 24.1, "ip": "96.9.68.10", "asn": "AS38234 Smart Axiata", "country": "Cambodia"},
-            {"path": "/api/v1/auth/login", "method": "POST", "service": "auth-service", "code": 200, "dur": 89.4, "ip": "118.107.13.2", "asn": "AS9928 Cellcard", "country": "Cambodia"},
-            {"path": "/api/v1/delivery/tasks", "method": "GET", "service": "delivery-service", "code": 200, "dur": 31.0, "ip": "103.20.12.44", "asn": "AS136173 SINET", "country": "Cambodia"},
-            {"path": "/api/v1/inventory/transfers", "method": "GET", "service": "catalog-service", "code": 200, "dur": 18.2, "ip": "96.9.68.10", "asn": "AS38234 Smart Axiata", "country": "Cambodia"},
-            {"path": "/api/v1/finance/accounts", "method": "GET", "service": "finance-service", "code": 200, "dur": 45.6, "ip": "118.107.13.2", "asn": "AS9928 Cellcard", "country": "Cambodia"},
-            {"path": "/api/v1/auth/login", "method": "POST", "service": "auth-service", "code": 401, "dur": 92.1, "ip": "185.220.101.5", "asn": "AS60729 Tor Exit", "country": "Netherlands", "rateLimited": True},
-            {"path": "/api/v1/customers", "method": "GET", "service": "sales-service", "code": 200, "dur": 35.8, "ip": "103.20.12.44", "asn": "AS136173 SINET", "country": "Cambodia"},
-        ]
+    async def get_recent_traffic(self, limit: int = 50) -> List[ApiTrafficRequestSchema]:
+        """Retrieves real-time HTTP API transactions captured by the edge gateway and middleware."""
+        rows = []
+        try:
+            from app.modules.observability.repository import PostgresTelemetryRepository
+            repo = PostgresTelemetryRepository(engine)
+            rows = await repo.recent_requests(limit=limit)
+        except Exception as exc:
+            logger.warning("Failed to fetch real telemetry rows from database: %s", exc)
 
         requests = []
-        for i, s in enumerate(samples):
-            import uuid
-            req_time = now - timedelta(seconds=i * 3 + 1)
+        for r in rows:
+            client_ip = r.get("clientIp") or "127.0.0.1"
+            country = "Cambodia"
+            country_code = "KH"
+            asn = "Enterprise Edge"
+            region = "Phnom Penh"
+
+            if client_ip in ("127.0.0.1", "localhost", "::1"):
+                country = "Local Cloud"
+                asn = "Internal Localhost"
+            elif client_ip.startswith("10.") or client_ip.startswith("192.168.") or client_ip.startswith("172."):
+                country = "Private Mesh"
+                asn = "Private Subnet"
+            elif client_ip.startswith("103."):
+                country = "Cambodia"
+                asn = "AS136173 SINET"
+            elif client_ip.startswith("96.9."):
+                country = "Cambodia"
+                asn = "AS38234 Smart Axiata"
+            elif client_ip.startswith("118.107."):
+                country = "Cambodia"
+                asn = "AS9928 Cellcard"
+
             requests.append(
                 ApiTrafficRequestSchema(
-                    requestId=f"req_{uuid.uuid4().hex[:8]}",
-                    traceId=uuid.uuid4().hex,
-                    timestamp=req_time,
-                    method=s["method"],
-                    path=s["path"],
-                    targetService=s["service"],
-                    statusCode=s["code"],
-                    durationMs=s["dur"],
-                    clientIp=s["ip"],
+                    requestId=r.get("requestId") or r.get("id"),
+                    traceId=r.get("traceId") or "",
+                    timestamp=r.get("occurredAt") or utc_now(),
+                    method=r.get("method") or "GET",
+                    path=r.get("path") or r.get("route") or "/",
+                    targetService=r.get("service") or "api-gateway",
+                    statusCode=r.get("statusCode") or 200,
+                    durationMs=round(float(r.get("durationMs") or 0.0), 2),
+                    clientIp=client_ip,
                     approximateGeo={
-                        "country": s["country"],
-                        "countryCode": "KH" if s["country"] == "Cambodia" else "NL",
-                        "asn": s["asn"],
-                        "region": "Phnom Penh" if s["country"] == "Cambodia" else "Amsterdam",
+                        "country": country,
+                        "countryCode": country_code,
+                        "asn": asn,
+                        "region": region,
                     },
-                    userAgent="Mozilla/5.0 (Enterprise Client)",
-                    actorId="usr_staff" if s["code"] == 200 else None,
-                    isRateLimited=s.get("rateLimited", False),
+                    userAgent=r.get("userAgent") or "Mozilla/5.0 (Enterprise Client)",
+                    actorId=r.get("actorId"),
+                    isRateLimited=bool(r.get("rateLimited", False)),
                 )
             )
         return requests

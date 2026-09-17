@@ -123,7 +123,7 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 echo "🔨 Building core Python backend microservices..."
-BACKEND_SERVICES="api-gateway delivery-service auth-service catalog-service sales-service hr-service finance-service platform-service bot-builder-service"
+BACKEND_SERVICES="api-gateway delivery-service auth-service catalog-service sales-service hr-service finance-service platform-service bot-builder-service infra-service"
 if ! run_cmd docker compose -f "$COMPOSE_FILE" build $BACKEND_SERVICES; then
     echo "⚠️ Warning: Targeted backend build returned exit code. Re-trying with compose default..."
     run_cmd docker compose -f "$COMPOSE_FILE" build api-gateway delivery-service || true
