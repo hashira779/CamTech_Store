@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   LogOut,
   ShieldCheck,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-store';
 import { apiClient } from '@/lib/api-client';
@@ -115,6 +117,34 @@ export function InfraShell() {
     // sign-out rather than leaking an EventSource across sessions.
   }, [queryClient, user]);
 
+  // ── Mobile navigation drawer ────────────────────────────────────────────────
+  // The sidebar was a hard w-64 with no responsive class: on a 375px phone it
+  // took 68% of the viewport and left main content 55px wide after padding.
+  // Below lg it is now an off-canvas drawer.
+  const [navOpen, setNavOpen] = useState(false);
+  const location = useLocation();
+
+  // Tapping a destination should reveal it, not leave the drawer covering it.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [location.pathname]);
+
+  // Escape closes, and body scroll is locked while the overlay is up so the
+  // page behind does not scroll under the user's finger.
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [navOpen]);
+
   // ── Break-Glass modal state ──────────────────────────────────────────────────
   const [bgOpen, setBgOpen] = useState(false);
   const [bgReason, setBgReason] = useState('');
@@ -155,11 +185,50 @@ export function InfraShell() {
 
   // ── Nav link class helper ────────────────────────────────────────────────────
   const navCls = ({ isActive }: { isActive: boolean }) =>
-    `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+    `w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
       isActive
-        ? 'bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-300 border-l-2 border-cyan-400 shadow-sm'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border-l-2 border-transparent'
+        ? 'bg-primary/10 text-primary'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
     }`;
+
+  // Shared by the static sidebar and the mobile drawer so the two can never
+  // drift apart.
+  const navContent = (
+    <>
+      <nav className="space-y-4">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="space-y-0.5">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+              {section.label}
+            </p>
+            {section.items.map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to} className={navCls} end>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div className="rounded-lg border border-border bg-accent/30 p-3 space-y-1.5 text-[11px]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">Node</span>
+          <span className="font-mono text-foreground truncate">CAMTECH-EDGE-01</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">Gateway</span>
+          <span className="font-mono text-primary">:4000</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">Transport</span>
+          <span className="font-mono text-emerald-500 inline-flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> TLS 1.3
+          </span>
+        </div>
+      </div>
+    </>
+  );
 
   // Every hook above has now run, so branching the output here is safe.
   if (!user) {
@@ -167,22 +236,23 @@ export function InfraShell() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* ── Break-Glass Active Banner ─────────────────────────────────────────── */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* ── Break-Glass banner ──────────────────────────────────────────────────
+          Stays on screen at every width: §36 requires critical alerts to survive
+          the mobile layout. Wraps instead of forcing horizontal overflow. */}
       {bgSession?.active && (
-        <div className="sticky top-0 z-50 bg-rose-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-between shadow-lg shadow-rose-950 animate-pulse">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-amber-300 shrink-0" />
-            <span>
-              CRITICAL EMERGENCY: Active Break-Glass Session. All guardrails bypassed. Full immutable
-              logging active.
+        <div className="sticky top-0 z-50 bg-destructive text-destructive-foreground px-3 sm:px-4 py-2 text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-start gap-2 min-w-0">
+            <Flame className="w-4 h-4 shrink-0 mt-px" />
+            <span className="font-semibold">
+              Break-glass session active — guardrails bypassed, all actions logged.
             </span>
           </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <span className="font-mono text-rose-100">EXPIRES: 20 MIN FROM ACTIVATION</span>
+          <div className="flex items-center gap-3 shrink-0 pl-6 sm:pl-0">
+            <span className="font-mono opacity-80">expires in 20 min</span>
             <button
               onClick={() => setBgSession(null)}
-              className="px-2 py-0.5 bg-rose-800 hover:bg-rose-900 rounded text-rose-100 transition-colors text-[11px]"
+              className="px-2 py-0.5 rounded bg-black/20 hover:bg-black/30 transition-colors"
             >
               Acknowledge
             </button>
@@ -190,118 +260,126 @@ export function InfraShell() {
         </div>
       )}
 
-      {/* ── Top Header ───────────────────────────────────────────────────────── */}
-      <header className="h-16 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40 shrink-0">
-        {/* Logo + title */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30 shrink-0">
-            <ShieldCheck className="w-5 h-5 text-white" />
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
+      <header className="h-14 border-b border-border bg-card/80 backdrop-blur px-3 sm:px-5 flex items-center gap-3 sticky top-0 z-40 shrink-0">
+        {/* Drawer trigger — the only way to reach navigation below lg. */}
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open navigation menu"
+          aria-expanded={navOpen}
+          className="lg:hidden -ml-1 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-primary-foreground" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-black tracking-wider uppercase text-slate-100">
-                CamTech Infra &amp; Security Control
-              </h1>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                NOC/SOC v1.0
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono">
-              Enterprise Mission Control · infra.camtech.cam
+          <div className="min-w-0">
+            <h1 className="text-[13px] font-semibold text-foreground truncate leading-tight">
+              Infra &amp; Security
+            </h1>
+            {/* Secondary context is the first thing to go on a narrow screen. */}
+            <p className="hidden sm:block text-[11px] text-muted-foreground font-mono leading-tight">
+              infra.camtech.cam
             </p>
           </div>
         </div>
 
-        {/* Center — clocks + SSE status */}
-        <div className="hidden md:flex items-center gap-6 font-mono text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">UTC:</span>
-            <span className="text-slate-200 font-semibold">{utcTime || '--:--:-- UTC'}</span>
-          </div>
-          <div className="h-3 w-px bg-slate-800" />
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">LOCAL:</span>
-            <span className="text-slate-200 font-semibold">{localTime || '--:--:--'}</span>
-          </div>
-          <div className="h-3 w-px bg-slate-800" />
-          {sseConnected ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              TELEMETRY LIVE
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-              <WifiOff className="w-3 h-3" />
-              POLLING (SSE RETRY)
-            </span>
-          )}
+        <div className="flex-1" />
+
+        {/* Clocks are desk furniture — dropped below xl rather than crowding. */}
+        <div className="hidden xl:flex items-center gap-4 font-mono text-[11px] text-muted-foreground">
+          <span>{utcTime || '--:--:-- UTC'}</span>
+          <span className="h-3 w-px bg-border" />
+          <span>{localTime || '--:--:--'}</span>
         </div>
 
-        {/* Right — break-glass + sign out */}
-        <div className="flex items-center gap-3">
-          <button
-            id="infra-break-glass-btn"
-            onClick={() => setBgOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:border-rose-500 transition-all shadow-sm shadow-rose-950/50"
-          >
-            <Flame className="w-3.5 h-3.5 animate-bounce" />
-            Break-Glass
-          </button>
-          <div className="h-5 w-px bg-slate-800" />
-          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 font-medium">
-            <span>{user.name}</span>
-          </div>
-          <button
-            onClick={() => { clear(); navigate('/login'); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
+        {/* Live/degraded state must survive to phone width: it tells the
+            operator whether what they are reading is current. */}
+        {sseConnected ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-500 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="hidden sm:inline">Live</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-500 shrink-0">
+            <WifiOff className="w-3 h-3" />
+            <span className="hidden sm:inline">Reconnecting</span>
+          </span>
+        )}
+
+        <button
+          id="infra-break-glass-btn"
+          onClick={() => setBgOpen(true)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-destructive hover:bg-destructive/10 border border-destructive/30 transition-colors shrink-0"
+        >
+          <Flame className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Break-glass</span>
+        </button>
+
+        <span className="hidden lg:inline text-[12px] text-muted-foreground truncate max-w-[12ch]">
+          {user.name}
+        </span>
+
+        <button
+          onClick={() => { clear(); navigate('/login'); }}
+          aria-label="Sign out"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline">Sign out</span>
+        </button>
       </header>
 
-      {/* ── Body: sidebar + main ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="w-64 border-r border-slate-800/80 bg-slate-950 flex flex-col justify-between p-4 shrink-0">
-          <nav className="space-y-1">
-            {NAV_SECTIONS.map((section) => (
-              <div key={section.label}>
-                <p className="px-3 py-2 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                  {section.label}
-                </p>
-                {section.items.map(({ to, icon: Icon, label }) => (
-                  <NavLink key={to} to={to} className={navCls} end>
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            ))}
-          </nav>
-
-          {/* System environment badge */}
-          <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-500 font-mono">NODE:</span>
-              <span className="text-slate-300 font-mono font-medium">CAMTECH-EDGE-01</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-500 font-mono">GATEWAY:</span>
-              <span className="text-cyan-400 font-mono font-medium">PORT 4000</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-500 font-mono">ENCRYPT:</span>
-              <span className="text-emerald-400 font-mono font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> TLS 1.3 / mTLS
-              </span>
-            </div>
-          </div>
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex min-h-0">
+        {/* Static sidebar, desktop only. */}
+        <aside className="hidden lg:flex w-60 shrink-0 border-r border-border bg-card/40 flex-col justify-between gap-4 p-3 overflow-y-auto">
+          {navContent}
         </aside>
 
-        {/* Main content — React Router Outlet renders the active page */}
-        <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-b from-slate-950 via-slate-900/30 to-slate-950">
+        {/* Mobile drawer. Rendered only while open so it cannot trap focus or
+            intercept taps when closed. */}
+        {navOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setNavOpen(false)}
+              aria-hidden="true"
+            />
+            <aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              className="relative w-[17rem] max-w-[85vw] h-full bg-card border-r border-border flex flex-col justify-between gap-4 p-3 overflow-y-auto shadow-xl animate-in slide-in-from-left duration-200"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Navigation
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setNavOpen(false)}
+                    aria-label="Close navigation menu"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {navContent}
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {/* Padding scales with the viewport — 32px on a phone wasted a quarter
+            of the usable width. min-w-0 lets wide tables scroll inside instead
+            of stretching the page. */}
+        <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 lg:p-7">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
