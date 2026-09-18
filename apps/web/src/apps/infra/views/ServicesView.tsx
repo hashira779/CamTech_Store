@@ -21,6 +21,9 @@ interface ServicesViewProps {
 export function ServicesView({ services = [], onSelectService }: ServicesViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+  const selectedService = selectedServiceId ? services.find(s => s.id === selectedServiceId) : null;
 
   const filtered = services.filter((s) => {
     const matchesSearch =
@@ -138,6 +141,7 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          setSelectedServiceId(s.id);
                           onSelectService?.(s.id);
                         }}
                         className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-sans transition"
@@ -152,6 +156,92 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
           </table>
         </div>
       </div>
+
+      {/* ── Service Detail Inspector Modal ── */}
+      {selectedService && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl p-5 space-y-4 font-mono">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-indigo-400" />
+                <span className="text-sm font-bold text-white truncate max-w-sm">
+                  {selectedService.name} <span className="text-zinc-500 font-normal">({selectedService.role})</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedServiceId(null)}
+                className="text-zinc-500 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-zinc-500">Status:</span>
+                <div className={`font-bold ${
+                  selectedService.status === 'HEALTHY' ? 'text-emerald-400' :
+                  selectedService.status === 'DEGRADED' ? 'text-amber-400' : 'text-rose-400'
+                }`}>
+                  {selectedService.status}
+                </div>
+              </div>
+              <div>
+                <span className="text-zinc-500">Version:</span>
+                <div className="text-white font-bold">{selectedService.version}</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">Port:</span>
+                <div className="text-indigo-300 font-bold">:{selectedService.port}</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">Instances:</span>
+                <div className="text-white font-bold">{selectedService.instancesCount} instance(s)</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">CPU Usage:</span>
+                <div className="text-emerald-300 font-bold">{selectedService.cpuPct.toFixed(2)}%</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">Memory Usage:</span>
+                <div className="text-emerald-300 font-bold">{selectedService.memoryPct.toFixed(2)}%</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">Uptime:</span>
+                <div className="text-white font-bold">{(selectedService.uptimeSeconds / 3600).toFixed(1)} hours</div>
+              </div>
+              <div>
+                <span className="text-zinc-500">DB Latency:</span>
+                <div className="text-amber-300 font-bold">{selectedService.dbPingMs !== undefined ? `${selectedService.dbPingMs.toFixed(1)}ms` : 'N/A'}</div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-zinc-800/80 text-xs">
+              <span className="text-zinc-500 mb-2 block">Dependencies:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedService.dependencies?.length > 0 ? (
+                  selectedService.dependencies.map(dep => (
+                    <span key={dep} className="px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      {dep}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-zinc-600">None</span>
+                )}
+              </div>
+            </div>
+            
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={() => setSelectedServiceId(null)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-sans transition"
+              >
+                Close Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
