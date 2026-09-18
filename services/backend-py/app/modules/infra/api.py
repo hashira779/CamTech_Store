@@ -173,6 +173,18 @@ async def declare_incident(
     )
 
 
+@router.delete("/incidents/{incident_id}", summary="Delete an incident (Admin Only)")
+async def delete_incident(
+    incident_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    success = await infra_service_instance.delete_incident(db, incident_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return {"message": "Incident deleted successfully"}
+
+
 @router.get("/deployments", response_model=List[DeploymentCorrelationSchema], summary="List recent service deployments")
 async def list_deployments(
     user: TenantUser = Depends(require_infra_operator),

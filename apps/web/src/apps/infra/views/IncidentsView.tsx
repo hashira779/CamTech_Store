@@ -15,11 +15,13 @@ import { toast } from 'sonner';
 interface IncidentsViewProps {
   incidents?: IncidentDTO[];
   onCreateIncident?: (title: string, severity: IncidentSeverity, description: string, services: string[]) => Promise<void>;
+  onDeleteIncident?: (id: string) => Promise<void>;
 }
 
 export function IncidentsView({
   incidents = [],
   onCreateIncident,
+  onDeleteIncident,
 }: IncidentsViewProps) {
   const [selectedIncident, setSelectedIncident] = useState<IncidentDTO | null>(
     incidents[0] || null
@@ -148,7 +150,20 @@ export function IncidentsView({
                   </span>
                 </div>
 
-                <h3 className="text-base font-bold text-white">{selectedIncident.title}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-white">{selectedIncident.title}</h3>
+                  <button
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to permanently delete this incident?')) {
+                        await onDeleteIncident?.(selectedIncident.id);
+                        setSelectedIncident(null);
+                      }
+                    }}
+                    className="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition"
+                  >
+                    Delete (Admin)
+                  </button>
+                </div>
                 <p className="text-xs text-zinc-300 leading-relaxed">{selectedIncident.description}</p>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">

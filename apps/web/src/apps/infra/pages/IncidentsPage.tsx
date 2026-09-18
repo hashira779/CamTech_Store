@@ -31,6 +31,12 @@ export default function IncidentsPage() {
     queryClient.invalidateQueries({ queryKey: ['infra-overview'] });
   };
 
+  const handleDeleteIncident = async (id: string) => {
+    await apiClient.delete(`/api/v1/infra/incidents/${id}`);
+    queryClient.invalidateQueries({ queryKey: ['infra-incidents'] });
+    queryClient.invalidateQueries({ queryKey: ['infra-overview'] });
+  };
+
   if (isLoading && !incidents) {
     return <PageSkeleton variant="cards" />;
   }
@@ -39,6 +45,7 @@ export default function IncidentsPage() {
     <IncidentsView
       incidents={incidents ?? []}
       onCreateIncident={handleCreateIncident}
+      onDeleteIncident={handleDeleteIncident}
     />
   );
 }

@@ -540,11 +540,12 @@ class InfraControlService:
             status=incident.status,
             title=incident.title,
             description=incident.description,
-            affectedServices=created_aff_services,
+            affectedServices=incident.affected_services,
             ownerId=incident.owner_id,
+            ownerName=None,
             firstSeenAt=incident.first_seen_at,
             lastUpdatedAt=incident.last_updated_at,
-            resolvedAt=None,
+            resolvedAt=incident.resolved_at,
             timeline=[
                 IncidentTimelineSchema(
                     id=initial_entry.id,
@@ -555,6 +556,18 @@ class InfraControlService:
                 )
             ],
         )
+
+    async def delete_incident(self, db: AsyncSession, incident_id: str) -> bool:
+        """Permanently delete an incident from the database (Dev/Admin only)."""
+        from sqlalchemy import select
+        stmt = select(InfraIncident).where(InfraIncident.id == incident_id)
+        result = await db.execute(stmt)
+        incident = result.scalar_one_or_none()
+        if incident:
+            await db.delete(incident)
+            await db.commit()
+            return True
+        return False
 
     async def get_deployments(self, db: AsyncSession) -> List[DeploymentCorrelationSchema]:
         """Returns recent service deployment history correlated with latency & errors."""
