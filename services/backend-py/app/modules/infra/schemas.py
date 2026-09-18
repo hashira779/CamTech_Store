@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ApproximateGeoSchema(BaseModel):
@@ -124,12 +124,23 @@ class IncidentSchema(BaseModel):
     status: str
     title: str
     description: str
-    affectedServices: List[str]
+    affectedServices: List[str] = Field(default_factory=list)
     ownerId: Optional[str] = None
     firstSeenAt: datetime
     lastUpdatedAt: datetime
     resolvedAt: Optional[datetime] = None
     timeline: List[IncidentTimelineSchema] = []
+
+    @field_validator("affectedServices", mode="before")
+    @classmethod
+    def parse_affected_services(cls, v):
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 
 class CreateIncidentRequest(BaseModel):
