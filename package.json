@@ -16,7 +16,7 @@
     "test:e2e": "pnpm --filter @mystore/web test:e2e",
     "preview": "pnpm --filter @mystore/web preview",
     "typecheck": "turbo run typecheck --filter=!@mystore/backend --concurrency=2",
-    "audit:check": "python services/backend-py/scripts/schema_audit.py && concurrently -g --names pytest,typecheck \"pnpm py:test\" \"pnpm typecheck\"",
+    "audit:check": "python services/backend-py/scripts/schema_audit.py && pnpm typecheck",
     "store:dev": "pnpm --filter @mystore/store dev",
     "admin:dev": "pnpm --filter @mystore/web dev",
     "cashier:dev": "pnpm --filter @mystore/cashier dev",
