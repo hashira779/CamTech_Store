@@ -1,3 +1,4 @@
+import os
 import paramiko
 import time
 import sys
@@ -11,7 +12,7 @@ def connect_with_retry(max_retries=5, delay=2):
             client.connect(
                 "10.1.0.11",
                 username="ubuntu-server",
-                password="pTT!CT01",
+                password=os.getenv("CAMTECH_PASS"),
                 timeout=20,
                 banner_timeout=60,
                 auth_timeout=60,
@@ -31,7 +32,7 @@ def run_cmd(command):
         sys.exit(1)
     
     # We execute directly
-    full = f"echo 'pTT!CT01' | sudo -S bash -c {repr(command)}"
+    full = f"echo '$CAMTECH_PASS' | sudo -S bash -c {repr(command)}"
     _, stdout, stderr = client.exec_command(full, get_pty=True)
     out = stdout.read().decode(errors="replace")
     client.close()

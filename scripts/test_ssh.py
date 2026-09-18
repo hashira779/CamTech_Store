@@ -1,7 +1,8 @@
+import os
 import paramiko
 import sys
 
-cmd = sys.argv[1] if len(sys.argv) > 1 else "echo 'pTT!CT01' | sudo -S docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+cmd = sys.argv[1] if len(sys.argv) > 1 else "echo '$CAMTECH_PASS' | sudo -S docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -10,7 +11,7 @@ try:
     client.connect(
         "10.1.0.11",
         username="ubuntu-server",
-        password="pTT!CT01",
+        password=os.getenv("CAMTECH_PASS"),
         timeout=30,
         banner_timeout=90,
         auth_timeout=90,

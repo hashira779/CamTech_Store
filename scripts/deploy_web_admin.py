@@ -5,7 +5,9 @@ import paramiko
 
 HOST = "10.1.0.11"
 USER = "ubuntu-server"
-PASSWORD = "pTT!CT01"
+PASSWORD = os.getenv("CAMTECH_PASS")
+if not PASSWORD:
+    raise ValueError("Set CAMTECH_PASS environment variable")
 
 def create_tar(source_dir, output_filename):
     print(f"Archiving {source_dir} -> {output_filename}...")

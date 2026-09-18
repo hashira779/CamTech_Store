@@ -7,7 +7,7 @@ This guide explains how to deploy critical hotfixes directly from the local Wind
 
 ## Prerequisites
 
-The unified operations CLI `scripts/camtech.py` is configured to handle deployment and remote execution automatically. It uses built-in credentials (e.g. `ubuntu-server` / `pTT!CT01`) and requires `paramiko` to be installed in your Python environment.
+The unified operations CLI `scripts/camtech.py` is configured to handle deployment and remote execution automatically. It uses built-in credentials (e.g. `ubuntu-server` / `$CAMTECH_PASS`) and requires `paramiko` to be installed in your Python environment.
 
 ## Workflow
 

@@ -37,7 +37,7 @@ def get_config(args):
     load_env_file()
     host = getattr(args, "host", None) or os.environ.get("CAMTECH_HOST", "10.1.0.11")
     user = os.environ.get("CAMTECH_USER", "ubuntu-server")
-    password = os.environ.get("CAMTECH_PASS", "pTT!CT01")
+    password = os.environ.get("CAMTECH_PASS")
     key_path = os.environ.get("CAMTECH_KEY")
     return host, user, password, key_path
 

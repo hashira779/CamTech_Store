@@ -8,7 +8,9 @@ import time
 
 HOST = "10.1.0.11"
 USER = "ubuntu-server"
-PASSWORD = "pTT!CT01"
+PASSWORD = os.getenv("CAMTECH_PASS")
+if not PASSWORD:
+    raise ValueError("Set CAMTECH_PASS environment variable")
 
 local_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "services", "backend-py", "app", "modules", "delivery", "service.py"))
 remote_repo = "/home/ubuntu-server/CamTech_Store/services/backend-py/app/modules/delivery/service.py"

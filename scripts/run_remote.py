@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 import sys
 import paramiko
@@ -18,7 +19,7 @@ def exec_remote(cmd: str):
     env = load_env()
     host = env.get("CAMTECH_HOST", "10.1.0.11")
     user = env.get("CAMTECH_USER", "ubuntu-server")
-    password = env.get("CAMTECH_PASS", "pTT!CT01")
+    password = env.get("CAMTECH_PASS")
     
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
