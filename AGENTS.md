@@ -7,7 +7,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 > Orientation first: [`README.md`](README.md) · [`docs/architecture/current-state.md`](docs/architecture/current-state.md) ·
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
 > [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
-> latest change log [`docs/audits/session-2026-09-12.md`](docs/audits/session-2026-09-12.md).
+> latest change log [`docs/audits/session-2026-09-18.md`](docs/audits/session-2026-09-18.md).
 
 ---
 
@@ -51,6 +51,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
     generate mock data, dummy sales, fake customers, or automated test records against the remote production database.
     Automated seeding and test fixtures are **STRICTLY CONFINED TO LOCAL DEVELOPMENT (`localhost`) ON YOUR PC**.
     Production data may only be altered via verified DDL migrations or explicit, direct user instructions.
+11. **Never hardcode deployment or SSH credentials in Git.** You must strictly use the `$CAMTECH_PASS` workflow when writing scripts that access the production VPS (`10.1.0.11`). Any AI or human writing deployment/ops scripts must inject credentials securely via environment variables (e.g. `sshpass -p "$CAMTECH_PASS"`).
 
 ---
 
