@@ -75,8 +75,9 @@ async def test_enterprise_endpoints_require_auth(endpoint):
 
 @pytest.mark.asyncio
 async def test_auth_rate_limiter():
-    from app.core.rate_limiter import auth_rate_limiter
+    from app.core.rate_limiter import auth_rate_limiter, ip_ban_list
     await auth_rate_limiter.reset()
+    await ip_ban_list.reset()
     try:
         # Use an isolated client IP to ensure no crosstalk with other tests or localhost
         headers = {"X-Real-IP": "198.51.100.246"}
@@ -97,4 +98,6 @@ async def test_auth_rate_limiter():
     finally:
         # Always clean up rate limiter state across both memory and Redis
         await auth_rate_limiter.reset()
+        from app.core.rate_limiter import ip_ban_list
+        await ip_ban_list.reset()
 

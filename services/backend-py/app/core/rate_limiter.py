@@ -186,6 +186,19 @@ class IPBanList:
 
 
 # ==============================================================================
+    async def reset(self):
+        """Clears all bans (memory and redis). Used for testing."""
+        self._local_bans.clear()
+        if self._redis:
+            try:
+                keys = await self._redis.keys(f"{self.BAN_KEY_PREFIX}*")
+                vkeys = await self._redis.keys(f"{self.VIOLATION_KEY_PREFIX}*")
+                all_keys = keys + vkeys
+                if all_keys:
+                    await self._redis.delete(*all_keys)
+            except Exception:
+                pass
+
 # RATE LIMITER
 # ==============================================================================
 

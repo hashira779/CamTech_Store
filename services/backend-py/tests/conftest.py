@@ -98,3 +98,15 @@ async def init_test_database():
         await engine.dispose()
     except Exception:
         pass
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def clear_rate_limiters():
+    """Wipe memory/Redis rate limiters and bans before each test to prevent cross-test contamination."""
+    try:
+        from app.core.rate_limiter import auth_rate_limiter, api_rate_limiter, ip_ban_list
+        await auth_rate_limiter.reset()
+        await api_rate_limiter.reset()
+        await ip_ban_list.reset()
+    except Exception:
+        pass
