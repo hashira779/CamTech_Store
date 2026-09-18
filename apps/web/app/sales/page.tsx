@@ -258,10 +258,10 @@ export function SalesPage() {
           const channel = row.getValue('channel') as string;
           const deliveryStatus = row.original.deliveryStatus;
 
-          if ((channel === 'STORE' || channel === 'ONLINE') && deliveryStatus) {
+          if (deliveryStatus && deliveryStatus !== 'PREPARING') {
              return (
               <Badge
-                variant={deliveryStatus === 'DELIVERED' ? 'success' : deliveryStatus === 'PREPARING' ? 'secondary' : 'default'}
+                variant={deliveryStatus === 'DELIVERED' ? 'success' : 'default'}
                 className="text-[10px] font-semibold uppercase"
               >
                 {deliveryStatus === 'PENDING' ? 'READY FOR COURIER' : deliveryStatus}
@@ -269,7 +269,7 @@ export function SalesPage() {
             );
           }
 
-          if (status === 'DRAFT') {
+          if (status === 'DRAFT' || deliveryStatus === 'PREPARING') {
             return (
               <Badge
                 variant="secondary"
@@ -753,11 +753,13 @@ export function SalesPage() {
                     <span className="text-muted-foreground font-medium block">Status</span>
                     <div className="mt-1">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
-                        selectedSale.status === 'DRAFT'
+                        (!selectedSale.deliveryStatus || selectedSale.deliveryStatus === 'PREPARING') && selectedSale.status === 'DRAFT'
                           ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 border-amber-200 dark:border-amber-800'
                           : 'bg-pink-50 dark:bg-pink-950/40 text-[#ff007a] border-pink-200 dark:border-pink-800'
                       }`}>
-                        {selectedSale.status === 'DRAFT' ? 'PREPARING' : (selectedSale.deliveryStatus || selectedSale.status)}
+                        {(selectedSale.deliveryStatus && selectedSale.deliveryStatus !== 'PREPARING')
+                          ? selectedSale.deliveryStatus
+                          : selectedSale.status === 'DRAFT' ? 'PREPARING' : selectedSale.status}
                       </span>
                     </div>
                   </div>
