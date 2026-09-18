@@ -69,7 +69,6 @@ const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
   '/finance': () => import('@/app/finance/page'),
   '/procurement': () => import('@/app/procurement/page'),
   '/delivery': () => import('@/app/delivery/page'),
-  '/driver': () => import('@/app/driver/page'),
   '/shop': () => import('@/app/shop/page'),
   '/customer': () => import('@/app/customer/page'),
   '/hr': () => import('@/app/hr/page'),

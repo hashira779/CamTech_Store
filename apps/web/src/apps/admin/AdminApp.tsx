@@ -22,7 +22,6 @@ const ApprovalsPage = lazy(() => import('@/app/approvals/page'));
 const FinancePage = lazy(() => import('@/app/finance/page'));
 const ProcurementPage = lazy(() => import('@/app/procurement/page'));
 const DeliveryPage = lazy(() => import('@/app/delivery/page'));
-const DriverAppPage = lazy(() => import('@/app/driver/page'));
 const CustomerShopPage = lazy(() => import('@/app/shop/page'));
 const CustomerPortalPage = lazy(() => import('@/app/customer/page'));
 const HrPage = lazy(() => import('@/app/hr/page'));
@@ -70,7 +69,6 @@ export function AdminApp() {
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/procurement" element={<ProcurementPage />} />
         <Route path="/delivery" element={<DeliveryPage />} />
-        <Route path="/driver" element={<DriverAppPage />} />
         <Route path="/shop" element={<CustomerShopPage />} />
         <Route path="/customer" element={<CustomerPortalPage />} />
         <Route path="/hr" element={<HrPage />} />
