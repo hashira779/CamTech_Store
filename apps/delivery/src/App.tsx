@@ -225,6 +225,7 @@ export function App() {
     window.addEventListener('resize', checkViewport);
 
     // Check cached credentials
+    let hasValidToken = false;
     try {
       const savedAuth = localStorage.getItem('delivery-driver-auth') || localStorage.getItem('mystore-auth');
       if (savedAuth) {
@@ -232,16 +233,29 @@ export function App() {
         const savedToken = parsed.token || parsed?.state?.token;
         const savedUser = parsed.user || parsed?.state?.user;
         if (savedToken && savedUser) {
-          setToken(savedToken);
-          setUser(savedUser);
-          setAuthState('ACTIVE');
-          return () => window.removeEventListener('resize', checkViewport);
+          // Basic JWT expiration check
+          try {
+            const payload = JSON.parse(atob(savedToken.split('.')[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              localStorage.removeItem('delivery-driver-auth');
+            } else {
+              setToken(savedToken);
+              setUser(savedUser);
+              setAuthState('ACTIVE');
+              hasValidToken = true;
+            }
+          } catch {
+            setToken(savedToken);
+            setUser(savedUser);
+            setAuthState('ACTIVE');
+            hasValidToken = true;
+          }
         }
       }
     } catch {}
 
     // Auto-login via Telegram WebApp if running in bot
-    if (tgInitData) {
+    if (tgInitData && !hasValidToken) {
       fetch(`${API_BASE_URL}/api/v1/delivery/auth/login/auto`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,7 +278,7 @@ export function App() {
         .catch(() => {
           setAuthState('UNREGISTERED');
         });
-    } else {
+    } else if (!hasValidToken) {
       setAuthState('UNREGISTERED');
     }
 
@@ -385,10 +399,17 @@ export function App() {
   const { data: orders = [], isLoading } = useQuery<DeliveryTask[]>({
     queryKey: ['driver-deliveries'],
     queryFn: async () => {
+      if (!token) return [];
       const res = await fetch(`${API_BASE_URL}/api/v1/delivery/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
+      if (res.status === 401 || json.code === 'UNAUTHORIZED' || json.message === 'Token is invalid or expired') {
+        setToken(null);
+        setAuthState('UNREGISTERED');
+        localStorage.removeItem('delivery-driver-auth');
+        throw new Error('Session expired');
+      }
       const items = json.data || json || [];
       return Array.isArray(items) ? items.map((o: any) => ({
         ...o,

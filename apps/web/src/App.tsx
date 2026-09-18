@@ -73,8 +73,6 @@ export function App() {
       isInfraApp = true;
     } else if (isPath('/pos')) {
       CurrentApp = PosApp;
-    } else if (isPath('/driver')) {
-      CurrentApp = DeliveryApp;
     } else if (isPath('/wms')) {
       CurrentApp = WarehouseApp;
     } else if (isPath('/shop') || isPath('/customer')) {
