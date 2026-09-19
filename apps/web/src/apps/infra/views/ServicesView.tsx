@@ -46,7 +46,7 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
             placeholder="Search service name, role, or port..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#F38020] focus:ring-1 focus:ring-[#F38020]/30 transition"
           />
         </div>
 
@@ -57,7 +57,7 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
                 statusFilter === status
-                  ? 'bg-indigo-600 text-white font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                  ? 'bg-[#F38020] text-white font-bold shadow-[0_0_12px_rgba(243,128,32,0.4)]'
                   : 'bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -95,7 +95,7 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
                   >
                     <td className="p-3">
                       <div className="flex items-center gap-2">
-                        <Server className="w-4 h-4 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
+                        <Server className="w-4 h-4 text-zinc-400 group-hover:text-[#F38020] transition-colors" />
                         <div>
                           <div className="font-bold text-white text-xs">{s.name}</div>
                           <div className="text-[10px] text-zinc-500">v{s.version} • {s.instancesCount} instance(s)</div>
@@ -163,14 +163,14 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
           <div className="w-full max-w-xl rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl p-5 space-y-4 font-mono">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-indigo-400" />
+                <Server className="w-5 h-5 text-[#F38020]" />
                 <span className="text-sm font-bold text-white truncate max-w-sm">
                   {selectedService.name} <span className="text-zinc-500 font-normal">({selectedService.role})</span>
                 </span>
               </div>
               <button
                 onClick={() => setSelectedServiceId(null)}
-                className="text-zinc-500 hover:text-white text-sm"
+                className="text-zinc-500 hover:text-white text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -192,7 +192,7 @@ export function ServicesView({ services = [], onSelectService }: ServicesViewPro
               </div>
               <div>
                 <span className="text-zinc-500">Port:</span>
-                <div className="text-indigo-300 font-bold">:{selectedService.port}</div>
+                <div className="text-[#F38020] font-bold">:{selectedService.port}</div>
               </div>
               <div>
                 <span className="text-zinc-500">Instances:</span>

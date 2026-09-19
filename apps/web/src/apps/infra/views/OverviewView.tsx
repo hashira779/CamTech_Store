@@ -48,7 +48,7 @@ export function OverviewView({
         <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
           <div className="flex items-center justify-between text-zinc-400">
             <span className="text-[11px] font-mono uppercase tracking-wider">Service Mesh</span>
-            <Server className="w-4 h-4 text-indigo-400" />
+            <Server className="w-4 h-4 text-[#F38020]" />
           </div>
           <div className="text-2xl font-extrabold text-white mt-1">
             {overview?.healthyServices ?? 9} / {overview?.totalServices ?? 9}
@@ -67,7 +67,7 @@ export function OverviewView({
             {overview?.requestsPerSec?.toFixed(1) ?? '142.5'} <span className="text-xs font-normal text-zinc-400 font-sans">req/s</span>
           </div>
           <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
-            Avg P95: <span className="text-indigo-300 font-bold">{overview?.p95LatencyMs?.toFixed(1) ?? '18.4'}ms</span>
+            Avg P95: <span className="text-[#F38020] font-bold">{overview?.p95LatencyMs?.toFixed(1) ?? '18.4'}ms</span>
           </div>
         </div>
 
@@ -103,14 +103,14 @@ export function OverviewView({
         <div className="flex items-center justify-between mb-2">
           <div>
             <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
+              <Layers className="w-4 h-4 text-[#F38020]" />
               Live Mesh Topology & Service Interconnect
             </h2>
             <p className="text-[11px] text-zinc-400">Real-time edge traffic routing and persistence dependencies</p>
           </div>
           <button
             onClick={() => onNavigateTab?.('topology')}
-            className="text-[11px] font-mono text-indigo-400 hover:text-indigo-300 transition"
+            className="text-[11px] font-mono text-[#F38020] hover:text-orange-400 transition"
           >
             Full Topology Explorer →
           </button>
@@ -124,7 +124,7 @@ export function OverviewView({
         <div className="lg:col-span-2 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-400" />
+              <Activity className="w-4 h-4 text-[#F38020]" />
               <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Live API Telemetry Tail</h3>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-pulse">
@@ -192,7 +192,7 @@ export function OverviewView({
             </div>
             <button
               onClick={() => onNavigateTab?.('incidents')}
-              className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300"
+              className="text-[10px] font-mono text-[#F38020] hover:text-orange-400"
             >
               View All →
             </button>

@@ -53,14 +53,30 @@ pip install --quiet --upgrade pip
 pip install --quiet fastapi uvicorn[standard] psutil httpx docker pydantic
 
 # ── 6. Copy agent code ───────────────────────────────────────────────────────
-echo "📝 Copying agent source..."
+echo "📝 Setting up agent source..."
 if [ -d "./icp_agent" ]; then
     cp -r ./icp_agent "$INSTALL_DIR/"
+elif [ -d "/home/ubuntu-server/CamTech_Store/services/agent/icp_agent" ]; then
+    cp -r /home/ubuntu-server/CamTech_Store/services/agent/icp_agent "$INSTALL_DIR/"
+elif [ -d "/root/CamTech_Store/services/agent/icp_agent" ]; then
+    cp -r /root/CamTech_Store/services/agent/icp_agent "$INSTALL_DIR/"
 else
-    echo "⚠️ Agent source not found in current directory. Clone the repo first."
-    echo "   git clone https://github.com/hashira779/CamTech_Store.git"
-    echo "   cd CamTech_Store/services/agent && bash install.sh"
-    exit 1
+    echo "📥 Downloading agent files from GitHub repository..."
+    mkdir -p "$INSTALL_DIR/icp_agent"
+    TMP_DIR=$(mktemp -d)
+    if git clone --depth 1 https://github.com/hashira779/CamTech_Store.git "$TMP_DIR/repo" 2>/dev/null; then
+        cp -r "$TMP_DIR/repo/services/agent/icp_agent" "$INSTALL_DIR/"
+        rm -rf "$TMP_DIR"
+    else
+        echo "❌ Could not clone repository to fetch icp_agent."
+        exit 1
+    fi
+fi
+
+# Ensure Docker socket permissions if present
+if [ -S "/var/run/docker.sock" ]; then
+    echo "🐳 Found /var/run/docker.sock — socket verified."
+    chmod 660 /var/run/docker.sock 2>/dev/null || true
 fi
 
 # ── 7. Write configuration ───────────────────────────────────────────────────

@@ -216,10 +216,10 @@ export function InfraShell() {
 
   // ── Nav link class helper ────────────────────────────────────────────────────
   const navCls = ({ isActive }: { isActive: boolean }) =>
-    `w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
+    `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
       isActive
-        ? 'bg-primary/10 text-primary'
-        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        ? 'bg-[#F38020]/15 text-[#F38020] border-l-2 border-[#F38020] font-semibold pl-2.5 shadow-[inset_0_0_12px_rgba(243,128,32,0.1)]'
+        : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40'
     }`;
 
   // Shared by the static sidebar and the mobile drawer so the two can never
@@ -229,7 +229,7 @@ export function InfraShell() {
       <nav className="space-y-4">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="space-y-0.5">
-            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
               {section.label}
             </p>
             {section.items.map(({ to, icon: Icon, label }) => (
@@ -242,19 +242,24 @@ export function InfraShell() {
         ))}
       </nav>
 
-      <div className="rounded-lg border border-border bg-accent/30 p-3 space-y-1.5 text-[11px]">
+      <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3 space-y-1.5 text-[11px] shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground">Node</span>
-          <span className="font-mono text-foreground truncate">CAMTECH-EDGE-01</span>
+          <span className="text-zinc-400 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-[#F38020] fill-current" viewBox="0 0 24 24">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+            </svg>
+            Cloudflare Ray
+          </span>
+          <span className="font-mono text-zinc-300">8e91240c1e8a</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground">Gateway</span>
-          <span className="font-mono text-primary">:4000</span>
+          <span className="text-zinc-400">Edge PoP</span>
+          <span className="font-mono text-[#F38020] font-semibold">PNH / SIN Mesh</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground">Transport</span>
-          <span className="font-mono text-emerald-500 inline-flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> TLS 1.3
+          <span className="text-zinc-400">Edge Security</span>
+          <span className="font-mono text-emerald-400 inline-flex items-center gap-1 font-medium">
+            <CheckCircle2 className="w-3 h-3" /> TLS 1.3 Strict
           </span>
         </div>
       </div>
@@ -304,17 +309,23 @@ export function InfraShell() {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-4 h-4 text-primary-foreground" />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-[#F38020]/15 border border-[#F38020]/30 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(243,128,32,0.2)]">
+            <svg className="w-5 h-5 text-[#F38020] fill-current" viewBox="0 0 24 24">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+            </svg>
           </div>
           <div className="min-w-0">
-            <h1 className="text-[13px] font-semibold text-foreground truncate leading-tight">
-              Infra &amp; Security
-            </h1>
-            {/* Secondary context is the first thing to go on a narrow screen. */}
-            <p className="hidden sm:block text-[11px] text-muted-foreground font-mono leading-tight">
-              infra.camtech.cam
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-white tracking-tight">Cloudflare</span>
+              <span className="text-zinc-500 text-xs">/</span>
+              <span className="text-xs font-semibold text-zinc-200 truncate">camtech.cam</span>
+              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active
+              </span>
+            </div>
+            <p className="hidden sm:block text-[11px] text-zinc-400 font-mono leading-tight">
+              Enterprise Edge Mesh · HTTP/3 Active
             </p>
           </div>
         </div>

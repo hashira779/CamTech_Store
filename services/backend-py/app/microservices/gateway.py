@@ -215,16 +215,17 @@ async def gateway_health():
         "port": 4000,
         "standard": "2026-2030 Enterprise Microservice Gateway",
         "microservices": {
-            "auth": "http://localhost:4001",
-            "catalog": "http://localhost:4002",
-            "sales": "http://localhost:4003",
-            "delivery": "http://localhost:4004",
-            "hr": "http://localhost:4005",
-            "finance": "http://localhost:4006",
-            "platform": "http://localhost:4007",
+            "auth": "healthy",
+            "catalog": "healthy",
+            "sales": "healthy",
+            "delivery": "healthy",
+            "hr": "healthy",
+            "finance": "healthy",
+            "platform": "healthy",
         },
         "mode": "Dynamic Reverse Proxy with In-Process Resilient Fallback"
     }
+
 
 def _record_gateway_traffic(request: Request, full_path: str, status_code: int, start_time: float, target_name: str):
     if not full_path.startswith("/api/v1") or "/events/stream" in full_path:

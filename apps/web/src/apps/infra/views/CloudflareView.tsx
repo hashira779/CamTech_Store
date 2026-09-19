@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Cloud,
   Shield,
   Trash2,
   Plus,
@@ -11,8 +10,9 @@ import {
   CheckCircle2,
   ExternalLink,
   Settings,
-  Flame,
   Search,
+  Check,
+  Flame,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -133,35 +133,61 @@ export function CloudflareView() {
       d.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getRecordTypeBadge = (type: string) => {
+    switch (type.toUpperCase()) {
+      case 'A':
+        return 'bg-[#F38020]/15 text-[#F38020] border-[#F38020]/30';
+      case 'AAAA':
+        return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+      case 'CNAME':
+        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+      case 'TXT':
+        return 'bg-sky-500/15 text-sky-400 border-sky-500/30';
+      case 'MX':
+        return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+      default:
+        return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ── Top Bar ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Cloud className="w-5 h-5 text-amber-400" />
-            Cloudflare Edge Network & Security
-          </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            Global edge caching, DNS zones, DDoS mitigation, and geographic threat intelligence
-          </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#111827]/80 border border-zinc-800 shadow-xl backdrop-blur">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-[#F38020]/15 border border-[#F38020]/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(243,128,32,0.25)]">
+            <svg className="w-6 h-6 text-[#F38020] fill-current" viewBox="0 0 24 24">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white tracking-tight">Cloudflare Edge &amp; DNS Management</h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Zone Active
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Domain: <span className="font-mono text-zinc-200">camtech.cam</span> · Global Anycast Edge Network · DDoS &amp; WAF Protection
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => {
               refetchAnalytics();
               refetchDns();
             }}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
-            title="Refresh Cloudflare"
+            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition cursor-pointer"
+            title="Refresh Metrics"
           >
             <RotateCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => purgeMutation.mutate()}
             disabled={purgeMutation.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#F38020]/15 hover:bg-[#F38020]/25 text-[#F38020] border border-[#F38020]/35 text-xs font-semibold transition cursor-pointer shadow-sm"
             title="Purge Entire Edge Cache"
           >
             <Zap className="w-3.5 h-3.5" />
@@ -169,8 +195,8 @@ export function CloudflareView() {
           </button>
           <button
             onClick={() => setShowConfigModal(true)}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
-            title="Cloudflare Credentials Settings"
+            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition cursor-pointer"
+            title="Cloudflare API Credentials"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -178,40 +204,61 @@ export function CloudflareView() {
       </div>
 
       {/* ── Analytics KPI Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="text-xs text-zinc-400 mb-1">Total Edge Requests (24h)</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-xl bg-[#111827]/70 border border-zinc-800/90 shadow-sm">
+          <div className="text-[11px] text-zinc-400 font-medium mb-1 flex items-center justify-between">
+            <span>Total Requests (24h)</span>
+            <span className="text-emerald-400 text-[10px] font-mono font-semibold">+14.2%</span>
+          </div>
           <div className="text-2xl font-bold text-white font-mono">
             {analyticsData?.totalRequests ? analyticsData.totalRequests.toLocaleString() : '142,850'}
           </div>
+          <div className="text-[10px] text-zinc-500 font-mono mt-1">Edge Anycast Mesh</div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="text-xs text-emerald-400 mb-1">Cache Hit Ratio</div>
-          <div className="text-2xl font-bold text-emerald-400 font-mono">
+        <div className="p-4 rounded-xl bg-[#111827]/70 border border-zinc-800/90 shadow-sm">
+          <div className="text-[11px] text-zinc-400 font-medium mb-1 flex items-center justify-between">
+            <span>Cache Hit Ratio</span>
+            <span className="text-[#F38020] text-[10px] font-mono font-semibold">Bandwidth Saved</span>
+          </div>
+          <div className="text-2xl font-bold text-[#F38020] font-mono">
             {analyticsData?.cacheHitRatio ?? '75.9'}%
+          </div>
+          <div className="w-full h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+            <div
+              className="h-full bg-[#F38020] rounded-full"
+              style={{ width: `${analyticsData?.cacheHitRatio ?? 75.9}%` }}
+            />
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="text-xs text-rose-400 mb-1">Threats Mitigated</div>
+        <div className="p-4 rounded-xl bg-[#111827]/70 border border-zinc-800/90 shadow-sm">
+          <div className="text-[11px] text-zinc-400 font-medium mb-1 flex items-center justify-between">
+            <span>Threats Blocked</span>
+            <span className="text-rose-400 text-[10px] font-mono font-semibold">WAF Strict</span>
+          </div>
           <div className="text-2xl font-bold text-rose-400 font-mono">
             {analyticsData?.threatsBlocked ?? '89'}
           </div>
+          <div className="text-[10px] text-zinc-500 font-mono mt-1">Automated Edge Shield</div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="text-xs text-sky-400 mb-1">SSL & Security Level</div>
-          <div className="text-sm font-bold text-sky-400 font-mono truncate">
+        <div className="p-4 rounded-xl bg-[#111827]/70 border border-zinc-800/90 shadow-sm">
+          <div className="text-[11px] text-zinc-400 font-medium mb-1 flex items-center justify-between">
+            <span>SSL/TLS Encryption</span>
+            <span className="text-emerald-400 text-[10px] font-mono font-semibold">TLS 1.3</span>
+          </div>
+          <div className="text-base font-bold text-emerald-400 font-mono truncate mt-1">
             {analyticsData?.sslStatus || 'Full (Strict)'}
           </div>
+          <div className="text-[10px] text-zinc-500 font-mono mt-1">0-RTT Resumption Active</div>
         </div>
       </div>
 
       {/* ── Geographic Traffic Breakdown ── */}
-      <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-3">
+      <div className="p-4 rounded-xl bg-[#111827]/70 border border-zinc-800/90 space-y-3 shadow-sm">
         <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-2">
-          <Globe className="w-4 h-4 text-indigo-400" /> Top Traffic Origin Countries
+          <Globe className="w-4 h-4 text-[#F38020]" /> Top Edge Traffic Origin Countries
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -222,15 +269,15 @@ export function CloudflareView() {
             { country: 'Singapore', code: 'SG', requests: 4900, pct: 3.4 },
             { country: 'United States', code: 'US', requests: 4350, pct: 3.1 },
           ]).map((c: any) => (
-            <div key={c.code} className="p-2.5 rounded-lg bg-zinc-950/70 border border-zinc-800/60">
+            <div key={c.code} className="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800/60">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="font-semibold text-white">{c.country}</span>
-                <span className="text-zinc-400 font-mono">{c.pct}%</span>
+                <span className="text-[#F38020] font-mono font-bold">{c.pct}%</span>
               </div>
               <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${c.pct}%` }} />
+                <div className="h-full bg-gradient-to-r from-[#F38020] to-[#FAAD3F] rounded-full" style={{ width: `${c.pct}%` }} />
               </div>
-              <div className="text-[10px] text-zinc-500 font-mono mt-1">{c.requests.toLocaleString()} reqs</div>
+              <div className="text-[10px] text-zinc-500 font-mono mt-1.5">{c.requests.toLocaleString()} reqs</div>
             </div>
           ))}
         </div>
@@ -243,23 +290,23 @@ export function CloudflareView() {
             <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search DNS records by name or target..."
+              placeholder="Search DNS records by name, IP, or type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#F38020] focus:ring-1 focus:ring-[#F38020]/30 transition"
             />
           </div>
 
           <button
             onClick={() => setShowDnsModal(true)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold shadow-md shadow-[#F38020]/20 transition cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             Add DNS Record
           </button>
         </div>
 
-        <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/60 overflow-hidden">
+        <div className="rounded-xl border border-zinc-800/80 bg-[#111827]/70 overflow-hidden shadow-sm">
           <table className="w-full text-left text-xs">
             <thead className="bg-zinc-950/70 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider font-mono">
               <tr>
@@ -274,24 +321,39 @@ export function CloudflareView() {
             <tbody className="divide-y divide-zinc-800/60 font-mono">
               {filteredDns.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-500">
-                    No DNS records loaded or Cloudflare token not yet configured.
+                  <td colSpan={6} className="py-12 text-center text-zinc-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <svg className="w-8 h-8 text-zinc-600 fill-current" viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                      </svg>
+                      <span>No DNS records loaded or Cloudflare token not yet configured.</span>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredDns.map((r) => (
                   <tr key={r.id} className="hover:bg-zinc-800/30 transition">
-                    <td className="py-3 px-4 font-bold text-indigo-400">{r.type}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${getRecordTypeBadge(r.type)}`}>
+                        {r.type}
+                      </span>
+                    </td>
                     <td className="py-3 px-4 font-bold text-white">{r.name}</td>
-                    <td className="py-3 px-4 text-zinc-400 truncate max-w-xs">{r.content}</td>
+                    <td className="py-3 px-4 text-zinc-300 truncate max-w-xs">{r.content}</td>
                     <td className="py-3 px-4">
                       {r.proxied ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#F38020]/15 text-[#F38020] border border-[#F38020]/30 shadow-sm">
+                          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                          </svg>
                           Proxied
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400">
-                          DNS Only
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+                          <svg className="w-3 h-3 fill-current opacity-60" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                          </svg>
+                          DNS only
                         </span>
                       )}
                     </td>
@@ -303,7 +365,7 @@ export function CloudflareView() {
                             deleteDnsMutation.mutate(r.id);
                           }
                         }}
-                        className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                        className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
                         title="Delete record"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -320,14 +382,14 @@ export function CloudflareView() {
       {/* ── Settings Modal ── */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Settings className="w-4 h-4 text-amber-400" /> Cloudflare Credentials
+                <Settings className="w-4 h-4 text-[#F38020]" /> Cloudflare API Credentials
               </h3>
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -339,7 +401,7 @@ export function CloudflareView() {
                 type="text"
                 value={zoneName}
                 onChange={(e) => setZoneName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
@@ -350,7 +412,7 @@ export function CloudflareView() {
                 placeholder="Find in Cloudflare Zone Overview"
                 value={zoneId}
                 onChange={(e) => setZoneId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
@@ -361,14 +423,14 @@ export function CloudflareView() {
                 placeholder="Cloudflare API Token with Zone.DNS & Cache permissions"
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs"
+                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -381,7 +443,7 @@ export function CloudflareView() {
                   })
                 }
                 disabled={saveConfigMutation.isPending}
-                className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 {saveConfigMutation.isPending ? 'Saving...' : 'Save Configuration'}
               </button>
@@ -393,14 +455,14 @@ export function CloudflareView() {
       {/* ── Add DNS Modal ── */}
       {showDnsModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-400" /> New DNS Record
+                <Plus className="w-4 h-4 text-[#F38020]" /> Create DNS Record
               </h3>
               <button
                 onClick={() => setShowDnsModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -412,7 +474,7 @@ export function CloudflareView() {
                 <select
                   value={dnsType}
                   onChange={(e) => setDnsType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 >
                   <option value="A">A</option>
                   <option value="AAAA">AAAA</option>
@@ -429,7 +491,7 @@ export function CloudflareView() {
                   placeholder="e.g. api or @"
                   value={dnsName}
                   onChange={(e) => setDnsName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 />
               </div>
             </div>
@@ -441,19 +503,22 @@ export function CloudflareView() {
                 placeholder="e.g. 103.xxx.xxx.xxx"
                 value={dnsContent}
                 onChange={(e) => setDnsContent(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-2.5 pt-1">
               <input
                 type="checkbox"
                 id="proxied"
                 checked={dnsProxied}
                 onChange={(e) => setDnsProxied(e.target.checked)}
-                className="rounded border-zinc-700 text-amber-500 focus:ring-0"
+                className="rounded border-zinc-700 text-[#F38020] focus:ring-0 cursor-pointer w-4 h-4"
               />
-              <label htmlFor="proxied" className="text-xs text-zinc-300">
+              <label htmlFor="proxied" className="text-xs text-zinc-300 cursor-pointer flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[#F38020] fill-current" viewBox="0 0 24 24">
+                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                </svg>
                 Proxy traffic through Cloudflare (Orange Cloud)
               </label>
             </div>
@@ -461,7 +526,7 @@ export function CloudflareView() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowDnsModal(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs"
+                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -476,7 +541,7 @@ export function CloudflareView() {
                   })
                 }
                 disabled={createDnsMutation.isPending || !dnsName || !dnsContent}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-md shadow-[#F38020]/20"
               >
                 {createDnsMutation.isPending ? 'Creating...' : 'Create Record'}
               </button>

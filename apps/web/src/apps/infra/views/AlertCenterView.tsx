@@ -169,7 +169,7 @@ export function AlertCenterView() {
           {activeTab === 'RULES' && (
             <button
               onClick={() => setShowRuleModal(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold transition cursor-pointer shadow-md shadow-[#F38020]/20"
             >
               <Plus className="w-3.5 h-3.5" />
               New Alert Rule
@@ -179,7 +179,7 @@ export function AlertCenterView() {
           {activeTab === 'CHANNELS' && (
             <button
               onClick={() => setShowChannelModal(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold transition cursor-pointer shadow-md shadow-[#F38020]/20"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Notification Channel
@@ -198,7 +198,7 @@ export function AlertCenterView() {
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
-          <ShieldAlert className="w-3.5 h-3.5" /> Active & Historical Alerts
+          <ShieldAlert className="w-3.5 h-3.5" /> Active &amp; Historical Alerts
           {firingAlerts.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
               {firingAlerts.length}
@@ -210,7 +210,7 @@ export function AlertCenterView() {
           onClick={() => setActiveTab('RULES')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'RULES'
-              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-bold'
+              ? 'bg-[#F38020]/15 text-[#F38020] border border-[#F38020]/30 font-bold'
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
@@ -378,7 +378,7 @@ export function AlertCenterView() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white text-sm">{c.name}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F38020]/15 text-[#F38020] border border-[#F38020]/30">
                       {c.type}
                     </span>
                   </div>
@@ -397,7 +397,7 @@ export function AlertCenterView() {
                   </button>
                   <button
                     onClick={() => deleteChannelMutation.mutate(c.id)}
-                    className="p-1 text-zinc-500 hover:text-rose-400 transition"
+                    className="p-1 text-zinc-500 hover:text-rose-400 transition cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -411,7 +411,7 @@ export function AlertCenterView() {
       {/* ── Add Rule Modal ── */}
       {showRuleModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-bold text-white">Create Alert Rule</h3>
 
             <div>
@@ -421,7 +421,7 @@ export function AlertCenterView() {
                 placeholder="e.g. CPU Exceeds 90%"
                 value={ruleName}
                 onChange={(e) => setRuleName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
@@ -431,7 +431,7 @@ export function AlertCenterView() {
                 <select
                   value={ruleCategory}
                   onChange={(e) => setRuleCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 >
                   <option value="INFRA">INFRA</option>
                   <option value="SECURITY">SECURITY</option>
@@ -445,7 +445,7 @@ export function AlertCenterView() {
                 <select
                   value={ruleSeverity}
                   onChange={(e) => setRuleSeverity(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 >
                   <option value="CRITICAL">CRITICAL</option>
                   <option value="HIGH">HIGH</option>
@@ -461,7 +461,7 @@ export function AlertCenterView() {
                 <select
                   value={ruleMetric}
                   onChange={(e) => setRuleMetric(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 >
                   <option value="cpu_pct">CPU Usage (%)</option>
                   <option value="memory_pct">RAM Usage (%)</option>
@@ -475,7 +475,7 @@ export function AlertCenterView() {
                   type="number"
                   value={ruleThreshold}
                   onChange={(e) => setRuleThreshold(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 />
               </div>
             </div>
@@ -483,7 +483,7 @@ export function AlertCenterView() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowRuleModal(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs"
+                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -497,7 +497,7 @@ export function AlertCenterView() {
                   })
                 }
                 disabled={!ruleName || createRuleMutation.isPending}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-md shadow-[#F38020]/20"
               >
                 Save Rule
               </button>
@@ -509,7 +509,7 @@ export function AlertCenterView() {
       {/* ── Add Channel Modal ── */}
       {showChannelModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-bold text-white">Add Notification Channel</h3>
 
             <div>
@@ -519,7 +519,7 @@ export function AlertCenterView() {
                 placeholder="e.g. NOC Emergency Telegram Group"
                 value={channelName}
                 onChange={(e) => setChannelName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-[#F38020]"
               />
             </div>
 
@@ -528,7 +528,7 @@ export function AlertCenterView() {
               <select
                 value={channelType}
                 onChange={(e) => setChannelType(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
               >
                 <option value="TELEGRAM">Telegram Bot</option>
                 <option value="SLACK">Slack Incoming Webhook</option>
@@ -545,7 +545,7 @@ export function AlertCenterView() {
                     placeholder="123456789:ABCDefGHI..."
                     value={botToken}
                     onChange={(e) => setBotToken(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                   />
                 </div>
                 <div>
@@ -555,7 +555,7 @@ export function AlertCenterView() {
                     placeholder="-100xxxxxxxxx or user ID"
                     value={chatId}
                     onChange={(e) => setChatId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                   />
                 </div>
               </>
@@ -569,7 +569,7 @@ export function AlertCenterView() {
                   placeholder="https://hooks.slack.com/services/... or https://api.mycorp.com/alerts"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
                 />
               </div>
             )}
@@ -577,7 +577,7 @@ export function AlertCenterView() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowChannelModal(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs"
+                className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs cursor-pointer"
               >
                 Cancel
               </button>

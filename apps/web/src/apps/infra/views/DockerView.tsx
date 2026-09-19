@@ -139,8 +139,8 @@ export function DockerView() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Layers className="w-5 h-5 text-indigo-400" />
-            Docker & Container Workloads
+            <Layers className="w-5 h-5 text-[#F38020]" />
+            Docker &amp; Container Workloads
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
             Real-time lifecycle control, resource consumption, and logs across all host engines
@@ -149,7 +149,7 @@ export function DockerView() {
 
         <button
           onClick={() => refetch()}
-          className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
+          className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition cursor-pointer"
           title="Refresh Containers"
         >
           <RotateCw className="w-4 h-4" />
@@ -183,7 +183,7 @@ export function DockerView() {
             placeholder="Search container name or image..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#F38020] focus:ring-1 focus:ring-[#F38020]/30 transition"
           />
         </div>
 
@@ -192,7 +192,7 @@ export function DockerView() {
           <select
             value={selectedAgentId}
             onChange={(e) => setSelectedAgentId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+            className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
           >
             <option value="ALL">All Server Nodes</option>
             {agents.map((a) => (
@@ -278,7 +278,7 @@ export function DockerView() {
                               })
                             }
                             disabled={actionMutation.isPending}
-                            className="px-2 py-1 rounded bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/50 transition text-[11px]"
+                            className="px-2 py-1 rounded bg-[#F38020]/15 hover:bg-[#F38020]/25 text-[#F38020] border border-[#F38020]/30 transition text-[11px] cursor-pointer"
                             title="Restart"
                           >
                             <RotateCw className="w-3 h-3 inline mr-1" /> Restart
@@ -293,7 +293,7 @@ export function DockerView() {
                               })
                             }
                             disabled={actionMutation.isPending}
-                            className="px-2 py-1 rounded bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 transition text-[11px]"
+                            className="px-2 py-1 rounded bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 transition text-[11px] cursor-pointer"
                             title="Stop"
                           >
                             <Square className="w-3 h-3 inline mr-1" /> Stop
@@ -310,7 +310,7 @@ export function DockerView() {
                             })
                           }
                           disabled={actionMutation.isPending}
-                          className="px-2 py-1 rounded bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/50 transition text-[11px]"
+                          className="px-2 py-1 rounded bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/50 transition text-[11px] cursor-pointer"
                           title="Start"
                         >
                           <Play className="w-3 h-3 inline mr-1" /> Start
@@ -328,15 +328,15 @@ export function DockerView() {
       {/* ── Logs Modal ── */}
       {activeLogsContainer && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-400" />
+                <FileText className="w-4 h-4 text-[#F38020]" />
                 Logs: {activeLogsContainer.name} ({activeLogsContainer.agentHostname})
               </h3>
               <button
                 onClick={() => setActiveLogsContainer(null)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -351,13 +351,13 @@ export function DockerView() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => viewLogs(activeLogsContainer)}
-                className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs"
+                className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs cursor-pointer"
               >
                 Refresh
               </button>
               <button
                 onClick={() => setActiveLogsContainer(null)}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold"
+                className="px-4 py-1.5 bg-[#F38020] hover:bg-[#E07116] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-md shadow-[#F38020]/20"
               >
                 Close
               </button>

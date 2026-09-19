@@ -62,7 +62,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
         </div>
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">95th Percentile (P95)</div>
-          <div className="text-xl font-extrabold text-indigo-400 mt-1 font-mono">{p95.toFixed(1)}ms</div>
+          <div className="text-xl font-extrabold text-[#F38020] mt-1 font-mono">{p95.toFixed(1)}ms</div>
           <div className="text-[10px] text-zinc-400 font-mono mt-0.5">SLO Target: &lt;150ms</div>
         </div>
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
@@ -86,7 +86,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
             placeholder="Search path, service, IP, or trace ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 font-mono"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#F38020] focus:ring-1 focus:ring-[#F38020]/30 font-mono"
           />
         </div>
 
@@ -97,7 +97,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
               onClick={() => setMethodFilter(method)}
               className={`px-3 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
                 methodFilter === method
-                  ? 'bg-indigo-600 text-white font-bold'
+                  ? 'bg-[#F38020] text-white font-bold shadow-[0_0_12px_rgba(243,128,32,0.4)]'
                   : 'bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -108,7 +108,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
           <button
             onClick={handlePingGateway}
             disabled={isPinging}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition cursor-pointer disabled:opacity-50 ml-2"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono bg-[#F38020]/15 hover:bg-[#F38020]/25 text-[#F38020] border border-[#F38020]/30 transition cursor-pointer disabled:opacity-50 ml-2 shadow-sm"
             title="Test real-time edge packet transmission"
           >
             <Zap className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin' : ''}`} />
@@ -151,7 +151,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
                       <button
                         onClick={handlePingGateway}
                         disabled={isPinging}
-                        className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-medium transition cursor-pointer disabled:opacity-50 mt-1"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-mono font-medium transition cursor-pointer disabled:opacity-50 mt-1 shadow-md shadow-[#F38020]/20"
                       >
                         <Zap className="w-3.5 h-3.5" />
                         <span>Send Test Ping to Gateway</span>
@@ -205,7 +205,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
                       {r.approximateGeo?.asn || r.clientIp} ({r.approximateGeo?.country || 'KH'})
                     </td>
                     <td className="p-3 text-right">
-                      <span className="text-[10px] text-indigo-400 font-mono hover:underline">
+                      <span className="text-[10px] text-[#F38020] font-mono hover:underline">
                         {r.traceId.slice(0, 10)}...
                       </span>
                     </td>
@@ -223,7 +223,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
           <div className="w-full max-w-xl rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl p-5 space-y-4 font-mono">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-indigo-500/20 text-indigo-300">
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-[#F38020]/20 text-[#F38020]">
                   {selectedReq.method}
                 </span>
                 <span className="text-sm font-bold text-white truncate max-w-sm">
@@ -232,7 +232,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
               </div>
               <button
                 onClick={() => setSelectedReq(null)}
-                className="text-zinc-500 hover:text-white text-sm"
+                className="text-zinc-500 hover:text-white text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -249,7 +249,7 @@ export function ApiTrafficView({ requests = [] }: ApiTrafficViewProps) {
               </div>
               <div>
                 <span className="text-zinc-500">Target Microservice:</span>
-                <div className="text-indigo-400">{selectedReq.targetService}</div>
+                <div className="text-[#F38020]">{selectedReq.targetService}</div>
               </div>
               <div>
                 <span className="text-zinc-500">Timestamp:</span>

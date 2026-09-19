@@ -134,8 +134,8 @@ export function ServersView() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Server className="w-5 h-5 text-indigo-400" />
-            Server Fleet & Infrastructure Agents
+            <Server className="w-5 h-5 text-[#F38020]" />
+            Server Fleet &amp; Edge Compute Agents
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
             Real-time node telemetry, resource saturation, and secure out-of-band management
@@ -145,14 +145,14 @@ export function ServersView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
+            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition cursor-pointer"
             title="Refresh Fleet"
           >
             <RotateCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowInstallModal(true)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold shadow-md shadow-[#F38020]/20 transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Server Agent
@@ -163,34 +163,22 @@ export function ServersView() {
       {/* ── Summary Metric Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
-            <span>Total Servers</span>
-            <Server className="w-4 h-4 text-zinc-500" />
-          </div>
+          <div className="text-xs text-zinc-400 mb-1">Total Fleet Nodes</div>
           <div className="text-2xl font-bold text-white font-mono">{agents.length}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center justify-between text-xs text-emerald-400 mb-1">
-            <span>Online</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
+          <div className="text-xs text-emerald-400 mb-1">Online &amp; Healthy</div>
           <div className="text-2xl font-bold text-emerald-400 font-mono">{onlineCount}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center justify-between text-xs text-amber-400 mb-1">
-            <span>Degraded</span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          </div>
+          <div className="text-xs text-amber-400 mb-1">Degraded Nodes</div>
           <div className="text-2xl font-bold text-amber-400 font-mono">{degradedCount}</div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center justify-between text-xs text-rose-400 mb-1">
-            <span>Offline</span>
-            <XCircle className="w-4 h-4 text-rose-500" />
-          </div>
+          <div className="text-xs text-rose-400 mb-1">Offline Nodes</div>
           <div className="text-2xl font-bold text-rose-400 font-mono">{offlineCount}</div>
         </div>
       </div>
@@ -204,7 +192,7 @@ export function ServersView() {
             placeholder="Search hostname, IP, or tag..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#F38020] focus:ring-1 focus:ring-[#F38020]/30 transition"
           />
         </div>
 
@@ -215,7 +203,7 @@ export function ServersView() {
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1 rounded-lg text-xs font-mono transition cursor-pointer ${
                 statusFilter === status
-                  ? 'bg-indigo-600 text-white font-bold shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                  ? 'bg-[#F38020] text-white font-bold shadow-[0_0_12px_rgba(243,128,32,0.4)]'
                   : 'bg-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
               }`}
             >
@@ -237,7 +225,7 @@ export function ServersView() {
           </p>
           <button
             onClick={() => setShowInstallModal(true)}
-            className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold cursor-pointer"
+            className="mt-4 px-4 py-2 bg-[#F38020] hover:bg-[#E07116] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-md shadow-[#F38020]/20"
           >
             Show Agent Install Script
           </button>
@@ -292,7 +280,7 @@ export function ServersView() {
                     <div>
                       <div className="flex justify-between text-[11px] font-mono text-zinc-400 mb-1">
                         <span className="flex items-center gap-1.5">
-                          <Cpu className="w-3.5 h-3.5 text-indigo-400" /> CPU
+                          <Cpu className="w-3.5 h-3.5 text-[#F38020]" /> CPU
                         </span>
                         <span className={cpu > 80 ? 'text-rose-400 font-bold' : 'text-zinc-300'}>
                           {cpu.toFixed(1)}%
@@ -301,7 +289,7 @@ export function ServersView() {
                       <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            cpu > 80 ? 'bg-rose-500' : cpu > 60 ? 'bg-amber-500' : 'bg-indigo-500'
+                            cpu > 80 ? 'bg-rose-500' : cpu > 60 ? 'bg-amber-500' : 'bg-[#F38020]'
                           }`}
                           style={{ width: `${Math.min(cpu, 100)}%` }}
                         />
@@ -312,7 +300,7 @@ export function ServersView() {
                     <div>
                       <div className="flex justify-between text-[11px] font-mono text-zinc-400 mb-1">
                         <span className="flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5 text-violet-400" /> RAM
+                          <Activity className="w-3.5 h-3.5 text-amber-400" /> RAM
                         </span>
                         <span className={mem > 85 ? 'text-rose-400 font-bold' : 'text-zinc-300'}>
                           {mem.toFixed(1)}%
@@ -321,7 +309,7 @@ export function ServersView() {
                       <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            mem > 85 ? 'bg-rose-500' : mem > 70 ? 'bg-amber-500' : 'bg-violet-500'
+                            mem > 85 ? 'bg-rose-500' : mem > 70 ? 'bg-amber-500' : 'bg-amber-400'
                           }`}
                           style={{ width: `${Math.min(mem, 100)}%` }}
                         />
@@ -372,7 +360,7 @@ export function ServersView() {
                       className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs flex items-center gap-1.5 transition cursor-pointer"
                       title="Run Command"
                     >
-                      <Terminal className="w-3 h-3 text-indigo-400" /> Exec
+                      <Terminal className="w-3 h-3 text-[#F38020]" /> Exec
                     </button>
                     <button
                       onClick={() => {
@@ -410,11 +398,11 @@ export function ServersView() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Server className="w-4 h-4 text-indigo-400" /> Install ICP Server Agent
+                <Server className="w-4 h-4 text-[#F38020]" /> Install ICP Server Agent
               </h3>
               <button
                 onClick={() => setShowInstallModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -439,7 +427,7 @@ export function ServersView() {
               </button>
             </div>
 
-            <div className="p-3 rounded-lg bg-indigo-950/30 border border-indigo-900/40 text-xs text-indigo-300">
+            <div className="p-3 rounded-lg bg-[#F38020]/10 border border-[#F38020]/25 text-xs text-[#F38020]">
               🔒 <strong>Security Model:</strong> The dashboard never executes raw shell commands directly on the server.
               All operations pass through strict allowlist gates and mutual API key authentication.
             </div>
@@ -447,7 +435,7 @@ export function ServersView() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setShowInstallModal(false)}
-                className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold"
+                className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
               >
                 Done
               </button>
@@ -459,14 +447,14 @@ export function ServersView() {
       {/* ── Exec Command Modal ── */}
       {showCommandModal && selectedAgent && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-indigo-400" /> Execute on {selectedAgent.hostname}
+                <Terminal className="w-4 h-4 text-[#F38020]" /> Execute on {selectedAgent.hostname}
               </h3>
               <button
                 onClick={() => setShowCommandModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-sm"
+                className="text-zinc-500 hover:text-zinc-300 text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -477,9 +465,9 @@ export function ServersView() {
               <select
                 value={selectedCommand}
                 onChange={(e) => setSelectedCommand(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
               >
-                <option value="uptime">uptime — System load & uptime</option>
+                <option value="uptime">uptime — System load &amp; uptime</option>
                 <option value="free -m">free -m — Memory allocations</option>
                 <option value="df -h">df -h — Disk partition usage</option>
                 <option value="docker ps">docker ps — Active containers</option>
@@ -491,7 +479,7 @@ export function ServersView() {
             <button
               onClick={() => execMutation.mutate({ agentId: selectedAgent.id, command: selectedCommand })}
               disabled={execMutation.isPending}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold disabled:opacity-50 transition"
+              className="w-full py-2 bg-[#F38020] hover:bg-[#E07116] text-white rounded-lg text-xs font-bold disabled:opacity-50 transition cursor-pointer shadow-md shadow-[#F38020]/20"
             >
               {execMutation.isPending ? 'Executing on Agent...' : 'Dispatch Command'}
             </button>
