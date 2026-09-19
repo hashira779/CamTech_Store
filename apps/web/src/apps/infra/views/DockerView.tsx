@@ -61,25 +61,49 @@ export function DockerView() {
         }));
       }
 
-      // If ALL is selected, aggregate from agent metrics or fetch all
-      const list: DockerContainer[] = [];
-      for (const agent of agents) {
-        const dcList = agent.latestMetrics?.docker?.containers || [];
-        for (const c of dcList) {
-          list.push({
-            id: c.id || c.name,
-            name: c.name || 'unnamed',
-            image: c.image || 'unknown',
-            status: c.status || 'running',
-            state: c.state || 'running',
-            cpuPct: c.cpuPercent || 0,
-            memoryMb: c.memoryMb || 0,
-            agentId: agent.id,
-            agentHostname: agent.hostname,
-          });
+      // If ALL is selected, query the centralized endpoint or aggregate
+      if (selectedAgentId === 'ALL') {
+        try {
+          const res = await apiClient.get<any>('/infra/docker/containers');
+          if (res?.containers && res.containers.length > 0) {
+            return res.containers.map((c: any) => ({
+              id: c.id || c.name,
+              name: c.name || 'unnamed',
+              image: c.image || 'unknown',
+              status: c.status || 'running',
+              state: c.state || (c.status?.toLowerCase().includes('up') ? 'running' : 'exited'),
+              cpuPct: c.cpuPercent || 0,
+              memoryMb: c.memoryUsageMb || c.memoryMb || 0,
+              ports: Array.isArray(c.ports) ? c.ports.join(', ') : c.ports || '',
+              agentId: c.agentId,
+              agentHostname: c.agentHostname,
+              created: c.created,
+            }));
+          }
+        } catch {
+          // Fallback to iterating agents
         }
+
+        const list: DockerContainer[] = [];
+        for (const agent of agents) {
+          const dcList = agent.latestMetrics?.docker?.containers || [];
+          for (const c of dcList) {
+            list.push({
+              id: c.id || c.name,
+              name: c.name || 'unnamed',
+              image: c.image || 'unknown',
+              status: c.status || 'running',
+              state: c.state || 'running',
+              cpuPct: c.cpuPercent || 0,
+              memoryMb: c.memoryMb || 0,
+              ports: Array.isArray(c.ports) ? c.ports.join(', ') : c.ports || '',
+              agentId: agent.id,
+              agentHostname: agent.hostname,
+            });
+          }
+        }
+        return list;
       }
-      return list;
     },
     refetchInterval: 5000,
   });

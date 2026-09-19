@@ -220,7 +220,8 @@ async def get_service_logs(name: str, lines: int = Query(100, ge=1, le=500)):
 @app.get("/docker/containers")
 async def list_docker_containers():
     from icp_agent.collectors.docker_collector import collect_docker_metrics
-    return collect_docker_metrics()
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, collect_docker_metrics)
 
 
 @app.post("/docker/{container_id}/{action}")

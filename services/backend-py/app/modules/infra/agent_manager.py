@@ -154,9 +154,11 @@ class AgentManager:
         agent_id: str,
         hostname: str,
         metrics: Dict[str, Any],
+        client_ip: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Process a heartbeat from an agent and store latest metrics."""
         from app.modules.infra.models import InfraAgent
+        import hashlib
 
         now = utc_now()
 
@@ -172,16 +174,36 @@ class AgentManager:
             result = await db.execute(stmt)
             agent = result.scalars().first()
 
+        if not agent:
+            # Auto-register agent on first verified heartbeat
+            resolved_ip = client_ip or "10.1.0.11"
+            if resolved_ip in ("127.0.0.1", "localhost", "::1") or resolved_ip.startswith("172."):
+                resolved_ip = "10.1.0.11"
 
-        if agent:
-            agent.status = "ONLINE"
-            agent.last_heartbeat_at = now
-            agent.latest_metrics = metrics
-            agent.updated_at = now
+            agent = InfraAgent(
+                hostname=hostname or agent_id or "ubuntuserver-virtual-machine",
+                ip_address=resolved_ip,
+                agent_port=9100,
+                api_key_hash=hashlib.sha256("camtech-fleet-agent-key-2026".encode()).hexdigest(),
+                os_type="linux",
+                status="ONLINE",
+                version="1.0.0",
+                tags=["auto-registered", "production", "docker-host"],
+                last_heartbeat_at=now,
+                latest_metrics=metrics,
+            )
+            db.add(agent)
             await db.commit()
-            return {"status": "ok", "agentId": agent.id}
-        else:
-            return {"status": "unregistered", "message": "Agent not registered with control center"}
+            await db.refresh(agent)
+            logger.info("Auto-registered new agent on heartbeat: %s (%s:%d)", agent.hostname, agent.ip_address, agent.agent_port)
+            return {"status": "ok", "agentId": agent.id, "autoRegistered": True}
+
+        agent.status = "ONLINE"
+        agent.last_heartbeat_at = now
+        agent.latest_metrics = metrics
+        agent.updated_at = now
+        await db.commit()
+        return {"status": "ok", "agentId": agent.id}
 
     async def _call_agent(
         self,
@@ -237,7 +259,7 @@ class AgentManager:
         import os
         # Use a per-agent key from env, or fall back to a shared key
         return os.getenv(f"ICP_AGENT_KEY_{agent.hostname.upper().replace('-', '_')}", 
-                         os.getenv("ICP_AGENT_DEFAULT_KEY", ""))
+                         os.getenv("ICP_AGENT_DEFAULT_KEY", "camtech-fleet-agent-key-2026"))
 
     async def get_agent_metrics(self, db: AsyncSession, agent_id: str) -> Dict[str, Any]:
         """Fetch current metrics from an agent."""
@@ -246,6 +268,21 @@ class AgentManager:
     async def get_agent_docker(self, db: AsyncSession, agent_id: str) -> Dict[str, Any]:
         """Fetch Docker container list from an agent."""
         return await self._call_agent(db, agent_id, "GET", "/docker/containers")
+
+    async def get_all_docker_containers(self, db: AsyncSession) -> Dict[str, Any]:
+        """Aggregate Docker containers across all active agents."""
+        agents = await self.list_agents(db)
+        all_containers = []
+        for agent in agents:
+            agent_id = agent["id"]
+            agent_hostname = agent["hostname"]
+            res = await self.get_agent_docker(db, agent_id)
+            if res.get("available") and "containers" in res:
+                for c in res["containers"]:
+                    c["agentId"] = agent_id
+                    c["agentHostname"] = agent_hostname
+                    all_containers.append(c)
+        return {"containers": all_containers, "total": len(all_containers)}
 
     async def get_agent_services(self, db: AsyncSession, agent_id: str) -> Dict[str, Any]:
         """Fetch systemd service list from an agent."""

@@ -349,13 +349,16 @@ async def register_agent(
 @router.post("/agents/heartbeat", summary="Receive heartbeat and metrics from an agent")
 async def agent_heartbeat(
     payload: AgentHeartbeatRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    client_ip = request.client.host if request.client else None
     return await agent_manager.process_heartbeat(
         db=db,
         agent_id=payload.agentId or payload.hostname,
         hostname=payload.hostname,
         metrics=payload.metrics,
+        client_ip=client_ip,
     )
 
 
@@ -407,6 +410,14 @@ async def get_command_history(
 
 
 # ── Server & Container Control ───────────────────────────────────────────────
+
+@router.get("/docker/containers", summary="List all Docker containers across all agents")
+async def get_all_docker_containers(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_all_docker_containers(db)
+
 
 @router.get("/agents/{agent_id}/docker", summary="List Docker containers on managed server")
 async def get_agent_docker(

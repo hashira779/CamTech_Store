@@ -24,8 +24,9 @@ def collect_docker_metrics() -> Dict[str, Any]:
         return {"available": False, "containers": [], "error": "Docker not available"}
 
     try:
-        containers: List[Dict[str, Any]] = []
-        for c in client.containers.list(all=True):
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _process_container(c):
             info = {
                 "id": c.short_id,
                 "name": c.name,
@@ -35,36 +36,30 @@ def collect_docker_metrics() -> Dict[str, Any]:
                 "created": c.attrs.get("Created", ""),
                 "ports": _format_ports(c.ports),
                 "restartCount": c.attrs.get("RestartCount", 0),
+                "cpuPercent": 0.0,
+                "memoryUsageMb": 0.0,
+                "memoryLimitMb": 0.0,
+                "memoryPercent": 0.0,
             }
-
-            # Get live resource stats (non-streaming) for running containers
             if c.status == "running":
                 try:
                     stats = c.stats(stream=False)
                     info["cpuPercent"] = _calc_cpu_percent(stats)
-                    info["memoryUsageMb"] = round(
-                        stats.get("memory_stats", {}).get("usage", 0) / (1024 * 1024), 2
-                    )
-                    info["memoryLimitMb"] = round(
-                        stats.get("memory_stats", {}).get("limit", 0) / (1024 * 1024), 2
-                    )
-                    mem_limit = stats.get("memory_stats", {}).get("limit", 0)
-                    mem_usage = stats.get("memory_stats", {}).get("usage", 0)
+                    mem_stats = stats.get("memory_stats", {})
+                    mem_usage = mem_stats.get("usage", 0)
+                    mem_limit = mem_stats.get("limit", 0)
+                    info["memoryUsageMb"] = round(mem_usage / (1024 * 1024), 2)
+                    info["memoryLimitMb"] = round(mem_limit / (1024 * 1024), 2)
                     info["memoryPercent"] = round(
                         (mem_usage / mem_limit * 100) if mem_limit > 0 else 0, 2
                     )
                 except Exception:
-                    info["cpuPercent"] = 0.0
-                    info["memoryUsageMb"] = 0.0
-                    info["memoryLimitMb"] = 0.0
-                    info["memoryPercent"] = 0.0
-            else:
-                info["cpuPercent"] = 0.0
-                info["memoryUsageMb"] = 0.0
-                info["memoryLimitMb"] = 0.0
-                info["memoryPercent"] = 0.0
+                    pass
+            return info
 
-            containers.append(info)
+        all_containers = client.containers.list(all=True)
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            containers = list(pool.map(_process_container, all_containers))
 
         # Docker system info
         docker_info = client.info()

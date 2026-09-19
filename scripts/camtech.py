@@ -65,6 +65,10 @@ def ssh_run(host, user, password, key_path, commands, timeout=300, max_output=80
             print(f"\n{header}{'─' * max(0, 60 - len(header))}", flush=True)
             full_cmd = f"echo '{password}' | sudo -S bash -c {repr(cmd)}" if password else f"bash -c {repr(cmd)}"
             stdin, stdout, stderr = client.exec_command(full_cmd, timeout=timeout)
+            try:
+                stdin.close()
+            except Exception:
+                pass
             for line in iter(stdout.readline, ""):
                 filtered = line.rstrip()
                 if "[sudo]" not in filtered and "password for" not in filtered and filtered:
