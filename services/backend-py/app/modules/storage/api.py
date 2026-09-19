@@ -91,8 +91,24 @@ async def delete_provider(
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
         
+    # Unlink from policies
+    await db.execute(
+        text(f"UPDATE storage_policies SET \"providerId\" = NULL WHERE \"providerId\" = '{provider_id}'")
+    )
+    
+    # Unlink from objects
+    await db.execute(
+        text(f"UPDATE storage_objects SET \"provider_id\" = NULL WHERE \"provider_id\" = '{provider_id}'")
+    )
+    
     await db.delete(provider)
-    await db.commit()
+    
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Cannot delete provider: {str(e)}")
+        
     return {"success": True}
 
 # --- POLICIES ---
