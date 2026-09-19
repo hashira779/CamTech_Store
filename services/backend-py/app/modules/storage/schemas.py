@@ -16,6 +16,19 @@ class StorageProviderCreateInput(BaseModel):
     configuration: Dict[str, Any] = {}
     credentialsReference: Optional[str] = None # Or base64 encoded credential JSON for GDrive
 
+class StoragePolicyDto(BaseModel):
+    id: str
+    name: str
+    entityType: str
+    providerId: Optional[str]
+    isActive: bool
+    createdAt: str
+
+class StoragePolicyCreateInput(BaseModel):
+    name: str
+    entityType: str
+    providerId: str
+
 class StorageObjectDto(BaseModel):
     id: str
     fileName: str

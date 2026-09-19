@@ -75,9 +75,13 @@ import type {
   AdjustLoyaltyPointsInput,
   AdjustStoreCreditInput,
   RedeemLoyaltyPointsInput,
+  StorageProviderDto,
+  StorageObjectDto,
+  StorageStatsDto,
+  StoragePolicyDto,
+  StoragePolicyCreateInput,
   UploadIntentDto,
   DocumentRecordDto,
-  StorageStatsDto,
   CreateUploadIntentInput,
   ConfirmUploadInput,
   ListDocumentsQuery,
@@ -1147,6 +1151,23 @@ export const api = {
   sendTestNotification: (token: string) =>
     request<NotificationRecordDto>('/notifications/test', {
       method: 'POST',
+      token,
+    }),
+
+  // --- Storage Policies ---
+  listStoragePolicies: (token: string) =>
+    request<StoragePolicyDto[]>('/storage/policies', { token }),
+
+  createStoragePolicy: (token: string, input: StoragePolicyCreateInput) =>
+    request<StoragePolicyDto>('/storage/policies', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteStoragePolicy: (token: string, policyId: string) =>
+    request<void>(`/storage/policies/${policyId}`, {
+      method: 'DELETE',
       token,
     }),
 

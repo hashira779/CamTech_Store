@@ -7,12 +7,13 @@ from sqlalchemy import select, func, text
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
-from app.modules.storage.models import StorageProvider, StorageObject, StorageAttachment
+from app.modules.storage.models import StorageProvider, StorageObject, StorageAttachment, StoragePolicy
 from app.modules.storage.services import get_active_provider, get_provider_adapter_for_provider
 from .schemas import (
     UploadIntentInput, UploadIntentResponse, 
     StorageStatsDto, StorageProviderDto, StorageProviderCreateInput,
-    StorageObjectDto, ConfirmUploadInput
+    StorageObjectDto, ConfirmUploadInput,
+    StoragePolicyDto, StoragePolicyCreateInput
 )
 
 router = APIRouter(tags=["Enterprise Storage"])
@@ -73,6 +74,85 @@ async def create_provider(
         "isDefault": provider.is_default,
         "createdAt": provider.created_at.isoformat() if provider.created_at else ""
     }
+
+# --- POLICIES ---
+
+@router.get("/storage/policies", response_model=List[StoragePolicyDto])
+async def list_policies(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(StoragePolicy).where(StoragePolicy.organization_id == user.organization_id)
+    )
+    policies = result.scalars().all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "entityType": p.entity_type,
+            "providerId": p.provider_id,
+            "isActive": p.is_active,
+            "createdAt": p.created_at.isoformat() if p.created_at else ""
+        } for p in policies
+    ]
+
+@router.post("/storage/policies", response_model=StoragePolicyDto)
+async def create_policy(
+    data: StoragePolicyCreateInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify provider belongs to tenant
+    result = await db.execute(
+        select(StorageProvider).where(
+            StorageProvider.id == data.providerId,
+            StorageProvider.organization_id == user.organization_id
+        )
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail="Storage provider not found")
+        
+    policy = StoragePolicy(
+        id=str(uuid.uuid4()),
+        organization_id=user.organization_id,
+        name=data.name,
+        entity_type=data.entityType,
+        provider_id=data.providerId,
+        is_active=True
+    )
+    db.add(policy)
+    await db.commit()
+    await db.refresh(policy)
+    
+    return {
+        "id": policy.id,
+        "name": policy.name,
+        "entityType": policy.entity_type,
+        "providerId": policy.provider_id,
+        "isActive": policy.is_active,
+        "createdAt": policy.created_at.isoformat() if policy.created_at else ""
+    }
+
+@router.delete("/storage/policies/{policy_id}")
+async def delete_policy(
+    policy_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(StoragePolicy).where(
+            StoragePolicy.id == policy_id,
+            StoragePolicy.organization_id == user.organization_id
+        )
+    )
+    policy = result.scalars().first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+        
+    await db.delete(policy)
+    await db.commit()
+    return {"success": True}
 
 # --- OBJECTS & UPLOAD PIPELINE ---
 

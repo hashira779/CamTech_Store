@@ -171,9 +171,7 @@ def cmd_sync(cfg, _args):
     
     local_dir = Path(__file__).resolve().parent.parent
     remote_dir = "/home/ubuntu-server/CamTech_Store"
-    
-    ignore = {".git", ".venv", "node_modules", "dist", ".turbo", "__pycache__", ".next"}
-    
+    ignore = {".git", ".venv", "node_modules", ".turbo", "__pycache__", ".next"}
     count = 0
     for root, dirs, files in os.walk(local_dir):
         dirs[:] = [d for d in dirs if d not in ignore]

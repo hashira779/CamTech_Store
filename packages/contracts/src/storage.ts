@@ -63,6 +63,21 @@ export interface StorageObjectDto {
   entityId?: string | null;
 }
 
+export interface StoragePolicyDto {
+  id: string;
+  name: string;
+  entityType: string;
+  providerId?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface StoragePolicyCreateInput {
+  name: string;
+  entityType: string;
+  providerId: string;
+}
+
 export interface UploadIntentDto {
   uploadUrl: string;
   method: string;
