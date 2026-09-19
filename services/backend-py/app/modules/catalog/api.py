@@ -34,7 +34,10 @@ async def list_public_products(
     Does not require enterprise login. Sanitizes internal margins/cost prices.
     """
     response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
-    stmt = select(Product).options(selectinload(Product.variants))
+    stmt = select(Product).options(
+        selectinload(Product.variants),
+        selectinload(Product.images)
+    )
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
     stmt = stmt.limit(limit).offset((page - 1) * limit)
@@ -68,7 +71,17 @@ async def list_public_products(
                     marginPct=0.0,
                     isActive=True
                 ) for v in p.variants
-            ]
+            ],
+            images=[
+                {
+                    "id": img.id,
+                    "storageObjectId": img.storage_object_id,
+                    "url": f"/api/v1/storage/{img.storage_object_id}/download",
+                    "isPrimary": img.is_primary,
+                    "sortOrder": img.sort_order,
+                    "altText": img.alt_text
+                } for img in sorted(p.images, key=lambda x: x.sort_order)
+            ] if p.images else []
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
@@ -83,7 +96,10 @@ async def list_products(
     stmt = (
         select(Product)
         .where(Product.organization_id == user.organization_id)
-        .options(selectinload(Product.variants))
+        .options(
+            selectinload(Product.variants),
+            selectinload(Product.images)
+        )
     )
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
@@ -121,7 +137,17 @@ async def list_products(
                     marginPct=float((v.sell_price - v.cost_price) / v.sell_price * 100) if v.sell_price > 0 else 0.0,
                     isActive=True
                 ) for v in p.variants
-            ]
+            ],
+            images=[
+                {
+                    "id": img.id,
+                    "storageObjectId": img.storage_object_id,
+                    "url": f"/api/v1/storage/{img.storage_object_id}/download",
+                    "isPrimary": img.is_primary,
+                    "sortOrder": img.sort_order,
+                    "altText": img.alt_text
+                } for img in sorted(p.images, key=lambda x: x.sort_order)
+            ] if p.images else []
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
@@ -185,6 +211,133 @@ async def create_product(
             ) for v in variants
         ]
     )
+
+# ==============================================================================
+# PRODUCT IMAGES
+# ==============================================================================
+
+from .models import ProductImage
+from .schemas import ProductImageDto, AddProductImageInput, ReorderImagesInput
+
+@router.post("/products/{product_id}/images", response_model=ProductImageDto)
+async def add_product_image(
+    product_id: str,
+    data: AddProductImageInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify product exists
+    prod_res = await db.execute(
+        select(Product).where(Product.id == product_id, Product.organization_id == user.organization_id)
+    )
+    if not prod_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if data.isPrimary:
+        await db.execute(
+            f"UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = '{product_id}'"
+        )
+    
+    # Get max sort_order
+    order_res = await db.execute(
+        select(ProductImage.sort_order)
+        .where(ProductImage.product_id == product_id)
+        .order_by(ProductImage.sort_order.desc())
+        .limit(1)
+    )
+    max_order = order_res.scalar_one_or_none() or 0
+
+    img = ProductImage(
+        organization_id=user.organization_id,
+        product_id=product_id,
+        storage_object_id=data.storageObjectId,
+        is_primary=data.isPrimary,
+        alt_text=data.altText,
+        sort_order=max_order + 1
+    )
+    db.add(img)
+    await db.commit()
+    await db.refresh(img)
+    
+    return {
+        "id": img.id,
+        "storageObjectId": img.storage_object_id,
+        "url": f"/api/v1/storage/{img.storage_object_id}/download",
+        "isPrimary": img.is_primary,
+        "sortOrder": img.sort_order,
+        "altText": img.alt_text
+    }
+
+@router.delete("/products/{product_id}/images/{image_id}")
+async def delete_product_image(
+    product_id: str,
+    image_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(ProductImage).where(
+            ProductImage.id == image_id,
+            ProductImage.product_id == product_id,
+            ProductImage.organization_id == user.organization_id
+        )
+    )
+    img = res.scalar_one_or_none()
+    if not img:
+        raise HTTPException(status_code=404, detail="Product image not found")
+        
+    await db.delete(img)
+    await db.commit()
+    return {"success": True}
+
+@router.patch("/products/{product_id}/images/{image_id}/primary")
+async def set_primary_product_image(
+    product_id: str,
+    image_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(ProductImage).where(
+            ProductImage.id == image_id,
+            ProductImage.product_id == product_id,
+            ProductImage.organization_id == user.organization_id
+        )
+    )
+    img = res.scalar_one_or_none()
+    if not img:
+        raise HTTPException(status_code=404, detail="Product image not found")
+        
+    await db.execute(
+        f"UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = '{product_id}'"
+    )
+    
+    img.is_primary = True
+    await db.commit()
+    return {"success": True}
+
+@router.patch("/products/{product_id}/images/reorder")
+async def reorder_product_images(
+    product_id: str,
+    data: ReorderImagesInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(ProductImage).where(
+            ProductImage.product_id == product_id,
+            ProductImage.organization_id == user.organization_id
+        )
+    )
+    images = res.scalars().all()
+    img_map = {i.id: i for i in images}
+    
+    for idx, i_id in enumerate(data.imageIds):
+        if i_id in img_map:
+            img_map[i_id].sort_order = idx
+            
+    await db.commit()
+    return {"success": True}
 
 # ==============================================================================
 # CATEGORIES

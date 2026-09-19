@@ -72,6 +72,16 @@ export interface ProductVariantDto {
   updatedAt: string;
 }
 
+export interface ProductImageDto {
+  id: string;
+  storageObjectId: string;
+  url: string;
+  thumbnailUrl?: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  altText: string | null;
+}
+
 export interface ProductDto {
   id: string;
   organizationId: string;
@@ -82,6 +92,7 @@ export interface ProductDto {
   description: string | null;
   isActive: boolean;
   variants: ProductVariantDto[];
+  images?: ProductImageDto[];
   createdAt: string;
   updatedAt: string;
 }

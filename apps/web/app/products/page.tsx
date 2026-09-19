@@ -13,6 +13,7 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';
 import { CreateProductForm } from '@/components/create-product-form';
+import { ProductImagesManager } from '@/components/product-images-manager';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -391,7 +392,12 @@ export function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                {/* Product Images Manager */}
+                <div className="pt-4 border-t border-border">
+                  <ProductImagesManager token={token} product={selectedRow.rawProduct} />
+                </div>
+
+                <div className="space-y-2 pt-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Quick Navigation
                   </p>

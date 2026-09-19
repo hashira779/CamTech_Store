@@ -363,7 +363,7 @@ from app.modules.hr.api import router as hr_router
 from app.modules.warehouse.api import router as warehouse_router
 from app.modules.projects.api import router as projects_router
 from app.modules.pricing.api import router as pricing_router
-from app.modules.documents.api import router as documents_router
+from app.modules.storage.api import router as storage_router
 from app.modules.notifications.api import router as notifications_router
 from app.modules.workflows.api import router as workflows_router
 from app.modules.reporting.api import router as reporting_router
@@ -384,7 +384,7 @@ app.include_router(hr_router, prefix="/api/v1")
 app.include_router(warehouse_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(pricing_router, prefix="/api/v1")
-app.include_router(documents_router, prefix="/api/v1")
+app.include_router(storage_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(workflows_router, prefix="/api/v1")
 app.include_router(reporting_router, prefix="/api/v1")

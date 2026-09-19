@@ -17,3 +17,9 @@ requests>=2.31.0
 # WebAuthn/passkey ceremonies (app/modules/identity/passkey_api.py). Pulls in
 # cbor2 and bumps cryptography, which pyjwt[crypto] also depends on.
 webauthn>=3.0.0
+boto3>=1.35.0
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+Pillow>=10.0.0
+aiofiles>=23.2.1

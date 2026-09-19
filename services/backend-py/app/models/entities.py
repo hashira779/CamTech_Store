@@ -209,6 +209,10 @@ class DocumentRecord(Base):
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
+from app.modules.storage.models import (
+    StorageProvider, StorageObject, StorageAttachment, StoragePolicy
+)
+
 class NotificationConfig(Base):
     __tablename__ = "notification_configs"
 

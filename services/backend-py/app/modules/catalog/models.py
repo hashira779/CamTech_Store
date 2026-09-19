@@ -7,6 +7,7 @@ from sqlalchemy import (
     Numeric,
     DateTime,
     ForeignKey,
+    Integer,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -52,6 +53,7 @@ class Product(Base):
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"
@@ -73,3 +75,19 @@ class ProductVariant(Base):
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     product = relationship("Product", back_populates="variants")
+
+class ProductImage(Base):
+    __tablename__ = "product_images"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    product_id = Column("productId", String, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    storage_object_id = Column("storageObjectId", String, ForeignKey("storage_objects.id", ondelete="RESTRICT"), nullable=False)
+    organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
+    is_primary = Column("isPrimary", Boolean, default=False, nullable=False)
+    sort_order = Column("sortOrder", Integer, default=0, nullable=False)
+    alt_text = Column("altText", String, nullable=True)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    product = relationship("Product", back_populates="images")
+    storage_object = relationship("StorageObject", primaryjoin="ProductImage.storage_object_id == foreign(StorageObject.id)", viewonly=True)

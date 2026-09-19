@@ -6,7 +6,7 @@ from app.microservices.common import create_microservice
 from app.modules.service_desk.api import router as service_desk_router
 from app.modules.automations.api import router as automations_router
 from app.modules.projects.api import router as projects_router
-from app.modules.documents.api import router as documents_router
+from app.modules.storage.api import router as storage_router
 from app.modules.notifications.api import router as notifications_router
 from app.modules.workflows.api import router as workflows_router
 from app.modules.reporting.api import router as reporting_router
@@ -38,7 +38,7 @@ for _router in (
     service_desk_router,
     automations_router,
     projects_router,
-    documents_router,
+    storage_router,
     notifications_router,
     workflows_router,
     reporting_router,

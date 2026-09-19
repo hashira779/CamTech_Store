@@ -6,7 +6,7 @@ from app.core.dependencies import get_current_user, TenantUser
 class MockUser:
     def __init__(self):
         self.id = "usr_test_ceo"
-        self.organization_id = "org_default_test"
+        self.organization_id = "cmtk8h18o0000vkd0etmdacgw"
         self.email = "ceo@mystore.test"
         self.name = "Test CEO"
         self.roles = '["SUPER_ADMIN", "ORG_ADMIN"]'
@@ -19,6 +19,41 @@ def mock_tenant_user():
     app.dependency_overrides[get_current_user] = lambda: tenant_user
     yield tenant_user
     app.dependency_overrides.pop(get_current_user, None)
+
+@pytest.fixture
+async def mock_storage_provider(mock_tenant_user):
+    from app.core.database import AsyncSessionLocal
+    from app.modules.storage.models import StorageProvider
+    import uuid
+    from sqlalchemy import select
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(StorageProvider).where(StorageProvider.organization_id == mock_tenant_user.organization_id)
+        )
+        provider = result.scalars().first()
+
+        mock_config = {
+            "bucket_name": "test-bucket", 
+            "endpoint_url": "http://localhost:9000",
+            "access_key": "test_access_key",
+            "secret_key": "test_secret_key"
+        }
+
+        if not provider:
+            provider = StorageProvider(
+                id=str(uuid.uuid4()),
+                organization_id=mock_tenant_user.organization_id,
+                name="Test Local S3",
+                type="LOCAL_S3",
+                is_default=True,
+                configuration=mock_config
+            )
+            session.add(provider)
+        else:
+            provider.configuration = mock_config
+
+        await session.commit()
+        yield provider
 
 @pytest.mark.asyncio
 async def test_payroll_calculation_modular_route(mock_tenant_user):
@@ -111,17 +146,16 @@ async def test_pricing_resolve_modular_route(mock_tenant_user):
         assert batch_data["lines"][1]["priceSource"] == "VOLUME_TIER"
 
 @pytest.mark.asyncio
-async def test_storage_upload_intent_modular_route(mock_tenant_user):
+async def test_storage_upload_intent_modular_route(mock_tenant_user, mock_storage_provider):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        payload = {"fileName": "invoice_receipt.pdf"}
+        payload = {"fileName": "invoice_receipt.pdf", "mimeType": "application/pdf", "byteSize": 10240}
         resp = await client.post("/api/v1/storage/upload-intent", json=payload)
         assert resp.status_code == 200
         body = resp.json()
         assert body["success"] is True
         data = body["data"]
         assert "uploadUrl" in data
-        assert "fileKey" in data
-        assert "invoice_receipt.pdf" in data["fileKey"]
+        assert "objectId" in data
 
 @pytest.mark.asyncio
 async def test_storage_stats_modular_route(mock_tenant_user):

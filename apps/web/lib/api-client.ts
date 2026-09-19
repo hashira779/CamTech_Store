@@ -486,6 +486,32 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
+  addProductImage: (token: string, productId: string, data: { storageObjectId: string; isPrimary?: boolean; altText?: string | null }) =>
+    request<any>(`/products/${productId}/images`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
+    }),
+
+  deleteProductImage: (token: string, productId: string, imageId: string) =>
+    request<{ success: boolean }>(`/products/${productId}/images/${imageId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  setPrimaryProductImage: (token: string, productId: string, imageId: string) =>
+    request<{ success: boolean }>(`/products/${productId}/images/${imageId}/primary`, {
+      method: 'PATCH',
+      token,
+    }),
+
+  reorderProductImages: (token: string, productId: string, imageIds: string[]) =>
+    request<{ success: boolean }>(`/products/${productId}/images/reorder`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ imageIds }),
+    }),
+
   // ─── Customers ─────────────────────────────────────────────────
   listCustomers: (token: string, params: { page?: number; limit?: number; search?: string; type?: string } = {}) => {
     const qs = new URLSearchParams();
@@ -1007,7 +1033,7 @@ export const api = {
     }),
 
   confirmUpload: (token: string, input: ConfirmUploadInput) =>
-    request<DocumentRecordDto>('/storage/confirm-upload', {
+    request<{ success: boolean; objectId: string }>('/storage/confirm-upload', {
       method: 'POST',
       token,
       body: JSON.stringify(input),
@@ -1035,7 +1061,8 @@ export const api = {
     file: File,
     entityType?: DocumentEntityType,
     entityId?: string,
-  ): Promise<DocumentRecordDto> => {
+    providerId?: string,
+  ): Promise<{ success: boolean; objectId: string }> => {
     // 1. Get upload intent
     const intent = await api.createUploadIntent(token, {
       filename: file.name,
@@ -1043,11 +1070,12 @@ export const api = {
       byteSize: file.size,
       entityType,
       entityId,
-    });
+      providerId,
+    } as any);
 
     // 2. Upload file directly to destination URL
     const uploadRes = await fetch(intent.uploadUrl, {
-      method: intent.method,
+      method: intent.method || 'PUT',
       body: file,
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
@@ -1060,8 +1088,18 @@ export const api = {
     }
 
     // 3. Confirm upload
-    return api.confirmUpload(token, { documentId: intent.documentId });
+    return api.confirmUpload(token, { objectId: intent.objectId });
   },
+
+  listStorageProviders: (token: string) =>
+    request<any[]>('/storage/providers', { token }),
+
+  createStorageProvider: (token: string, input: any) =>
+    request<any>('/storage/providers', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
 
   // ─── Notifications Platform ───────────────────────────────────
   listNotifications: (token: string, query?: ListNotificationsQuery) => {

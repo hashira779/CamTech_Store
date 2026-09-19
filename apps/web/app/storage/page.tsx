@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ApiClientError } from '@/lib/api-client';
+import { api, apiClient, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { TableSkeletonRows } from '@/components/page-skeleton';
@@ -37,6 +37,7 @@ export default function StoragePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadEntityType, setUploadEntityType] = useState<DocumentEntityType>('OTHER');
   const [uploadEntityId, setUploadEntityId] = useState('');
+  const [uploadProviderId, setUploadProviderId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [copySuccessId, setCopySuccessId] = useState<string | null>(null);
@@ -54,6 +55,12 @@ export default function StoragePage() {
       api.listDocuments(token!, {
         entityType: selectedEntityFilter !== 'ALL' ? (selectedEntityFilter as DocumentEntityType) : undefined,
       }),
+    enabled: Boolean(token),
+  });
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ['storageProviders'],
+    queryFn: () => api.listStorageProviders(token!),
     enabled: Boolean(token),
   });
 
@@ -77,7 +84,7 @@ export default function StoragePage() {
     setUploadError(null);
 
     try {
-      await api.uploadFile(token, selectedFile, uploadEntityType, uploadEntityId || undefined);
+      await api.uploadFile(token, selectedFile, uploadEntityType, uploadEntityId || undefined, uploadProviderId || undefined);
       queryClient.invalidateQueries({ queryKey: ['storageDocuments'] });
       queryClient.invalidateQueries({ queryKey: ['storageStats'] });
       setIsUploadOpen(false);
@@ -250,15 +257,15 @@ export default function StoragePage() {
                             {getMimeIcon(doc.mimeType)}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground truncate max-w-xs">{doc.filename}</p>
+                            <p className="font-semibold text-foreground truncate max-w-xs">{doc.fileName}</p>
                             <p className="text-[10px] text-muted-foreground font-mono truncate max-w-xs">
-                              {doc.key}
+                              {doc.providerId}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 font-mono text-foreground font-semibold">
-                        {formatBytes(doc.byteSize)}
+                        {formatBytes(doc.sizeBytes)}
                       </td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-muted/40 border border-border text-foreground">
@@ -280,7 +287,7 @@ export default function StoragePage() {
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <a
-                            href={doc.url}
+                            href={doc.storageUrl ? `${apiClient.baseUrl}${doc.storageUrl}?token=${token}` : '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 hover:bg-muted/30 rounded text-muted-foreground hover:text-foreground"
@@ -290,7 +297,7 @@ export default function StoragePage() {
                           </a>
                           <button
                             type="button"
-                            onClick={() => handleCopyUrl(doc.url, doc.id)}
+                            onClick={() => handleCopyUrl(doc.storageUrl ? `${apiClient.baseUrl}${doc.storageUrl}?token=${token}` : '', doc.id)}
                             className="p-1.5 hover:bg-muted/30 rounded text-muted-foreground hover:text-foreground"
                             title="Copy Direct Link"
                           >
@@ -303,7 +310,7 @@ export default function StoragePage() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm(`Delete document "${doc.filename}" permanently?`)) {
+                              if (confirm(`Delete document "${doc.fileName}" permanently?`)) {
                                 deleteMutation.mutate(doc.id);
                               }
                             }}
@@ -399,6 +406,24 @@ export default function StoragePage() {
                     placeholder="e.g. cuid_prod_123 or PO-0004"
                     className="input w-full text-xs"
                   />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Storage Provider Destination (Optional)
+                  </label>
+                  <select
+                    value={uploadProviderId}
+                    onChange={(e) => setUploadProviderId(e.target.value)}
+                    className="input w-full text-xs"
+                  >
+                    <option value="">(Default Provider)</option>
+                    {providers.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.type})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-border mt-5">

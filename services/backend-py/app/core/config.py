@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     ]
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     GATEWAY_URL: str = os.getenv("GATEWAY_URL", "https://gateway.camtech.cam")
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

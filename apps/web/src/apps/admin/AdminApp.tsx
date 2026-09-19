@@ -16,6 +16,8 @@ const NewSalePage = lazy(() => import('@/app/sales/new/page'));
 const CustomersPage = lazy(() => import('@/app/customers/page'));
 const LoyaltyPage = lazy(() => import('@/app/loyalty/page'));
 const StoragePage = lazy(() => import('@/app/storage/page'));
+const ProvidersPage = lazy(() => import('@/app/storage/providers/page'));
+const AddProviderPage = lazy(() => import('@/app/storage/providers/add/page'));
 const NotificationsPage = lazy(() => import('@/app/notifications/page'));
 const ReportsPage = lazy(() => import('@/app/reports/page'));
 const ApprovalsPage = lazy(() => import('@/app/approvals/page'));
@@ -63,6 +65,8 @@ export function AdminApp() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/loyalty" element={<LoyaltyPage />} />
         <Route path="/storage" element={<StoragePage />} />
+        <Route path="/storage/providers" element={<ProvidersPage />} />
+        <Route path="/storage/providers/add" element={<AddProviderPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />

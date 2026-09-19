@@ -30,6 +30,15 @@ class VariantDto(BaseModel):
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
+class ProductImageDto(BaseModel):
+    id: str
+    storageObjectId: str
+    url: str
+    thumbnailUrl: Optional[str] = None
+    isPrimary: bool = False
+    sortOrder: int = 0
+    altText: Optional[str] = None
+
 class ProductDto(BaseModel):
     id: str
     organizationId: str
@@ -40,6 +49,7 @@ class ProductDto(BaseModel):
     description: Optional[str] = None
     isActive: bool = True
     variants: List[VariantDto] = []
+    images: Optional[List[ProductImageDto]] = []
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
@@ -60,6 +70,14 @@ class CreateProductInput(BaseModel):
     categoryId: Optional[str] = None
     brandId: Optional[str] = None
     variants: List[CreateVariantInput] = []
+
+class AddProductImageInput(BaseModel):
+    storageObjectId: str
+    isPrimary: bool = False
+    altText: Optional[str] = None
+
+class ReorderImagesInput(BaseModel):
+    imageIds: List[str]
 
 class CategoryDto(BaseModel):
     id: str

@@ -1,0 +1,31 @@
+{
+  "providers": [
+    {
+      "name": "Local Storage (S3-compatible)",
+      "type": "LOCAL_S3",
+      "is_default": true,
+      "configuration": {
+        "endpoint_url": "http://localhost:9000",
+        "bucket_name": "mystore-assets",
+        "region_name": "us-east-1"
+      },
+      "credentials": {
+        "aws_access_key_id": "minioadmin",
+        "aws_secret_access_key": "minioadmin"
+      }
+    },
+    {
+      "name": "Google Drive",
+      "type": "GOOGLE_DRIVE",
+      "is_default": false,
+      "configuration": {
+        "folder_id": "root"
+      },
+      "credentials": {
+        "client_id": "your-google-client-id",
+        "client_secret": "your-google-client-secret",
+        "refresh_token": "your-google-refresh-token"
+      }
+    }
+  ]
+}
