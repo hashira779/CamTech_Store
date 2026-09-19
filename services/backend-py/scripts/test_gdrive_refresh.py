@@ -17,7 +17,7 @@ async def test():
             token_uri="https://oauth2.googleapis.com/token",
             client_id=c.get("client_id"),
             client_secret=c.get("client_secret"),
-            scopes=["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+            scopes=None
         )
         print("Initial token valid?", creds.valid)
         try:
