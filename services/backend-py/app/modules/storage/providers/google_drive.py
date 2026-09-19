@@ -18,8 +18,8 @@ class GoogleDriveProvider(StorageProviderAdapter):
             token=credentials_data.get("access_token"),
             refresh_token=credentials_data.get("refresh_token"),
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=settings.GOOGLE_CLIENT_ID,
-            client_secret=settings.GOOGLE_CLIENT_SECRET,
+            client_id=credentials_data.get("client_id") or settings.GOOGLE_CLIENT_ID,
+            client_secret=credentials_data.get("client_secret") or settings.GOOGLE_CLIENT_SECRET,
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
 

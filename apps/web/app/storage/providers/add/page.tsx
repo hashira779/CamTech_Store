@@ -25,6 +25,8 @@ export default function AddProviderPage() {
   
   // Google Drive
   const [folderId, setFolderId] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [refreshToken, setRefreshToken] = useState('');
 
@@ -49,7 +51,12 @@ export default function AddProviderPage() {
       configuration = { bucket, endpoint_url: endpointUrl, region, access_key: accessKey, secret_key: secretKey };
     } else if (type === 'GOOGLE_DRIVE') {
       configuration = { folder_id: folderId };
-      credentialsReference = JSON.stringify({ access_token: accessToken, refresh_token: refreshToken });
+      credentialsReference = JSON.stringify({ 
+        client_id: clientId,
+        client_secret: clientSecret,
+        access_token: accessToken, 
+        refresh_token: refreshToken 
+      });
     }
     
     createMutation.mutate({
@@ -168,6 +175,17 @@ export default function AddProviderPage() {
                   <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="e.g. 1a2b3c4d5e6f" className="input w-full" />
                 </div>
                 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">Client ID</label>
+                    <input type="text" value={clientId} onChange={e => setClientId(e.target.value)} required className="input w-full font-mono text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">Client Secret</label>
+                    <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} required className="input w-full font-mono text-xs" />
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">Access Token</label>
                   <textarea value={accessToken} onChange={e => setAccessToken(e.target.value)} required className="input w-full h-20 font-mono text-[10px]" />
