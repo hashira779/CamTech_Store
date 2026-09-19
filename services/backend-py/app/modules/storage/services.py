@@ -63,28 +63,28 @@ async def get_provider_adapter_for_provider(provider: StorageProvider):
     import os
     
     credentials_data = {}
-    config_path = "storage_config.json"
     
-    if os.path.exists(config_path):
+    # Prioritize DB credentials first (configured via UI)
+    if provider.credentials_reference:
+        try:
+            credentials_data = json.loads(provider.credentials_reference)
+        except:
+            pass
+
+    # Fallback to local JSON config if not found in DB
+    config_path = "storage_config.json"
+    if not credentials_data and os.path.exists(config_path):
         try:
             with open(config_path, "r") as f:
                 config_data = json.load(f)
                 providers_config = config_data.get("providers", [])
                 
-                # Find matching provider by type
                 for p_conf in providers_config:
                     if p_conf["type"] == provider.type:
                         credentials_data = p_conf.get("credentials", {})
                         break
         except Exception as e:
             print(f"Failed to read credentials from {config_path}: {e}")
-            
-    # Fallback to DB if not found in JSON
-    if not credentials_data and provider.credentials_reference:
-        try:
-            credentials_data = json.loads(provider.credentials_reference)
-        except:
-            pass
             
     config = provider.configuration or {}
     if isinstance(config, str):
