@@ -190,15 +190,16 @@ class GoogleDriveProvider(StorageProviderAdapter):
             )
             return response.status_code == 204
 
-    async def get_object_metadata(self, object_key: str) -> Dict[str, Any]:
+    async def get_object_metadata(self, object_key: str, file_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         token = await asyncio.to_thread(self._get_valid_token)
         async with httpx.AsyncClient() as client:
-            file_id = await self._resolve_file_id(object_key, client, token)
+            if not file_id:
+                file_id = await self._resolve_file_id(object_key, client, token)
             if not file_id:
                 return None
                 
             response = await client.get(
-                f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=size,mimeType&supportsAllDrives=true",
+                f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=id,name,size,mimeType,modifiedTime,md5Checksum&supportsAllDrives=true",
                 headers={"Authorization": f"Bearer {token}"}
             )
             if response.status_code == 404:
@@ -206,9 +207,17 @@ class GoogleDriveProvider(StorageProviderAdapter):
             response.raise_for_status()
             data = response.json()
             return {
+                "fileId": data.get("id"),
+                "fileName": data.get("name"),
                 "sizeBytes": int(data.get("size", 0)),
-                "mimeType": data.get("mimeType", "application/octet-stream")
+                "mimeType": data.get("mimeType", "application/octet-stream"),
+                "modifiedTime": data.get("modifiedTime"),
+                "checksum": data.get("md5Checksum"),
             }
+
+    async def exists(self, object_key: str, file_id: Optional[str] = None) -> bool:
+        meta = await self.get_object_metadata(object_key, file_id)
+        return meta is not None
 
     async def check_health(self) -> bool:
         try:

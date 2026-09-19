@@ -40,3 +40,23 @@ class StorageProviderAdapter(ABC):
     async def check_health(self) -> bool:
         """Check if the provider is reachable and correctly configured."""
         pass
+
+    async def upload(self, object_key: str, data: bytes, mime_type: str = "application/octet-stream", cache_control: Optional[str] = None) -> str:
+        """Directly upload binary data to the storage backend. Returns public or storage URL."""
+        raise NotImplementedError("Direct upload not implemented by this adapter.")
+
+    async def exists(self, object_key: str) -> bool:
+        """Check if an object exists in the storage backend."""
+        try:
+            meta = await self.get_object_metadata(object_key)
+            return meta is not None
+        except Exception:
+            return False
+
+    async def get_url(self, object_key: str, variant: Optional[str] = None) -> str:
+        """Get public CDN or direct URL for an object (or specific variant)."""
+        return await self.get_download_url(object_key)
+
+    async def get_signed_url(self, object_key: str, expires_in: int = 3600) -> str:
+        """Get temporary signed URL for a private object."""
+        return await self.get_download_url(object_key, expires_in=expires_in)

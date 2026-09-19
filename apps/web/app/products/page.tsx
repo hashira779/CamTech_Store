@@ -111,9 +111,10 @@ export function ProductsPage() {
         header: 'Image',
         cell: ({ row }) => {
           const raw = row.original.rawProduct;
+          const rawThumbUrl = raw.thumbnailUrl || raw.images?.find((i: any) => i.isPrimary)?.thumbnailUrl || raw.images?.[0]?.thumbnailUrl;
           const rawImgUrl = raw.imageUrl || raw.images?.find((i: any) => i.isPrimary)?.url || raw.images?.[0]?.url;
-          // Append ?thumb=1 for fast 80x80 server-side thumbnail
-          const imgUrl = rawImgUrl ? `${rawImgUrl}${rawImgUrl.includes('?') ? '&' : '?'}thumb=1` : null;
+          // Prefer direct R2/CDN WebP thumbnail if available, otherwise append ?thumb=1
+          const imgUrl = rawThumbUrl || (rawImgUrl ? `${rawImgUrl}${rawImgUrl.includes('?') ? '&' : '?'}thumb=1` : null);
           return (
             <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
               {imgUrl ? (

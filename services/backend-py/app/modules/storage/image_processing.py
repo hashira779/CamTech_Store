@@ -47,6 +47,73 @@ async def generate_thumbnail(original_bytes: bytes, width: int, height: int) -> 
     
     return await asyncio.to_thread(_resize)
 
+def validate_and_inspect_image(image_bytes: bytes) -> dict:
+    """Validates that bytes form a legitimate image and returns basic metadata."""
+    if not image_bytes or len(image_bytes) < 16:
+        raise ValueError("Image payload is empty or too small to be valid")
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            img.verify()
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            return {
+                "width": img.width,
+                "height": img.height,
+                "format": img.format or "UNKNOWN",
+                "mode": img.mode,
+            }
+    except Exception as exc:
+        raise ValueError(f"Invalid or corrupted image: {exc}") from exc
+
+def _generate_variants_sync(original_bytes: bytes) -> dict:
+    """Synchronous core for generating WebP variants while preserving aspect ratio."""
+    with Image.open(io.BytesIO(original_bytes)) as img:
+        orig_w, orig_h = img.size
+        orig_fmt = img.format or "JPEG"
+        orig_mode = img.mode
+
+        # Check transparency
+        has_transparency = (
+            orig_mode in ("RGBA", "LA")
+            or (orig_mode == "P" and "transparency" in img.info)
+        )
+
+        def _render_variant(max_w: int, max_h: int, quality: int) -> bytes:
+            variant_img = img.copy()
+            variant_img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+            if has_transparency:
+                if variant_img.mode != "RGBA":
+                    variant_img = variant_img.convert("RGBA")
+            else:
+                if variant_img.mode in ("RGBA", "LA", "P", "CMYK"):
+                    variant_img = variant_img.convert("RGB")
+
+            out = io.BytesIO()
+            variant_img.save(out, format="WEBP", quality=quality, method=6)
+            return out.getvalue()
+
+        thumb_data = _render_variant(200, 200, quality=80)
+        medium_data = _render_variant(600, 600, quality=85)
+        large_data = _render_variant(1200, 1200, quality=90)
+
+        return {
+            "width": orig_w,
+            "height": orig_h,
+            "format": orig_fmt,
+            "mime_type": "image/webp",
+            "variants": {
+                "thumbnail": thumb_data,
+                "medium": medium_data,
+                "large": large_data,
+            }
+        }
+
+async def generate_image_variants(original_bytes: bytes) -> dict:
+    """
+    Asynchronously generates WebP image variants (thumbnail ~200x200, medium ~600x600, large ~1200x1200)
+    in a background thread pool, preserving aspect ratio and transparency.
+    """
+    return await asyncio.to_thread(_generate_variants_sync, original_bytes)
+
 async def process_and_cache_image(
     object_key: str, 
     stream_generator: AsyncGenerator[bytes, None], 

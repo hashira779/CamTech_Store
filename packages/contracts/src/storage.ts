@@ -56,6 +56,12 @@ export interface StorageObjectDto {
   mimeType: string;
   sizeBytes: number;
   storageUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  largeUrl?: string;
+  syncStatus?: string;
+  width?: number;
+  height?: number;
   status: string;
   createdAt: string;
   providerId: string;

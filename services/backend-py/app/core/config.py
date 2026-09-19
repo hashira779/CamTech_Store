@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
+    # Cloudflare R2 & Image CDN Settings
+    R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "")
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    R2_BUCKET: str = os.getenv("R2_BUCKET", "mystore-media")
+    R2_PUBLIC_DOMAIN: str = os.getenv("R2_PUBLIC_DOMAIN", "")
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Any) -> List[str]:

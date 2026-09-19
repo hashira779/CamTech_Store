@@ -15,7 +15,7 @@ export default function AddProviderPage() {
   const queryClient = useQueryClient();
 
   const [name, setName] = useState('');
-  const [type, setType] = useState('LOCAL_S3');
+  const [type, setType] = useState('CLOUDFLARE_R2');
   const [isDefault, setIsDefault] = useState(false);
   const [bucket, setBucket] = useState('default');
   const [endpointUrl, setEndpointUrl] = useState('');
@@ -29,6 +29,13 @@ export default function AddProviderPage() {
   const [clientSecret, setClientSecret] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [refreshToken, setRefreshToken] = useState('');
+
+  // Cloudflare R2
+  const [r2AccountId, setR2AccountId] = useState('');
+  const [r2Bucket, setR2Bucket] = useState('camtech-images');
+  const [r2PublicDomain, setR2PublicDomain] = useState('https://images.camtech.cam');
+  const [r2AccessKeyId, setR2AccessKeyId] = useState('');
+  const [r2SecretAccessKey, setR2SecretAccessKey] = useState('');
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createStorageProvider(token!, data),
@@ -46,8 +53,23 @@ export default function AddProviderPage() {
     
     let configuration: any = {};
     let credentialsReference = null;
+    let providerType = type;
     
-    if (type === 'LOCAL_S3') {
+    if (type === 'CLOUDFLARE_R2') {
+      providerType = 'LOCAL_S3'; // Maps to native Postgres ENUM
+      configuration = {
+        provider_subtype: 'CLOUDFLARE_R2',
+        account_id: r2AccountId.trim(),
+        bucket: r2Bucket.trim(),
+        public_domain: r2PublicDomain.trim(),
+        endpoint_url: `https://${r2AccountId.trim()}.r2.cloudflarestorage.com`,
+        region: 'auto'
+      };
+      credentialsReference = JSON.stringify({
+        access_key_id: r2AccessKeyId.trim(),
+        secret_access_key: r2SecretAccessKey.trim()
+      });
+    } else if (type === 'LOCAL_S3') {
       configuration = { bucket, endpoint_url: endpointUrl, region, access_key: accessKey, secret_key: secretKey };
     } else if (type === 'GOOGLE_DRIVE') {
       configuration = { folder_id: folderId.trim() };
@@ -60,8 +82,8 @@ export default function AddProviderPage() {
     }
     
     createMutation.mutate({
-      name,
-      type,
+      name: name.trim() || (type === 'CLOUDFLARE_R2' ? 'Cloudflare R2 Storage' : type),
+      type: providerType,
       isDefault,
       configuration,
       credentialsReference
@@ -103,21 +125,30 @@ export default function AddProviderPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setType('LOCAL_S3')}
-                    className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 border transition-colors ${
-                      type === 'LOCAL_S3' ? 'bg-primary/10 border-primary/50 text-primary' : 'bg-muted/10 border-border text-muted-foreground'
+                    onClick={() => setType('CLOUDFLARE_R2')}
+                    className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 border transition-colors ${
+                      type === 'CLOUDFLARE_R2' ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-muted/10 border-border text-muted-foreground'
                     }`}
                   >
-                    <HardDrive className="w-4 h-4" /> S3
+                    <Cloud className="w-3.5 h-3.5" /> R2 CDN
                   </button>
                   <button
                     type="button"
                     onClick={() => setType('GOOGLE_DRIVE')}
-                    className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 border transition-colors ${
+                    className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 border transition-colors ${
                       type === 'GOOGLE_DRIVE' ? 'bg-blue-500/10 border-blue-500/50 text-blue-500' : 'bg-muted/10 border-border text-muted-foreground'
                     }`}
                   >
-                    <Cloud className="w-4 h-4" /> GDrive
+                    <Cloud className="w-3.5 h-3.5" /> GDrive
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('LOCAL_S3')}
+                    className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 border transition-colors ${
+                      type === 'LOCAL_S3' ? 'bg-primary/10 border-primary/50 text-primary' : 'bg-muted/10 border-border text-muted-foreground'
+                    }`}
+                  >
+                    <HardDrive className="w-3.5 h-3.5" /> S3
                   </button>
                 </div>
               </div>
@@ -134,6 +165,82 @@ export default function AddProviderPage() {
             </label>
 
             <hr className="border-border" />
+
+            {type === 'CLOUDFLARE_R2' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-foreground">Cloudflare R2 Configuration</h3>
+                  <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">Production Image CDN</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Connect your Cloudflare R2 bucket. The sync worker will automatically optimize and push WebP variants directly to R2 and Cloudflare CDN.
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">Cloudflare Account ID</label>
+                    <input
+                      type="text"
+                      required
+                      value={r2AccountId}
+                      onChange={e => setR2AccountId(e.target.value)}
+                      placeholder="e.g. 7f8a9b2c3d4e..."
+                      className="input w-full font-mono text-xs"
+                    />
+                    <span className="text-[10px] text-muted-foreground">Found in Cloudflare Dashboard &gt; R2 &gt; Account Details</span>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">R2 Bucket Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={r2Bucket}
+                      onChange={e => setR2Bucket(e.target.value)}
+                      placeholder="e.g. camtech-images"
+                      className="input w-full font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">Public CDN Domain</label>
+                  <input
+                    type="url"
+                    required
+                    value={r2PublicDomain}
+                    onChange={e => setR2PublicDomain(e.target.value)}
+                    placeholder="https://images.camtech.cam"
+                    className="input w-full font-mono text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">Custom domain attached to your R2 bucket (or public r2.dev URL)</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">R2 Access Key ID</label>
+                    <input
+                      type="password"
+                      required
+                      value={r2AccessKeyId}
+                      onChange={e => setR2AccessKeyId(e.target.value)}
+                      placeholder="Access Key ID from R2 API Token"
+                      className="input w-full font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">R2 Secret Access Key</label>
+                    <input
+                      type="password"
+                      required
+                      value={r2SecretAccessKey}
+                      onChange={e => setR2SecretAccessKey(e.target.value)}
+                      placeholder="Secret Access Key"
+                      className="input w-full font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {type === 'LOCAL_S3' && (
               <div className="space-y-4">

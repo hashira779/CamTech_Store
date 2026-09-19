@@ -77,6 +77,9 @@ export interface ProductImageDto {
   storageObjectId: string;
   url: string;
   thumbnailUrl?: string;
+  mediumUrl?: string;
+  largeUrl?: string;
+  syncStatus?: string;
   isPrimary: boolean;
   sortOrder: number;
   altText: string | null;
@@ -92,6 +95,10 @@ export interface ProductDto {
   description: string | null;
   isActive: boolean;
   imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  mediumUrl?: string | null;
+  largeUrl?: string | null;
+  syncStatus?: string | null;
   variants: ProductVariantDto[];
   images?: ProductImageDto[];
   createdAt: string;

@@ -34,7 +34,13 @@ class StorageObjectDto(BaseModel):
     fileName: str
     mimeType: str
     sizeBytes: int
-    storageUrl: Optional[str]
+    storageUrl: Optional[str] = None
+    thumbnailUrl: Optional[str] = None
+    mediumUrl: Optional[str] = None
+    largeUrl: Optional[str] = None
+    syncStatus: Optional[str] = "SYNCED"
+    width: Optional[int] = None
+    height: Optional[int] = None
     status: str
     createdAt: str
     providerId: str
@@ -63,3 +69,18 @@ class StorageStatsDto(BaseModel):
     totalFiles: int
     totalBytes: int
     activeStorageDriver: str
+
+class ImageSyncHealthDto(BaseModel):
+    total: int
+    synced: int
+    pending: int
+    syncing: int
+    failed: int
+    r2Bucket: Optional[str] = None
+    r2PublicDomain: Optional[str] = None
+
+class BatchSyncInput(BaseModel):
+    batchSize: int = 50
+    force: bool = False
+    retryFailed: bool = True
+    entityType: Optional[str] = None

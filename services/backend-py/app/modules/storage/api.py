@@ -473,6 +473,13 @@ async def download_object(
             return get_placeholder_image_response()
         raise HTTPException(status_code=404, detail="Storage object not found or not available.")
 
+    # If the image is already synced to Cloudflare R2 / CDN, redirect directly to avoid proxying binaries
+    if obj.sync_status == "SYNCED":
+        target_cdn_url = obj.thumbnail_url if (thumb or (width and width <= 200)) else (obj.medium_url or obj.storage_url)
+        if target_cdn_url and target_cdn_url.startswith("http"):
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=target_cdn_url, status_code=307)
+
     # Determine cache duration: images get 7-day browser cache
     is_image = obj.mime_type.startswith('image/') if obj.mime_type else False
     if is_image:
@@ -564,4 +571,68 @@ async def download_object(
         if is_image_request:
             return get_placeholder_image_response()
         raise HTTPException(status_code=400, detail=f"Download failed: {str(e)}\n{traceback.format_exc()}")
+
+# ==============================================================================
+# IMAGE SYNC & CDN HEALTH MONITORING
+# ==============================================================================
+
+@router.get("/storage/sync/health")
+async def get_image_sync_health(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns real-time synchronization metrics between Google Drive and Cloudflare R2."""
+    from app.core.config import settings
+    res = await db.execute(select(StorageObject))
+    objects = res.scalars().all()
+
+    total = len(objects)
+    synced = sum(1 for o in objects if o.sync_status == "SYNCED")
+    failed = sum(1 for o in objects if o.sync_status == "FAILED")
+    syncing = sum(1 for o in objects if o.sync_status == "SYNCING")
+    pending = total - (synced + failed + syncing)
+
+    return {
+        "total": total,
+        "synced": synced,
+        "pending": pending,
+        "syncing": syncing,
+        "failed": failed,
+        "r2Bucket": settings.R2_BUCKET,
+        "r2PublicDomain": settings.R2_PUBLIC_DOMAIN,
+    }
+
+@router.post("/storage/{object_id}/sync")
+async def trigger_image_sync(
+    object_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Manually triggers or retries synchronization of a specific image to Cloudflare R2."""
+    from app.modules.storage.sync_worker import sync_storage_object
+    result = await sync_storage_object(storage_object_id=object_id, db=db, force=True)
+    return result
+
+@router.post("/storage/sync/batch")
+async def trigger_batch_image_sync(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Dispatches background sync for all PENDING or FAILED images."""
+    from app.modules.storage.sync_worker import dispatch_image_sync_job
+    res = await db.execute(select(StorageObject))
+    objects = res.scalars().all()
+
+    queued = 0
+    for obj in objects:
+        if obj.sync_status in ("PENDING", "FAILED"):
+            await dispatch_image_sync_job(
+                image_id=obj.id,
+                google_drive_file_id=obj.provider_object_id,
+                entity_type="product",
+                entity_id=obj.id,
+            )
+            queued += 1
+
+    return {"status": "DISPATCHED", "queued": queued}
 

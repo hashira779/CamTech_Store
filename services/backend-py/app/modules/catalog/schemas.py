@@ -35,6 +35,9 @@ class ProductImageDto(BaseModel):
     storageObjectId: str
     url: str
     thumbnailUrl: Optional[str] = None
+    mediumUrl: Optional[str] = None
+    largeUrl: Optional[str] = None
+    syncStatus: Optional[str] = None
     isPrimary: bool = False
     sortOrder: int = 0
     altText: Optional[str] = None
@@ -49,6 +52,10 @@ class ProductDto(BaseModel):
     description: Optional[str] = None
     isActive: bool = True
     imageUrl: Optional[str] = None
+    thumbnailUrl: Optional[str] = None
+    mediumUrl: Optional[str] = None
+    largeUrl: Optional[str] = None
+    syncStatus: Optional[str] = None
     variants: List[VariantDto] = []
     images: Optional[List[ProductImageDto]] = []
     createdAt: Optional[str] = None

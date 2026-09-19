@@ -209,8 +209,11 @@ export function App() {
         if (Array.isArray(items)) {
           const mapped = items.map((p: any) => {
             const sortedImgs = p.images ? [...p.images].sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : [];
-            const rawImgUrl = p.imageUrl || sortedImgs[0]?.url;
-            const imageUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
+            const rawThumbUrl = p.thumbnailUrl || sortedImgs[0]?.thumbnailUrl;
+            const rawImgUrl = p.mediumUrl || p.imageUrl || sortedImgs[0]?.url;
+            const imageUrl = rawThumbUrl
+              ? (rawThumbUrl.startsWith('http') ? rawThumbUrl : `${API_BASE_URL}${rawThumbUrl}`)
+              : (rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null);
 
             return {
               id: p.id,

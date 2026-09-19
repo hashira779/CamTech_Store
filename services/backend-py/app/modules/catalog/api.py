@@ -9,12 +9,49 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
 from app.domain.hierarchy_engine import HierarchyEngine
 
-from .models import Product, ProductVariant, Category
+from .models import Product, ProductVariant, Category, ProductImage
 from .schemas import (
-    ProductDto, CreateProductInput, VariantDto,
+    ProductDto, ProductImageDto, CreateProductInput, VariantDto,
     CategoryDto, CategoryTreeNodeDto, CreateCategoryInput, UpdateCategoryInput,
     PaginatedResponse, PageMeta
 )
+from app.modules.storage.sync_worker import dispatch_image_sync_job
+
+def build_product_image_dtos(images: Optional[List[ProductImage]]) -> List[ProductImageDto]:
+    if not images:
+        return []
+    sorted_imgs = sorted(images, key=lambda x: (not x.is_primary, x.sort_order))
+    dtos = []
+    for img in sorted_imgs:
+        storage_obj = getattr(img, "storage_object", None)
+        if storage_obj and storage_obj.sync_status == "SYNCED" and storage_obj.thumbnail_url:
+            dtos.append(ProductImageDto(
+                id=img.id,
+                storageObjectId=img.storage_object_id,
+                url=storage_obj.storage_url or storage_obj.medium_url or f"/api/v1/storage/{img.storage_object_id}/download",
+                thumbnailUrl=storage_obj.thumbnail_url,
+                mediumUrl=storage_obj.medium_url,
+                largeUrl=storage_obj.large_url,
+                syncStatus=storage_obj.sync_status,
+                isPrimary=img.is_primary,
+                sortOrder=img.sort_order,
+                altText=img.alt_text,
+            ))
+        else:
+            base_url = f"/api/v1/storage/{img.storage_object_id}/download"
+            dtos.append(ProductImageDto(
+                id=img.id,
+                storageObjectId=img.storage_object_id,
+                url=base_url,
+                thumbnailUrl=f"{base_url}?thumb=1",
+                mediumUrl=base_url,
+                largeUrl=base_url,
+                syncStatus=storage_obj.sync_status if storage_obj else "PENDING",
+                isPrimary=img.is_primary,
+                sortOrder=img.sort_order,
+                altText=img.alt_text,
+            ))
+    return dtos
 
 router = APIRouter(tags=["Catalog"])
 
@@ -36,7 +73,7 @@ async def list_public_products(
     response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
     stmt = select(Product).options(
         selectinload(Product.variants),
-        selectinload(Product.images)
+        selectinload(Product.images).selectinload(ProductImage.storage_object)
     )
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
@@ -47,18 +84,8 @@ async def list_public_products(
 
     out = []
     for p in products:
-        sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
-        img_dtos = [
-            ProductImageDto(
-                id=img.id,
-                storageObjectId=img.storage_object_id,
-                url=f"/api/v1/storage/{img.storage_object_id}/download",
-                isPrimary=img.is_primary,
-                sortOrder=img.sort_order,
-                altText=img.alt_text
-            ) for img in sorted_imgs
-        ]
-        primary_url = img_dtos[0].url if img_dtos else None
+        img_dtos = build_product_image_dtos(p.images)
+        primary_img = img_dtos[0] if img_dtos else None
 
         out.append(ProductDto(
             id=p.id,
@@ -69,7 +96,11 @@ async def list_public_products(
             brandId=p.brand_id,
             type="PHYSICAL",
             isActive=True,
-            imageUrl=primary_url,
+            imageUrl=primary_img.url if primary_img else None,
+            thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
+            mediumUrl=primary_img.mediumUrl if primary_img else None,
+            largeUrl=primary_img.largeUrl if primary_img else None,
+            syncStatus=primary_img.syncStatus if primary_img else None,
             variants=[
                 VariantDto(
                     id=v.id,
@@ -103,7 +134,7 @@ async def list_products(
         .where(Product.organization_id == user.organization_id)
         .options(
             selectinload(Product.variants),
-            selectinload(Product.images)
+            selectinload(Product.images).selectinload(ProductImage.storage_object)
         )
     )
     if search:
@@ -118,18 +149,8 @@ async def list_products(
 
     out = []
     for p in products:
-        sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
-        img_dtos = [
-            ProductImageDto(
-                id=img.id,
-                storageObjectId=img.storage_object_id,
-                url=f"/api/v1/storage/{img.storage_object_id}/download",
-                isPrimary=img.is_primary,
-                sortOrder=img.sort_order,
-                altText=img.alt_text
-            ) for img in sorted_imgs
-        ]
-        primary_url = img_dtos[0].url if img_dtos else None
+        img_dtos = build_product_image_dtos(p.images)
+        primary_img = img_dtos[0] if img_dtos else None
 
         out.append(ProductDto(
             id=p.id,
@@ -140,7 +161,11 @@ async def list_products(
             brandId=p.brand_id,
             type="PHYSICAL",
             isActive=True,
-            imageUrl=primary_url,
+            imageUrl=primary_img.url if primary_img else None,
+            thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
+            mediumUrl=primary_img.mediumUrl if primary_img else None,
+            largeUrl=primary_img.largeUrl if primary_img else None,
+            syncStatus=primary_img.syncStatus if primary_img else None,
             variants=[
                 VariantDto(
                     id=v.id,
@@ -233,7 +258,7 @@ async def get_product(
         .where(Product.id == product_id, Product.organization_id == user.organization_id)
         .options(
             selectinload(Product.variants),
-            selectinload(Product.images)
+            selectinload(Product.images).selectinload(ProductImage.storage_object)
         )
     )
     result = await db.execute(stmt)
@@ -241,18 +266,8 @@ async def get_product(
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
-    img_dtos = [
-        ProductImageDto(
-            id=img.id,
-            storageObjectId=img.storage_object_id,
-            url=f"/api/v1/storage/{img.storage_object_id}/download",
-            isPrimary=img.is_primary,
-            sortOrder=img.sort_order,
-            altText=img.alt_text
-        ) for img in sorted_imgs
-    ]
-    primary_url = img_dtos[0].url if img_dtos else None
+    img_dtos = build_product_image_dtos(p.images)
+    primary_img = img_dtos[0] if img_dtos else None
 
     return ProductDto(
         id=p.id,
@@ -263,7 +278,11 @@ async def get_product(
         brandId=p.brand_id,
         type="PHYSICAL",
         isActive=p.is_active,
-        imageUrl=primary_url,
+        imageUrl=primary_img.url if primary_img else None,
+        thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
+        mediumUrl=primary_img.mediumUrl if primary_img else None,
+        largeUrl=primary_img.largeUrl if primary_img else None,
+        syncStatus=primary_img.syncStatus if primary_img else None,
         variants=[
             VariantDto(
                 id=v.id,
@@ -332,10 +351,25 @@ async def add_product_image(
     await db.commit()
     await db.refresh(img)
     
+    # Enqueue background sync to Cloudflare R2 / CDN
+    try:
+        await dispatch_image_sync_job(
+            image_id=data.storageObjectId,
+            entity_type="product",
+            entity_id=product_id
+        )
+    except Exception as exc:
+        pass
+
+    base_url = f"/api/v1/storage/{img.storage_object_id}/download"
     return {
         "id": img.id,
         "storageObjectId": img.storage_object_id,
-        "url": f"/api/v1/storage/{img.storage_object_id}/download",
+        "url": base_url,
+        "thumbnailUrl": f"{base_url}?thumb=1",
+        "mediumUrl": base_url,
+        "largeUrl": base_url,
+        "syncStatus": "PENDING",
         "isPrimary": img.is_primary,
         "sortOrder": img.sort_order,
         "altText": img.alt_text

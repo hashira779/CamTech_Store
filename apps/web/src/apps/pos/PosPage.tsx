@@ -83,7 +83,7 @@ export function PosPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {isLoading && <div className="col-span-full text-zinc-500 p-8 text-center text-lg">Loading catalog...</div>}
               {availableVariants.map((item) => {
-                const img = item.master.imageUrl || item.master.images?.find((i: any) => i.isPrimary)?.url || item.master.images?.[0]?.url;
+                const img = item.master.thumbnailUrl || item.master.imageUrl || item.master.images?.find((i: any) => i.isPrimary)?.thumbnailUrl || item.master.images?.find((i: any) => i.isPrimary)?.url || item.master.images?.[0]?.url;
                 return (
                   <button
                     key={item.variant.id}

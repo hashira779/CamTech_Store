@@ -459,10 +459,11 @@ export function App() {
               const categoryName = p.category?.name || (typeof p.category === 'string' ? p.category : '') || p.categoryName || 'GENERAL';
               const firstVariant = p.variants?.[0];
               const sortedImgs = p.images ? [...p.images].sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : [];
-              const rawImgUrl = p.imageUrl || sortedImgs[0]?.url;
+              const rawThumbUrl = p.thumbnailUrl || sortedImgs[0]?.thumbnailUrl;
+              const rawImgUrl = p.mediumUrl || p.imageUrl || sortedImgs[0]?.url;
               const fullUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
-              // Thumbnail URL for grid cards (80x80, fast)
-              const thumbUrl = fullUrl ? `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}thumb=1` : null;
+              // Tiered WebP thumbnail from R2/CDN, or fallback to backend thumbnail generator
+              const thumbUrl = rawThumbUrl ? (rawThumbUrl.startsWith('http') ? rawThumbUrl : `${API_BASE_URL}${rawThumbUrl}`) : (fullUrl ? `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}thumb=1` : null);
               
               return {
                 id: p.id,

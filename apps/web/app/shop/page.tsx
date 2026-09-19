@@ -364,7 +364,7 @@ export default function CustomerShopPage() {
                 >
                   <div className="space-y-2">
                     {(() => {
-                      const img = p.imageUrl || p.images?.find((i) => i.isPrimary)?.url || p.images?.[0]?.url;
+                      const img = p.thumbnailUrl || p.imageUrl || p.images?.find((i) => i.isPrimary)?.thumbnailUrl || p.images?.find((i) => i.isPrimary)?.url || p.images?.[0]?.url;
                       return (
                         <div className="w-full h-36 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-center text-slate-600 group-hover:text-sky-400 transition-colors relative overflow-hidden">
                           {img ? (

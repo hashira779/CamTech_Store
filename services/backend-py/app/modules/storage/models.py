@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
@@ -38,6 +39,90 @@ class StorageObject(Base):
     metadata_ = Column("metadata", JSON, nullable=True)
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    def _get_meta(self) -> Dict[str, Any]:
+        meta = self.metadata_
+        if not meta:
+            return {}
+        if isinstance(meta, str):
+            try:
+                import json
+                return json.loads(meta)
+            except Exception:
+                return {}
+        if isinstance(meta, dict):
+            return meta
+        return {}
+
+    @property
+    def thumbnail_url(self) -> Optional[str]:
+        meta = self._get_meta()
+        return meta.get("thumbnail_url") or meta.get("thumbnailUrl") or self.storage_url
+
+    @property
+    def medium_url(self) -> Optional[str]:
+        meta = self._get_meta()
+        return meta.get("medium_url") or meta.get("mediumUrl") or self.storage_url
+
+    @property
+    def large_url(self) -> Optional[str]:
+        meta = self._get_meta()
+        return meta.get("large_url") or meta.get("largeUrl") or self.storage_url
+
+    @property
+    def sync_status(self) -> str:
+        meta = self._get_meta()
+        return meta.get("sync_status") or meta.get("syncStatus") or ("SYNCED" if self.status == "AVAILABLE" else "PENDING")
+
+    @property
+    def sync_error(self) -> Optional[str]:
+        return self._get_meta().get("sync_error")
+
+    @property
+    def width(self) -> Optional[int]:
+        return self._get_meta().get("width")
+
+    @property
+    def height(self) -> Optional[int]:
+        return self._get_meta().get("height")
+
+    @property
+    def version(self) -> int:
+        return self._get_meta().get("version", 1)
+
+    def update_sync_state(
+        self,
+        status: str,
+        thumbnail_url: Optional[str] = None,
+        medium_url: Optional[str] = None,
+        large_url: Optional[str] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        sync_error: Optional[str] = None,
+        google_drive_modified_time: Optional[str] = None,
+    ):
+        meta = dict(self._get_meta())
+        meta["sync_status"] = status
+        meta["syncStatus"] = status
+        if thumbnail_url:
+            meta["thumbnail_url"] = thumbnail_url
+            meta["thumbnailUrl"] = thumbnail_url
+        if medium_url:
+            meta["medium_url"] = medium_url
+            meta["mediumUrl"] = medium_url
+        if large_url:
+            meta["large_url"] = large_url
+            meta["largeUrl"] = large_url
+        if width is not None:
+            meta["width"] = width
+        if height is not None:
+            meta["height"] = height
+        if sync_error is not None:
+            meta["sync_error"] = sync_error
+        if google_drive_modified_time:
+            meta["google_drive_modified_time"] = google_drive_modified_time
+        meta["version"] = meta.get("version", 1) + (1 if status == "SYNCED" else 0)
+        self.metadata_ = meta
 
 class StorageAttachment(Base):
     __tablename__ = "storage_attachments"
