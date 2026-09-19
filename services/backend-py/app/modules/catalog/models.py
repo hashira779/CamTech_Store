@@ -13,6 +13,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
+from app.modules.storage.models import StorageObject
 
 def gen_id():
     return str(uuid.uuid4())
@@ -90,4 +91,4 @@ class ProductImage(Base):
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     product = relationship("Product", back_populates="images")
-    storage_object = relationship("StorageObject", primaryjoin="ProductImage.storage_object_id == foreign(StorageObject.id)", viewonly=True)
+    storage_object = relationship("StorageObject", foreign_keys=[storage_object_id], viewonly=True)

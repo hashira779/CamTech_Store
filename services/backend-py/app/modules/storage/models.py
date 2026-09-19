@@ -2,10 +2,14 @@ from typing import Optional, Dict, Any
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
+import uuid
+
 from app.core.database import Base
 from app.core.datetime_utils import utc_now
 from app.core.db_enums import pg_enum
-from app.models.entities import gen_id
+
+def gen_id():
+    return str(uuid.uuid4())
 
 class StorageProvider(Base):
     __tablename__ = "storage_providers"
