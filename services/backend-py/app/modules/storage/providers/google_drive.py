@@ -29,7 +29,7 @@ class GoogleDriveProvider(StorageProviderAdapter):
             token_uri="https://oauth2.googleapis.com/token",
             client_id=credentials_data.get("client_id") or settings.GOOGLE_CLIENT_ID,
             client_secret=credentials_data.get("client_secret") or settings.GOOGLE_CLIENT_SECRET,
-            scopes=["https://www.googleapis.com/auth/drive.file"]
+            scopes=None
         )
 
     def _get_valid_token(self) -> str:
