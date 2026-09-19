@@ -289,6 +289,8 @@ async def create_upload_intent(
             storage_path=object_key
         )
         db.add(obj)
+        # Flush obj to DB first so its PK exists before the FK reference in attachment
+        await db.flush()
         
         # Add attachment if requested
         if data.entityType and data.entityId:
