@@ -45,8 +45,11 @@ class CloudflareR2Provider(StorageProviderAdapter):
         object_key: str,
         data: bytes,
         mime_type: str = "application/octet-stream",
-        cache_control: Optional[str] = None
+        cache_control: Optional[str] = None,
+        content_type: Optional[str] = None,
+        **kwargs
     ) -> str:
+        mime_type = content_type or mime_type
         """
         Directly uploads binary data to Cloudflare R2.
         Returns the public CDN URL if public_domain is set, otherwise R2 object key.

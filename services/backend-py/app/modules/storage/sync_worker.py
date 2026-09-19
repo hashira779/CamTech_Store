@@ -223,10 +223,10 @@ async def sync_storage_object(
         orig_key = f"{prefix}/original/v{current_version}.{orig_ext}"
 
         # Step 7: Upload variants to R2
-        await r2_adapter.upload(variants["thumbnail"], thumb_key, content_type="image/webp")
-        await r2_adapter.upload(variants["medium"], medium_key, content_type="image/webp")
-        await r2_adapter.upload(variants["large"], large_key, content_type="image/webp")
-        await r2_adapter.upload(original_bytes, orig_key, content_type=obj.mime_type or "image/jpeg")
+        await r2_adapter.upload(object_key=thumb_key, data=variants["thumbnail"], mime_type="image/webp")
+        await r2_adapter.upload(object_key=medium_key, data=variants["medium"], mime_type="image/webp")
+        await r2_adapter.upload(object_key=large_key, data=variants["large"], mime_type="image/webp")
+        await r2_adapter.upload(object_key=orig_key, data=original_bytes, mime_type=obj.mime_type or "image/jpeg")
 
         # Step 8: Get CDN URLs
         thumb_url = await r2_adapter.get_url(thumb_key)
