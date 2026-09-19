@@ -1,7 +1,7 @@
 import os
 import uuid
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 
@@ -303,11 +303,16 @@ async def create_upload_intent(
                 is_primary=True
             )
             db.add(attachment)
+        
+        # Store the resumable URL in metadata so the proxy endpoint can use it
+        obj.metadata_ = {"resumable_url": upload_url}
             
         await db.commit()
         
+        # Return a proxy URL that routes through our backend (avoids browser CORS)
+        proxy_url = f"/api/v1/storage/{object_id}/upload"
         return {
-            "uploadUrl": upload_url,
+            "uploadUrl": proxy_url,
             "method": "PUT",
             "headers": {"Content-Type": data.mimeType},
             "objectId": object_id,
@@ -318,6 +323,59 @@ async def create_upload_intent(
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
         raise HTTPException(status_code=400, detail=error_msg)
+
+
+@router.put("/storage/{object_id}/upload")
+async def proxy_upload(
+    object_id: str,
+    request: Request,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Proxy endpoint: browser uploads file here, we forward to the actual storage provider.
+    This avoids CORS issues with direct-to-provider uploads (e.g. Google Drive).
+    """
+    import httpx, traceback as tb
+    result = await db.execute(
+        select(StorageObject).where(
+            StorageObject.id == object_id,
+            StorageObject.organization_id == user.organization_id
+        )
+    )
+    obj = result.scalars().first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Storage object not found")
+    
+    metadata = obj.metadata_ or {}
+    resumable_url = metadata.get("resumable_url")
+    if not resumable_url:
+        raise HTTPException(status_code=400, detail="No resumable upload URL stored for this object")
+    
+    try:
+        body = await request.body()
+        content_type = request.headers.get("content-type", obj.mime_type)
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.put(
+                resumable_url,
+                content=body,
+                headers={"Content-Type": content_type}
+            )
+        
+        if resp.status_code not in (200, 201):
+            raise HTTPException(status_code=502, detail=f"Storage provider rejected upload: {resp.text}")
+        
+        # Mark object as available
+        obj.status = "AVAILABLE"
+        obj.storage_url = f"/api/v1/storage/{obj.id}/download"
+        await db.commit()
+        
+        return {"success": True, "objectId": object_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proxy upload failed: {str(e)}\n{tb.format_exc()}") 
 
 @router.post("/storage/confirm-upload")
 async def confirm_upload(

@@ -321,8 +321,23 @@ export const apiClient = {
     }),
   delete: <T>(url: string, options?: RequestInit & { token?: string }) =>
     request<T>(url.replace(/^\/api\/v1/, ''), { method: 'DELETE', ...options }),
+  /** Upload raw binary (file) via PUT with JWT auth — returns raw Response (not enveloped) */
+  putRaw: (url: string, body: BodyInit, options: { token?: string; contentType?: string }) => {
+    const { token, contentType } = options;
+    const authToken = token || getStoredAuthToken();
+    const path = url.replace(/^\/api\/v1/, '');
+    return fetch(`${API}${path}`, {
+      method: 'PUT',
+      body,
+      headers: {
+        'Content-Type': contentType || 'application/octet-stream',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+    });
+  },
   baseUrl: BASE_URL,
 };
+
 
 export const api = {
   // ─── Delivery Auth ─────────────────────────────────────────────

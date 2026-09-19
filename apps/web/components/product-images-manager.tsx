@@ -43,17 +43,15 @@ export function ProductImagesManager({ token, product }: ProductImagesManagerPro
         entityId: product.id,
       }, { token });
 
-      // 2. Upload file
-      const uploadRes = await fetch(intentRes.uploadUrl, {
-        method: intentRes.method,
-        headers: intentRes.headers,
-        body: file,
+      // 2. Upload file via our backend proxy (avoids CORS from direct-to-provider upload)
+      const uploadRes = await apiClient.putRaw(intentRes.uploadUrl, file, {
+        token,
+        contentType: intentRes.headers['Content-Type'] || file.type,
       });
 
       if (!uploadRes.ok) throw new Error('Upload to storage failed');
+      // Note: proxy endpoint already marks the object as AVAILABLE, no confirm-upload needed
 
-      // 3. Confirm upload
-      await apiClient.post('/storage/confirm-upload', { objectId: intentRes.objectId }, { token });
 
       // 4. Link to Product
       await api.addProductImage(token, product.id, {
