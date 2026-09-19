@@ -2,11 +2,12 @@ import os
 import io
 import asyncio
 import hashlib
+import tempfile
 from typing import Optional, Tuple, AsyncGenerator
 import aiofiles
 from PIL import Image
 
-CACHE_DIR = "/tmp/storage_cache"
+CACHE_DIR = os.path.join(tempfile.gettempdir(), "camtech_storage_cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 def get_cache_key(object_key: str, width: Optional[int] = None, height: Optional[int] = None) -> str:
@@ -16,7 +17,7 @@ def get_cache_key(object_key: str, width: Optional[int] = None, height: Optional
 async def get_cached_file(object_key: str, width: Optional[int] = None, height: Optional[int] = None) -> Optional[str]:
     cache_key = get_cache_key(object_key, width, height)
     file_path = os.path.join(CACHE_DIR, cache_key)
-    if os.path.exists(file_path):
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
     return None
 
@@ -30,11 +31,11 @@ async def save_to_cache(object_key: str, byte_data: bytes, width: Optional[int] 
 async def generate_thumbnail(original_bytes: bytes, width: int, height: int) -> bytes:
     def _resize():
         with Image.open(io.BytesIO(original_bytes)) as img:
-            # Preserve aspect ratio or crop
             img.thumbnail((width, height))
             out_io = io.BytesIO()
-            # Default to JPEG or keep original format if possible
-            fmt = img.format if img.format in ['JPEG', 'PNG', 'WEBP', 'GIF'] else 'JPEG'
+            fmt = img.format if img.format in ['JPEG', 'PNG', 'WEBP', 'GIF'] else 'PNG'
+            if fmt == 'JPEG' and img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
             img.save(out_io, format=fmt)
             return out_io.getvalue()
     

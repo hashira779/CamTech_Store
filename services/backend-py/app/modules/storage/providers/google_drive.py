@@ -90,30 +90,53 @@ class GoogleDriveProvider(StorageProviderAdapter):
 
     async def _resolve_file_id(self, object_key: str, client: httpx.AsyncClient, token: str) -> Optional[str]:
         filename = object_key.split("/")[-1]
-        query = f"name='{filename}' and trashed=false"
+        escaped_name = filename.replace("'", "\\'")
+        
+        # 1. Try search in designated folder
         if getattr(self, 'folder_id', None):
-            query += f" and '{self.folder_id}' in parents"
-            
-        res = await client.get(
-            "https://www.googleapis.com/drive/v3/files",
-            params={"q": query, "fields": "files(id)", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true", "corpora": "allDrives"},
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        if res.status_code == 200:
-            files = res.json().get("files", [])
-            if files:
-                return files[0]["id"]
+            query = f"name='{escaped_name}' and trashed=false and '{self.folder_id}' in parents"
+            try:
+                res = await client.get(
+                    "https://www.googleapis.com/drive/v3/files",
+                    params={"q": query, "fields": "files(id)", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true", "corpora": "allDrives"},
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+                if res.status_code == 200:
+                    files = res.json().get("files", [])
+                    if files:
+                        return files[0]["id"]
+            except Exception:
+                pass
+                
+        # 2. Fallback search anywhere in drive (in case file was placed at root or shared drive)
+        query = f"name='{escaped_name}' and trashed=false"
+        try:
+            res = await client.get(
+                "https://www.googleapis.com/drive/v3/files",
+                params={"q": query, "fields": "files(id)", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true", "corpora": "allDrives"},
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            if res.status_code == 200:
+                files = res.json().get("files", [])
+                if files:
+                    return files[0]["id"]
+        except Exception:
+            pass
+
         return None
 
-    async def stream_object(self, object_key: str):
+    async def stream_object(self, object_key: str, file_id: Optional[str] = None):
         token = await asyncio.to_thread(self._get_valid_token)
         
-        client = httpx.AsyncClient()
+        client = httpx.AsyncClient(timeout=45.0)
         
-        file_id = await self._resolve_file_id(object_key, client, token)
+        # If file_id is not already known, resolve it
+        if not file_id:
+            file_id = await self._resolve_file_id(object_key, client, token)
+            
         if not file_id:
             await client.aclose()
-            raise HTTPException(status_code=404, detail="File not found in Google Drive")
+            raise HTTPException(status_code=404, detail=f"File not found in Google Drive: {object_key}")
         
         # Get mimeType
         meta_res = await client.get(
@@ -124,7 +147,7 @@ class GoogleDriveProvider(StorageProviderAdapter):
         if meta_res.status_code == 200:
             mime_type = meta_res.json().get("mimeType", mime_type)
         
-        # Download the file content entirely (not streaming, to avoid httpx lifecycle issues)
+        # Download the file content entirely
         download_res = await client.get(
             f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true",
             headers={"Authorization": f"Bearer {token}"}

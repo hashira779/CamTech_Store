@@ -91,6 +91,12 @@ export function ProductImagesManager({ token, product }: ProductImagesManagerPro
     }
   };
 
+  const getFullImgUrl = (url: string, width = 800, height = 800) => {
+    const base = url.startsWith('http') ? url : `${apiClient.baseUrl}${url}`;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}token=${token}&width=${width}&height=${height}`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -134,17 +140,25 @@ export function ProductImagesManager({ token, product }: ProductImagesManagerPro
         <div className="space-y-4">
           {/* Primary Image Slot */}
           {primaryImage && (
-            <div className="relative group rounded-lg overflow-hidden border border-border aspect-video bg-muted/30">
+            <div className="relative group rounded-lg overflow-hidden border border-border aspect-video bg-muted/30 flex items-center justify-center">
               <img
-                src={`${apiClient.baseUrl}${primaryImage.url}?token=${token}&width=800&height=800`}
+                src={getFullImgUrl(primaryImage.url, 800, 800)}
                 alt={primaryImage.altText || 'Primary Product Image'}
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
               />
-              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm font-medium">
+              <div className="hidden w-full h-full items-center justify-center text-muted-foreground">
+                <ImageIcon className="w-12 h-12 opacity-40" />
+              </div>
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm font-medium z-10">
                 <Star className="w-3 h-3 fill-current" />
                 Primary
               </div>
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
                 <Button variant="destructive" size="icon" className="h-7 w-7" onClick={() => handleDelete(primaryImage.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
@@ -156,13 +170,21 @@ export function ProductImagesManager({ token, product }: ProductImagesManagerPro
           {otherImages.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               {otherImages.map((img) => (
-                <div key={img.id} className="relative group rounded-md overflow-hidden border border-border aspect-square bg-muted/20">
+                <div key={img.id} className="relative group rounded-md overflow-hidden border border-border aspect-square bg-muted/20 flex items-center justify-center">
                   <img
-                    src={`${apiClient.baseUrl}${img.url}?token=${token}&width=300&height=300`}
+                    src={getFullImgUrl(img.url, 300, 300)}
                     alt={img.altText || 'Product Image'}
                     className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
                   />
-                  <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                  <div className="hidden w-full h-full items-center justify-center text-muted-foreground">
+                    <ImageIcon className="w-8 h-8 opacity-40" />
+                  </div>
+                  <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-10">
                     <Button variant="secondary" size="sm" className="h-7 text-xs w-24" onClick={() => handleSetPrimary(img.id)}>
                       Make Primary
                     </Button>

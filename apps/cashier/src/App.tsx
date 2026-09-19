@@ -43,6 +43,7 @@ interface PosItem {
   price: number;
   sku: string;
   category: string;
+  imageUrl?: string | null;
 }
 
 interface CashierUser {
@@ -206,14 +207,21 @@ export function App() {
         const json = await res.json();
         const items = json.data?.items || json.items || json.data || [];
         if (Array.isArray(items)) {
-          const mapped = items.map((p: any) => ({
-            id: p.id,
-            variantId: p.variants?.[0]?.id || p.id,
-            name: p.name,
-            price: Number(p.variants?.[0]?.sellPrice ?? p.sellPrice ?? p.price ?? 0),
-            sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.slice(0, 6)}`,
-            category: p.category?.name?.toUpperCase() || p.category?.toUpperCase() || 'GENERAL'
-          }));
+          const mapped = items.map((p: any) => {
+            const sortedImgs = p.images ? [...p.images].sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : [];
+            const rawImgUrl = p.imageUrl || sortedImgs[0]?.url;
+            const imageUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
+
+            return {
+              id: p.id,
+              variantId: p.variants?.[0]?.id || p.id,
+              name: p.name,
+              price: Number(p.variants?.[0]?.sellPrice ?? p.sellPrice ?? p.price ?? 0),
+              sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.slice(0, 6)}`,
+              category: p.category?.name?.toUpperCase() || p.category?.toUpperCase() || 'GENERAL',
+              imageUrl
+            };
+          });
           localStorage.setItem('mystore_pos_cached_catalog', JSON.stringify(mapped));
           return mapped;
         }
@@ -586,18 +594,36 @@ export function App() {
                 key={item.id}
                 onClick={() => addToCart(item)}
                 style={{ animationDelay: `${index * 50}ms` }}
-                className="product-card animate-fade-in-up p-5 rounded-2xl flex flex-col justify-between text-left cursor-pointer"
+                className="product-card animate-fade-in-up p-4 rounded-2xl flex flex-col justify-between text-left cursor-pointer group"
               >
                 <div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ink-950 ds-text-dim border border-line">
-                    {item.sku}
-                  </span>
-                  <h4 className="text-sm font-bold ds-text mt-2 group-hover:text-brand-400 transition line-clamp-2">
+                  <div className="w-full h-28 rounded-xl bg-ink-950 border border-line mb-3 flex items-center justify-center overflow-hidden relative">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center ${item.imageUrl ? 'hidden' : 'flex'}`}>
+                      <Package className="w-8 h-8 text-zinc-600 group-hover:text-brand-400 transition" />
+                    </div>
+                    <span className="absolute top-1.5 right-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-ink-900/90 ds-text-dim border border-line backdrop-blur-sm z-10">
+                      {item.sku}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold ds-text mt-1 group-hover:text-brand-400 transition line-clamp-2">
                     {item.name}
                   </h4>
                 </div>
-                <div className="mt-4 pt-2 border-t border-line flex items-center justify-between w-full">
-                  <span className="text-xs ds-text-faint">{item.category}</span>
+                <div className="mt-3 pt-2 border-t border-line flex items-center justify-between w-full">
+                  <span className="text-[11px] ds-text-faint">{item.category}</span>
                   <span className="text-base font-mono font-bold text-emerald-400">
                     ${item.price.toFixed(2)}
                   </span>
@@ -630,8 +656,15 @@ export function App() {
             cart.map((item) => (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-ink-850 border border-line flex items-center justify-between"
+                className="p-2.5 rounded-xl bg-ink-850 border border-line flex items-center justify-between"
               >
+                <div className="w-9 h-9 rounded-lg bg-ink-950 border border-line/80 flex items-center justify-center overflow-hidden shrink-0 mr-2.5">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-4 h-4 text-zinc-600" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0 pr-2">
                   <p className="text-xs font-bold ds-text truncate">{item.name}</p>
                   <p className="text-[10px] font-mono text-emerald-400">${item.price.toFixed(2)} each</p>

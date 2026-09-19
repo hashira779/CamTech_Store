@@ -86,6 +86,8 @@ interface ProductItem {
   category: string;
   variantId?: string;
   variantName?: string;
+  imageUrl?: string | null;
+  images?: any[];
 }
 
 export function App() {
@@ -440,6 +442,9 @@ export function App() {
             return items.map((p: any) => {
               const categoryName = p.category?.name || (typeof p.category === 'string' ? p.category : '') || p.categoryName || 'GENERAL';
               const firstVariant = p.variants?.[0];
+              const sortedImgs = p.images ? [...p.images].sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : [];
+              const rawImgUrl = p.imageUrl || sortedImgs[0]?.url;
+              const imageUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
               
               return {
                 id: p.id,
@@ -449,7 +454,9 @@ export function App() {
                 description: p.description || '',
                 price: Number(firstVariant?.sellPrice || p.sellPrice || p.price || 0),
                 sku: firstVariant?.sku || p.sku || `SKU-${p.id.substring(0,6)}`,
-                category: categoryName.toUpperCase()
+                category: categoryName.toUpperCase(),
+                imageUrl,
+                images: p.images || []
               };
             });
           }
@@ -972,9 +979,24 @@ export function App() {
                 className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden"
               >
                 <div>
-                  <div className="w-full h-40 rounded-2xl bg-ink-950/80 border border-line/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
-                    <Package className="w-12 h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
-                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-850 ds-text-dim border border-line">
+                  <div className="w-full h-44 rounded-2xl bg-ink-950/80 border border-line/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                      <Package className="w-12 h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
+                    </div>
+                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-850/90 ds-text-dim border border-line backdrop-blur-sm z-10">
                       {product.sku}
                     </span>
                   </div>
@@ -1135,6 +1157,13 @@ export function App() {
                     key={item.id}
                     className="flex items-center justify-between p-3 rounded-xl bg-ink-800/60 border border-line-strong/60"
                   >
+                    <div className="w-11 h-11 rounded-xl bg-ink-950 border border-line/80 flex items-center justify-center overflow-hidden shrink-0 mr-3">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-5 h-5 text-zinc-600" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0 pr-3">
                       <p className="text-sm font-semibold ds-text truncate">{item.name}</p>
                       <p className="text-xs text-emerald-400 font-mono">${item.price.toFixed(2)}</p>

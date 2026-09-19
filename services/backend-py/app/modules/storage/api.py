@@ -370,6 +370,18 @@ async def proxy_upload(
         if resp.status_code not in (200, 201):
             raise HTTPException(status_code=502, detail=f"Storage provider rejected upload: {resp.text}")
         
+        # Save provider object ID if returned (e.g. Google Drive returns file JSON)
+        try:
+            drive_data = resp.json()
+            drive_file_id = drive_data.get("id")
+            if drive_file_id:
+                obj.provider_object_id = drive_file_id
+                meta = obj.metadata_ or {}
+                meta["drive_file_id"] = drive_file_id
+                obj.metadata_ = meta
+        except Exception:
+            pass
+
         # Mark object as available
         obj.status = "AVAILABLE"
         obj.storage_url = f"/api/v1/storage/{obj.id}/download"
@@ -405,47 +417,62 @@ async def confirm_upload(
     
     return {"success": True, "objectId": obj.id}
 
-from app.core.dependencies import get_streaming_user
+from app.core.dependencies import get_optional_streaming_user
 from typing import Optional
 import json
 from app.models.entities import AuditLog
-from app.modules.storage.image_processing import process_and_cache_image
+from app.modules.storage.image_processing import process_and_cache_image, get_cached_file
 
 @router.get("/storage/{object_id}/download")
+@router.get("/storage/{object_id}/view")
+@router.get("/storage/{object_id}")
 async def download_object(
     object_id: str,
     width: Optional[int] = None,
     height: Optional[int] = None,
-    user: TenantUser = Depends(get_streaming_user),
+    user: Optional[TenantUser] = Depends(get_optional_streaming_user),
     db: AsyncSession = Depends(get_db)
 ):
     import traceback
-    result = await db.execute(
-        select(StorageObject).where(
-            StorageObject.id == object_id,
-            StorageObject.organization_id == user.organization_id
-        )
-    )
+    stmt = select(StorageObject).where(StorageObject.id == object_id)
+    if user:
+        stmt = stmt.where(StorageObject.organization_id == user.organization_id)
+    result = await db.execute(stmt)
     obj = result.scalars().first()
     
     if not obj or obj.status != "AVAILABLE":
         raise HTTPException(status_code=404, detail="Storage object not found or not available.")
         
-    # Log access for audit
-    try:
-        audit = AuditLog(
-            organization_id=user.organization_id,
-            actor_id=user.id,
-            action="FILE_DOWNLOAD",
-            resource_type="STORAGE_OBJECT",
-            resource_id=obj.id,
-            metadata_=json.dumps({"width": width, "height": height}),
-            result="SUCCESS"
-        )
-        db.add(audit)
-        await db.commit()
-    except Exception:
-        await db.rollback()
+    # Log access for audit if user is authenticated
+    if user:
+        try:
+            audit = AuditLog(
+                organization_id=user.organization_id,
+                actor_id=user.id,
+                action="FILE_DOWNLOAD",
+                resource_type="STORAGE_OBJECT",
+                resource_id=obj.id,
+                metadata_=json.dumps({"width": width, "height": height}),
+                result="SUCCESS"
+            )
+            db.add(audit)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+
+    # Check local cache first for instant response
+    if obj.mime_type.startswith('image/') or (width and height):
+        cached_path = await get_cached_file(obj.object_key, width, height)
+        if cached_path:
+            from fastapi.responses import FileResponse
+            return FileResponse(
+                cached_path,
+                media_type=obj.mime_type,
+                headers={
+                    "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                    "Content-Disposition": f'inline; filename="{obj.file_name}"'
+                }
+            )
 
     result = await db.execute(
         select(StorageProvider).where(StorageProvider.id == obj.provider_id)
@@ -459,7 +486,13 @@ async def download_object(
         adapter = await get_provider_adapter_for_provider(provider)
         
         # Try streaming first (e.g. Google Drive private files)
-        stream_generator, mime_type = await adapter.stream_object(obj.object_key)
+        stream_generator = None
+        mime_type = obj.mime_type
+        try:
+            stream_generator, mime_type = await adapter.stream_object(obj.object_key, file_id=obj.provider_object_id)
+        except TypeError:
+            stream_generator, mime_type = await adapter.stream_object(obj.object_key)
+
         if stream_generator:
             # If it's an image, or we have width/height, process and cache it
             if obj.mime_type.startswith('image/') or (width and height):
@@ -471,11 +504,25 @@ async def download_object(
                     height
                 )
                 if cached_path:
-                    return FileResponse(cached_path, media_type=mime_type or obj.mime_type)
+                    return FileResponse(
+                        cached_path,
+                        media_type=mime_type or obj.mime_type,
+                        headers={
+                            "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                            "Content-Disposition": f'inline; filename="{obj.file_name}"'
+                        }
+                    )
             
             # Fallback if not cached or not image: just stream it to client
             from fastapi.responses import StreamingResponse
-            return StreamingResponse(stream_generator, media_type=mime_type or obj.mime_type)
+            return StreamingResponse(
+                stream_generator,
+                media_type=mime_type or obj.mime_type,
+                headers={
+                    "Cache-Control": "public, max-age=86400",
+                    "Content-Disposition": f'inline; filename="{obj.file_name}"'
+                }
+            )
             
         # Fallback to direct redirect (e.g. S3 presigned URLs)
         download_url = await adapter.get_download_url(obj.object_key)

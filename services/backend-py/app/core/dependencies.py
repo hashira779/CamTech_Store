@@ -193,6 +193,42 @@ async def get_streaming_user(
         return TenantUser(user=user, roles=roles_list, permissions=permissions_list)
 
 
+async def get_optional_streaming_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    token_query: Optional[str] = Query(None, alias="token"),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[TenantUser]:
+    """
+    Optional authentication specifically for media streaming / download endpoints.
+    Allows public / unauthenticated access if no token is provided.
+    """
+    raw_token = auth.credentials if auth and auth.credentials else token_query
+    if not raw_token:
+        return None
+    try:
+        payload = decode_access_token(raw_token)
+        if not payload or "sub" not in payload:
+            return None
+        user_id = payload["sub"]
+        token_type = payload.get("type")
+        if token_type == "delivery":
+            from app.modules.delivery.models import DeliveryDriver
+            result = await db.execute(select(DeliveryDriver).where(DeliveryDriver.id == user_id))
+            driver = result.scalar_one_or_none()
+            if not driver:
+                return None
+            return TenantUser(user=driver, roles=payload.get("roles", ["DELIVERY_DRIVER"]), permissions=["delivery:read", "delivery:update_own"])
+        else:
+            user = await _fetch_user_with_roles(db, user_id)
+            if not user:
+                return None
+            roles_list = extract_user_roles(user)
+            permissions_list = extract_user_permissions(user)
+            return TenantUser(user=user, roles=roles_list, permissions=permissions_list)
+    except Exception:
+        return None
+
+
 async def get_optional_user(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),

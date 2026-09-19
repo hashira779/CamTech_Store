@@ -91,6 +91,7 @@ export interface ProductDto {
   name: string;
   description: string | null;
   isActive: boolean;
+  imageUrl?: string | null;
   variants: ProductVariantDto[];
   images?: ProductImageDto[];
   createdAt: string;

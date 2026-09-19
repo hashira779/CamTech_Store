@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
-import { Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Package } from 'lucide-react';
 import { PosLayout } from './PosLayout';
 
 export function PosPage() {
@@ -82,22 +82,32 @@ export function PosPage() {
           <div className="flex-1 overflow-y-auto pr-2 pb-10">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {isLoading && <div className="col-span-full text-zinc-500 p-8 text-center text-lg">Loading catalog...</div>}
-              {availableVariants.map((item) => (
-                <button
-                  key={item.variant.id}
-                  onClick={() => addToCart(item)}
-                  className="bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 text-left transition-all duration-200 group flex flex-col justify-between aspect-square"
-                >
-                  <div>
-                    <h3 className="font-semibold text-zinc-100 line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">{item.master.name}</h3>
-                    {item.variant.name && <p className="text-zinc-400 text-sm mt-1">{item.variant.name}</p>}
-                    <span className="inline-block mt-2 px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-xs font-mono border border-zinc-700">{item.variant.sku}</span>
-                  </div>
-                  <div className="mt-4">
-                    <span className="text-xl font-bold text-white tabular-nums">${item.variant.sellPrice.toFixed(2)}</span>
-                  </div>
-                </button>
-              ))}
+              {availableVariants.map((item) => {
+                const img = item.master.imageUrl || item.master.images?.find((i: any) => i.isPrimary)?.url || item.master.images?.[0]?.url;
+                return (
+                  <button
+                    key={item.variant.id}
+                    onClick={() => addToCart(item)}
+                    className="bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-3 text-left transition-all duration-200 group flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="w-full h-24 rounded-lg bg-zinc-950 border border-zinc-800/80 mb-2.5 flex items-center justify-center overflow-hidden relative">
+                        {img ? (
+                          <img src={img} alt={item.master.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        ) : (
+                          <Package className="w-8 h-8 text-zinc-600 group-hover:text-emerald-400 transition" />
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-zinc-100 line-clamp-1 leading-snug group-hover:text-emerald-400 transition-colors text-sm">{item.master.name}</h3>
+                      {item.variant.name && <p className="text-zinc-400 text-xs mt-0.5 line-clamp-1">{item.variant.name}</p>}
+                      <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-mono border border-zinc-700">{item.variant.sku}</span>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-zinc-800 flex items-center justify-between">
+                      <span className="text-base font-bold text-white tabular-nums">${item.variant.sellPrice.toFixed(2)}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

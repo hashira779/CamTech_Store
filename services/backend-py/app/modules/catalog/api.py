@@ -47,6 +47,19 @@ async def list_public_products(
 
     out = []
     for p in products:
+        sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
+        img_dtos = [
+            ProductImageDto(
+                id=img.id,
+                storageObjectId=img.storage_object_id,
+                url=f"/api/v1/storage/{img.storage_object_id}/download",
+                isPrimary=img.is_primary,
+                sortOrder=img.sort_order,
+                altText=img.alt_text
+            ) for img in sorted_imgs
+        ]
+        primary_url = img_dtos[0].url if img_dtos else None
+
         out.append(ProductDto(
             id=p.id,
             organizationId=p.organization_id or "default",
@@ -56,6 +69,7 @@ async def list_public_products(
             brandId=p.brand_id,
             type="PHYSICAL",
             isActive=True,
+            imageUrl=primary_url,
             variants=[
                 VariantDto(
                     id=v.id,
@@ -72,16 +86,7 @@ async def list_public_products(
                     isActive=True
                 ) for v in p.variants
             ],
-            images=[
-                {
-                    "id": img.id,
-                    "storageObjectId": img.storage_object_id,
-                    "url": f"/api/v1/storage/{img.storage_object_id}/download",
-                    "isPrimary": img.is_primary,
-                    "sortOrder": img.sort_order,
-                    "altText": img.alt_text
-                } for img in sorted(p.images, key=lambda x: x.sort_order)
-            ] if p.images else []
+            images=img_dtos
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
@@ -113,6 +118,19 @@ async def list_products(
 
     out = []
     for p in products:
+        sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
+        img_dtos = [
+            ProductImageDto(
+                id=img.id,
+                storageObjectId=img.storage_object_id,
+                url=f"/api/v1/storage/{img.storage_object_id}/download",
+                isPrimary=img.is_primary,
+                sortOrder=img.sort_order,
+                altText=img.alt_text
+            ) for img in sorted_imgs
+        ]
+        primary_url = img_dtos[0].url if img_dtos else None
+
         out.append(ProductDto(
             id=p.id,
             organizationId=p.organization_id,
@@ -122,6 +140,7 @@ async def list_products(
             brandId=p.brand_id,
             type="PHYSICAL",
             isActive=True,
+            imageUrl=primary_url,
             variants=[
                 VariantDto(
                     id=v.id,
@@ -138,16 +157,7 @@ async def list_products(
                     isActive=True
                 ) for v in p.variants
             ],
-            images=[
-                {
-                    "id": img.id,
-                    "storageObjectId": img.storage_object_id,
-                    "url": f"/api/v1/storage/{img.storage_object_id}/download",
-                    "isPrimary": img.is_primary,
-                    "sortOrder": img.sort_order,
-                    "altText": img.alt_text
-                } for img in sorted(p.images, key=lambda x: x.sort_order)
-            ] if p.images else []
+            images=img_dtos
         ))
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
@@ -212,6 +222,67 @@ async def create_product(
         ]
     )
 
+@router.get("/products/{product_id}", response_model=ProductDto)
+async def get_product(
+    product_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = (
+        select(Product)
+        .where(Product.id == product_id, Product.organization_id == user.organization_id)
+        .options(
+            selectinload(Product.variants),
+            selectinload(Product.images)
+        )
+    )
+    result = await db.execute(stmt)
+    p = result.scalar_one_or_none()
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    sorted_imgs = sorted(p.images, key=lambda x: (not x.is_primary, x.sort_order)) if p.images else []
+    img_dtos = [
+        ProductImageDto(
+            id=img.id,
+            storageObjectId=img.storage_object_id,
+            url=f"/api/v1/storage/{img.storage_object_id}/download",
+            isPrimary=img.is_primary,
+            sortOrder=img.sort_order,
+            altText=img.alt_text
+        ) for img in sorted_imgs
+    ]
+    primary_url = img_dtos[0].url if img_dtos else None
+
+    return ProductDto(
+        id=p.id,
+        organizationId=p.organization_id,
+        name=p.name,
+        description=p.description,
+        categoryId=p.category_id,
+        brandId=p.brand_id,
+        type="PHYSICAL",
+        isActive=p.is_active,
+        imageUrl=primary_url,
+        variants=[
+            VariantDto(
+                id=v.id,
+                productId=v.product_id,
+                sku=v.sku,
+                name=v.name,
+                barcode=v.barcode,
+                unit=v.unit or "piece",
+                currency=v.currency or "USD",
+                costPrice=float(v.cost_price),
+                sellPrice=float(v.sell_price),
+                taxRatePct=float(v.tax_rate_pct),
+                marginPct=float((v.sell_price - v.cost_price) / v.sell_price * 100) if v.sell_price > 0 else 0.0,
+                isActive=v.is_active
+            ) for v in p.variants
+        ],
+        images=img_dtos
+    )
+
 # ==============================================================================
 # PRODUCT IMAGES
 # ==============================================================================
@@ -233,12 +304,6 @@ async def add_product_image(
     if not prod_res.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Product not found")
 
-    if data.isPrimary:
-        await db.execute(
-            text("UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = :pid"),
-            {"pid": product_id}
-        )
-    
     # Get max sort_order
     order_res = await db.execute(
         select(ProductImage.sort_order)
@@ -247,12 +312,19 @@ async def add_product_image(
         .limit(1)
     )
     max_order = order_res.scalar_one_or_none() or 0
+    is_primary = data.isPrimary or max_order == 0
+
+    if is_primary:
+        await db.execute(
+            text("UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = :pid"),
+            {"pid": product_id}
+        )
 
     img = ProductImage(
         organization_id=user.organization_id,
         product_id=product_id,
         storage_object_id=data.storageObjectId,
-        is_primary=data.isPrimary,
+        is_primary=is_primary,
         alt_text=data.altText,
         sort_order=max_order + 1
     )

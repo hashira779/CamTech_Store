@@ -48,6 +48,7 @@ class ProductDto(BaseModel):
     name: str
     description: Optional[str] = None
     isActive: bool = True
+    imageUrl: Optional[str] = None
     variants: List[VariantDto] = []
     images: Optional[List[ProductImageDto]] = []
     createdAt: Optional[str] = None

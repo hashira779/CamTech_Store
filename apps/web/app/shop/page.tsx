@@ -43,6 +43,7 @@ interface CartItem {
   sku: string;
   price: number;
   quantity: number;
+  imageUrl?: string | null;
 }
 
 export default function CustomerShopPage() {
@@ -97,6 +98,7 @@ export default function CustomerShopPage() {
     if (existing) {
       setCart(cart.map((i) => (i.variantId === variant.id ? { ...i, quantity: i.quantity + 1 } : i)));
     } else {
+      const img = product.imageUrl || product.images?.find((i) => i.isPrimary)?.url || product.images?.[0]?.url;
       setCart([
         ...cart,
         {
@@ -106,6 +108,7 @@ export default function CustomerShopPage() {
           sku: variant.sku,
           price: Number(variant.sellPrice || 0),
           quantity: 1,
+          imageUrl: img,
         },
       ]);
     }
@@ -360,9 +363,29 @@ export default function CustomerShopPage() {
                   className="rounded-lg bg-slate-900/80 border border-slate-800/90 p-4 flex flex-col justify-between hover:border-sky-500/40 transition-all shadow-md group"
                 >
                   <div className="space-y-2">
-                    <div className="w-full h-36 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-center text-slate-600 group-hover:text-sky-400 transition-colors">
-                      <Package className="w-12 h-12" />
-                    </div>
+                    {(() => {
+                      const img = p.imageUrl || p.images?.find((i) => i.isPrimary)?.url || p.images?.[0]?.url;
+                      return (
+                        <div className="w-full h-36 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-center text-slate-600 group-hover:text-sky-400 transition-colors relative overflow-hidden">
+                          {img ? (
+                            <img
+                              src={img}
+                              alt={p.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full flex items-center justify-center ${img ? 'hidden' : 'flex'}`}>
+                            <Package className="w-12 h-12" />
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <Badge variant="outline" className="text-[10px] bg-slate-800 text-slate-400">
                       {p.type || 'Physical Product'}
                     </Badge>
@@ -415,6 +438,13 @@ export default function CustomerShopPage() {
                     key={item.variantId}
                     className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800"
                   >
+                    <div className="w-10 h-10 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 mr-2.5">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-4 h-4 text-slate-600" />
+                      )}
+                    </div>
                     <div className="flex-1 pr-2">
                       <h4 className="font-bold text-slate-200 line-clamp-1">{item.name}</h4>
                       <span className="text-[11px] text-sky-400 font-semibold">${item.price.toFixed(2)} each</span>
