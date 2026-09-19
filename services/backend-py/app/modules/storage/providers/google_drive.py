@@ -3,6 +3,8 @@ import httpx
 from typing import Dict, Any, Optional
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
+from google.auth.exceptions import RefreshError
+from fastapi import HTTPException
 from app.modules.storage.providers.base import StorageProviderAdapter
 from app.core.config import settings
 
@@ -25,7 +27,10 @@ class GoogleDriveProvider(StorageProviderAdapter):
 
     def _get_valid_token(self) -> str:
         if not self.credentials.valid:
-            self.credentials.refresh(GoogleRequest())
+            try:
+                self.credentials.refresh(GoogleRequest())
+            except RefreshError as e:
+                raise HTTPException(status_code=400, detail=f"Google Drive authentication failed. Verify your Client ID, Secret, and Tokens. Error: {str(e)}")
         return self.credentials.token
 
     async def get_upload_url(self, object_key: str, mime_type: str, expires_in: int = 3600) -> str:
