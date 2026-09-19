@@ -182,10 +182,19 @@ async def sync_storage_object(
                 return {"status": "SKIPPED", "image_id": storage_object_id, "reason": "UNCHANGED"}
 
         # Step 3: Download original binary from Google Drive
-        stream_gen = await source_adapter.get_object_stream(source_key)
+        stream_gen = None
+        if hasattr(source_adapter, "stream_object"):
+            try:
+                stream_gen, _ = await source_adapter.stream_object(source_key, file_id=obj.provider_object_id)
+            except TypeError:
+                stream_gen, _ = await source_adapter.stream_object(source_key)
+        elif hasattr(source_adapter, "get_object_stream"):
+            stream_gen = await source_adapter.get_object_stream(source_key)
+
         chunks = []
-        async for chunk in stream_gen:
-            chunks.append(chunk)
+        if stream_gen:
+            async for chunk in stream_gen:
+                chunks.append(chunk)
         original_bytes = b"".join(chunks)
 
         if not original_bytes:
