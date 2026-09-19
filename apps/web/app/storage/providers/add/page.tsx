@@ -50,12 +50,12 @@ export default function AddProviderPage() {
     if (type === 'LOCAL_S3') {
       configuration = { bucket, endpoint_url: endpointUrl, region, access_key: accessKey, secret_key: secretKey };
     } else if (type === 'GOOGLE_DRIVE') {
-      configuration = { folder_id: folderId };
+      configuration = { folder_id: folderId.trim() };
       credentialsReference = JSON.stringify({ 
-        client_id: clientId,
-        client_secret: clientSecret,
-        access_token: accessToken, 
-        refresh_token: refreshToken 
+        client_id: clientId.trim(),
+        client_secret: clientSecret.trim(),
+        access_token: accessToken.trim(), 
+        refresh_token: refreshToken.trim() 
       });
     }
     
