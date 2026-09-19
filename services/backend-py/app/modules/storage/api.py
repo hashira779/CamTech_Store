@@ -219,53 +219,60 @@ async def create_upload_intent(
     user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    provider = await get_active_provider(db, user.organization_id, data.providerId, data.entityType)
-    if not provider:
-        raise HTTPException(status_code=400, detail="No active storage provider configured.")
+    import traceback
+    try:
+        provider = await get_active_provider(db, user.organization_id, data.providerId, data.entityType)
+        if not provider:
+            raise HTTPException(status_code=400, detail="No active storage provider configured.")
+            
+        adapter = await get_provider_adapter_for_provider(provider)
         
-    adapter = await get_provider_adapter_for_provider(provider)
-    
-    # Generate unique key
-    object_id = str(uuid.uuid4())
-    object_key = f"tenant/{user.organization_id}/{object_id}_{data.fileName}"
-    
-    upload_url = await adapter.get_upload_url(object_key, data.mimeType)
-    
-    # Store pending object
-    obj = StorageObject(
-        id=object_id,
-        organization_id=user.organization_id,
-        provider_id=provider.id,
-        object_key=object_key,
-        file_name=data.fileName,
-        mime_type=data.mimeType,
-        size_bytes=data.byteSize,
-        status="PENDING",
-        storage_path=object_key
-    )
-    db.add(obj)
-    
-    # Add attachment if requested
-    if data.entityType and data.entityId:
-        attachment = StorageAttachment(
-            id=str(uuid.uuid4()),
+        # Generate unique key
+        object_id = str(uuid.uuid4())
+        object_key = f"tenant/{user.organization_id}/{object_id}_{data.fileName}"
+        
+        upload_url = await adapter.get_upload_url(object_key, data.mimeType)
+        
+        # Store pending object
+        obj = StorageObject(
+            id=object_id,
             organization_id=user.organization_id,
-            storage_object_id=obj.id,
-            entity_type=data.entityType,
-            entity_id=data.entityId,
-            is_primary=True
+            provider_id=provider.id,
+            object_key=object_key,
+            file_name=data.fileName,
+            mime_type=data.mimeType,
+            size_bytes=data.byteSize,
+            status="PENDING",
+            storage_path=object_key
         )
-        db.add(attachment)
+        db.add(obj)
         
-    await db.commit()
-    
-    return {
-        "uploadUrl": upload_url,
-        "method": "PUT",
-        "headers": {"Content-Type": data.mimeType},
-        "objectId": object_id,
-        "expiresIn": 3600
-    }
+        # Add attachment if requested
+        if data.entityType and data.entityId:
+            attachment = StorageAttachment(
+                id=str(uuid.uuid4()),
+                organization_id=user.organization_id,
+                storage_object_id=obj.id,
+                entity_type=data.entityType,
+                entity_id=data.entityId,
+                is_primary=True
+            )
+            db.add(attachment)
+            
+        await db.commit()
+        
+        return {
+            "uploadUrl": upload_url,
+            "method": "PUT",
+            "headers": {"Content-Type": data.mimeType},
+            "objectId": object_id,
+            "expiresIn": 3600
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=400, detail=error_msg)
 
 @router.post("/storage/confirm-upload")
 async def confirm_upload(

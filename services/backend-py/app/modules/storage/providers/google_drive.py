@@ -73,6 +73,11 @@ class GoogleDriveProvider(StorageProviderAdapter):
                     status_code=400,
                     detail=f"Google Drive API rejected the request. Check your Folder ID and permissions. Error: {error_body}"
                 )
+            except httpx.RequestError as e:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to connect to Google Drive API: {str(e)}"
+                )
             # The Location header contains the resumable upload URL
             return response.headers["Location"]
 
