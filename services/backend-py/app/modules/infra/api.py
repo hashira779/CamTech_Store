@@ -445,6 +445,17 @@ async def docker_container_action(
     )
 
 
+@router.get("/agents/{agent_id}/docker/{container_id}/logs", summary="Get Docker container logs")
+async def get_docker_logs(
+    agent_id: str,
+    container_id: str,
+    tail: int = 100,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_docker_logs(db, agent_id, container_id, tail)
+
+
 @router.get("/agents/{agent_id}/services", summary="List systemd services on managed server")
 async def get_agent_services(
     agent_id: str,

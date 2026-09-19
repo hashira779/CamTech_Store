@@ -269,6 +269,14 @@ class AgentManager:
         """Fetch Docker container list from an agent."""
         return await self._call_agent(db, agent_id, "GET", "/docker/containers")
 
+    async def get_docker_logs(
+        self, db: AsyncSession, agent_id: str, container_id: str, tail: int = 100
+    ) -> Dict[str, Any]:
+        """Fetch Docker container logs from an agent."""
+        return await self._call_agent(
+            db, agent_id, "GET", f"/docker/{container_id}/logs?tail={tail}"
+        )
+
     async def get_all_docker_containers(self, db: AsyncSession) -> Dict[str, Any]:
         """Aggregate Docker containers across all active agents."""
         agents = await self.list_agents(db)
