@@ -172,8 +172,8 @@ async def sync_storage_object(
 
         # Step 2: Check for changes if not forced
         gdrive_meta = await source_adapter.get_object_metadata(source_key)
-        modified_time = gdrive_meta.get("modifiedTime")
-        gdrive_checksum = gdrive_meta.get("checksum")
+        modified_time = gdrive_meta.get("modifiedTime") if gdrive_meta else None
+        gdrive_checksum = gdrive_meta.get("checksum") if gdrive_meta else None
 
         meta = obj.metadata_ or {}
         if not force and obj.sync_status == "SYNCED":
