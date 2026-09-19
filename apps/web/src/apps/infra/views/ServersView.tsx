@@ -233,11 +233,11 @@ export function ServersView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((agent) => {
-            const m = agent.latestMetrics || {};
-            const cpu = m.cpu?.percent ?? 0;
-            const mem = m.memory?.percent ?? 0;
-            const disk = m.disk?.percent ?? 0;
-            const containers = m.docker?.totalContainers ?? 0;
+            const m: any = agent.latestMetrics || {};
+            const cpu = m.cpuPercent ?? m.cpu?.percent ?? 0;
+            const mem = m.memoryPercent ?? m.memory?.percent ?? 0;
+            const disk = m.diskPercent ?? m.disk?.percent ?? 0;
+            const containers = m.containerCount ?? m.docker?.totalContainers ?? 0;
 
             const isOnline = agent.status === 'ONLINE';
 
