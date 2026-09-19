@@ -3,7 +3,7 @@ import uuid
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, TenantUser
@@ -58,7 +58,7 @@ async def create_provider(
     # If this is default, unset others
     if data.isDefault:
         await db.execute(
-            f"UPDATE storage_providers SET \"isDefault\" = false WHERE \"organizationId\" = '{user.organization_id}'"
+            text(f"UPDATE storage_providers SET \"isDefault\" = false WHERE \"organizationId\" = '{user.organization_id}'")
         )
         
     db.add(provider)
