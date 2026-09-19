@@ -423,6 +423,25 @@ import json
 from app.models.entities import AuditLog
 from app.modules.storage.image_processing import process_and_cache_image, get_cached_file
 
+PLACEHOLDER_PRODUCT_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="16" fill="#090d16"/>
+  <rect x="1" y="1" width="198" height="198" rx="15" stroke="#1e293b" stroke-width="1.5"/>
+  <path d="M100 48L148 76V132L100 160L52 132V76L100 48Z" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M100 48V104M100 104L148 132M100 104L52 132" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="100" cy="104" r="3" fill="#a5b4fc"/>
+</svg>"""
+
+def get_placeholder_image_response():
+    from fastapi.responses import Response
+    return Response(
+        content=PLACEHOLDER_PRODUCT_SVG,
+        media_type="image/svg+xml",
+        headers={
+            "Cache-Control": "public, max-age=300",
+            "Content-Type": "image/svg+xml",
+        }
+    )
+
 @router.get("/storage/{object_id}/download")
 @router.get("/storage/{object_id}/view")
 @router.get("/storage/{object_id}")
@@ -441,6 +460,8 @@ async def download_object(
         width = width or 80
         height = height or 80
 
+    is_image_request = bool(thumb or width or height)
+
     stmt = select(StorageObject).where(StorageObject.id == object_id)
     if user:
         stmt = stmt.where(StorageObject.organization_id == user.organization_id)
@@ -448,10 +469,14 @@ async def download_object(
     obj = result.scalars().first()
     
     if not obj or obj.status != "AVAILABLE":
+        if is_image_request:
+            return get_placeholder_image_response()
         raise HTTPException(status_code=404, detail="Storage object not found or not available.")
 
     # Determine cache duration: images get 7-day browser cache
-    is_image = obj.mime_type.startswith('image/')
+    is_image = obj.mime_type.startswith('image/') if obj.mime_type else False
+    if is_image:
+        is_image_request = True
     cache_header = "public, max-age=604800, stale-while-revalidate=604800" if is_image else "public, max-age=86400"
 
     # Check local cache first for instant response
@@ -474,6 +499,8 @@ async def download_object(
     provider = result.scalars().first()
     
     if not provider:
+        if is_image_request:
+            return get_placeholder_image_response()
         raise HTTPException(status_code=404, detail="Storage provider no longer exists. The file cannot be downloaded.")
     
     try:
@@ -529,8 +556,12 @@ async def download_object(
         if download_url.startswith("http"):
             return RedirectResponse(download_url)
         return RedirectResponse(f"/{download_url}")
-    except HTTPException:
+    except HTTPException as he:
+        if he.status_code == 404 and is_image_request:
+            return get_placeholder_image_response()
         raise
     except Exception as e:
+        if is_image_request:
+            return get_placeholder_image_response()
         raise HTTPException(status_code=400, detail=f"Download failed: {str(e)}\n{traceback.format_exc()}")
 
