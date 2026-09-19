@@ -22,7 +22,34 @@ from app.modules.infra.schemas import (
     DeploymentCorrelationSchema,
     InfraAuditEntrySchema,
     BreakGlassActivationRequest,
+    # ICP Schemas
+    RegisterAgentRequest,
+    AgentHeartbeatRequest,
+    AgentSummarySchema,
+    SendCommandRequest,
+    AgentCommandSchema,
+    ServiceActionRequest,
+    DockerActionRequest,
+    DockerComposeActionRequest,
+    RebootServerRequest,
+    CreateScheduledTaskRequest,
+    UpdateScheduledTaskRequest,
+    ScheduledTaskSchema,
+    SaveCloudflareConfigRequest,
+    CloudflareConfigSchema,
+    CreateDnsRecordRequest,
+    PurgeCacheRequest,
+    CreateAlertRuleRequest,
+    AlertRuleSchema,
+    AlertSchema,
+    CreateNotificationChannelRequest,
+    NotificationChannelSchema,
 )
+from app.modules.infra.agent_manager import agent_manager
+from app.modules.infra.scheduler_service import scheduler_service
+from app.modules.infra.cloudflare_service import cloudflare_service
+from app.modules.infra.alert_service import alert_service
+
 
 logger = logging.getLogger("mystore.infra.api")
 
@@ -288,3 +315,446 @@ async def stream_infra_events(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ICP — Server Agent Fleet Management
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/agents", response_model=List[AgentSummarySchema], summary="List all managed server agents")
+async def list_agents(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.list_agents(db)
+
+
+@router.post("/agents/register", summary="Register a new server agent")
+async def register_agent(
+    payload: RegisterAgentRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.register_agent(
+        db=db,
+        hostname=payload.hostname,
+        ip_address=payload.ipAddress,
+        agent_port=payload.port,
+        api_key=payload.apiKey,
+        os_type=payload.osType,
+        tags=payload.tags,
+    )
+
+
+@router.post("/agents/heartbeat", summary="Receive heartbeat and metrics from an agent")
+async def agent_heartbeat(
+    payload: AgentHeartbeatRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.process_heartbeat(
+        db=db,
+        agent_id=payload.agentId or payload.hostname,
+        hostname=payload.hostname,
+        metrics=payload.metrics,
+    )
+
+
+@router.delete("/agents/{agent_id}", summary="Deregister an agent")
+async def deregister_agent(
+    agent_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    success = await agent_manager.deregister_agent(db, agent_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return {"status": "ok", "message": f"Agent {agent_id} deregistered"}
+
+
+@router.get("/agents/{agent_id}/metrics", summary="Get real-time metrics directly from agent")
+async def get_agent_metrics(
+    agent_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_agent_metrics(db, agent_id)
+
+
+@router.post("/agents/{agent_id}/command", summary="Execute approved command on agent")
+async def send_agent_command(
+    agent_id: str,
+    payload: SendCommandRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.send_command(
+        db=db,
+        agent_id=agent_id,
+        command=payload.command,
+        actor_id=user.id,
+        break_glass_token=payload.breakGlassToken,
+    )
+
+
+@router.get("/agents/{agent_id}/commands", summary="Get command execution history for agent")
+async def get_command_history(
+    agent_id: str,
+    limit: int = 50,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_command_history(db, agent_id=agent_id, limit=limit)
+
+
+# ── Server & Container Control ───────────────────────────────────────────────
+
+@router.get("/agents/{agent_id}/docker", summary="List Docker containers on managed server")
+async def get_agent_docker(
+    agent_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_agent_docker(db, agent_id)
+
+
+@router.post("/agents/{agent_id}/docker/{container_id}/action", summary="Control Docker container (start/stop/restart)")
+async def docker_container_action(
+    agent_id: str,
+    container_id: str,
+    payload: DockerActionRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.docker_action(
+        db=db,
+        agent_id=agent_id,
+        container_id=container_id,
+        action=payload.action,
+        actor_id=user.id,
+    )
+
+
+@router.get("/agents/{agent_id}/services", summary="List systemd services on managed server")
+async def get_agent_services(
+    agent_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.get_agent_services(db, agent_id)
+
+
+@router.post("/agents/{agent_id}/service/{service_name}/action", summary="Control systemd service")
+async def service_action(
+    agent_id: str,
+    service_name: str,
+    payload: ServiceActionRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    if payload.action == "restart":
+        return await agent_manager.restart_service(db, agent_id, service_name, user.id)
+    return await agent_manager.send_command(
+        db=db,
+        agent_id=agent_id,
+        command=f"service.{payload.action}:{service_name}",
+        actor_id=user.id,
+    )
+
+
+@router.post("/agents/{agent_id}/system/reboot", summary="Reboot managed server (requires break-glass)")
+async def reboot_server(
+    agent_id: str,
+    payload: RebootServerRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await agent_manager.reboot_server(
+        db=db,
+        agent_id=agent_id,
+        actor_id=user.id,
+        delay_seconds=payload.delaySeconds,
+        break_glass_token=payload.breakGlassToken,
+    )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ICP — Scheduler Module
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/tasks", response_model=List[ScheduledTaskSchema], summary="List all scheduled infrastructure tasks")
+async def list_tasks(
+    agent_id: Optional[str] = None,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await scheduler_service.list_tasks(db, agent_id=agent_id)
+
+
+@router.post("/tasks", summary="Create a new scheduled task")
+async def create_task(
+    payload: CreateScheduledTaskRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await scheduler_service.create_task(
+        db=db,
+        name=payload.name,
+        cron_expr=payload.cronExpr,
+        command=payload.command,
+        description=payload.description,
+        agent_id=payload.agentId,
+        parameters=payload.parameters,
+        enabled=payload.enabled,
+    )
+
+
+@router.put("/tasks/{task_id}", summary="Update a scheduled task")
+async def update_task(
+    task_id: str,
+    payload: UpdateScheduledTaskRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await scheduler_service.update_task(db, task_id, payload.model_dump(exclude_unset=True))
+    if not res:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return res
+
+
+@router.delete("/tasks/{task_id}", summary="Delete a scheduled task")
+async def delete_task(
+    task_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    success = await scheduler_service.delete_task(db, task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"status": "ok"}
+
+
+@router.post("/tasks/{task_id}/run", summary="Trigger immediate run of scheduled task")
+async def run_task_now(
+    task_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await scheduler_service.run_task_now(db, task_id, actor_id=user.id)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ICP — Cloudflare Integration
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/cloudflare/config", summary="Get Cloudflare zone config status")
+async def get_cloudflare_config(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    cfg = await cloudflare_service.get_config(db)
+    if not cfg:
+        return {"configured": False}
+    return {
+        "configured": True,
+        "zoneName": cfg.get("zoneName"),
+        "zoneId": cfg.get("zoneId"),
+        "accountId": cfg.get("accountId"),
+        "enabled": cfg.get("enabled", True),
+    }
+
+
+@router.post("/cloudflare/config", summary="Save Cloudflare API credentials and zone ID")
+async def save_cloudflare_config(
+    payload: SaveCloudflareConfigRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.save_config(
+        db=db,
+        zone_name=payload.zoneName,
+        zone_id=payload.zoneId,
+        api_token=payload.apiToken,
+        account_id=payload.accountId,
+    )
+
+
+@router.get("/cloudflare/dns", summary="List DNS records for active zone")
+async def list_dns_records(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.list_dns_records(db)
+
+
+@router.post("/cloudflare/dns", summary="Create a new DNS record")
+async def create_dns_record(
+    payload: CreateDnsRecordRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.create_dns_record(
+        db=db,
+        record_type=payload.type,
+        name=payload.name,
+        content=payload.content,
+        ttl=payload.ttl,
+        proxied=payload.proxied,
+    )
+
+
+@router.delete("/cloudflare/dns/{record_id}", summary="Delete a DNS record")
+async def delete_dns_record(
+    record_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.delete_dns_record(db, record_id)
+
+
+@router.post("/cloudflare/purge-cache", summary="Purge Cloudflare edge cache")
+async def purge_cloudflare_cache(
+    payload: PurgeCacheRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.purge_cache(
+        db=db,
+        purge_everything=payload.purgeEverything,
+        files=payload.files,
+    )
+
+
+@router.get("/cloudflare/analytics", summary="Get Cloudflare traffic and threat analytics")
+async def get_cloudflare_analytics(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await cloudflare_service.get_analytics(db)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ICP — Alert Center & Notification Channels
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/alerts", response_model=List[AlertSchema], summary="List active and historical alerts")
+async def list_alerts(
+    status: Optional[str] = None,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await alert_service.list_alerts(db, status=status)
+
+
+@router.post("/alerts/{alert_id}/acknowledge", summary="Acknowledge an alert")
+async def acknowledge_alert(
+    alert_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await alert_service.acknowledge_alert(db, alert_id, actor_id=user.id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return res
+
+
+@router.post("/alerts/{alert_id}/resolve", summary="Resolve an alert")
+async def resolve_alert(
+    alert_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    res = await alert_service.resolve_alert(db, alert_id, actor_id=user.id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return res
+
+
+@router.get("/alert-rules", response_model=List[AlertRuleSchema], summary="List threshold alert rules")
+async def list_alert_rules(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await alert_service.list_rules(db)
+
+
+@router.post("/alert-rules", summary="Create a new threshold alert rule")
+async def create_alert_rule(
+    payload: CreateAlertRuleRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await alert_service.create_rule(
+        db=db,
+        name=payload.name,
+        condition=payload.condition,
+        description=payload.description,
+        category=payload.category,
+        severity=payload.severity,
+        channels=payload.channels,
+        cooldown_sec=payload.cooldownSec,
+        enabled=payload.enabled,
+    )
+
+
+@router.delete("/alert-rules/{rule_id}", summary="Delete an alert rule")
+async def delete_alert_rule(
+    rule_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    success = await alert_service.delete_rule(db, rule_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return {"status": "ok"}
+
+
+@router.get("/notification-channels", response_model=List[NotificationChannelSchema], summary="List notification channels")
+async def list_notification_channels(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await alert_service.list_channels(db)
+
+
+@router.post("/notification-channels", summary="Create a notification channel")
+async def create_notification_channel(
+    payload: CreateNotificationChannelRequest,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    return await alert_service.create_channel(
+        db=db,
+        name=payload.name,
+        channel_type=payload.type,
+        config=payload.config,
+        enabled=payload.enabled,
+    )
+
+
+@router.delete("/notification-channels/{channel_id}", summary="Delete a notification channel")
+async def delete_notification_channel(
+    channel_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    success = await alert_service.delete_channel(db, channel_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return {"status": "ok"}
+
+
+@router.post("/notification-channels/{channel_id}/test", summary="Send a test notification")
+async def test_notification_channel(
+    channel_id: str,
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    sent = await alert_service.send_notification(
+        db=db,
+        channel_id=channel_id,
+        title="Test Notification from ICP",
+        message="This is a test alert from the Infrastructure Control Platform. Your channel is working properly.",
+        severity="LOW",
+    )
+    return {"sent": sent}
+

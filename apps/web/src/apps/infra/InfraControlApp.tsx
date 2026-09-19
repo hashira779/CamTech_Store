@@ -19,6 +19,13 @@ const ThreatsPage    = lazy(() => import('./pages/ThreatsPage'));
 const IncidentsPage  = lazy(() => import('./pages/IncidentsPage'));
 const AuditPage      = lazy(() => import('./pages/AuditPage'));
 
+// ICP — Infrastructure Control Platform Pages
+const ServersPage    = lazy(() => import('./pages/ServersPage'));
+const DockerPage     = lazy(() => import('./pages/DockerPage'));
+const SchedulerPage  = lazy(() => import('./pages/SchedulerPage'));
+const CloudflarePage = lazy(() => import('./pages/CloudflarePage'));
+const AlertsPage     = lazy(() => import('./pages/AlertsPage'));
+
 const LoginPage      = lazy(() => import('@/app/login/page'));
 
 const PageFallback = () => <PageSkeleton variant="cards" />;
@@ -37,6 +44,18 @@ export function InfraControlApp() {
           element={<Suspense fallback={<PageFallback />}><OverviewPage /></Suspense>}
         />
         <Route
+          path="/infra/servers"
+          element={<Suspense fallback={<PageFallback />}><ServersPage /></Suspense>}
+        />
+        <Route
+          path="/infra/docker"
+          element={<Suspense fallback={<PageFallback />}><DockerPage /></Suspense>}
+        />
+        <Route
+          path="/infra/scheduler"
+          element={<Suspense fallback={<PageFallback />}><SchedulerPage /></Suspense>}
+        />
+        <Route
           path="/infra/services"
           element={<Suspense fallback={<PageFallback />}><ServicesPage /></Suspense>}
         />
@@ -47,6 +66,14 @@ export function InfraControlApp() {
         <Route
           path="/infra/traffic"
           element={<Suspense fallback={<PageFallback />}><TrafficPage /></Suspense>}
+        />
+        <Route
+          path="/infra/cloudflare"
+          element={<Suspense fallback={<PageFallback />}><CloudflarePage /></Suspense>}
+        />
+        <Route
+          path="/infra/alerts"
+          element={<Suspense fallback={<PageFallback />}><AlertsPage /></Suspense>}
         />
         <Route
           path="/infra/threats"

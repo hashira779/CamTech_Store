@@ -603,6 +603,10 @@ from app.modules.infra.models import (
     InfraService, InfraServiceDependency, InfraSecurityEvent,
     InfraIncident, InfraIncidentTimeline, InfraDeployment,
     InfraBreakGlassSession,
+    # ICP — Infrastructure Control Platform
+    InfraAgent, InfraAgentCommand, InfraScheduledTask,
+    InfraServerMetric, InfraCloudflareConfig,
+    InfraAlertRule, InfraAlert, InfraNotificationChannel,
 )
 
 # Observability telemetry storage. High-volume, time-partitioned, and kept out

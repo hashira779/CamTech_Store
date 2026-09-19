@@ -1,0 +1,26 @@
+[Unit]
+Description=ICP Server Agent (Infrastructure Control Platform)
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/icp-agent
+EnvironmentFile=/etc/icp-agent/config.env
+ExecStart=/opt/icp-agent/venv/bin/uvicorn icp_agent.main:app --host 0.0.0.0 --port 9100
+Restart=always
+RestartSec=5s
+
+# Security hardening
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=false
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=icp-agent
+
+[Install]
+WantedBy=multi-user.target

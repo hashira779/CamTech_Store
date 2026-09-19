@@ -128,3 +128,142 @@ class InfraBreakGlassSession(Base):
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     activated_at = Column("activatedAt", DateTime, default=utc_now, nullable=False)
     expires_at = Column("expiresAt", DateTime, nullable=False)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ICP — Infrastructure Control Platform Models
+# ═════════════════════════════════════════════════════════════════════════════
+
+class InfraAgent(Base):
+    """A registered server agent managed by the control center."""
+    __tablename__ = "infra_agents"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    hostname = Column(String, nullable=False)
+    ip_address = Column("ipAddress", String, nullable=False)
+    os_type = Column("osType", String, default="linux", nullable=False)
+    agent_port = Column("agentPort", Integer, default=9100, nullable=False)
+    api_key_hash = Column("apiKeyHash", String, nullable=False)
+    status = Column(String, default="ONLINE", nullable=False)
+    version = Column(String, default="1.0.0", nullable=False)
+    tags = Column(JSON, default=list)
+    latest_metrics = Column("latestMetrics", JSON, nullable=True)
+    last_heartbeat_at = Column("lastHeartbeatAt", DateTime, nullable=True)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class InfraAgentCommand(Base):
+    """Audit trail of every command sent to an agent."""
+    __tablename__ = "infra_agent_commands"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    agent_id = Column("agentId", String, ForeignKey("infra_agents.id"), nullable=False)
+    actor_id = Column("actorId", String, nullable=False)
+    command = Column(String, nullable=False)
+    parameters = Column(JSON, default=dict)
+    status = Column(String, default="PENDING", nullable=False)
+    result = Column(Text, nullable=True)
+    executed_at = Column("executedAt", DateTime, nullable=True)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+
+
+class InfraScheduledTask(Base):
+    """Cron-based scheduled tasks pushed to agents."""
+    __tablename__ = "infra_scheduled_tasks"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    agent_id = Column("agentId", String, ForeignKey("infra_agents.id"), nullable=True)
+    cron_expr = Column("cronExpr", String, nullable=False)
+    command = Column(String, nullable=False)
+    parameters = Column(JSON, default=dict)
+    enabled = Column(Boolean, default=True, nullable=False)
+    last_run_at = Column("lastRunAt", DateTime, nullable=True)
+    next_run_at = Column("nextRunAt", DateTime, nullable=True)
+    last_result = Column("lastResult", Text, nullable=True)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class InfraServerMetric(Base):
+    """Time-series metrics snapshots from server agents."""
+    __tablename__ = "infra_server_metrics"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    agent_id = Column("agentId", String, ForeignKey("infra_agents.id"), nullable=False)
+    cpu_pct = Column("cpuPct", Numeric(6, 2), nullable=True)
+    memory_pct = Column("memoryPct", Numeric(6, 2), nullable=True)
+    memory_used_mb = Column("memoryUsedMb", Numeric(12, 2), nullable=True)
+    memory_total_mb = Column("memoryTotalMb", Numeric(12, 2), nullable=True)
+    disk_pct = Column("diskPct", Numeric(6, 2), nullable=True)
+    disk_used_gb = Column("diskUsedGb", Numeric(12, 2), nullable=True)
+    disk_total_gb = Column("diskTotalGb", Numeric(12, 2), nullable=True)
+    network_in_mbps = Column("networkInMbps", Numeric(10, 2), nullable=True)
+    network_out_mbps = Column("networkOutMbps", Numeric(10, 2), nullable=True)
+    load_avg_1 = Column("loadAvg1", Numeric(8, 2), nullable=True)
+    load_avg_5 = Column("loadAvg5", Numeric(8, 2), nullable=True)
+    load_avg_15 = Column("loadAvg15", Numeric(8, 2), nullable=True)
+    container_count = Column("containerCount", Integer, default=0)
+    process_count = Column("processCount", Integer, default=0)
+    uptime_seconds = Column("uptimeSeconds", Integer, nullable=True)
+    recorded_at = Column("recordedAt", DateTime, default=utc_now, nullable=False)
+
+
+class InfraCloudflareConfig(Base):
+    """Cloudflare zone configuration with encrypted API tokens."""
+    __tablename__ = "infra_cloudflare_configs"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    zone_name = Column("zoneName", String, nullable=False)
+    zone_id = Column("zoneId", String, nullable=False)
+    api_token_encrypted = Column("apiTokenEncrypted", Text, nullable=False)
+    account_id = Column("accountId", String, nullable=True)
+    enabled = Column(Boolean, default=True, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+
+
+class InfraAlertRule(Base):
+    """Threshold-based alert rules for automated monitoring."""
+    __tablename__ = "infra_alert_rules"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String, default="INFRA", nullable=False)
+    severity = Column(String, default="HIGH", nullable=False)
+    condition = Column(JSON, nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)
+    channels = Column(JSON, default=list)
+    cooldown_sec = Column("cooldownSec", Integer, default=300, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
+
+
+class InfraAlert(Base):
+    """Fired alerts with status tracking."""
+    __tablename__ = "infra_alerts"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    rule_id = Column("ruleId", String, ForeignKey("infra_alert_rules.id"), nullable=True)
+    agent_id = Column("agentId", String, ForeignKey("infra_agents.id"), nullable=True)
+    severity = Column(String, nullable=False)
+    status = Column(String, default="FIRING", nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    fired_at = Column("firedAt", DateTime, default=utc_now, nullable=False)
+    acknowledged_at = Column("acknowledgedAt", DateTime, nullable=True)
+    acknowledged_by = Column("acknowledgedBy", String, nullable=True)
+    resolved_at = Column("resolvedAt", DateTime, nullable=True)
+
+
+class InfraNotificationChannel(Base):
+    """Notification channel configuration (Telegram, Email, Slack, Webhook)."""
+    __tablename__ = "infra_notification_channels"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    type = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    config = Column(JSON, nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)
+    created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)

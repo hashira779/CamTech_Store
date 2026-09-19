@@ -16,6 +16,11 @@ import {
   ShieldCheck,
   Menu,
   X,
+  Clock,
+  Layers,
+  Cloud,
+  Bell,
+  Cpu,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-store';
 import { apiClient } from '@/lib/api-client';
@@ -30,23 +35,34 @@ interface BreakGlassSession {
 // ─── Sidebar navigation items ────────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
-    label: 'Operations & Observability',
+    label: 'Infrastructure & Fleet',
     items: [
-      { to: '/infra/overview',  icon: Activity,     label: 'Command Overview' },
-      { to: '/infra/services',  icon: Server,        label: 'Microservices Mesh' },
-      { to: '/infra/topology',  icon: Network,       label: 'Interactive Topology' },
-      { to: '/infra/traffic',   icon: Radio,         label: 'Live Edge Traffic' },
+      { to: '/infra/overview',   icon: Activity,     label: 'Command Overview' },
+      { to: '/infra/servers',    icon: Cpu,          label: 'Server Fleet & Agents' },
+      { to: '/infra/docker',     icon: Layers,       label: 'Docker & Containers' },
+      { to: '/infra/scheduler',  icon: Clock,        label: 'Scheduled Operations' },
+      { to: '/infra/services',   icon: Server,       label: 'Microservices Mesh' },
+      { to: '/infra/topology',   icon: Network,      label: 'Interactive Topology' },
+      { to: '/infra/traffic',    icon: Radio,        label: 'Live Edge Traffic' },
+    ],
+  },
+  {
+    label: 'Edge & Monitoring',
+    items: [
+      { to: '/infra/cloudflare', icon: Cloud,        label: 'Cloudflare Network' },
+      { to: '/infra/alerts',     icon: Bell,         label: 'Alert Center' },
     ],
   },
   {
     label: 'Security & Compliance',
     items: [
-      { to: '/infra/threats',   icon: ShieldAlert,   label: 'Security Threat Center' },
-      { to: '/infra/incidents', icon: AlertOctagon,  label: 'Incidents & Deploys' },
-      { to: '/infra/audit',     icon: Terminal,      label: 'Immutable Audit Logs' },
+      { to: '/infra/threats',    icon: ShieldAlert,  label: 'Security Threat Center' },
+      { to: '/infra/incidents',  icon: AlertOctagon, label: 'Incidents & Deploys' },
+      { to: '/infra/audit',      icon: Terminal,     label: 'Immutable Audit Logs' },
     ],
   },
 ];
+
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export function InfraShell() {
