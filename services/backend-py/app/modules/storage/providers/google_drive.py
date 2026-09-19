@@ -32,21 +32,32 @@ class GoogleDriveProvider(StorageProviderAdapter):
             scopes=None
         )
 
-    def _get_valid_token(self) -> str:
-        if not self.credentials.valid:
+    def _get_valid_token(self, force_refresh: bool = False) -> str:
+        if force_refresh or not self.credentials.token or not self.credentials.valid:
             try:
                 self.credentials.refresh(GoogleRequest())
             except RefreshError as e:
                 raise HTTPException(status_code=400, detail=f"Google Drive authentication failed. Verify your Client ID, Secret, and Tokens. Error: {str(e)}")
         return self.credentials.token
 
+    async def _request_with_retry(self, client: httpx.AsyncClient, method: str, url: str, **kwargs) -> httpx.Response:
+        token = await asyncio.to_thread(self._get_valid_token)
+        headers = dict(kwargs.pop("headers", {}))
+        headers["Authorization"] = f"Bearer {token}"
+
+        res = await client.request(method, url, headers=headers, **kwargs)
+        if res.status_code == 401 and self.credentials.refresh_token:
+            # Token expired or rejected by Google; force refresh and retry once
+            token = await asyncio.to_thread(self._get_valid_token, force_refresh=True)
+            headers["Authorization"] = f"Bearer {token}"
+            res = await client.request(method, url, headers=headers, **kwargs)
+        return res
+
     async def get_upload_url(self, object_key: str, mime_type: str, expires_in: int = 3600) -> str:
         """
         Initializes a resumable upload session and returns the upload URI.
         The client can then PUT the file directly to this URI.
         """
-        token = await asyncio.to_thread(self._get_valid_token)
-        
         metadata = {
             "name": object_key.split("/")[-1],
             "mimeType": mime_type
@@ -55,10 +66,11 @@ class GoogleDriveProvider(StorageProviderAdapter):
             metadata["parents"] = [self.folder_id]
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(
+            response = await self._request_with_retry(
+                client,
+                "POST",
                 "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
                 headers={
-                    "Authorization": f"Bearer {token}",
                     "Content-Type": "application/json",
                     "X-Upload-Content-Type": mime_type
                 },
@@ -67,7 +79,6 @@ class GoogleDriveProvider(StorageProviderAdapter):
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as e:
-                # Give a clear error message back to the frontend
                 error_body = response.text
                 raise HTTPException(
                     status_code=400,
@@ -78,17 +89,12 @@ class GoogleDriveProvider(StorageProviderAdapter):
                     status_code=502,
                     detail=f"Failed to connect to Google Drive API: {str(e)}"
                 )
-            # The Location header contains the resumable upload URL
             return response.headers["Location"]
 
     async def get_download_url(self, object_key: str, expires_in: int = 3600) -> str:
-        # We cannot return a direct unauthenticated public URL for private Google Drive files.
-        # We signal to the API layer to proxy it by returning None or a special internal route.
-        # However, we implemented `stream_object` which the API can use.
-        # Return a relative path, but the API will just stream it instead.
         return f"/api/v1/storage/{object_key}/download"
 
-    async def _resolve_file_id(self, object_key: str, client: httpx.AsyncClient, token: str) -> Optional[str]:
+    async def _resolve_file_id(self, object_key: str, client: httpx.AsyncClient, token: Optional[str] = None) -> Optional[str]:
         import logging
         logger = logging.getLogger(__name__)
         filename = object_key.split("/")[-1]
@@ -96,13 +102,10 @@ class GoogleDriveProvider(StorageProviderAdapter):
         
         # Search queries in priority order:
         queries = []
-        # 1. Exact name in designated folder
         if getattr(self, 'folder_id', None):
             queries.append(f"name='{escaped_name}' and trashed=false and '{self.folder_id}' in parents")
-        # 2. Exact name anywhere in drive
         queries.append(f"name='{escaped_name}' and trashed=false")
         
-        # 3. If filename has {uuid}_{base_name}, search by UUID prefix or base name
         if "_" in filename:
             parts = filename.split("_", 1)
             uuid_part = parts[0]
@@ -120,10 +123,11 @@ class GoogleDriveProvider(StorageProviderAdapter):
         
         for q in queries:
             try:
-                res = await client.get(
+                res = await self._request_with_retry(
+                    client,
+                    "GET",
                     "https://www.googleapis.com/drive/v3/files",
-                    params={**params_base, "q": q},
-                    headers={"Authorization": f"Bearer {token}"}
+                    params={**params_base, "q": q}
                 )
                 if res.status_code == 200:
                     files = res.json().get("files", [])
@@ -138,31 +142,28 @@ class GoogleDriveProvider(StorageProviderAdapter):
         return None
 
     async def stream_object(self, object_key: str, file_id: Optional[str] = None):
-        token = await asyncio.to_thread(self._get_valid_token)
-        
         client = httpx.AsyncClient(timeout=45.0)
         
-        # If file_id is not already known, resolve it
         if not file_id:
-            file_id = await self._resolve_file_id(object_key, client, token)
+            file_id = await self._resolve_file_id(object_key, client)
             
         if not file_id:
             await client.aclose()
             raise HTTPException(status_code=404, detail=f"File not found in Google Drive: {object_key}")
         
-        # Get mimeType
-        meta_res = await client.get(
-            f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=mimeType&supportsAllDrives=true",
-            headers={"Authorization": f"Bearer {token}"}
+        meta_res = await self._request_with_retry(
+            client,
+            "GET",
+            f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=mimeType&supportsAllDrives=true"
         )
         mime_type = "application/octet-stream"
         if meta_res.status_code == 200:
             mime_type = meta_res.json().get("mimeType", mime_type)
         
-        # Download the file content entirely
-        download_res = await client.get(
-            f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true",
-            headers={"Authorization": f"Bearer {token}"}
+        download_res = await self._request_with_retry(
+            client,
+            "GET",
+            f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true"
         )
         await client.aclose()
         
@@ -176,31 +177,30 @@ class GoogleDriveProvider(StorageProviderAdapter):
             
         return _generator(), mime_type
 
-
     async def delete_object(self, object_key: str) -> bool:
-        token = await asyncio.to_thread(self._get_valid_token)
         async with httpx.AsyncClient() as client:
-            file_id = await self._resolve_file_id(object_key, client, token)
+            file_id = await self._resolve_file_id(object_key, client)
             if not file_id:
                 return True
                 
-            response = await client.delete(
-                f"https://www.googleapis.com/drive/v3/files/{file_id}?supportsAllDrives=true",
-                headers={"Authorization": f"Bearer {token}"}
+            response = await self._request_with_retry(
+                client,
+                "DELETE",
+                f"https://www.googleapis.com/drive/v3/files/{file_id}?supportsAllDrives=true"
             )
             return response.status_code == 204
 
     async def get_object_metadata(self, object_key: str, file_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        token = await asyncio.to_thread(self._get_valid_token)
         async with httpx.AsyncClient() as client:
             if not file_id:
-                file_id = await self._resolve_file_id(object_key, client, token)
+                file_id = await self._resolve_file_id(object_key, client)
             if not file_id:
                 return None
                 
-            response = await client.get(
-                f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=id,name,size,mimeType,modifiedTime,md5Checksum&supportsAllDrives=true",
-                headers={"Authorization": f"Bearer {token}"}
+            response = await self._request_with_retry(
+                client,
+                "GET",
+                f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=id,name,size,mimeType,modifiedTime,md5Checksum&supportsAllDrives=true"
             )
             if response.status_code == 404:
                 return None
@@ -221,12 +221,13 @@ class GoogleDriveProvider(StorageProviderAdapter):
 
     async def check_health(self) -> bool:
         try:
-            token = await asyncio.to_thread(self._get_valid_token)
             async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    "https://www.googleapis.com/drive/v3/about?fields=user",
-                    headers={"Authorization": f"Bearer {token}"}
+                response = await self._request_with_retry(
+                    client,
+                    "GET",
+                    "https://www.googleapis.com/drive/v3/about?fields=user"
                 )
                 return response.status_code == 200
         except Exception:
             return False
+
