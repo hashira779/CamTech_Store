@@ -200,14 +200,26 @@ jobs:
           name: frontend-dist
           path: apps/
 
-      - name: Validate Release Artifacts
+      - name: Deploy to Production Branch
         run: |
           echo "========================================================================"
           echo "🚀 Validating release artifacts for commit ${{ github.sha }}..."
           echo "========================================================================"
           ls -la apps/
           echo "✅ All frontend release bundles and contracts successfully verified."
-          echo "📡 The Ubuntu server's automated sync service (mystore-autoupdate) will pull and deploy to production."
+          
+          echo "📦 Pushing compiled assets to 'production-release' branch for auto-deployment..."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B production-release
+          
+          # Force add dist folders (since they are in .gitignore)
+          git add -f apps/*/dist/ || true
+          
+          git commit -m "Auto-deploy: compiled frontend assets for ${{ github.sha }}" || echo "No changes to commit"
+          git push -f origin production-release
+          
+          echo "📡 The Ubuntu server's automated sync service will now pull 'production-release' and deploy instantly."
 
       - name: Notify Telegram on Deployment Ready
         if: success()
