@@ -19,6 +19,8 @@ import {
   Clock,
   Shield,
   Trash2,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -54,6 +56,12 @@ export function ServersView() {
   const [selectedCommand, setSelectedCommand] = useState('uptime');
   const [commandOutput, setCommandOutput] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 6000);
+  };
 
   // Fetch registered agents
   const { data: agents = [], isLoading, refetch } = useQuery<ServerAgent[]>({
@@ -73,9 +81,11 @@ export function ServersView() {
     onSuccess: (data) => {
       setCommandOutput(JSON.stringify(data, null, 2));
       queryClient.invalidateQueries({ queryKey: ['infra-agents'] });
+      showToast('success', 'Command executed successfully');
     },
     onError: (err: any) => {
       setCommandOutput(`Error: ${err.message || 'Execution failed'}`);
+      showToast('error', `Command failed: ${err.message || 'Execution failed'}`);
     },
   });
 
@@ -88,12 +98,12 @@ export function ServersView() {
       });
     },
     onSuccess: () => {
-      alert('Reboot signal transmitted to server agent.');
+      showToast('warning', 'Reboot signal transmitted. Server is restarting (est. 30-45s)...');
       setShowRebootModal(false);
       queryClient.invalidateQueries({ queryKey: ['infra-agents'] });
     },
     onError: (err: any) => {
-      alert(`Reboot failed: ${err.message || 'Error occurred'}`);
+      showToast('error', `Reboot failed: ${err.message || 'Error occurred'}`);
     },
   });
 
@@ -531,6 +541,27 @@ export function ServersView() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* ── Toast Notification Banner ── */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+            toast.type === 'success'
+              ? 'bg-zinc-900/95 border-emerald-500/50 text-emerald-300 shadow-emerald-500/10'
+              : toast.type === 'warning'
+              ? 'bg-zinc-900/95 border-amber-500/50 text-amber-300 shadow-amber-500/10'
+              : 'bg-zinc-900/95 border-rose-500/50 text-rose-300 shadow-rose-500/10'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          ) : toast.type === 'warning' ? (
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 animate-pulse" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          )}
+          <span className="text-xs font-mono font-medium">{toast.message}</span>
         </div>
       )}
     </div>
