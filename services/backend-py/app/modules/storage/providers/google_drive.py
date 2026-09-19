@@ -108,8 +108,6 @@ class GoogleDriveProvider(StorageProviderAdapter):
     async def stream_object(self, object_key: str):
         token = await asyncio.to_thread(self._get_valid_token)
         
-        # We will use httpx to fetch the file contents with the token
-        # Returning a generator that yields chunks
         client = httpx.AsyncClient()
         
         file_id = await self._resolve_file_id(object_key, client, token)
@@ -117,7 +115,7 @@ class GoogleDriveProvider(StorageProviderAdapter):
             await client.aclose()
             raise HTTPException(status_code=404, detail="File not found in Google Drive")
         
-        # First, get mimeType
+        # Get mimeType
         meta_res = await client.get(
             f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=mimeType&supportsAllDrives=true",
             headers={"Authorization": f"Bearer {token}"}
@@ -125,21 +123,24 @@ class GoogleDriveProvider(StorageProviderAdapter):
         mime_type = "application/octet-stream"
         if meta_res.status_code == 200:
             mime_type = meta_res.json().get("mimeType", mime_type)
-            
-        req = client.build_request(
-            "GET",
+        
+        # Download the file content entirely (not streaming, to avoid httpx lifecycle issues)
+        download_res = await client.get(
             f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true",
             headers={"Authorization": f"Bearer {token}"}
         )
+        await client.aclose()
         
-        # We yield from an httpx stream
+        if download_res.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Google Drive download failed: {download_res.text}")
+        
+        content = download_res.content
+        
         async def _generator():
-            async with client.stream_request(req) as response:
-                async for chunk in response.aiter_bytes():
-                    yield chunk
-            await client.aclose()
+            yield content
             
         return _generator(), mime_type
+
 
     async def delete_object(self, object_key: str) -> bool:
         token = await asyncio.to_thread(self._get_valid_token)

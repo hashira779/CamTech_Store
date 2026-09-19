@@ -419,6 +419,7 @@ async def download_object(
     user: TenantUser = Depends(get_streaming_user),
     db: AsyncSession = Depends(get_db)
 ):
+    import traceback
     result = await db.execute(
         select(StorageObject).where(
             StorageObject.id == object_id,
@@ -431,17 +432,20 @@ async def download_object(
         raise HTTPException(status_code=404, detail="Storage object not found or not available.")
         
     # Log access for audit
-    audit = AuditLog(
-        organization_id=user.organization_id,
-        actor_id=user.id,
-        action="FILE_DOWNLOAD",
-        resource_type="STORAGE_OBJECT",
-        resource_id=obj.id,
-        metadata_=json.dumps({"width": width, "height": height}),
-        result="SUCCESS"
-    )
-    db.add(audit)
-    await db.commit()
+    try:
+        audit = AuditLog(
+            organization_id=user.organization_id,
+            actor_id=user.id,
+            action="FILE_DOWNLOAD",
+            resource_type="STORAGE_OBJECT",
+            resource_id=obj.id,
+            metadata_=json.dumps({"width": width, "height": height}),
+            result="SUCCESS"
+        )
+        db.add(audit)
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     result = await db.execute(
         select(StorageProvider).where(StorageProvider.id == obj.provider_id)
@@ -451,31 +455,37 @@ async def download_object(
     if not provider:
         raise HTTPException(status_code=404, detail="Storage provider no longer exists. The file cannot be downloaded.")
     
-    adapter = await get_provider_adapter_for_provider(provider)
-    
-    # Try streaming first (e.g. Google Drive private files)
-    stream_generator, mime_type = await adapter.stream_object(obj.object_key)
-    if stream_generator:
-        # If it's an image, or we have width/height, process and cache it
-        if obj.mime_type.startswith('image/') or (width and height):
-            from fastapi.responses import FileResponse
-            cached_path = await process_and_cache_image(
-                obj.object_key, 
-                stream_generator, 
-                width, 
-                height
-            )
-            if cached_path:
-                return FileResponse(cached_path, media_type=mime_type or obj.mime_type)
+    try:
+        adapter = await get_provider_adapter_for_provider(provider)
         
-        # Fallback if not cached or not image: just stream it to client
-        from fastapi.responses import StreamingResponse
-        return StreamingResponse(stream_generator, media_type=mime_type or obj.mime_type)
+        # Try streaming first (e.g. Google Drive private files)
+        stream_generator, mime_type = await adapter.stream_object(obj.object_key)
+        if stream_generator:
+            # If it's an image, or we have width/height, process and cache it
+            if obj.mime_type.startswith('image/') or (width and height):
+                from fastapi.responses import FileResponse
+                cached_path = await process_and_cache_image(
+                    obj.object_key, 
+                    stream_generator, 
+                    width, 
+                    height
+                )
+                if cached_path:
+                    return FileResponse(cached_path, media_type=mime_type or obj.mime_type)
+            
+            # Fallback if not cached or not image: just stream it to client
+            from fastapi.responses import StreamingResponse
+            return StreamingResponse(stream_generator, media_type=mime_type or obj.mime_type)
+            
+        # Fallback to direct redirect (e.g. S3 presigned URLs)
+        download_url = await adapter.get_download_url(obj.object_key)
         
-    # Fallback to direct redirect (e.g. S3 presigned URLs)
-    download_url = await adapter.get_download_url(obj.object_key)
-    
-    from fastapi.responses import RedirectResponse
-    if download_url.startswith("http"):
-        return RedirectResponse(download_url)
-    return RedirectResponse(f"/{download_url}")
+        from fastapi.responses import RedirectResponse
+        if download_url.startswith("http"):
+            return RedirectResponse(download_url)
+        return RedirectResponse(f"/{download_url}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Download failed: {str(e)}\n{traceback.format_exc()}")
+
