@@ -13,11 +13,21 @@ class CloudflareR2Provider(StorageProviderAdapter):
     """
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         config = config or {}
-        self.account_id = config.get("account_id") or settings.R2_ACCOUNT_ID
-        self.access_key = config.get("access_key") or settings.R2_ACCESS_KEY_ID
-        self.secret_key = config.get("secret_key") or settings.R2_SECRET_ACCESS_KEY
+        self.account_id = config.get("account_id") or config.get("accountId") or settings.R2_ACCOUNT_ID
+        self.access_key = (
+            config.get("access_key")
+            or config.get("access_key_id")
+            or config.get("accessKeyId")
+            or settings.R2_ACCESS_KEY_ID
+        )
+        self.secret_key = (
+            config.get("secret_key")
+            or config.get("secret_access_key")
+            or config.get("secretAccessKey")
+            or settings.R2_SECRET_ACCESS_KEY
+        )
         self.bucket = config.get("bucket") or settings.R2_BUCKET or "mystore-media"
-        self.public_domain = (config.get("public_domain") or settings.R2_PUBLIC_DOMAIN or "").rstrip("/")
+        self.public_domain = (config.get("public_domain") or config.get("publicDomain") or settings.R2_PUBLIC_DOMAIN or "").rstrip("/")
 
         endpoint_url = config.get("endpoint_url")
         if not endpoint_url and self.account_id:
