@@ -56,7 +56,7 @@ class GoogleDriveProvider(StorageProviderAdapter):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
                 headers={
                     "Authorization": f"Bearer {token}",
                     "Content-Type": "application/json",
