@@ -1098,6 +1098,12 @@ export const api = {
   listStorageProviders: (token: string) =>
     request<any[]>('/storage/providers', { token }),
 
+  deleteStorageProvider: (token: string, id: string) =>
+    request<{ success: boolean }>(`/storage/providers/${id}`, {
+      method: 'DELETE',
+      token,
+    }),
+
   createStorageProvider: (token: string, input: any) =>
     request<any>('/storage/providers', {
       method: 'POST',

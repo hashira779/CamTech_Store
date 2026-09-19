@@ -50,6 +50,16 @@ export default function ProvidersPage() {
     onError: (err: any) => alert(err.message || 'Failed to delete policy')
   });
 
+  const deleteProviderMutation = useMutation({
+    mutationFn: (id: string) => api.deleteStorageProvider(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storageProviders'] });
+      // Also invalidate policies since they depend on providers
+      queryClient.invalidateQueries({ queryKey: ['storagePolicies'] });
+    },
+    onError: (err: any) => alert(err.message || 'Failed to delete provider')
+  });
+
   if (!token) return null;
 
   return (
@@ -84,14 +94,15 @@ export default function ProvidersPage() {
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Default Routing</th>
                   <th className="py-3 px-4">Added On</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading ? (
-                  <TableSkeletonRows rows={3} cols={5} />
+                  <TableSkeletonRows rows={3} cols={6} />
                 ) : providers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
                       No storage providers configured. Connect one to start storing files.
                     </td>
                   </tr>
@@ -135,6 +146,20 @@ export default function ProvidersPage() {
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">
                         {new Date(provider.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this provider? Any active policies routing to it will break.')) {
+                              deleteProviderMutation.mutate(provider.id);
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-rose-400 transition-colors p-1"
+                          title="Delete Provider"
+                          disabled={deleteProviderMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))

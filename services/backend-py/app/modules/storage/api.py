@@ -75,6 +75,26 @@ async def create_provider(
         "createdAt": provider.created_at.isoformat() if provider.created_at else ""
     }
 
+@router.delete("/storage/providers/{provider_id}")
+async def delete_provider(
+    provider_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(StorageProvider).where(
+            StorageProvider.organization_id == user.organization_id,
+            StorageProvider.id == provider_id
+        )
+    )
+    provider = result.scalars().first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+        
+    await db.delete(provider)
+    await db.commit()
+    return {"success": True}
+
 # --- POLICIES ---
 
 @router.get("/storage/policies", response_model=List[StoragePolicyDto])
