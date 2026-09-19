@@ -50,7 +50,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # ── 5. Install Python dependencies ───────────────────────────────────────────
 echo "📦 Installing Python packages..."
 pip install --quiet --upgrade pip
-pip install --quiet fastapi uvicorn[standard] psutil httpx docker pydantic
+pip install --quiet fastapi uvicorn[standard] psutil httpx docker pydantic python-multipart
 
 # ── 6. Copy agent code ───────────────────────────────────────────────────────
 echo "📝 Setting up agent source..."

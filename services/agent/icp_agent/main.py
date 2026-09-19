@@ -236,8 +236,13 @@ async def get_docker_logs(container_id: str, tail: int = Query(100, ge=1, le=100
     return container_logs(container_id, tail)
 
 
+class DockerComposeRequest(BaseModel):
+    services: Optional[list] = None
+
+
 @app.post("/docker/compose/{action}")
-async def docker_compose_command(action: str, services: Optional[list] = None):
+async def docker_compose_command(action: str, body: Optional[DockerComposeRequest] = None):
+    services = body.services if body else None
     from icp_agent.executors.docker_exec import docker_compose_action
     _audit(f"docker-compose.{action}", {"services": services})
     return docker_compose_action(action, services=services)
