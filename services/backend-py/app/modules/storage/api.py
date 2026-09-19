@@ -59,7 +59,8 @@ async def create_provider(
     # If this is default, unset others
     if data.isDefault:
         await db.execute(
-            text(f"UPDATE storage_providers SET \"isDefault\" = false WHERE \"organizationId\" = '{user.organization_id}'")
+            text("UPDATE storage_providers SET \"isDefault\" = false WHERE \"organizationId\" = :org_id"),
+            {"org_id": user.organization_id}
         )
         
     db.add(provider)
@@ -95,17 +96,20 @@ async def delete_provider(
             
         # 1. Delete attachments linked to objects from this provider
         await db.execute(
-            text(f"DELETE FROM storage_attachments WHERE \"storageObjectId\" IN (SELECT id FROM storage_objects WHERE \"providerId\" = '{provider_id}')")
+            text("DELETE FROM storage_attachments WHERE \"storageObjectId\" IN (SELECT id FROM storage_objects WHERE \"providerId\" = :pid)"),
+            {"pid": provider_id}
         )
         
         # 2. Delete objects
         await db.execute(
-            text(f"DELETE FROM storage_objects WHERE \"providerId\" = '{provider_id}'")
+            text("DELETE FROM storage_objects WHERE \"providerId\" = :pid"),
+            {"pid": provider_id}
         )
         
         # 3. Delete policies
         await db.execute(
-            text(f"DELETE FROM storage_policies WHERE \"providerId\" = '{provider_id}'")
+            text("DELETE FROM storage_policies WHERE \"providerId\" = :pid"),
+            {"pid": provider_id}
         )
         
         # 4. Delete provider
@@ -443,6 +447,9 @@ async def download_object(
         select(StorageProvider).where(StorageProvider.id == obj.provider_id)
     )
     provider = result.scalars().first()
+    
+    if not provider:
+        raise HTTPException(status_code=404, detail="Storage provider no longer exists. The file cannot be downloaded.")
     
     adapter = await get_provider_adapter_for_provider(provider)
     
