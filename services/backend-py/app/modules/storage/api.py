@@ -430,10 +430,17 @@ async def download_object(
     object_id: str,
     width: Optional[int] = None,
     height: Optional[int] = None,
+    thumb: Optional[int] = None,
     user: Optional[TenantUser] = Depends(get_optional_streaming_user),
     db: AsyncSession = Depends(get_db)
 ):
     import traceback
+
+    # ?thumb=1 is a shortcut for 80x80 thumbnail (used by table views)
+    if thumb:
+        width = width or 80
+        height = height or 80
+
     stmt = select(StorageObject).where(StorageObject.id == object_id)
     if user:
         stmt = stmt.where(StorageObject.organization_id == user.organization_id)
@@ -442,26 +449,13 @@ async def download_object(
     
     if not obj or obj.status != "AVAILABLE":
         raise HTTPException(status_code=404, detail="Storage object not found or not available.")
-        
-    # Log access for audit if user is authenticated
-    if user:
-        try:
-            audit = AuditLog(
-                organization_id=user.organization_id,
-                actor_id=user.id,
-                action="FILE_DOWNLOAD",
-                resource_type="STORAGE_OBJECT",
-                resource_id=obj.id,
-                metadata_=json.dumps({"width": width, "height": height}),
-                result="SUCCESS"
-            )
-            db.add(audit)
-            await db.commit()
-        except Exception:
-            await db.rollback()
+
+    # Determine cache duration: images get 7-day browser cache
+    is_image = obj.mime_type.startswith('image/')
+    cache_header = "public, max-age=604800, stale-while-revalidate=604800" if is_image else "public, max-age=86400"
 
     # Check local cache first for instant response
-    if obj.mime_type.startswith('image/') or (width and height):
+    if is_image or (width and height):
         cached_path = await get_cached_file(obj.object_key, width, height)
         if cached_path:
             from fastapi.responses import FileResponse
@@ -469,7 +463,7 @@ async def download_object(
                 cached_path,
                 media_type=obj.mime_type,
                 headers={
-                    "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                    "Cache-Control": cache_header,
                     "Content-Disposition": f'inline; filename="{obj.file_name}"'
                 }
             )
@@ -495,7 +489,7 @@ async def download_object(
 
         if stream_generator:
             # If it's an image, or we have width/height, process and cache it
-            if obj.mime_type.startswith('image/') or (width and height):
+            if is_image or (width and height):
                 from fastapi.responses import FileResponse
                 cached_path = await process_and_cache_image(
                     obj.object_key, 
@@ -508,7 +502,7 @@ async def download_object(
                         cached_path,
                         media_type=mime_type or obj.mime_type,
                         headers={
-                            "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                            "Cache-Control": cache_header,
                             "Content-Disposition": f'inline; filename="{obj.file_name}"'
                         }
                     )
@@ -519,7 +513,7 @@ async def download_object(
                 stream_generator,
                 media_type=mime_type or obj.mime_type,
                 headers={
-                    "Cache-Control": "public, max-age=86400",
+                    "Cache-Control": cache_header,
                     "Content-Disposition": f'inline; filename="{obj.file_name}"'
                 }
             )

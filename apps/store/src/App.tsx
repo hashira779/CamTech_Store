@@ -39,6 +39,10 @@ import {
   Clock,
   Bike,
   Loader2,
+  ChevronLeft,
+  Heart,
+  Share2,
+  Info,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
@@ -77,6 +81,14 @@ function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+interface ProductVariantItem {
+  id: string;
+  sku: string;
+  name: string;
+  sellPrice: number;
+  unit?: string;
+}
+
 interface ProductItem {
   id: string;
   name: string;
@@ -87,7 +99,9 @@ interface ProductItem {
   variantId?: string;
   variantName?: string;
   imageUrl?: string | null;
+  thumbUrl?: string | null;
   images?: any[];
+  variants?: ProductVariantItem[];
 }
 
 export function App() {
@@ -115,6 +129,8 @@ export function App() {
   const [isSearchingTracking, setIsSearchingTracking] = useState(false);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   // Real-time tracking polling when tracking modal is open
   useEffect(() => {
@@ -444,7 +460,9 @@ export function App() {
               const firstVariant = p.variants?.[0];
               const sortedImgs = p.images ? [...p.images].sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : [];
               const rawImgUrl = p.imageUrl || sortedImgs[0]?.url;
-              const imageUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
+              const fullUrl = rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null;
+              // Thumbnail URL for grid cards (80x80, fast)
+              const thumbUrl = fullUrl ? `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}thumb=1` : null;
               
               return {
                 id: p.id,
@@ -455,8 +473,16 @@ export function App() {
                 price: Number(firstVariant?.sellPrice || p.sellPrice || p.price || 0),
                 sku: firstVariant?.sku || p.sku || `SKU-${p.id.substring(0,6)}`,
                 category: categoryName.toUpperCase(),
-                imageUrl,
-                images: p.images || []
+                imageUrl: fullUrl,
+                thumbUrl,
+                images: p.images || [],
+                variants: (p.variants || []).map((v: any) => ({
+                  id: v.id,
+                  sku: v.sku,
+                  name: v.name || 'Standard',
+                  sellPrice: Number(v.sellPrice || 0),
+                  unit: v.unit || 'piece',
+                })),
               };
             });
           }
@@ -976,13 +1002,17 @@ export function App() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden"
+                onClick={() => {
+                  setSelectedProduct(product);
+                  setSelectedVariantId(product.variantId || product.variants?.[0]?.id || null);
+                }}
+                className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden cursor-pointer"
               >
                 <div>
                   <div className="w-full h-44 rounded-2xl bg-ink-950/80 border border-line/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
-                    {product.imageUrl ? (
+                    {(product.thumbUrl || product.imageUrl) ? (
                       <img
-                        src={product.imageUrl}
+                        src={product.thumbUrl || product.imageUrl!}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
@@ -993,7 +1023,7 @@ export function App() {
                         }}
                       />
                     ) : null}
-                    <div className={`w-full h-full flex items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                    <div className={`w-full h-full flex items-center justify-center ${(product.thumbUrl || product.imageUrl) ? 'hidden' : 'flex'}`}>
                       <Package className="w-12 h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
                     </div>
                     <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-850/90 ds-text-dim border border-line backdrop-blur-sm z-10">
@@ -1019,7 +1049,7 @@ export function App() {
                     </span>
                   </div>
                   <button
-                    onClick={() => addToCart(product)}
+                    onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                     className="px-3.5 py-2 rounded-full ds-btn-solid text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-white/5 active:scale-95 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -1031,6 +1061,161 @@ export function App() {
           </div>
         )}
       </main>
+
+      {/* ==================== PRODUCT DETAIL MODAL ==================== */}
+      {selectedProduct && (() => {
+        const sp = selectedProduct;
+        const variants = sp.variants || [];
+        const activeVariant = variants.find(v => v.id === selectedVariantId) || variants[0];
+        const displayPrice = activeVariant ? activeVariant.sellPrice : sp.price;
+        const displaySku = activeVariant ? activeVariant.sku : sp.sku;
+        const displayVariantName = activeVariant ? activeVariant.name : sp.variantName;
+
+        return (
+          <div
+            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+            onClick={() => setSelectedProduct(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" />
+
+            {/* Modal */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative z-10 w-full max-w-lg bg-ink-900 border border-line/80 rounded-t-[2.5rem] sm:rounded-[2.5rem] max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-4 duration-300"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-ink-800/90 border border-line/80 flex items-center justify-center hover:bg-ink-700 transition cursor-pointer"
+              >
+                <X className="w-4 h-4 ds-text" />
+              </button>
+
+              {/* Image */}
+              <div className="w-full h-64 sm:h-72 bg-ink-950 rounded-t-[2.5rem] sm:rounded-t-[2.5rem] overflow-hidden relative flex items-center justify-center">
+                {sp.imageUrl ? (
+                  <img
+                    src={sp.imageUrl}
+                    alt={sp.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full flex items-center justify-center ${sp.imageUrl ? 'hidden' : 'flex'}`}>
+                  <Package className="w-20 h-20 text-zinc-700" />
+                </div>
+                {/* Category Badge on Image */}
+                <span className="absolute top-4 left-4 text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 backdrop-blur-sm">
+                  {sp.category}
+                </span>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-5">
+                {/* Title & SKU */}
+                <div>
+                  <h2 className="text-xl font-extrabold ds-text leading-tight">{sp.name}</h2>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-800 ds-text-dim border border-line">
+                      {displaySku}
+                    </span>
+                    {displayVariantName && (
+                      <span className="text-[10px] font-medium text-brand-400">
+                        {displayVariantName}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                {sp.description && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold ds-text-dim uppercase tracking-wider">
+                      <Info className="w-3 h-3" />
+                      <span>Description</span>
+                    </div>
+                    <p className="text-sm ds-text-dim leading-relaxed">{sp.description}</p>
+                  </div>
+                )}
+
+                {/* Variant Selector */}
+                {variants.length > 1 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-semibold ds-text-dim uppercase tracking-wider">
+                      Select Variant
+                    </span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {variants.map((v) => {
+                        const isActive = v.id === selectedVariantId;
+                        return (
+                          <button
+                            key={v.id}
+                            onClick={() => setSelectedVariantId(v.id)}
+                            className={`flex items-center justify-between px-4 py-3 rounded-2xl border transition-all cursor-pointer ${
+                              isActive
+                                ? 'border-brand-500 bg-brand-500/10 shadow-lg shadow-brand-500/10'
+                                : 'border-line/80 bg-ink-850/50 hover:border-line hover:bg-ink-800/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition ${
+                                isActive ? 'border-brand-500' : 'border-zinc-600'
+                              }`}>
+                                {isActive && <div className="w-2 h-2 rounded-full bg-brand-500" />}
+                              </div>
+                              <div className="text-left">
+                                <span className={`text-sm font-semibold ${isActive ? 'text-brand-300' : 'ds-text'}`}>
+                                  {v.name}
+                                </span>
+                                <span className="text-[10px] font-mono ds-text-faint ml-2">{v.sku}</span>
+                              </div>
+                            </div>
+                            <span className={`text-sm font-extrabold font-mono ${isActive ? 'text-brand-300' : 'ds-text'}`}>
+                              ${v.sellPrice.toFixed(2)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price & Add to Cart */}
+                <div className="pt-4 border-t border-line/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono ds-text-faint block">PRICE</span>
+                    <span className="text-2xl font-extrabold ds-text font-mono">
+                      ${displayPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const cartItem: ProductItem = {
+                        ...sp,
+                        price: displayPrice,
+                        sku: displaySku,
+                        variantId: activeVariant?.id || sp.variantId,
+                        variantName: activeVariant?.name || sp.variantName,
+                      };
+                      addToCart(cartItem);
+                      setSelectedProduct(null);
+                    }}
+                    className="px-6 py-3 rounded-full ds-btn-solid text-sm font-bold flex items-center gap-2 transition shadow-xl shadow-white/5 active:scale-95 cursor-pointer"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Add to Cart</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
       {/* Why shop with us — trust strip (relocated below catalog) */}

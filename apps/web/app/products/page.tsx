@@ -111,7 +111,9 @@ export function ProductsPage() {
         header: 'Image',
         cell: ({ row }) => {
           const raw = row.original.rawProduct;
-          const imgUrl = raw.imageUrl || raw.images?.find((i: any) => i.isPrimary)?.url || raw.images?.[0]?.url;
+          const rawImgUrl = raw.imageUrl || raw.images?.find((i: any) => i.isPrimary)?.url || raw.images?.[0]?.url;
+          // Append ?thumb=1 for fast 80x80 server-side thumbnail
+          const imgUrl = rawImgUrl ? `${rawImgUrl}${rawImgUrl.includes('?') ? '&' : '?'}thumb=1` : null;
           return (
             <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
               {imgUrl ? (
@@ -119,6 +121,7 @@ export function ProductsPage() {
                   src={imgUrl}
                   alt={raw.name}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                   onError={(e) => {
                     (e.currentTarget as HTMLElement).style.display = 'none';
                     const fallback = e.currentTarget.nextElementSibling as HTMLElement;

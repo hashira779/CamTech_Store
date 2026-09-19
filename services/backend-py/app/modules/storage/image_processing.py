@@ -31,12 +31,18 @@ async def save_to_cache(object_key: str, byte_data: bytes, width: Optional[int] 
 async def generate_thumbnail(original_bytes: bytes, width: int, height: int) -> bytes:
     def _resize():
         with Image.open(io.BytesIO(original_bytes)) as img:
-            img.thumbnail((width, height))
+            img.thumbnail((width, height), Image.LANCZOS)
             out_io = io.BytesIO()
-            fmt = img.format if img.format in ['JPEG', 'PNG', 'WEBP', 'GIF'] else 'PNG'
-            if fmt == 'JPEG' and img.mode in ('RGBA', 'LA', 'P'):
-                img = img.convert('RGB')
-            img.save(out_io, format=fmt)
+            # For small thumbnails (≤200px), always use JPEG for speed
+            if width <= 200 and height <= 200:
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                img.save(out_io, format='JPEG', quality=75, optimize=True)
+            else:
+                fmt = img.format if img.format in ['JPEG', 'PNG', 'WEBP', 'GIF'] else 'PNG'
+                if fmt == 'JPEG' and img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                img.save(out_io, format=fmt, quality=85)
             return out_io.getvalue()
     
     return await asyncio.to_thread(_resize)
