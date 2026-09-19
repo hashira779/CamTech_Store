@@ -308,7 +308,7 @@ export default function ProcurementPage() {
             Purchase Orders
             {posData?.meta?.total ? (
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
-                {posData.meta.total}
+                {posData?.meta?.total}
               </span>
             ) : null}
           </button>
@@ -335,7 +335,7 @@ export default function ProcurementPage() {
             Suppliers & Vendors
             {suppliersData?.meta?.total ? (
               <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
-                {suppliersData.meta.total}
+                {suppliersData?.meta?.total}
               </span>
             ) : null}
           </button>

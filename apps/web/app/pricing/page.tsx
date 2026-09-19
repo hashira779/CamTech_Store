@@ -133,10 +133,10 @@ export default function PricingPage() {
   });
 
   // Metrics
-  const totalLists = priceListsData?.meta.total ?? 0;
-  const defaultListsCount = priceListsData?.items.filter((p) => p.isDefault).length ?? 0;
+  const totalLists = priceListsData?.meta?.total ?? (Array.isArray(priceListsData) ? priceListsData.length : priceListsData?.items?.length ?? 0);
+  const defaultListsCount = (priceListsData?.items ?? (Array.isArray(priceListsData) ? priceListsData : [])).filter((p) => p?.isDefault).length;
   const totalOverridesConfigured =
-    priceListsData?.items.reduce((acc, p) => acc + (p.itemCount ?? 0), 0) ?? 0;
+    (priceListsData?.items ?? (Array.isArray(priceListsData) ? priceListsData : [])).reduce((acc, p) => acc + (p?.itemCount ?? 0), 0);
 
   return (
     <EnterpriseShell>
