@@ -79,6 +79,8 @@ export function App() {
       // isPath('/customer') matches '/customer' or '/customer/...' exactly,
       // preventing admin CRM route '/customers' from being swallowed.
       CurrentApp = CustomerApp;
+    } else if (isPath('/driver')) {
+      CurrentApp = DeliveryApp;
     } else if (isPath('/ceo')) {
       CurrentApp = CeoApp;
     } else {
