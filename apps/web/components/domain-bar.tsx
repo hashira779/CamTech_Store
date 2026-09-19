@@ -71,7 +71,7 @@ export function DomainBar() {
     return (
       <button
         onClick={() => setIsDismissed(false)}
-        className="fixed bottom-3 right-3 z-50 p-2 rounded-md bg-card border border-border text-muted-foreground hover:text-foreground shadow-md transition-colors cursor-pointer"
+        className="fixed bottom-3 right-4 z-40 p-2 rounded-md bg-card/90 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground shadow-md transition-colors cursor-pointer"
         title="Show Portal Switcher"
       >
         <Globe className="w-4 h-4" />
@@ -80,7 +80,7 @@ export function DomainBar() {
   }
 
   return (
-    <div className="fixed bottom-3 right-3 z-50 flex flex-col items-end">
+    <div className="fixed bottom-3 right-4 z-40 flex flex-col items-end">
       {/* Expanded Portal Menu */}
       {isOpen && (
         <div className="mb-2 w-64 rounded-lg border border-border bg-card p-2 shadow-lg animate-fade-up">

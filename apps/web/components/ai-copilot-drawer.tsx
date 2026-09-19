@@ -133,10 +133,10 @@ export function AiCopilotDrawer() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 border border-white/20 group"
+          className="fixed bottom-14 right-4 z-40 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-white/20 group"
           title="Open AI Copilot (Cmd+J)"
         >
-          <Sparkles className="w-4 h-4 animate-spin-slow group-hover:rotate-12 transition-transform" />
+          <Sparkles className="w-3.5 h-3.5 animate-spin-slow group-hover:rotate-12 transition-transform" />
           <span className="text-xs font-semibold tracking-wide">AI Copilot</span>
           <kbd className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-md font-mono">⌘J</kbd>
         </button>
