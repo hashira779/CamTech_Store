@@ -1485,13 +1485,21 @@ export function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center p-3 bg-white rounded-xl space-y-1 my-1">
-                    <div className="text-[11px] font-bold text-slate-900 font-mono">Scan Bakong KHQR to Pay</div>
-                    <div className="w-28 h-28 bg-slate-100 border border-slate-200 rounded-lg mx-auto flex items-center justify-center">
-                      <QrCode className="w-24 h-24 text-slate-900" />
+                  <div className="text-center p-3 bg-white rounded-xl space-y-1.5 my-1">
+                    <div className="text-[11px] font-bold text-slate-900 font-mono flex items-center justify-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                      <span>Scan Bakong KHQR to Pay</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
-                      Pay ${Number(selectedOrder.codAmount).toFixed(2)} via Any Bank App
+                    <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl mx-auto w-fit">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://bakong.nbc.gov.kh/pay?amount=${Number(selectedOrder.codAmount).toFixed(2)}&currency=USD&account=camtech_delivery@aclb`)}`}
+                        alt="Bakong KHQR"
+                        className="w-36 h-36 mx-auto object-contain"
+                        loading="eager"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-600 font-mono">
+                      Pay <strong className="text-slate-900">${Number(selectedOrder.codAmount).toFixed(2)}</strong> via ABA, ACLEDA, or Any Bakong App
                     </div>
                   </div>
                 )}
@@ -1571,20 +1579,58 @@ export function App() {
         </div>
       )}
 
-      {/* ─── 5. QR Code Modal for Mobile Access ─── */}
+      {/* ─── 5. QR Code Modal for Mobile Access (REAL SCANNABLE QR CODE) ─── */}
       {showQrModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xs w-full text-center space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Open on Phone</h3>
-              <button onClick={() => setShowQrModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
+              <div>
+                <h3 className="text-base font-bold text-white">Open on Phone</h3>
+                <p className="text-[11px] text-slate-400 font-mono">Scan with camera</p>
+              </div>
+              <button onClick={() => setShowQrModal(false)} className="text-slate-400 hover:text-white cursor-pointer p-1">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 bg-white rounded-2xl flex items-center justify-center">
-              <QrCode className="w-36 h-36 text-slate-900" />
+
+            {/* REAL SCANNABLE QR CODE IMAGE */}
+            <div className="p-4 bg-white rounded-2xl flex flex-col items-center justify-center shadow-inner">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent('https://t.me/CamTechDeliverybot')}`}
+                alt="Telegram Bot Scannable QR Code"
+                className="w-48 h-48 rounded-lg object-contain"
+                loading="eager"
+              />
+              <div className="mt-2 text-[11px] font-bold text-slate-900 font-mono">
+                @CamTechDeliverybot
+              </div>
             </div>
-            <p className="text-xs text-slate-400">Scan to open the delivery terminal in Telegram</p>
+
+            <div className="space-y-2">
+              <p className="text-xs text-slate-400 leading-snug">
+                Point your phone camera to launch the delivery terminal inside Telegram
+              </p>
+              <div className="flex flex-col gap-2 pt-1">
+                <a
+                  href="https://t.me/CamTechDeliverybot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Open in Telegram Directly</span>
+                </a>
+                <a
+                  href="https://delivery.camtech.cam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Web Delivery App</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
