@@ -116,7 +116,7 @@ jobs:
         run: pnpm --filter @mystore/contracts build
 
       - name: Build All Frontends
-        run: pnpm turbo run build
+        run: pnpm turbo run build --filter=!@mystore/backend
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           VITE_SUPABASE_URL: "https://ypfztbwdvkfdupsniixw.supabase.co"
