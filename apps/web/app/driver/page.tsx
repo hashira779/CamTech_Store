@@ -40,6 +40,7 @@ import {
   Zap,
   Coffee,
   Crosshair,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -185,6 +186,10 @@ export function DriverMiniAppPage() {
   const [podSignature, setPodSignature] = useState('');
   const [podPaymentMode, setPodPaymentMode] = useState<'CASH' | 'KHQR'>('CASH');
   const [cashReceived, setCashReceived] = useState('');
+
+  // Order Details Modal State
+  const [viewingDetailOrder, setViewingDetailOrder] = useState<DeliveryTask | null>(null);
+  const [copiedTracking, setCopiedTracking] = useState(false);
 
   // Real-Time Incoming Order Popup Alert State
   const [incomingOrder, setIncomingOrder] = useState<DeliveryTask | null>(null);
@@ -648,6 +653,16 @@ export function DriverMiniAppPage() {
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           type="button"
+                          onClick={() => setViewingDetailOrder(order)}
+                          className="h-10 px-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                          title="View Order Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Details</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng)}
                           className="h-10 px-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                         >
@@ -746,6 +761,15 @@ export function DriverMiniAppPage() {
                       )}
 
                       <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setViewingDetailOrder(order)}
+                          className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white shrink-0 transition cursor-pointer"
+                          title="View Full Details"
+                        >
+                          <Eye className="w-4 h-4 text-amber-400" />
+                        </button>
+
                         {order.recipientPhone && (
                           <a
                             href={`tel:${order.recipientPhone}`}
@@ -801,16 +825,25 @@ export function DriverMiniAppPage() {
                 completedOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="bg-slate-900/60 p-4 rounded-3xl border border-slate-800/80 flex items-center justify-between"
+                    onClick={() => setViewingDetailOrder(order)}
+                    className="bg-slate-900/60 hover:bg-slate-900/90 p-4 rounded-3xl border border-slate-800/80 hover:border-slate-700 flex items-center justify-between transition cursor-pointer group shadow-sm"
                   >
                     <div>
-                      <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
+                        <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
+                      </div>
                       <h4 className="text-sm font-bold text-white mt-0.5">{order.recipientName}</h4>
                       <p className="text-[11px] text-slate-400 truncate max-w-[200px]">{order.deliveryAddress}</p>
                     </div>
-                    <span className="text-[10px] font-bold font-mono uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Delivered
-                    </span>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <span className="text-[10px] font-bold font-mono uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Delivered
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500 group-hover:text-amber-400 transition">
+                        Tap for details →
+                      </span>
+                    </div>
                   </div>
                 ))
               )
@@ -1030,6 +1063,232 @@ export function DriverMiniAppPage() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+      {/* ─── 7. COMPREHENSIVE ORDER DETAIL MODAL ─── */}
+      {viewingDetailOrder && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
+
+            {/* Header with Tracking & Status */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-amber-400">
+                    #{viewingDetailOrder.trackingNumber}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewingDetailOrder.trackingNumber);
+                      setCopiedTracking(true);
+                      setTimeout(() => setCopiedTracking(false), 2000);
+                      toast.success('Tracking number copied!');
+                    }}
+                    className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"
+                    title="Copy tracking number"
+                  >
+                    {copiedTracking ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-0.5">Order Details</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[10px] font-bold font-mono uppercase px-2.5 py-1 rounded-full border ${
+                    viewingDetailOrder.status === 'DELIVERED'
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : viewingDetailOrder.status === 'IN_TRANSIT'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                      : viewingDetailOrder.status === 'DISPATCHED'
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                  }`}
+                >
+                  {viewingDetailOrder.status.replace('_', ' ')}
+                </span>
+                <button
+                  onClick={() => setViewingDetailOrder(null)}
+                  className="p-1 text-slate-400 hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Recipient & Contact */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase text-slate-500 font-mono">Recipient</div>
+                  <div className="text-base font-bold text-white">{viewingDetailOrder.recipientName}</div>
+                  <div className="text-xs font-mono text-slate-400 mt-0.5">{viewingDetailOrder.recipientPhone || 'No phone provided'}</div>
+                </div>
+                {viewingDetailOrder.recipientPhone && (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`tel:${viewingDetailOrder.recipientPhone}`}
+                      className="w-9 h-9 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition cursor-pointer"
+                      title="Call customer"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                    <a
+                      href={`https://t.me/+855${viewingDetailOrder.recipientPhone.replace(/^0/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-9 h-9 rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 flex items-center justify-center transition cursor-pointer"
+                      title="Telegram customer"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Address */}
+              <div className="pt-2 border-t border-slate-800/80">
+                <div className="text-[10px] font-bold uppercase text-slate-500 font-mono mb-1">Destination Address</div>
+                <div className="flex items-start gap-2 text-xs text-slate-200">
+                  <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{viewingDetailOrder.deliveryAddress}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Embedded Mini Map Preview */}
+            <DeliveryMiniMap
+              address={viewingDetailOrder.deliveryAddress}
+              lat={viewingDetailOrder.destLat}
+              lng={viewingDetailOrder.destLng}
+              className="h-40"
+            />
+
+            {/* Financials & Payment Breakdown */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono text-xs">
+              <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Payment &amp; Fees</div>
+              <div className="flex justify-between text-slate-400">
+                <span>Payment Method:</span>
+                <span className="text-white font-bold">
+                  {Number(viewingDetailOrder.codAmount) > 0 ? 'Cash on Delivery (COD)' : 'Prepaid (KHQR)'}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Amount to Collect:</span>
+                <span className="text-amber-400 font-bold">
+                  ${Number(viewingDetailOrder.codAmount || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Courier Delivery Fee:</span>
+                <span className="text-emerald-400 font-bold">
+                  ${Number(viewingDetailOrder.deliveryFee || 2.5).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Proof of Delivery / Signature if DELIVERED */}
+            {viewingDetailOrder.status === 'DELIVERED' && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Proof of Delivery (Verified)</span>
+                </div>
+                {viewingDetailOrder.notes && (
+                  <div className="text-xs text-slate-300">
+                    <span className="text-slate-500 font-mono text-[10px] uppercase block">Delivery Notes:</span>
+                    {viewingDetailOrder.notes}
+                  </div>
+                )}
+                {viewingDetailOrder.proofOfDelivery && (
+                  <div className="pt-2">
+                    <span className="text-slate-500 font-mono text-[10px] uppercase block mb-1">Customer Signature / Receipt:</span>
+                    {viewingDetailOrder.proofOfDelivery.startsWith('data:image') ? (
+                      <div className="p-2 bg-white rounded-xl max-w-xs">
+                        <img
+                          src={viewingDetailOrder.proofOfDelivery}
+                          alt="Customer Signature"
+                          className="w-full h-24 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
+                        ✍️ Signed by: {viewingDetailOrder.proofOfDelivery}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() =>
+                  openInGoogleMaps(
+                    viewingDetailOrder.deliveryAddress,
+                    viewingDetailOrder.destLat,
+                    viewingDetailOrder.destLng
+                  )
+                }
+                className="w-full h-11 rounded-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 font-bold text-xs border border-blue-500/30 flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <Navigation className="w-4 h-4 fill-blue-400" />
+                <span>Navigate in Google Maps</span>
+              </button>
+
+              {viewingDetailOrder.status === 'PENDING' && (
+                <button
+                  onClick={() => {
+                    updateStatusMutation.mutate({ id: viewingDetailOrder.id, status: 'DISPATCHED' });
+                    setViewingDetailOrder(null);
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>Accept &amp; Claim Task</span>
+                </button>
+              )}
+
+              {viewingDetailOrder.status === 'DISPATCHED' && (
+                <button
+                  onClick={() => {
+                    updateStatusMutation.mutate({ id: viewingDetailOrder.id, status: 'IN_TRANSIT' });
+                    openInGoogleMaps(viewingDetailOrder.deliveryAddress, viewingDetailOrder.destLat, viewingDetailOrder.destLng);
+                    setViewingDetailOrder(null);
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full h-11 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Start Navigation (In Transit)</span>
+                </button>
+              )}
+
+              {viewingDetailOrder.status === 'IN_TRANSIT' && (
+                <button
+                  onClick={() => {
+                    setSelectedOrder(viewingDetailOrder);
+                    setIsPodOpen(true);
+                    setViewingDetailOrder(null);
+                  }}
+                  className="w-full h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <FileSignature className="w-4 h-4" />
+                  <span>Complete &amp; Sign (POD)</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setViewingDetailOrder(null)}
+                className="w-full h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                Close Details
+              </button>
+            </div>
           </div>
         </div>
       )}
