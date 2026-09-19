@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 from decimal import Decimal
 
@@ -235,7 +235,8 @@ async def add_product_image(
 
     if data.isPrimary:
         await db.execute(
-            f"UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = '{product_id}'"
+            text("UPDATE product_images SET \"isPrimary\" = false WHERE \"productId\" = :pid"),
+            {"pid": product_id}
         )
     
     # Get max sort_order
