@@ -24,15 +24,24 @@ def build_product_image_dtos(images: Optional[List[ProductImage]]) -> List[Produ
     dtos = []
     for img in sorted_imgs:
         storage_obj = getattr(img, "storage_object", None)
-        if storage_obj and storage_obj.sync_status == "SYNCED" and storage_obj.thumbnail_url:
+        if isinstance(storage_obj, (list, tuple)):
+            storage_obj = storage_obj[0] if storage_obj else None
+            
+        sync_status = getattr(storage_obj, "sync_status", "PENDING") if storage_obj else "PENDING"
+        thumb_url = getattr(storage_obj, "thumbnail_url", None) if storage_obj else None
+        med_url = getattr(storage_obj, "medium_url", None) if storage_obj else None
+        lg_url = getattr(storage_obj, "large_url", None) if storage_obj else None
+        store_url = getattr(storage_obj, "storage_url", None) if storage_obj else None
+        
+        if storage_obj and sync_status == "SYNCED" and thumb_url:
             dtos.append(ProductImageDto(
                 id=img.id,
                 storageObjectId=img.storage_object_id,
-                url=storage_obj.storage_url or storage_obj.medium_url or f"/api/v1/storage/{img.storage_object_id}/download",
-                thumbnailUrl=storage_obj.thumbnail_url,
-                mediumUrl=storage_obj.medium_url,
-                largeUrl=storage_obj.large_url,
-                syncStatus=storage_obj.sync_status,
+                url=store_url or med_url or f"/api/v1/storage/{img.storage_object_id}/download",
+                thumbnailUrl=thumb_url,
+                mediumUrl=med_url,
+                largeUrl=lg_url,
+                syncStatus=sync_status,
                 isPrimary=img.is_primary,
                 sortOrder=img.sort_order,
                 altText=img.alt_text,
@@ -46,7 +55,7 @@ def build_product_image_dtos(images: Optional[List[ProductImage]]) -> List[Produ
                 thumbnailUrl=f"{base_url}?thumb=1",
                 mediumUrl=base_url,
                 largeUrl=base_url,
-                syncStatus=storage_obj.sync_status if storage_obj else "PENDING",
+                syncStatus=sync_status,
                 isPrimary=img.is_primary,
                 sortOrder=img.sort_order,
                 altText=img.alt_text,

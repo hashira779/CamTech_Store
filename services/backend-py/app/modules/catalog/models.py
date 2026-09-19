@@ -91,4 +91,4 @@ class ProductImage(Base):
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     product = relationship("Product", back_populates="images")
-    storage_object = relationship("StorageObject", foreign_keys=[storage_object_id], viewonly=True)
+    storage_object = relationship("StorageObject", foreign_keys=[storage_object_id], uselist=False, viewonly=True)
