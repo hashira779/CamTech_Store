@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { TableSkeletonRows } from '@/components/page-skeleton';
 import type { DocumentRecordDto, DocumentEntityType } from '@mystore/contracts';
+import { Link } from 'react-router-dom';
 import {
   FolderArchive,
   Upload,
@@ -136,18 +137,27 @@ export default function StoragePage() {
               Centralized S3-compatible document storage, presigned upload pipeline & entity attachments
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedFile(null);
-              setUploadError(null);
-              setIsUploadOpen(true);
-            }}
-            className="btn flex items-center gap-2 text-sm shadow-md"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Document
-          </button>
+          <div className="flex gap-2">
+            <Link
+              to="/storage/providers"
+              className="btn flex items-center gap-2 text-sm shadow-md bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+            >
+              <HardDrive className="w-4 h-4" />
+              Storage Providers
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                setUploadError(null);
+                setIsUploadOpen(true);
+              }}
+              className="btn flex items-center gap-2 text-sm shadow-md"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Document
+            </button>
+          </div>
         </div>
 
         {/* KPI Metrics */}
