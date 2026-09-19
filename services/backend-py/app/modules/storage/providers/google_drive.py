@@ -89,40 +89,52 @@ class GoogleDriveProvider(StorageProviderAdapter):
         return f"/api/v1/storage/{object_key}/download"
 
     async def _resolve_file_id(self, object_key: str, client: httpx.AsyncClient, token: str) -> Optional[str]:
+        import logging
+        logger = logging.getLogger(__name__)
         filename = object_key.split("/")[-1]
         escaped_name = filename.replace("'", "\\'")
         
-        # 1. Try search in designated folder
+        # Search queries in priority order:
+        queries = []
+        # 1. Exact name in designated folder
         if getattr(self, 'folder_id', None):
-            query = f"name='{escaped_name}' and trashed=false and '{self.folder_id}' in parents"
+            queries.append(f"name='{escaped_name}' and trashed=false and '{self.folder_id}' in parents")
+        # 2. Exact name anywhere in drive
+        queries.append(f"name='{escaped_name}' and trashed=false")
+        
+        # 3. If filename has {uuid}_{base_name}, search by UUID prefix or base name
+        if "_" in filename:
+            parts = filename.split("_", 1)
+            uuid_part = parts[0]
+            if len(uuid_part) >= 32:
+                queries.append(f"name contains '{uuid_part}' and trashed=false")
+            base_name = parts[1].replace("'", "\\'")
+            queries.append(f"name='{base_name}' and trashed=false")
+        
+        params_base = {
+            "fields": "files(id, name)",
+            "supportsAllDrives": "true",
+            "includeItemsFromAllDrives": "true",
+            "corpora": "user"
+        }
+        
+        for q in queries:
             try:
                 res = await client.get(
                     "https://www.googleapis.com/drive/v3/files",
-                    params={"q": query, "fields": "files(id)", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true", "corpora": "allDrives"},
+                    params={**params_base, "q": q},
                     headers={"Authorization": f"Bearer {token}"}
                 )
                 if res.status_code == 200:
                     files = res.json().get("files", [])
                     if files:
+                        self.last_resolved_file_id = files[0]["id"]
                         return files[0]["id"]
-            except Exception:
-                pass
+                else:
+                    logger.warning(f"Google Drive search failed for query '{q}': status {res.status_code}, response: {res.text[:200]}")
+            except Exception as e:
+                logger.warning(f"Google Drive search exception for query '{q}': {e}")
                 
-        # 2. Fallback search anywhere in drive (in case file was placed at root or shared drive)
-        query = f"name='{escaped_name}' and trashed=false"
-        try:
-            res = await client.get(
-                "https://www.googleapis.com/drive/v3/files",
-                params={"q": query, "fields": "files(id)", "supportsAllDrives": "true", "includeItemsFromAllDrives": "true", "corpora": "allDrives"},
-                headers={"Authorization": f"Bearer {token}"}
-            )
-            if res.status_code == 200:
-                files = res.json().get("files", [])
-                if files:
-                    return files[0]["id"]
-        except Exception:
-            pass
-
         return None
 
     async def stream_object(self, object_key: str, file_id: Optional[str] = None):

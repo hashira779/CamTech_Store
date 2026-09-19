@@ -488,6 +488,10 @@ async def download_object(
             stream_generator, mime_type = await adapter.stream_object(obj.object_key)
 
         if stream_generator:
+            if not obj.provider_object_id and getattr(adapter, 'last_resolved_file_id', None):
+                obj.provider_object_id = adapter.last_resolved_file_id
+                await db.commit()
+
             # If it's an image, or we have width/height, process and cache it
             if is_image or (width and height):
                 from fastapi.responses import FileResponse
