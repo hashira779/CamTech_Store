@@ -13,7 +13,14 @@ class GoogleDriveProvider(StorageProviderAdapter):
     Adapter for Google Drive storage using OAuth credentials.
     """
     def __init__(self, config: Dict[str, Any], credentials_data: Dict[str, Any]):
-        self.folder_id = config.get("folder_id") # Optional root folder ID
+        self.folder_id = config.get("folder_id")
+        
+        # If the user pasted a full URL (e.g. https://drive.google.com/drive/folders/XYZ), extract just the ID
+        if self.folder_id and "drive.google.com" in self.folder_id:
+            import re
+            match = re.search(r'/folders/([a-zA-Z0-9_-]+)', self.folder_id)
+            if match:
+                self.folder_id = match.group(1) # Optional root folder ID
         
         # We expect credentials_data to contain the refresh token and scopes
         self.credentials = Credentials(
@@ -57,7 +64,15 @@ class GoogleDriveProvider(StorageProviderAdapter):
                 },
                 json=metadata
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                # Give a clear error message back to the frontend
+                error_body = response.text
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Google Drive API rejected the request. Check your Folder ID and permissions. Error: {error_body}"
+                )
             # The Location header contains the resumable upload URL
             return response.headers["Location"]
 
