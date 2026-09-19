@@ -274,7 +274,7 @@ export default function ProcurementPage() {
                 <button
                   onClick={() => {
                     setPoForm({
-                      supplierId: suppliersData?.items[0]?.id ?? '',
+                      supplierId: suppliersData?.items?.[0]?.id ?? '',
                       locationId: '',
                       expectedDeliveryDate: '',
                       currency: 'USD',
@@ -388,14 +388,14 @@ export default function ProcurementPage() {
                 <tbody className="divide-y divide-border">
                   {isPosLoading ? (
                     <TableSkeletonRows rows={5} cols={8} />
-                  ) : posData?.items.length === 0 ? (
+                  ) : (posData?.items?.length ?? 0) === 0 ? (
                     <tr>
                       <td colSpan={8} className="p-8 text-center text-muted-foreground">
                         No purchase orders found. Create a new purchase order to initiate stock procurement!
                       </td>
                     </tr>
                   ) : (
-                    posData?.items.map((po) => (
+                    (posData?.items ?? []).map((po) => (
                       <tr key={po.id} className="hover:bg-muted/10 transition-colors">
                         <td className="p-3.5 font-mono font-semibold text-foreground">{po.poNumber}</td>
                         <td className="p-3.5 font-medium text-foreground">{po.supplierName}</td>
@@ -485,14 +485,14 @@ export default function ProcurementPage() {
               <tbody className="divide-y divide-border">
                 {isReceiptsLoading ? (
                   <TableSkeletonRows rows={5} cols={7} />
-                ) : receiptsData?.items.length === 0 ? (
+                ) : (receiptsData?.items?.length ?? 0) === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       No inbound shipments recorded yet. Receive an approved purchase order to generate a GRN.
                     </td>
                   </tr>
                 ) : (
-                  receiptsData?.items.map((grn) => (
+                  (receiptsData?.items ?? []).map((grn) => (
                     <tr key={grn.id} className="hover:bg-muted/10 transition-colors">
                       <td className="p-3.5 font-mono font-bold text-foreground">{grn.grnNumber}</td>
                       <td className="p-3.5 font-mono text-muted-foreground">{grn.poNumber}</td>
@@ -542,14 +542,14 @@ export default function ProcurementPage() {
               <tbody className="divide-y divide-border">
                 {isSuppliersLoading ? (
                   <TableSkeletonRows rows={5} cols={7} />
-                ) : suppliersData?.items.length === 0 ? (
+                ) : (suppliersData?.items?.length ?? 0) === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       No suppliers registered yet. Click &quot;Add Supplier&quot; to register your first vendor!
                     </td>
                   </tr>
                 ) : (
-                  suppliersData?.items.map((sup) => (
+                  (suppliersData?.items ?? []).map((sup) => (
                     <tr key={sup.id} className="hover:bg-muted/10 transition-colors">
                       <td className="p-3.5 font-medium text-foreground">{sup.name}</td>
                       <td className="p-3.5 font-mono text-muted-foreground">{sup.code ?? '—'}</td>
@@ -627,7 +627,7 @@ export default function ProcurementPage() {
                       className="input w-full text-xs"
                     >
                       <option value="">Select Supplier...</option>
-                      {suppliersData?.items.map((s) => (
+                      {(suppliersData?.items ?? []).map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name} ({s.code ?? 'No Code'})
                         </option>
@@ -644,7 +644,7 @@ export default function ProcurementPage() {
                       className="input w-full text-xs"
                     >
                       <option value="">Select Location...</option>
-                      {locationsData?.items.map((l) => (
+                      {(locationsData?.items ?? []).map((l) => (
                         <option key={l.id} value={l.id}>
                           {l.name} ({l.type})
                         </option>
@@ -690,7 +690,7 @@ export default function ProcurementPage() {
                             onChange={(e) => {
                               const variantId = e.target.value;
                               let suggestedCost = 0;
-                              productsData?.items.forEach((p) => {
+                              (productsData?.items ?? []).forEach((p) => {
                                 const v = p.variants.find((v) => v.id === variantId);
                                 if (v) suggestedCost = v.costPrice;
                               });
@@ -701,7 +701,7 @@ export default function ProcurementPage() {
                             className="input w-full text-xs"
                           >
                             <option value="">Choose item...</option>
-                            {productsData?.items.map((p) => (
+                            {(productsData?.items ?? []).map((p) => (
                               <optgroup key={p.id} label={p.name}>
                                 {p.variants.map((v) => (
                                   <option key={v.id} value={v.id}>

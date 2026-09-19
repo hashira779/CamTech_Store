@@ -135,8 +135,8 @@ export function PickingPage() {
 
   const allSelectedItemsChecked =
     selectedOrder &&
-    selectedOrder.items.length > 0 &&
-    selectedOrder.items.every((it) => checkedItems[it.id]);
+    (selectedOrder.items?.length ?? 0) > 0 &&
+    (selectedOrder.items ?? []).every((it) => checkedItems[it.id]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -323,7 +323,7 @@ export function PickingPage() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
                       Items to Assemble ({order.itemCount})
                     </span>
-                    {order.items.slice(0, 3).map((it) => (
+                    {(order.items ?? []).slice(0, 3).map((it) => (
                       <div key={it.id} className="flex items-center justify-between text-xs text-zinc-300">
                         <span className="truncate pr-2 font-medium">
                           {it.quantity}x {it.name}
@@ -333,9 +333,9 @@ export function PickingPage() {
                         </span>
                       </div>
                     ))}
-                    {order.items.length > 3 && (
+                    {(order.items?.length ?? 0) > 3 && (
                       <span className="text-[10px] text-zinc-500 block pt-1">
-                        +{order.items.length - 3} more items...
+                        +{(order.items?.length ?? 0) - 3} more items...
                       </span>
                     )}
                   </div>
@@ -361,7 +361,7 @@ export function PickingPage() {
                       onClick={() => {
                         setSelectedOrder(order);
                         const allChecked: Record<string, boolean> = {};
-                        order.items.forEach((it) => (allChecked[it.id] = true));
+                        (order.items ?? []).forEach((it) => (allChecked[it.id] = true));
                         setCheckedItems(allChecked);
                       }}
                       variant="outline"
@@ -407,7 +407,7 @@ export function PickingPage() {
             </div>
 
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {selectedOrder?.items.map((it) => {
+              {(selectedOrder?.items ?? []).map((it) => {
                 const isChecked = Boolean(checkedItems[it.id]);
                 return (
                   <div

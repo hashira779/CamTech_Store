@@ -345,14 +345,14 @@ export function LocationsPage() {
                         Loading locations...
                       </td>
                     </tr>
-                  ) : listData?.items.length === 0 ? (
+                  ) : (listData?.items?.length ?? 0) === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-muted-foreground">
                         No matching locations found.
                       </td>
                     </tr>
                   ) : (
-                    listData?.items.map((loc) => {
+                    (listData?.items ?? []).map((loc) => {
                       const Icon = TYPE_ICONS[loc.type];
                       return (
                         <tr key={loc.id} className="hover:bg-muted/20 transition-colors">
@@ -476,7 +476,7 @@ export function LocationsPage() {
                   className="input w-full text-xs"
                 >
                   <option value="">(None - Top-level Root)</option>
-                  {listData?.items
+                  {(listData?.items ?? [])
                     .filter((l) => l.id !== editingId)
                     .map((l) => (
                       <option key={l.id} value={l.id}>

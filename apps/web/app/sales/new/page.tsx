@@ -672,7 +672,7 @@ export default function NewSalePOSPage() {
                     onChange={(e) => setCustomerId(e.target.value)}
                   >
                     <option value="">Walk-in Customer (Guest)</option>
-                    {customersData?.items.map((c) => (
+                    {(customersData?.items ?? []).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} {c.code ? `(${c.code})` : ''}
                       </option>

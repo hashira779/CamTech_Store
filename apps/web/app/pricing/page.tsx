@@ -253,14 +253,14 @@ export default function PricingPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <TableSkeletonRows rows={5} cols={7} />
-              ) : priceListsData?.items.length === 0 ? (
+              ) : (priceListsData?.items?.length ?? 0) === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     No price lists found. Create a price list to configure custom B2B wholesale rates!
                   </td>
                 </tr>
               ) : (
-                priceListsData?.items.map((pl) => (
+                (priceListsData?.items ?? []).map((pl) => (
                   <tr key={pl.id} className="hover:bg-muted/10 transition-colors">
                     <td className="p-3.5">
                       <div className="font-semibold text-foreground">{pl.name}</div>
@@ -522,7 +522,7 @@ export default function PricingPage() {
                         onChange={(e) => {
                           const variantId = e.target.value;
                           let suggested = 0;
-                          productsData?.items.forEach((p) => {
+                          (productsData?.items ?? []).forEach((p) => {
                             const v = p.variants.find((v) => v.id === variantId);
                             if (v) suggested = v.sellPrice;
                           });
@@ -535,7 +535,7 @@ export default function PricingPage() {
                         className="input w-full text-xs"
                       >
                         <option value="">Select item variant...</option>
-                        {productsData?.items.map((p) => (
+                        {(productsData?.items ?? []).map((p) => (
                           <optgroup key={p.id} label={p.name}>
                             {p.variants.map((v) => (
                               <option key={v.id} value={v.id}>

@@ -397,7 +397,7 @@ export default function HrPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {run.items.map((it) => (
+                      {(run.items ?? []).map((it) => (
                         <tr key={it.id}>
                           <td className="p-2 font-bold text-foreground">{it.employeeName}</td>
                           <td className="p-2 text-right font-mono">${it.baseSalary.toFixed(2)}</td>

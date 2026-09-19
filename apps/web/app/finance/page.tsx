@@ -673,7 +673,7 @@ export default function FinancePage() {
                     <span>Operating Revenues</span>
                     <span>Amount</span>
                   </div>
-                  {incomeStatement.revenues.items.map((i) => (
+                  {((incomeStatement.revenues.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}
@@ -693,7 +693,7 @@ export default function FinancePage() {
                     <span>Cost of Goods Sold (COGS)</span>
                     <span>Amount</span>
                   </div>
-                  {incomeStatement.costOfGoodsSold.items.map((i) => (
+                  {((incomeStatement.costOfGoodsSold.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}
@@ -719,7 +719,7 @@ export default function FinancePage() {
                     <span>Operating Expenses</span>
                     <span>Amount</span>
                   </div>
-                  {incomeStatement.operatingExpenses.items.map((i) => (
+                  {((incomeStatement.operatingExpenses.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}
@@ -756,7 +756,7 @@ export default function FinancePage() {
                     <span>Assets</span>
                     <span>Amount</span>
                   </div>
-                  {balanceSheet.assets.items.map((i) => (
+                  {((balanceSheet.assets.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}
@@ -776,7 +776,7 @@ export default function FinancePage() {
                     <span>Liabilities</span>
                     <span>Amount</span>
                   </div>
-                  {balanceSheet.liabilities.items.map((i) => (
+                  {((balanceSheet.liabilities.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}
@@ -796,7 +796,7 @@ export default function FinancePage() {
                     <span>Equity & Retained Earnings</span>
                     <span>Amount</span>
                   </div>
-                  {balanceSheet.equity.items.map((i) => (
+                  {((balanceSheet.equity.items ?? [])).map((i) => (
                     <div key={i.code} className="flex justify-between text-xs py-1 border-b border-border/40">
                       <span>
                         <span className="font-mono text-muted-foreground">{i.code}</span> {i.name}

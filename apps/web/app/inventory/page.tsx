@@ -405,7 +405,7 @@ export function InventoryPage() {
                   Loading ledger entries...
                 </div>
               ) : (movementsData?.items ?? []).length > 0 ? (
-                movementsData?.items.map((m) => {
+                (movementsData?.items ?? []).map((m) => {
                   const isInflow = m.type.includes('IN') || m.type.includes('RECEIPT');
                   return (
                     <div
