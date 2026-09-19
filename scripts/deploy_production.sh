@@ -89,7 +89,6 @@ fi
 run_cmd rsync -aq \
     --exclude '.git' \
     --exclude 'node_modules' \
-    --exclude 'dist' \
     --exclude '.turbo' \
     --exclude '__pycache__' \
     --exclude '.env' \
@@ -144,15 +143,10 @@ if ! run_cmd docker compose -f "$COMPOSE_FILE" exec -T api-gateway python script
 fi
 
 # ── 5. Build & Deploy Frontend Web Application Containers ─────────────────────
-  echo "🔨 Building frontend web applications..."
+  echo "📦 Packaging frontend web applications (pre-compiled in CI)..."
   FRONTEND_SERVICES="store-app admin-app pos-app delivery-app hr-app ceo-app infra-app nginx-ingress"
   
-  # Build frontend containers sequentially. The first container will do the heavy
-  # Vite compilation, and subsequent containers will instantly use the cached builder layer.
-  # This prevents BuildKit from spawning multiple parallel Vite builds and OOM-crashing the 8GB server.
-  for service in $FRONTEND_SERVICES; do
-      run_cmd docker compose -f "$COMPOSE_FILE" build "$service" || true
-  done
+  run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
   
   echo "🚀 Deploying updated frontend containers..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d $FRONTEND_SERVICES

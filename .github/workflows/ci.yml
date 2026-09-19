@@ -115,8 +115,28 @@ jobs:
       - name: Build Contracts
         run: pnpm --filter @mystore/contracts build
 
+      - name: Build All Frontends
+        run: pnpm turbo run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          VITE_SUPABASE_URL: "https://ypfztbwdvkfdupsniixw.supabase.co"
+          VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZnp0YndkdmtmZHVwc25paXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjY1MDgsImV4cCI6MjEwNDEwMjUwOH0.0xU0S2_S45a9xHjHR6fdSJwRuHdc1w6i3Pm7Ahq8pQ0"
+
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Upload Frontend Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: |
+            apps/store/dist/
+            apps/web/dist/
+            apps/cashier/dist/
+            apps/delivery/dist/
+            apps/hr/dist/
+            apps/ceo/dist/
+          retention-days: 1
 
   e2e-playwright:
     name: Playwright E2E Regression Suite
@@ -173,6 +193,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download Frontend Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: apps/
 
       - name: Free Disk Space
         run: |
