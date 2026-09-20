@@ -3,11 +3,26 @@ import sys
 import tarfile
 import paramiko
 
-HOST = "10.1.0.11"
-USER = "ubuntu-server"
+from pathlib import Path
+
+def load_env_file():
+    env_file = Path.home() / ".camtech_env"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
+load_env_file()
+
+HOST = os.getenv("CAMTECH_HOST", "10.1.0.11")
+USER = os.getenv("CAMTECH_USER", "ubuntu-server")
 PASSWORD = os.getenv("CAMTECH_PASS")
 if not PASSWORD:
-    raise ValueError("Set CAMTECH_PASS environment variable")
+    raise ValueError("Set CAMTECH_PASS environment variable or ~/.camtech_env")
 
 def create_tar(source_dir, output_filename):
     print(f"Archiving {source_dir} -> {output_filename}...")
