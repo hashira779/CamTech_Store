@@ -143,6 +143,16 @@ export interface CategoryDto {
   parentId: string | null;
   name: string;
   description: string | null;
+  slug?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  level: number;
+  sortOrder: number;
+  isActive: boolean;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  productCount: number;
+  breadcrumb: Array<{ id: string; name: string }>;
   createdAt?: string;
   childrenCount?: number;
 }
@@ -153,6 +163,13 @@ export interface CategoryTreeNodeDto {
   parentId: string | null;
   name: string;
   description: string | null;
+  slug?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  level: number;
+  sortOrder: number;
+  isActive: boolean;
+  productCount: number;
   children: CategoryTreeNodeDto[];
 }
 
@@ -160,13 +177,35 @@ export const createCategorySchema = z.object({
   name: z.string().trim().min(1, 'Category name is required').max(100),
   description: z.string().trim().max(500).optional().nullable(),
   parentId: z.string().optional().nullable(),
+  slug: z.string().trim().max(120).optional().nullable(),
+  icon: z.string().trim().max(64).optional().nullable(),
+  imageUrl: z.string().trim().max(500).optional().nullable(),
+  seoTitle: z.string().trim().max(200).optional().nullable(),
+  seoDescription: z.string().trim().max(1000).optional().nullable(),
+  sortOrder: z.number().int().min(0).optional().nullable(),
 });
 
 export const updateCategorySchema = z.object({
   name: z.string().trim().min(1, 'Category name is required').max(100).optional(),
   description: z.string().trim().max(500).optional().nullable(),
   parentId: z.string().optional().nullable(),
+  slug: z.string().trim().max(120).optional().nullable(),
+  icon: z.string().trim().max(64).optional().nullable(),
+  imageUrl: z.string().trim().max(500).optional().nullable(),
+  seoTitle: z.string().trim().max(200).optional().nullable(),
+  seoDescription: z.string().trim().max(1000).optional().nullable(),
+  sortOrder: z.number().int().min(0).optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+export const reorderCategoriesSchema = z.object({
+  items: z.array(z.object({
+    id: z.string(),
+    sortOrder: z.number().int().min(0),
+  })).min(1),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+export type ReorderCategoriesInput = z.infer<typeof reorderCategoriesSchema>;
+

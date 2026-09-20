@@ -1,4 +1,5 @@
 import datetime
+import re
 import uuid
 from sqlalchemy import (
     Column,
@@ -8,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Text,
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -18,16 +20,43 @@ from app.modules.storage.models import StorageObject
 def gen_id():
     return str(uuid.uuid4())
 
+
+def slugify(text: str) -> str:
+    """Generate a URL-friendly slug from text."""
+    s = text.lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[\s_]+', '-', s)
+    s = re.sub(r'-+', '-', s)
+    return s.strip('-')[:120]
+
+
 class Category(Base):
     __tablename__ = "categories"
 
     id = Column(String, primary_key=True, default=gen_id)
     organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
-    parent_id = Column("parentId", String, nullable=True)
+    parent_id = Column("parentId", String, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    slug = Column(String(120), nullable=True)
+    icon = Column(String(64), nullable=True)
+    image_url = Column("imageUrl", String(500), nullable=True)
+    level = Column(Integer, default=0, server_default="0", nullable=False)
+    sort_order = Column("sortOrder", Integer, default=0, server_default="0", nullable=False)
+    is_active = Column("isActive", Boolean, default=True, server_default="true", nullable=False)
+    seo_title = Column("seoTitle", String(200), nullable=True)
+    seo_description = Column("seoDescription", Text, nullable=True)
+    product_count = Column("productCount", Integer, default=0, server_default="0", nullable=False)
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
     updated_at = Column("updatedAt", DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    # Self-referential relationship for tree queries
+    children = relationship("Category", back_populates="parent_rel",
+                            foreign_keys=[parent_id], lazy="select")
+    parent_rel = relationship("Category", back_populates="children",
+                              foreign_keys=[parent_id], remote_side="Category.id",
+                              lazy="select", uselist=False)
+    products = relationship("Product", back_populates="category", lazy="select")
 
 class Brand(Base):
     __tablename__ = "brands"
@@ -55,7 +84,7 @@ class Product(Base):
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
-    category = relationship("Category", foreign_keys=[category_id], viewonly=True)
+    category = relationship("Category", foreign_keys=[category_id], back_populates="products")
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"

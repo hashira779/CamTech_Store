@@ -111,12 +111,26 @@ class AddProductImageInput(BaseModel):
 class ReorderImagesInput(BaseModel):
     imageIds: List[str]
 
+class BreadcrumbItem(BaseModel):
+    id: str
+    name: str
+
 class CategoryDto(BaseModel):
     id: str
     organizationId: str
     parentId: Optional[str] = None
     name: str
     description: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    imageUrl: Optional[str] = None
+    level: int = 0
+    sortOrder: int = 0
+    isActive: bool = True
+    seoTitle: Optional[str] = None
+    seoDescription: Optional[str] = None
+    productCount: int = 0
+    breadcrumb: List[BreadcrumbItem] = []
     createdAt: Optional[str] = None
     childrenCount: Optional[int] = 0
 
@@ -126,14 +140,41 @@ class CategoryTreeNodeDto(BaseModel):
     parentId: Optional[str] = None
     name: str
     description: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    imageUrl: Optional[str] = None
+    level: int = 0
+    sortOrder: int = 0
+    isActive: bool = True
+    productCount: int = 0
     children: List['CategoryTreeNodeDto'] = []
 
 class CreateCategoryInput(BaseModel):
     name: str
     description: Optional[str] = None
     parentId: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    imageUrl: Optional[str] = None
+    seoTitle: Optional[str] = None
+    seoDescription: Optional[str] = None
+    sortOrder: Optional[int] = None
 
 class UpdateCategoryInput(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     parentId: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    imageUrl: Optional[str] = None
+    seoTitle: Optional[str] = None
+    seoDescription: Optional[str] = None
+    sortOrder: Optional[int] = None
+    isActive: Optional[bool] = None
+
+class ReorderCategoryItem(BaseModel):
+    id: str
+    sortOrder: int
+
+class ReorderCategoriesInput(BaseModel):
+    items: List[ReorderCategoryItem]

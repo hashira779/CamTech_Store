@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   createProductSchema,
@@ -12,6 +12,7 @@ import {
 } from '@mystore/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
+import { CategoryTreeSelect } from '@/components/category-tree-select';
 
 export function CreateProductForm({
   token,
@@ -23,15 +24,17 @@ export function CreateProductForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.listCategories(token),
+  const { data: categoryTree } = useQuery({
+    queryKey: ['categories-tree'],
+    queryFn: () => api.getCategoryTree(token),
   });
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateProductInput>({
     resolver: zodResolver(createProductSchema),
@@ -41,6 +44,8 @@ export function CreateProductForm({
       variants: [{ unit: 'piece', currency: 'USD', taxRatePct: 0, isActive: true }] 
     },
   });
+
+  const selectedCategoryId = watch('categoryId');
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
@@ -75,14 +80,12 @@ export function CreateProductForm({
           </Field>
           <div className="sm:col-span-2">
             <Field label="Category (Optional)">
-              <select className="input" {...register('categoryId')}>
-                <option value="">(No Category / General)</option>
-                {(categories ?? []).map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <CategoryTreeSelect
+                value={selectedCategoryId ?? null}
+                onChange={(id) => setValue('categoryId', id ?? '', { shouldValidate: true })}
+                treeData={categoryTree ?? []}
+                placeholder="Select a category…"
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
@@ -179,3 +182,4 @@ function Field({
     </label>
   );
 }
+

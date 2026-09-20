@@ -14,6 +14,7 @@ import {
 } from '@mystore/contracts';
 import { api, ApiClientError } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
+import { CategoryTreeSelect } from '@/components/category-tree-select';
 
 export function EditProductForm({
   token,
@@ -29,14 +30,16 @@ export function EditProductForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.listCategories(token),
+  const { data: categoryTree } = useQuery({
+    queryKey: ['categories-tree'],
+    queryFn: () => api.getCategoryTree(token),
   });
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<UpdateProductInput>({
     resolver: zodResolver(updateProductSchema),
@@ -60,6 +63,8 @@ export function EditProductForm({
       })),
     },
   });
+
+  const selectedCategoryId = watch('categoryId');
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
@@ -94,14 +99,12 @@ export function EditProductForm({
             </select>
           </Field>
           <Field label="Category">
-            <select className="input" {...register('categoryId')}>
-              <option value="">(No Category / General)</option>
-              {(categories ?? []).map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <CategoryTreeSelect
+              value={selectedCategoryId ?? null}
+              onChange={(id) => setValue('categoryId', id ?? '', { shouldValidate: true })}
+              treeData={categoryTree ?? []}
+              placeholder="Select a category…"
+            />
           </Field>
           <Field label="Status">
             <select
@@ -225,3 +228,4 @@ function Field({
     </label>
   );
 }
+

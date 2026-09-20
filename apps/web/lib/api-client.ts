@@ -6,6 +6,7 @@ import type {
   CategoryTreeNodeDto,
   CreateCategoryInput,
   UpdateCategoryInput,
+  ReorderCategoriesInput,
   CreateCustomerInput,
   UpdateCustomerInput,
   CreateSaleInput,
@@ -575,6 +576,16 @@ export const api = {
       method: 'DELETE',
       token,
     }),
+
+  reorderCategories: (token: string, items: ReorderCategoriesInput['items']) =>
+    request<{ updated: number }>('/categories/reorder', {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ items }),
+    }),
+
+  getPublicCategoriesTree: () =>
+    request<CategoryTreeNodeDto[]>('/public/categories/tree', {}),
 
   // ─── Customers ─────────────────────────────────────────────────
   listCustomers: (token: string, params: { page?: number; limit?: number; search?: string; type?: string } = {}) => {
