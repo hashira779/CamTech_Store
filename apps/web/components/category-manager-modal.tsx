@@ -39,7 +39,7 @@ import {
   Search,
   Package,
 } from 'lucide-react';
-import { getCategoryIcon, CATEGORY_ICONS } from '@/components/category-tree-select';
+import { getCategoryIcon, CATEGORY_ICONS, findNodeInTree } from '@/components/category-tree-select';
 
 // ─── Icon Picker ───────────────────────────────────────────────
 const ICON_OPTIONS = Object.entries(CATEGORY_ICONS);
@@ -295,9 +295,31 @@ export function CategoryManagerModal({
 
   // ─── Derived state ──────────────────────────────────────────
   const selectedCategory = useMemo(() => {
-    if (!selectedId || !flatCategories) return null;
-    return flatCategories.find((c) => c.id === selectedId) ?? null;
-  }, [selectedId, flatCategories]);
+    if (!selectedId) return null;
+    const fromFlat = flatCategories?.find((c) => c.id === selectedId);
+    if (fromFlat) return fromFlat;
+    if (treeData) {
+      const fromTree = findNodeInTree(treeData, selectedId);
+      if (fromTree) {
+        return {
+          id: fromTree.id,
+          organizationId: '',
+          parentId: fromTree.parentId,
+          name: fromTree.name,
+          description: fromTree.description,
+          slug: fromTree.slug,
+          icon: fromTree.icon,
+          imageUrl: fromTree.imageUrl,
+          level: fromTree.level,
+          sortOrder: fromTree.sortOrder,
+          isActive: fromTree.isActive,
+          productCount: fromTree.productCount,
+          breadcrumb: [],
+        } as CategoryDto;
+      }
+    }
+    return null;
+  }, [selectedId, flatCategories, treeData]);
 
   const totalCount = flatCategories?.length ?? 0;
 
@@ -312,7 +334,6 @@ export function CategoryManagerModal({
     setFormSeoDescription('');
     setFormParentId('');
     setFormIsActive(true);
-    setIsCreating(false);
     setError(null);
   }, []);
 
@@ -351,22 +372,34 @@ export function CategoryManagerModal({
       if (id === selectedId && !isCreating) {
         // Deselect
         setSelectedId(null);
+        setIsCreating(false);
         resetForm();
         return;
       }
       setSelectedId(id);
       setIsCreating(false);
       const cat = flatCategories?.find((c) => c.id === id);
-      if (cat) loadCategory(cat);
+      if (cat) {
+        loadCategory(cat);
+      } else if (treeData) {
+        const fromTree = findNodeInTree(treeData, id);
+        if (fromTree) {
+          loadCategory({
+            ...fromTree,
+            organizationId: '',
+            breadcrumb: [],
+          } as CategoryDto);
+        }
+      }
     },
-    [selectedId, isCreating, flatCategories, loadCategory, resetForm]
+    [selectedId, isCreating, flatCategories, treeData, loadCategory, resetForm]
   );
 
   const handleStartCreate = useCallback(
     (parentId?: string) => {
+      resetForm();
       setSelectedId(null);
       setIsCreating(true);
-      resetForm();
       if (parentId) setFormParentId(parentId);
     },
     [resetForm]
@@ -391,6 +424,7 @@ export function CategoryManagerModal({
       const created = await api.createCategory(token, input);
       invalidateAll();
       resetForm();
+      setIsCreating(false);
       setSelectedId(created.id);
       // Auto-expand parent
       if (created.parentId) {
@@ -437,6 +471,7 @@ export function CategoryManagerModal({
     try {
       await api.deleteCategory(token, selectedId);
       setSelectedId(null);
+      setIsCreating(false);
       resetForm();
       invalidateAll();
     } catch (err) {
@@ -631,6 +666,7 @@ export function CategoryManagerModal({
                       className="h-7 w-7 p-0"
                       onClick={() => {
                         setSelectedId(null);
+                        setIsCreating(false);
                         resetForm();
                       }}
                     >
@@ -816,6 +852,7 @@ export function CategoryManagerModal({
                       size="sm"
                       onClick={() => {
                         setSelectedId(null);
+                        setIsCreating(false);
                         resetForm();
                       }}
                       disabled={loading}
@@ -839,8 +876,17 @@ export function CategoryManagerModal({
                     Select a category to edit
                   </p>
                   <p className="text-xs text-muted-foreground/60">
-                    Or click "Add" to create a new one
+                    Or click below to create a new category
                   </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleStartCreate()}
+                    className="gap-1.5 text-xs mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Category
+                  </Button>
                 </div>
               </div>
             )}
