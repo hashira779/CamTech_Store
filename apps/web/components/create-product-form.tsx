@@ -10,6 +10,7 @@ import {
   PRODUCT_TYPES,
   type CreateProductInput,
 } from '@mystore/contracts';
+import { useQuery } from '@tanstack/react-query';
 import { api, ApiClientError } from '@/lib/api-client';
 
 export function CreateProductForm({
@@ -21,6 +22,11 @@ export function CreateProductForm({
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.listCategories(token),
+  });
 
   const {
     register,
@@ -67,6 +73,18 @@ export function CreateProductForm({
               ))}
             </select>
           </Field>
+          <div className="sm:col-span-2">
+            <Field label="Category (Optional)">
+              <select className="input" {...register('categoryId')}>
+                <option value="">(No Category / General)</option>
+                {(categories ?? []).map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
           <div className="sm:col-span-2">
             <Field label="Description (Optional)" error={errors.description?.message}>
               <textarea className="input min-h-[80px]" {...register('description')} placeholder="Delicious mocha coffee..." />

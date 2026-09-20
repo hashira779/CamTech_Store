@@ -44,8 +44,39 @@ export const createProductSchema = z.object({
   variants: z.array(createProductVariantSchema).min(1, 'At least one variant is required'),
 });
 
+export const updateProductVariantSchema = z.object({
+  id: z.string().optional(),
+  sku: z
+    .string()
+    .trim()
+    .min(1, 'SKU is required')
+    .max(64)
+    .regex(/^[A-Za-z0-9._-]+$/, 'SKU may contain letters, numbers, . _ -')
+    .optional(),
+  name: z.string().trim().max(100).optional().nullable(),
+  barcode: z.string().trim().max(64).optional().nullable(),
+  unit: z.enum(UNITS).optional(),
+  currency: z.enum(CURRENCIES).optional(),
+  costPrice: money.optional(),
+  sellPrice: money.optional(),
+  taxRatePct: z.number().min(0).max(100).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200).optional(),
+  description: z.string().trim().max(2000).optional().nullable(),
+  type: z.enum(PRODUCT_TYPES).optional(),
+  categoryId: z.string().optional().nullable(),
+  brandId: z.string().optional().nullable(),
+  isActive: z.boolean().optional(),
+  variants: z.array(updateProductVariantSchema).optional(),
+});
+
 export type CreateProductVariantInput = z.infer<typeof createProductVariantSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type UpdateProductVariantInput = z.infer<typeof updateProductVariantSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 export const listProductsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -89,6 +120,7 @@ export interface ProductDto {
   id: string;
   organizationId: string;
   categoryId: string | null;
+  categoryName?: string | null;
   brandId: string | null;
   type: ProductType;
   name: string;
@@ -104,3 +136,37 @@ export interface ProductDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CategoryDto {
+  id: string;
+  organizationId: string;
+  parentId: string | null;
+  name: string;
+  description: string | null;
+  createdAt?: string;
+  childrenCount?: number;
+}
+
+export interface CategoryTreeNodeDto {
+  id: string;
+  organizationId: string;
+  parentId: string | null;
+  name: string;
+  description: string | null;
+  children: CategoryTreeNodeDto[];
+}
+
+export const createCategorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(100),
+  description: z.string().trim().max(500).optional().nullable(),
+  parentId: z.string().optional().nullable(),
+});
+
+export const updateCategorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(100).optional(),
+  description: z.string().trim().max(500).optional().nullable(),
+  parentId: z.string().optional().nullable(),
+});
+
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

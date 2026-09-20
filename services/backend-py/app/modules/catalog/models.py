@@ -55,6 +55,7 @@ class Product(Base):
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    category = relationship("Category", foreign_keys=[category_id], viewonly=True)
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"

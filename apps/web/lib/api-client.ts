@@ -1,6 +1,11 @@
 import type {
   ApiResponse,
   CreateProductInput,
+  UpdateProductInput,
+  CategoryDto,
+  CategoryTreeNodeDto,
+  CreateCategoryInput,
+  UpdateCategoryInput,
   CreateCustomerInput,
   UpdateCustomerInput,
   CreateSaleInput,
@@ -505,6 +510,19 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
+  updateProduct: (token: string, productId: string, input: UpdateProductInput) =>
+    request<ProductDto>(`/products/${productId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteProduct: (token: string, productId: string) =>
+    request<{ deleted: boolean; archived: boolean; id: string; message: string }>(`/products/${productId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
   addProductImage: (token: string, productId: string, data: { storageObjectId: string; isPrimary?: boolean; altText?: string | null }) =>
     request<any>(`/products/${productId}/images`, {
       method: 'POST',
@@ -529,6 +547,33 @@ export const api = {
       method: 'PATCH',
       token,
       body: JSON.stringify({ imageIds }),
+    }),
+
+  // ─── Categories ────────────────────────────────────────────────
+  listCategories: (token: string) =>
+    request<CategoryDto[]>('/categories', { token }),
+
+  getCategoryTree: (token: string) =>
+    request<CategoryTreeNodeDto[]>('/categories/tree', { token }),
+
+  createCategory: (token: string, input: CreateCategoryInput) =>
+    request<CategoryDto>('/categories', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  updateCategory: (token: string, categoryId: string, input: UpdateCategoryInput) =>
+    request<CategoryDto>(`/categories/${categoryId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  deleteCategory: (token: string, categoryId: string) =>
+    request<{ deleted: boolean; id: string }>(`/categories/${categoryId}`, {
+      method: 'DELETE',
+      token,
     }),
 
   // ─── Customers ─────────────────────────────────────────────────

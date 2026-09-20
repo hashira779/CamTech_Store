@@ -412,7 +412,7 @@ export function PickingPage() {
                 return (
                   <div
                     key={it.id}
-                    onClick={() => selectedOrder.wmsStatus === 'PENDING_PICKING' && toggleItemCheck(it.id)}
+                    onClick={() => selectedOrder?.wmsStatus === 'PENDING_PICKING' && toggleItemCheck(it.id)}
                     className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
                       isChecked
                         ? 'bg-emerald-950/20 border-emerald-500/30'

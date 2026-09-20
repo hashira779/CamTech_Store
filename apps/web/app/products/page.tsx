@@ -13,6 +13,8 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';
 import { CreateProductForm } from '@/components/create-product-form';
+import { EditProductForm } from '@/components/edit-product-form';
+import { CategoryManagerModal } from '@/components/category-manager-modal';
 import { ProductImagesManager } from '@/components/product-images-manager';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +51,9 @@ import {
   Boxes,
   Tag,
   ArrowUpRight,
+  Edit,
+  Trash2,
+  FolderTree,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -50,6 +63,8 @@ interface FlattenedProductRow {
   sku: string;
   name: string;
   type: string;
+  categoryName: string | null;
+  categoryId: string | null;
   variantName: string | null;
   unit: string;
   costPrice: number;
@@ -66,13 +81,23 @@ export function ProductsPage() {
   const navigate = useNavigate();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<ProductDto | null>(null);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<FlattenedProductRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const canWrite = hasPermission(PERMISSIONS.PRODUCTS_WRITE);
 
   const { data, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: () => api.listProducts(token!, { limit: 200 }),
+    enabled: Boolean(token),
+  });
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.listCategories(token!),
     enabled: Boolean(token),
   });
 
@@ -91,6 +116,8 @@ export function ProductsPage() {
           sku: v.sku,
           name: product.name,
           type: product.type,
+          categoryName: product.categoryName || null,
+          categoryId: product.categoryId || null,
           variantName: v.name,
           unit: v.unit,
           costPrice: cost,
@@ -104,6 +131,34 @@ export function ProductsPage() {
     );
   }, [data]);
 
+  const categoryFilterOptions = useMemo(() => {
+    if (!categoriesData) return [];
+    return categoriesData.map((c) => ({
+      label: c.name,
+      value: c.name,
+    }));
+  }, [categoriesData]);
+
+  const handleDeleteProduct = async () => {
+    if (!deletingProduct) return;
+    setIsDeleting(true);
+    try {
+      const res = await api.deleteProduct(token!, deletingProduct.id);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      if (selectedRow?.productId === deletingProduct.id) {
+        setSelectedRow(null);
+      }
+      setDeletingProduct(null);
+      if (res.archived) {
+        alert(res.message);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const columns: ColumnDef<FlattenedProductRow>[] = useMemo(
     () => [
       {
@@ -113,7 +168,6 @@ export function ProductsPage() {
           const raw = row.original.rawProduct;
           const rawThumbUrl = raw.thumbnailUrl || raw.images?.find((i: any) => i.isPrimary)?.thumbnailUrl || raw.images?.[0]?.thumbnailUrl;
           const rawImgUrl = raw.imageUrl || raw.images?.find((i: any) => i.isPrimary)?.url || raw.images?.[0]?.url;
-          // Prefer direct R2/CDN WebP thumbnail if available, otherwise append ?thumb=1
           const imgUrl = rawThumbUrl || (rawImgUrl ? `${rawImgUrl}${rawImgUrl.includes('?') ? '&' : '?'}thumb=1` : null);
           return (
             <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
@@ -164,6 +218,24 @@ export function ProductsPage() {
               <span className="text-[11px] text-muted-foreground">{item.unit}</span>
             </div>
           );
+        },
+      },
+      {
+        accessorKey: 'categoryName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
+        cell: ({ row }) => {
+          const cat = row.getValue('categoryName') as string | null;
+          return cat ? (
+            <Badge variant="outline" className="text-[10px] font-medium border-primary/30 text-primary bg-primary/5">
+              {cat}
+            </Badge>
+          ) : (
+            <span className="text-[11px] text-muted-foreground italic">Uncategorized</span>
+          );
+        },
+        filterFn: (row, id, value) => {
+          const val = row.getValue(id) as string | null;
+          return value.includes(val || 'Uncategorized');
         },
       },
       {
@@ -250,6 +322,12 @@ export function ProductsPage() {
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
+                {canWrite && (
+                  <DropdownMenuItem onClick={() => setEditingProduct(item.rawProduct)}>
+                    <Edit className="mr-2 h-4 w-4 text-primary" />
+                    Edit Product Info
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/inventory')}>
                   <Boxes className="mr-2 h-4 w-4" />
                   Adjust Stock
@@ -258,21 +336,34 @@ export function ProductsPage() {
                   <Tag className="mr-2 h-4 w-4" />
                   Edit Pricing Matrix
                 </DropdownMenuItem>
+                {canWrite && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setDeletingProduct(item.rawProduct)}
+                      className="text-rose-500 focus:text-rose-400"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Product
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         },
       },
     ],
-    [navigate]
+    [navigate, canWrite]
   );
 
   const exportCsv = () => {
     if (!tableData.length) return;
-    const headers = ['SKU', 'Name', 'Type', 'Variant', 'Unit', 'Cost Price', 'Retail Price', 'Margin %', 'Status'];
+    const headers = ['SKU', 'Name', 'Category', 'Type', 'Variant', 'Unit', 'Cost Price', 'Retail Price', 'Margin %', 'Status'];
     const rows = tableData.map((r) => [
       r.sku,
       `"${r.name.replace(/"/g, '""')}"`,
+      `"${(r.categoryName || 'Uncategorized').replace(/"/g, '""')}"`,
       r.type,
       `"${(r.variantName || '').replace(/"/g, '""')}"`,
       r.unit,
@@ -299,13 +390,17 @@ export function ProductsPage() {
         {/* Page Header */}
         <PageHeader
           title="Master Data & Products"
-          description="Enterprise product catalog, variants, multi-unit measures, and gross margin controls."
+          description="Enterprise product catalog, variants, categories, multi-unit measures, and gross margin controls."
           badge={
             <Badge variant="secondary" className="font-mono text-xs">
               {tableData.length} Variants
             </Badge>
           }
         >
+          <Button variant="outline" size="sm" onClick={() => setIsCategoriesOpen(true)} className="gap-2">
+            <FolderTree className="h-4 w-4 text-primary" />
+            Manage Categories
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
@@ -330,6 +425,13 @@ export function ProductsPage() {
               searchKey="name"
               searchPlaceholder="Filter by product name..."
             >
+              {table.getColumn('categoryName') && categoryFilterOptions.length > 0 && (
+                <DataTableFacetedFilter
+                  column={table.getColumn('categoryName')}
+                  title="Category"
+                  options={categoryFilterOptions}
+                />
+              )}
               {table.getColumn('type') && (
                 <DataTableFacetedFilter
                   column={table.getColumn('type')}
@@ -360,7 +462,7 @@ export function ProductsPage() {
             <SheetHeader>
               <SheetTitle>Add New Product</SheetTitle>
               <SheetDescription>
-                Define master item data, units of measurement, cost prices, and variants.
+                Define master item data, category, units of measurement, cost prices, and variants.
               </SheetDescription>
             </SheetHeader>
             <div className="py-4">
@@ -375,9 +477,34 @@ export function ProductsPage() {
           </SheetContent>
         </Sheet>
 
+        {/* Edit Product Slide-over Drawer */}
+        <Sheet open={Boolean(editingProduct)} onOpenChange={(open) => !open && setEditingProduct(null)}>
+          <SheetContent side="right" className="sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Edit Product: {editingProduct?.name}</SheetTitle>
+              <SheetDescription>
+                Update master product info, category, description, and variant pricing.
+              </SheetDescription>
+            </SheetHeader>
+            {editingProduct && (
+              <div className="py-4">
+                <EditProductForm
+                  token={token}
+                  product={editingProduct}
+                  onUpdated={() => {
+                    setEditingProduct(null);
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                  }}
+                  onCancel={() => setEditingProduct(null)}
+                />
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+
         {/* Product Details Drawer */}
         <Sheet open={Boolean(selectedRow)} onOpenChange={(open) => !open && setSelectedRow(null)}>
-          <SheetContent side="right" className="sm:max-w-lg">
+          <SheetContent side="right" className="sm:max-w-lg overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Product Details</SheetTitle>
               <SheetDescription>Variant breakdown and pricing analysis</SheetDescription>
@@ -387,9 +514,16 @@ export function ProductsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/20">
                   <div>
                     <h3 className="font-bold text-lg text-foreground">{selectedRow.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      SKU: <span className="font-mono text-foreground font-semibold">{selectedRow.sku}</span>
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground font-mono font-semibold">
+                        SKU: {selectedRow.sku}
+                      </span>
+                      {selectedRow.categoryName && (
+                        <Badge variant="outline" className="text-[10px] text-primary">
+                          {selectedRow.categoryName}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Badge variant={selectedRow.isActive ? 'success' : 'secondary'}>
                     {selectedRow.isActive ? 'Active' : 'Inactive'}
@@ -423,6 +557,37 @@ export function ProductsPage() {
                   </div>
                 </div>
 
+                {/* Actions inside Details */}
+                {canWrite && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 flex-1"
+                      onClick={() => {
+                        const raw = selectedRow.rawProduct;
+                        setSelectedRow(null);
+                        setEditingProduct(raw);
+                      }}
+                    >
+                      <Edit className="w-3.5 h-3.5 text-primary" />
+                      Edit Product Info
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                      onClick={() => {
+                        const raw = selectedRow.rawProduct;
+                        setDeletingProduct(raw);
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
+                    </Button>
+                  </div>
+                )}
+
                 {/* Product Images Manager */}
                 <div className="pt-4 border-t border-border">
                   <ProductImagesManager token={token} product={selectedRow.rawProduct} />
@@ -455,9 +620,60 @@ export function ProductsPage() {
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Delete Product Confirmation Dialog */}
+        <Dialog open={Boolean(deletingProduct)} onOpenChange={(open) => !open && setDeletingProduct(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-500">
+                <Trash2 className="w-5 h-5" />
+                Delete Product
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete product <strong>"{deletingProduct?.name}"</strong>?
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2 text-xs text-muted-foreground space-y-2">
+              <p>
+                If this product has historical sales, purchase orders, or stock ledger records, it will be automatically <strong>archived (deactivated)</strong> to preserve legal and accounting audit trails.
+              </p>
+              <p>
+                If it has no transaction history, it will be permanently deleted from the database.
+              </p>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" size="sm" onClick={() => setDeletingProduct(null)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteProduct}
+                disabled={isDeleting}
+                className="gap-1.5"
+              >
+                {isDeleting ? 'Deleting…' : 'Confirm Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Category Manager Modal */}
+        <CategoryManagerModal
+          token={token}
+          isOpen={isCategoriesOpen}
+          onClose={() => setIsCategoriesOpen(false)}
+          onChanged={() => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+          }}
+        />
       </div>
     </EnterpriseShell>
   );
 }
 
 export default ProductsPage;
+

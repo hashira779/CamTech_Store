@@ -11,7 +11,7 @@ from app.domain.hierarchy_engine import HierarchyEngine
 
 from .models import Product, ProductVariant, Category, ProductImage
 from .schemas import (
-    ProductDto, ProductImageDto, CreateProductInput, VariantDto,
+    ProductDto, ProductImageDto, CreateProductInput, UpdateProductInput, VariantDto,
     CategoryDto, CategoryTreeNodeDto, CreateCategoryInput, UpdateCategoryInput,
     PaginatedResponse, PageMeta
 )
@@ -62,6 +62,49 @@ def build_product_image_dtos(images: Optional[List[ProductImage]]) -> List[Produ
             ))
     return dtos
 
+def to_product_dto(p: Product, sanitize_cost: bool = False) -> ProductDto:
+    img_dtos = build_product_image_dtos(p.images)
+    primary_img = img_dtos[0] if img_dtos else None
+    cat = getattr(p, "category", None)
+    cat_name = cat.name if cat else None
+
+    return ProductDto(
+        id=p.id,
+        organizationId=p.organization_id or "default",
+        name=p.name,
+        description=p.description,
+        categoryId=p.category_id,
+        categoryName=cat_name,
+        brandId=p.brand_id,
+        type=str(p.type) if p.type else "PHYSICAL",
+        isActive=bool(p.is_active),
+        imageUrl=primary_img.url if primary_img else None,
+        thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
+        mediumUrl=primary_img.mediumUrl if primary_img else None,
+        largeUrl=primary_img.largeUrl if primary_img else None,
+        syncStatus=primary_img.syncStatus if primary_img else None,
+        variants=[
+            VariantDto(
+                id=v.id,
+                productId=v.product_id,
+                sku=v.sku,
+                name=v.name,
+                barcode=v.barcode,
+                unit=v.unit or "piece",
+                currency=v.currency or "USD",
+                costPrice=0.0 if sanitize_cost else float(v.cost_price or 0),
+                sellPrice=float(v.sell_price or 0),
+                taxRatePct=float(v.tax_rate_pct or 0),
+                marginPct=0.0 if sanitize_cost else (
+                    float((v.sell_price - v.cost_price) / v.sell_price * 100)
+                    if v.sell_price and v.sell_price > 0 else 0.0
+                ),
+                isActive=bool(v.is_active)
+            ) for v in (p.variants or [])
+        ],
+        images=img_dtos
+    )
+
 router = APIRouter(tags=["Catalog"])
 
 # ==============================================================================
@@ -82,7 +125,8 @@ async def list_public_products(
     response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
     stmt = select(Product).options(
         selectinload(Product.variants),
-        selectinload(Product.images).selectinload(ProductImage.storage_object)
+        selectinload(Product.images).selectinload(ProductImage.storage_object),
+        selectinload(Product.category)
     )
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
@@ -90,44 +134,7 @@ async def list_public_products(
 
     result = await db.execute(stmt)
     products = result.scalars().all()
-
-    out = []
-    for p in products:
-        img_dtos = build_product_image_dtos(p.images)
-        primary_img = img_dtos[0] if img_dtos else None
-
-        out.append(ProductDto(
-            id=p.id,
-            organizationId=p.organization_id or "default",
-            name=p.name,
-            description=p.description,
-            categoryId=p.category_id,
-            brandId=p.brand_id,
-            type="PHYSICAL",
-            isActive=True,
-            imageUrl=primary_img.url if primary_img else None,
-            thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
-            mediumUrl=primary_img.mediumUrl if primary_img else None,
-            largeUrl=primary_img.largeUrl if primary_img else None,
-            syncStatus=primary_img.syncStatus if primary_img else None,
-            variants=[
-                VariantDto(
-                    id=v.id,
-                    productId=v.product_id,
-                    sku=v.sku,
-                    name=v.name,
-                    barcode=v.barcode,
-                    unit="piece",
-                    currency="USD",
-                    costPrice=0.0,
-                    sellPrice=float(v.sell_price),
-                    taxRatePct=float(v.tax_rate_pct),
-                    marginPct=0.0,
-                    isActive=True
-                ) for v in p.variants
-            ],
-            images=img_dtos
-        ))
+    out = [to_product_dto(p, sanitize_cost=True) for p in products]
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
 @router.get("/products", response_model=PaginatedResponse[ProductDto])
@@ -143,7 +150,8 @@ async def list_products(
         .where(Product.organization_id == user.organization_id)
         .options(
             selectinload(Product.variants),
-            selectinload(Product.images).selectinload(ProductImage.storage_object)
+            selectinload(Product.images).selectinload(ProductImage.storage_object),
+            selectinload(Product.category)
         )
     )
     if search:
@@ -155,44 +163,7 @@ async def list_products(
 
     result = await db.execute(stmt)
     products = result.scalars().all()
-
-    out = []
-    for p in products:
-        img_dtos = build_product_image_dtos(p.images)
-        primary_img = img_dtos[0] if img_dtos else None
-
-        out.append(ProductDto(
-            id=p.id,
-            organizationId=p.organization_id,
-            name=p.name,
-            description=p.description,
-            categoryId=p.category_id,
-            brandId=p.brand_id,
-            type="PHYSICAL",
-            isActive=True,
-            imageUrl=primary_img.url if primary_img else None,
-            thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
-            mediumUrl=primary_img.mediumUrl if primary_img else None,
-            largeUrl=primary_img.largeUrl if primary_img else None,
-            syncStatus=primary_img.syncStatus if primary_img else None,
-            variants=[
-                VariantDto(
-                    id=v.id,
-                    productId=v.product_id,
-                    sku=v.sku,
-                    name=v.name,
-                    barcode=v.barcode,
-                    unit="piece",
-                    currency="USD",
-                    costPrice=float(v.cost_price),
-                    sellPrice=float(v.sell_price),
-                    taxRatePct=float(v.tax_rate_pct),
-                    marginPct=float((v.sell_price - v.cost_price) / v.sell_price * 100) if v.sell_price > 0 else 0.0,
-                    isActive=True
-                ) for v in p.variants
-            ],
-            images=img_dtos
-        ))
+    out = [to_product_dto(p) for p in products]
     return PaginatedResponse(items=out, meta=PageMeta(page=page, limit=limit, total=len(out), totalPages=1), total=len(out))
 
 @router.post("/products", response_model=ProductDto)
@@ -206,7 +177,9 @@ async def create_product(
         name=input_data.name,
         description=input_data.description,
         category_id=input_data.categoryId,
-        brand_id=input_data.brandId
+        brand_id=input_data.brandId,
+        type=input_data.type or "PHYSICAL",
+        is_active=input_data.isActive if input_data.isActive is not None else True
     )
     db.add(product)
     await db.flush()
@@ -219,42 +192,30 @@ async def create_product(
             sku=v_in.sku,
             name=v_in.name or input_data.name,
             barcode=v_in.barcode,
+            unit=v_in.unit or "piece",
+            currency=v_in.currency or "USD",
             cost_price=Decimal(str(v_in.costPrice)),
             sell_price=Decimal(str(v_in.sellPrice)),
-            tax_rate_pct=Decimal(str(v_in.taxRatePct))
+            tax_rate_pct=Decimal(str(v_in.taxRatePct)),
+            is_active=v_in.isActive if v_in.isActive is not None else True
         )
         db.add(v)
         variants.append(v)
 
     await db.commit()
-    await db.refresh(product)
 
-    return ProductDto(
-        id=product.id,
-        organizationId=product.organization_id,
-        name=product.name,
-        description=product.description,
-        categoryId=product.category_id,
-        brandId=product.brand_id,
-        type="PHYSICAL",
-        isActive=True,
-        variants=[
-            VariantDto(
-                id=v.id,
-                productId=v.product_id,
-                sku=v.sku,
-                name=v.name,
-                barcode=v.barcode,
-                unit="piece",
-                currency="USD",
-                costPrice=float(v.cost_price),
-                sellPrice=float(v.sell_price),
-                taxRatePct=float(v.tax_rate_pct),
-                marginPct=float((v.sell_price - v.cost_price) / v.sell_price * 100) if v.sell_price > 0 else 0.0,
-                isActive=True
-            ) for v in variants
-        ]
+    # Re-query with eager loads
+    stmt = (
+        select(Product)
+        .where(Product.id == product.id)
+        .options(
+            selectinload(Product.variants),
+            selectinload(Product.images).selectinload(ProductImage.storage_object),
+            selectinload(Product.category)
+        )
     )
+    p = (await db.execute(stmt)).scalar_one()
+    return to_product_dto(p)
 
 @router.get("/products/{product_id}", response_model=ProductDto)
 async def get_product(
@@ -267,7 +228,8 @@ async def get_product(
         .where(Product.id == product_id, Product.organization_id == user.organization_id)
         .options(
             selectinload(Product.variants),
-            selectinload(Product.images).selectinload(ProductImage.storage_object)
+            selectinload(Product.images).selectinload(ProductImage.storage_object),
+            selectinload(Product.category)
         )
     )
     result = await db.execute(stmt)
@@ -275,41 +237,157 @@ async def get_product(
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    img_dtos = build_product_image_dtos(p.images)
-    primary_img = img_dtos[0] if img_dtos else None
+    return to_product_dto(p)
 
-    return ProductDto(
-        id=p.id,
-        organizationId=p.organization_id,
-        name=p.name,
-        description=p.description,
-        categoryId=p.category_id,
-        brandId=p.brand_id,
-        type="PHYSICAL",
-        isActive=p.is_active,
-        imageUrl=primary_img.url if primary_img else None,
-        thumbnailUrl=primary_img.thumbnailUrl if primary_img else None,
-        mediumUrl=primary_img.mediumUrl if primary_img else None,
-        largeUrl=primary_img.largeUrl if primary_img else None,
-        syncStatus=primary_img.syncStatus if primary_img else None,
-        variants=[
-            VariantDto(
-                id=v.id,
-                productId=v.product_id,
-                sku=v.sku,
-                name=v.name,
-                barcode=v.barcode,
-                unit=v.unit or "piece",
-                currency=v.currency or "USD",
-                costPrice=float(v.cost_price),
-                sellPrice=float(v.sell_price),
-                taxRatePct=float(v.tax_rate_pct),
-                marginPct=float((v.sell_price - v.cost_price) / v.sell_price * 100) if v.sell_price > 0 else 0.0,
-                isActive=v.is_active
-            ) for v in p.variants
-        ],
-        images=img_dtos
+@router.patch("/products/{product_id}", response_model=ProductDto)
+@router.put("/products/{product_id}", response_model=ProductDto)
+async def update_product(
+    product_id: str,
+    input_data: UpdateProductInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update master product details and/or variant attributes."""
+    stmt = (
+        select(Product)
+        .where(Product.id == product_id, Product.organization_id == user.organization_id)
+        .options(
+            selectinload(Product.variants),
+            selectinload(Product.images).selectinload(ProductImage.storage_object),
+            selectinload(Product.category)
+        )
     )
+    result = await db.execute(stmt)
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Update master fields
+    if input_data.name is not None:
+        product.name = input_data.name
+    if input_data.description is not None:
+        product.description = input_data.description
+    if input_data.categoryId is not None:
+        product.category_id = input_data.categoryId if input_data.categoryId else None
+    if input_data.brandId is not None:
+        product.brand_id = input_data.brandId if input_data.brandId else None
+    if input_data.type is not None:
+        product.type = input_data.type
+    if input_data.isActive is not None:
+        product.is_active = input_data.isActive
+
+    # Update or add variants
+    if input_data.variants is not None:
+        existing_variants = {v.id: v for v in product.variants}
+        for v_in in input_data.variants:
+            if v_in.id and v_in.id in existing_variants:
+                v = existing_variants[v_in.id]
+                if v_in.sku is not None:
+                    v.sku = v_in.sku
+                if v_in.name is not None:
+                    v.name = v_in.name
+                if v_in.barcode is not None:
+                    v.barcode = v_in.barcode
+                if v_in.unit is not None:
+                    v.unit = v_in.unit
+                if v_in.currency is not None:
+                    v.currency = v_in.currency
+                if v_in.costPrice is not None:
+                    v.cost_price = Decimal(str(v_in.costPrice))
+                if v_in.sellPrice is not None:
+                    v.sell_price = Decimal(str(v_in.sellPrice))
+                if v_in.taxRatePct is not None:
+                    v.tax_rate_pct = Decimal(str(v_in.taxRatePct))
+                if v_in.isActive is not None:
+                    v.is_active = v_in.isActive
+            elif not v_in.id and v_in.sku:
+                # Create new variant
+                new_v = ProductVariant(
+                    organization_id=user.organization_id,
+                    product_id=product.id,
+                    sku=v_in.sku,
+                    name=v_in.name or product.name,
+                    barcode=v_in.barcode,
+                    unit=v_in.unit or "piece",
+                    currency=v_in.currency or "USD",
+                    cost_price=Decimal(str(v_in.costPrice or 0)),
+                    sell_price=Decimal(str(v_in.sellPrice or 0)),
+                    tax_rate_pct=Decimal(str(v_in.taxRatePct or 0)),
+                    is_active=v_in.isActive if v_in.isActive is not None else True
+                )
+                db.add(new_v)
+
+    await db.commit()
+
+    # Re-fetch fresh entity
+    stmt_fresh = (
+        select(Product)
+        .where(Product.id == product_id)
+        .options(
+            selectinload(Product.variants),
+            selectinload(Product.images).selectinload(ProductImage.storage_object),
+            selectinload(Product.category)
+        )
+    )
+    p_fresh = (await db.execute(stmt_fresh)).scalar_one()
+    return to_product_dto(p_fresh)
+
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete product or soft-archive if historical transactions exist (§GoldenRule 9)."""
+    stmt = (
+        select(Product)
+        .where(Product.id == product_id, Product.organization_id == user.organization_id)
+        .options(selectinload(Product.variants))
+    )
+    result = await db.execute(stmt)
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    variant_ids = [v.id for v in product.variants]
+    has_transactions = False
+
+    if variant_ids:
+        check_sql = text("""
+            SELECT 1 FROM (
+                SELECT "productVariantId" FROM sale_line_items WHERE "productVariantId" = ANY(:vids)
+                UNION ALL
+                SELECT "productVariantId" FROM purchase_order_line_items WHERE "productVariantId" = ANY(:vids)
+                UNION ALL
+                SELECT "productVariantId" FROM goods_receipt_line_items WHERE "productVariantId" = ANY(:vids)
+                UNION ALL
+                SELECT "productVariantId" FROM stock_transfer_lines WHERE "productVariantId" = ANY(:vids)
+            ) t LIMIT 1
+        """)
+        has_transactions = bool((await db.execute(check_sql, {"vids": variant_ids})).scalar())
+
+    if has_transactions:
+        # Soft-archive / deactivate to preserve historical audit trail
+        product.is_active = False
+        for v in product.variants:
+            v.is_active = False
+        await db.commit()
+        return {
+            "deleted": True,
+            "archived": True,
+            "id": product_id,
+            "message": "Product has existing transaction history and has been deactivated/archived to preserve ledger integrity."
+        }
+    else:
+        # Hard delete
+        await db.delete(product)
+        await db.commit()
+        return {
+            "deleted": True,
+            "archived": False,
+            "id": product_id,
+            "message": "Product deleted successfully."
+        }
 
 # ==============================================================================
 # PRODUCT IMAGES

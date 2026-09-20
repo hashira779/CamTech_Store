@@ -46,6 +46,7 @@ class ProductDto(BaseModel):
     id: str
     organizationId: str
     categoryId: Optional[str] = None
+    categoryName: Optional[str] = None
     brandId: Optional[str] = None
     type: str = "PHYSICAL"
     name: str
@@ -77,7 +78,30 @@ class CreateProductInput(BaseModel):
     description: Optional[str] = None
     categoryId: Optional[str] = None
     brandId: Optional[str] = None
+    type: Optional[str] = "PHYSICAL"
+    isActive: Optional[bool] = True
     variants: List[CreateVariantInput] = []
+
+class UpdateVariantInput(BaseModel):
+    id: Optional[str] = None
+    sku: Optional[str] = None
+    name: Optional[str] = None
+    barcode: Optional[str] = None
+    unit: Optional[str] = None
+    currency: Optional[str] = None
+    costPrice: Optional[float] = None
+    sellPrice: Optional[float] = None
+    taxRatePct: Optional[float] = None
+    isActive: Optional[bool] = None
+
+class UpdateProductInput(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    categoryId: Optional[str] = None
+    brandId: Optional[str] = None
+    type: Optional[str] = None
+    isActive: Optional[bool] = None
+    variants: Optional[List[UpdateVariantInput]] = None
 
 class AddProductImageInput(BaseModel):
     storageObjectId: str
