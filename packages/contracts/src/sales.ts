@@ -138,6 +138,8 @@ export interface SaleDto {
   destLng?: number | null;
   etaMinutes?: number | null;
   distanceKm?: number | null;
+  paymentQrCode?: string | null;
+  paymentDeeplink?: string | null;
 }
 
 /** Summary DTO used in list views (without full line items). */

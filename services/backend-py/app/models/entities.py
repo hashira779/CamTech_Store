@@ -619,3 +619,5 @@ from app.modules.observability.models import (
     ObsApiRequest, ObsSpan, ObsLogEvent,
 )
 
+
+from app.modules.organizations.models import PaywayConfig

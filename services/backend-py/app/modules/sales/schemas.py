@@ -47,6 +47,9 @@ class StoreCheckoutInput(BaseModel):
     items: List[StoreCheckoutItemInput]
     notes: Optional[str] = None
     organizationId: Optional[str] = None
+    channel: str = "ONLINE"
+    orderType: Optional[str] = None
+    tableNumber: Optional[str] = None
 
 class CreateSaleInput(BaseModel):
     idempotencyKey: Optional[str] = None
@@ -104,4 +107,5 @@ class SaleDto(BaseModel):
     deliveryFee: Optional[float] = None
     etaMinutes: Optional[int] = None
     distanceKm: Optional[float] = None
-
+    paymentQrCode: Optional[str] = None
+    paymentDeeplink: Optional[str] = None

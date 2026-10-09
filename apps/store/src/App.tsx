@@ -699,6 +699,8 @@ export function App() {
         address: deliveryAddress,
         date: serverSale.createdAt || new Date().toISOString(),
         status: serverSale.status || 'COMPLETED',
+        paymentQrCode: serverSale.paymentQrCode || null,
+        paymentDeeplink: serverSale.paymentDeeplink || null,
       };
 
       // Save order to local device cache
@@ -1656,6 +1658,19 @@ export function App() {
             <p className="text-xs ds-text-dim mt-2">
               Thank you, {confirmedOrder.customer.name}! We have routed your dispatch request to our nearest delivery fleet.
             </p>
+
+            {confirmedOrder.paymentMethod === 'KHQR' && confirmedOrder.paymentQrCode && (
+              <div className="mt-4 p-4 rounded-2xl bg-white text-center shadow-xl shadow-emerald-500/10">
+                <h4 className="text-slate-900 font-bold mb-2">Scan to Pay with ABA</h4>
+                <img src={`data:image/png;base64,${confirmedOrder.paymentQrCode}`} alt="KHQR" className="w-48 h-48 mx-auto" />
+                {confirmedOrder.paymentDeeplink && (
+                  <a href={confirmedOrder.paymentDeeplink} target="_blank" rel="noopener noreferrer" className="mt-3 block w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">
+                    Pay with ABA Mobile
+                  </a>
+                )}
+                <p className="text-[10px] text-slate-500 mt-2">Order will be dispatched once payment is confirmed.</p>
+              </div>
+            )}
 
             <div className="mt-4 p-3 rounded-xl bg-ink-950 text-left text-xs space-y-1.5 border border-line">
               <div className="flex justify-between">

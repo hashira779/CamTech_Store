@@ -45,3 +45,16 @@ class UpdateOrganizationInput(BaseModel):
     enabledModules: Optional[List[str]] = None
     receiptHeader: Optional[str] = None
     receiptFooter: Optional[str] = None
+
+class PaywayConfigDto(BaseModel):
+    id: str
+    merchantId: str
+    publicKey: str
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+
+class UpdatePaywayConfigInput(BaseModel):
+    merchantId: str
+    publicKey: str
+    rsaPublicKey: Optional[str] = None
+    rsaPrivateKey: Optional[str] = None

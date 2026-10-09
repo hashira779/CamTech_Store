@@ -6,6 +6,7 @@ import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { PasskeyManager } from '@/components/passkey-manager';
+import { PaywaySettings } from './payway-settings';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Settings,
@@ -358,6 +359,9 @@ export default function SettingsPage() {
             )}
           </form>
         )}
+
+        {/* PayWay Configuration */}
+        <PaywaySettings />
 
         {/* Personal sign-in security. Sits outside the organization form above:
             these are the signed-in user's own credentials, not tenant policy,

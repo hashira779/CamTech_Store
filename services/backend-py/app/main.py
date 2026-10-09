@@ -236,21 +236,50 @@ async def response_envelope_middleware(request: Request, call_next):
         return response
 
     # ── IP Ban Check (highest priority — checked before anything else) ─────────
-    if path.startswith("/api/v1/"):
-        from app.core.rate_limiter import ip_ban_list
-        client_ip = (
-            request.headers.get("X-Real-IP")
-            or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
-            or (request.client.host if request.client else "unknown")
-        ).strip()
-        if await ip_ban_list.is_banned(client_ip):
-            logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
+    # We will use this block to also check for malicious scanning
+    from app.core.rate_limiter import ip_ban_list
+    client_ip = (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
+        or (request.client.host if request.client else "unknown")
+    ).strip()
+    
+    if await ip_ban_list.is_banned(client_ip):
+        logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "success": False,
+                "code": "IP_BANNED",
+                "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
+                "requestId": req_id,
+            },
+            headers={"X-Request-Id": req_id},
+        )
+
+    # ── Malicious Scanner / Code Injection Interceptor ──────────────
+    # Immediately permanent ban IPs that attempt to scan for sensitive files or inject code
+    malicious_patterns = [
+        ".env", ".git", "wp-login.php", "wp-admin", "wp-content", 
+        "phpinfo.php", ".aws/credentials", "/etc/passwd", 
+        "../", "..\\", "%2e%2e%2f"
+    ]
+    path_lower = path.lower()
+    for pattern in malicious_patterns:
+        if pattern in path_lower:
+            # Found malicious scan -> Ban IP permanently
+            await ip_ban_list.ban(
+                client_ip, 
+                duration_seconds=60 * 60 * 24 * 365,  # 1 year ban
+                reason=f"malicious_scanning: {pattern}"
+            )
+            logger.error(f"[SECURITY] BANNED {client_ip} for malicious scanning of: {pattern}")
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content={
                     "success": False,
-                    "code": "IP_BANNED",
-                    "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
+                    "code": "SECURITY_VIOLATION",
+                    "message": "Security violation detected. Your IP has been permanently banned.",
                     "requestId": req_id,
                 },
                 headers={"X-Request-Id": req_id},

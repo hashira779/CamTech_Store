@@ -18,11 +18,13 @@ interface CartItem {
 }
 
 export default function TelegramMiniAppPage() {
-  const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'checkout'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'checkout' | 'payment'>('menu');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sugarLevel, setSugarLevel] = useState<string>('100%');
   const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'CASH'>('KHQR');
+  const [paymentQrCode, setPaymentQrCode] = useState<string | null>(null);
+  const [paymentDeeplink, setPaymentDeeplink] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -154,22 +156,27 @@ export default function TelegramMiniAppPage() {
       // If opened via inline button, sendData closes the app and sends data to bot
       // We can also make an API call to our backend here first.
       try {
-        const res = await api.createSale(token, {
+        const res = await api.storeCheckout(token, {
           channel: 'TELEGRAM',
-          currency: 'USD',
-          notes: `Customer: ${orderData.customer}\nDelivery: ${deliveryAddress}\nSugar: ${sugarLevel}`,
-          payments: [{
-            method: paymentMethod === 'KHQR' ? 'QR' : 'CASH',
-            amount: cartTotal
-          }],
-          lineItems: cart.map((i) => ({
-            productVariantId: i.variantId,
+          orderType: 'DELIVERY',
+          customerName: orderData.customer,
+          deliveryAddress,
+          notes: `Sugar: ${sugarLevel}`,
+          paymentMethod: paymentMethod === 'KHQR' ? 'QR' : 'CASH',
+          items: cart.map((i) => ({
+            id: i.variantId,
+            name: i.name,
+            price: i.price,
             quantity: i.quantity,
-            discount: 0
           }))
         });
-        
         if (res.id) {
+          if (res.paymentQrCode) {
+            setPaymentQrCode(res.paymentQrCode);
+            setPaymentDeeplink(res.paymentDeeplink || null);
+            setActiveTab('payment');
+            return;
+          }
           WebApp.showAlert('Order Placed Successfully! Returning to chat...');
           setTimeout(() => WebApp.close(), 1500);
         } else {
@@ -389,6 +396,42 @@ export default function TelegramMiniAppPage() {
                 className="w-full bg-[var(--tg-theme-button-color,#0ea5e9)] text-[var(--tg-theme-button-text-color,#fff)] py-4 rounded-2xl font-bold text-sm flex justify-center items-center gap-2 active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(14,165,233,0.3)]"
               >
                 Pay ${cartTotal.toFixed(2)} & Place Order
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'payment' && paymentQrCode && (
+          <div className="space-y-6 flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="text-center">
+              <h2 className="font-bold text-2xl mb-2 text-white">Scan to Pay</h2>
+              <p className="text-white/60 text-sm">Amount: <span className="text-sky-400 font-bold">${cartTotal.toFixed(2)}</span></p>
+            </div>
+            
+            <div className="bg-white p-4 rounded-3xl shadow-xl shadow-sky-500/20 max-w-[260px] mx-auto w-full">
+              <img src={`data:image/png;base64,${paymentQrCode}`} alt="KHQR" className="w-full h-auto rounded-xl border border-gray-100" />
+            </div>
+            
+            <div className="w-full max-w-[260px] mx-auto space-y-3">
+              {paymentDeeplink && (
+                <a 
+                  href={paymentDeeplink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors shadow-lg shadow-blue-500/20"
+                >
+                  Pay with ABA Mobile
+                </a>
+              )}
+              
+              <button 
+                onClick={() => {
+                  WebApp.showAlert('Waiting for payment confirmation. If paid, your order is secured!');
+                  setTimeout(() => WebApp.close(), 1500);
+                }}
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-3.5 rounded-2xl font-bold text-sm transition-colors"
+              >
+                I have completed payment
               </button>
             </div>
           </div>

@@ -668,6 +668,13 @@ export const api = {
     });
   },
 
+  storeCheckout: (token: string | null, input: any) =>
+    request<SaleDto>('/sales/store-checkout', {
+      method: 'POST',
+      token: token || undefined,
+      body: JSON.stringify(input),
+    }),
+
   syncSalesBatch: (token: string, input: SyncBatchRequest) =>
     request<SyncBatchResponseDto>('/sales/sync-batch', {
       method: 'POST',
@@ -759,6 +766,16 @@ export const api = {
   updateOrgSettings: (token: string, input: UpdateOrganizationSettingsInput) =>
     request<OrganizationDto>('/organizations/current/settings', {
       method: 'PATCH',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  getCurrentOrgPayway: (token: string) =>
+    request<any>('/organizations/current/payway', { token }),
+
+  updateOrgPayway: (token: string, input: any) =>
+    request<any>('/organizations/current/payway', {
+      method: 'PUT',
       token,
       body: JSON.stringify(input),
     }),
