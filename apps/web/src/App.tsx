@@ -61,6 +61,8 @@ export function App() {
     CurrentApp = PartnerApp;
   } else if (hostname.startsWith('admin.') || hostname.startsWith('adminconsol.')) {
     CurrentApp = AdminApp;
+  } else if (hostname.startsWith('mini.') || hostname.startsWith('tma.') || hostname.startsWith('telegram.')) {
+    CurrentApp = MiniApp;
   } else {
     // 2. Dynamic route-based simulation for local development & DomainBar switcher
     // Dedicated standalone mini-frontends are kept to their specific entrypoints;
@@ -91,10 +93,12 @@ export function App() {
     }
   }
 
+  const isMiniApp = CurrentApp === MiniApp || location.pathname.startsWith('/mini');
+
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
-      {!isInfraApp && <DomainBar />}
+      {!isInfraApp && !isMiniApp && <DomainBar />}
       {/* DomainBar stays outside the boundary, so if the active experience
           crashes the user can still navigate to another one. resetKeys clears
           the error automatically on route change. */}
