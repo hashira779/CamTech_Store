@@ -227,6 +227,80 @@ class PaywayService:
         }
 
     @classmethod
+    def create_purchase_payload(
+        cls,
+        merchant_id: str,
+        api_key: str,
+        transaction_id: str,
+        amount: float,
+        items: Optional[List[Dict[str, Any]]] = None,
+        firstname: str = "",
+        lastname: str = "",
+        email: str = "",
+        phone: str = "",
+        return_url: str = "",
+        continue_success_url: str = "",
+        return_deeplink: str = "",
+        currency: str = "USD",
+        payment_option: str = "",
+        is_production: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Builds official ABA PayWay Purchase API payload and hash
+        for POST https://checkout.payway.com.kh/api/payment-gateway/v1/payments/purchase
+        """
+        req_time = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        amount_val = round(float(amount), 2)
+        amount_str = f"{amount_val:.2f}"
+        items_list = items or [{"name": "Item", "quantity": 1, "price": amount_val}]
+        items_b64 = base64.b64encode(json.dumps(items_list).encode("utf-8")).decode("utf-8")
+
+        type_ = "purchase"
+        ret_url = return_url or ""
+        cancel_url = ""
+        success_url = continue_success_url or ""
+        ret_dl = return_deeplink or ""
+        custom_fields = ""
+        return_params = ""
+
+        raw_str = (
+            f"{req_time}{merchant_id}{transaction_id}{amount_str}{items_b64}"
+            f"{firstname}{lastname}{email}{phone}"
+            f"{type_}{payment_option}{ret_url}{cancel_url}{success_url}{ret_dl}"
+            f"{custom_fields}{return_params}"
+        )
+        h = hmac.new(api_key.encode("utf-8"), raw_str.encode("utf-8"), hashlib.sha512)
+        hash_val = base64.b64encode(h.digest()).decode("utf-8")
+
+        base_url = (
+            "https://checkout.payway.com.kh"
+            if is_production
+            else "https://checkout-sandbox.payway.com.kh"
+        )
+        purchase_url = f"{base_url}/api/payment-gateway/v1/payments/purchase"
+
+        return {
+            "action_url": purchase_url,
+            "req_time": req_time,
+            "merchant_id": merchant_id,
+            "tran_id": transaction_id,
+            "amount": amount_str,
+            "items": items_b64,
+            "hash": hash_val,
+            "firstname": firstname,
+            "lastname": lastname,
+            "phone": phone,
+            "email": email,
+            "type": type_,
+            "payment_option": payment_option,
+            "return_url": ret_url,
+            "cancel_url": cancel_url,
+            "continue_success_url": success_url,
+            "return_deeplink": ret_dl,
+            "currency": currency,
+        }
+
+    @classmethod
     async def verify_transaction(
         cls,
         merchant_id: str,
