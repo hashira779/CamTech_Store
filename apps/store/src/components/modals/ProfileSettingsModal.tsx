@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Save, Navigation, Loader2 } from 'lucide-react';
+import { User, X, Save, Navigation, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ProfileSettingsModalProps {
   isOpen: boolean;
@@ -23,6 +23,7 @@ export function ProfileSettingsModal({
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   useEffect(() => {
     if (isOpen && customer) {
@@ -140,12 +141,29 @@ export function ProfileSettingsModal({
               className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs ds-text placeholder-slate-500 focus:outline-none focus:border-emerald-500"
             />
             {lat && lng && (
-              <div className="mt-2 w-full h-32 rounded-lg overflow-hidden border border-line">
+              <div className={`mt-2 w-full rounded-lg overflow-hidden border border-line relative transition-all duration-300 ${isMapExpanded ? 'h-64' : 'h-32'}`}>
                 <iframe
                   title="Profile-Map-Preview"
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005}%2C${lat - 0.003}%2C${lng + 0.005}%2C${lat + 0.003}&layer=mapnik&marker=${lat}%2C${lng}`}
-                  className="w-full h-full border-0 pointer-events-none"
+                  className={`w-full h-full border-0 ${!isMapExpanded && 'pointer-events-none'}`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setIsMapExpanded(!isMapExpanded)}
+                  className="absolute bottom-2 right-2 p-2 bg-ink-900/90 hover:bg-ink-800 text-white rounded-lg shadow-lg border border-line-strong backdrop-blur-sm transition flex items-center gap-2 text-[10px] font-bold"
+                >
+                  {isMapExpanded ? (
+                    <>
+                      <Minimize2 className="w-3 h-3" />
+                      Close Full Map
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3 h-3" />
+                      Interact Map
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>

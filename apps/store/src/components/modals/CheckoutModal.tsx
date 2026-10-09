@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { ShieldCheck, X, User, Navigation, MapPin, QrCode, Truck, CheckCircle2 } from 'lucide-react';
 
 const GoogleIcon = ({ className }: { className?: string }) => (
@@ -42,6 +43,8 @@ export function CheckoutModal({
   isLocating, coords, setCoords, paymentMethod, setPaymentMethod,
   cartTotal, handleCheckout, syncCustomerWithDatabase, toast
 }: CheckoutModalProps) {
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+
   useEffect(() => {
     if (isOpen && customer) {
       if (customer.defaultAddress && !deliveryAddress) {
@@ -224,12 +227,29 @@ export function CheckoutModal({
               />
             </div>
             {coords && (
-              <div className="mt-2 w-full h-32 rounded-lg overflow-hidden border border-line">
+              <div className={`mt-2 w-full rounded-lg overflow-hidden border border-line relative transition-all duration-300 ${isMapExpanded ? 'h-64' : 'h-32'}`}>
                 <iframe
                   title="Checkout-Map-Preview"
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.005}%2C${coords.lat - 0.003}%2C${coords.lng + 0.005}%2C${coords.lat + 0.003}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
-                  className="w-full h-full border-0 pointer-events-none"
+                  className={`w-full h-full border-0 ${!isMapExpanded && 'pointer-events-none'}`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setIsMapExpanded(!isMapExpanded)}
+                  className="absolute bottom-2 right-2 p-2 bg-ink-900/90 hover:bg-ink-800 text-white rounded-lg shadow-lg border border-line-strong backdrop-blur-sm transition flex items-center gap-2 text-[10px] font-bold"
+                >
+                  {isMapExpanded ? (
+                    <>
+                      <Minimize2 className="w-3 h-3" />
+                      Close Full Map
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3 h-3" />
+                      Interact Map
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
