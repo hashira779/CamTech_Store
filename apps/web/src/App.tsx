@@ -20,6 +20,7 @@ const CeoApp = lazy(() => import('./apps/ceo/CeoApp'));
 const SupportApp = lazy(() => import('./apps/support/SupportApp'));
 const PartnerApp = lazy(() => import('./apps/partner/PartnerApp'));
 const InfraControlApp = lazy(() => import('./apps/infra/InfraControlApp'));
+const MiniApp = lazy(() => import('./apps/mini/MiniApp'));
 
 import { AppShellSkeleton } from '@/components/page-skeleton';
 
@@ -83,6 +84,8 @@ export function App() {
       CurrentApp = DeliveryApp;
     } else if (isPath('/ceo')) {
       CurrentApp = CeoApp;
+    } else if (isPath('/mini')) {
+      CurrentApp = MiniApp;
     } else {
       CurrentApp = AdminApp;
     }

@@ -11,6 +11,10 @@ from app.domain.hierarchy_engine import HierarchyEngine
 
 from .models import Product, ProductVariant, Category, ProductImage, slugify
 from .schemas import (
+    ModifierGroupDto,
+    CreateModifierGroupInput,
+    UpdateModifierGroupInput,
+    ModifierOptionDto,
     ProductDto, ProductImageDto, CreateProductInput, UpdateProductInput, VariantDto,
     CategoryDto, CategoryTreeNodeDto, CreateCategoryInput, UpdateCategoryInput,
     ReorderCategoriesInput, BreadcrumbItem,
@@ -916,3 +920,81 @@ async def delete_category(
     await db.delete(cat)
     await db.commit()
     return {"deleted": True, "id": category_id}
+
+
+# ─── MODIFIERS ────────────────────────────────────────────────────────
+
+router_modifiers = APIRouter(prefix="/modifiers", tags=["modifiers"])
+
+@router_modifiers.get("", response_model=PaginatedResponse[ModifierGroupDto])
+async def list_modifier_groups(
+    page: int = 1,
+    limit: int = 20,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    offset = (page - 1) * limit
+    stmt = select(ModifierGroup).where(ModifierGroup.organization_id == user.organization_id).order_by(ModifierGroup.created_at.desc())
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
+    stmt = stmt.offset(offset).limit(limit)
+    result = await db.execute(stmt)
+    groups = result.scalars().all()
+    
+    dtos = []
+    for g in groups:
+        opts = [ModifierOptionDto(
+            id=o.id, groupId=o.group_id, name=o.name, priceAdjustment=float(o.price_adjustment),
+            sortOrder=o.sort_order, isActive=o.is_active
+        ) for o in g.options]
+        dtos.append(ModifierGroupDto(
+            id=g.id, organizationId=g.organization_id, name=g.name, description=g.description,
+            minSelections=g.min_selections, maxSelections=g.max_selections, isActive=g.is_active,
+            options=opts
+        ))
+        
+    return PaginatedResponse(
+        items=dtos,
+        meta=PageMeta(page=page, limit=limit, total=total or 0, totalPages=((total or 0) + limit - 1) // limit),
+        total=total
+    )
+
+@router_modifiers.post("", response_model=ModifierGroupDto, status_code=status.HTTP_201_CREATED)
+async def create_modifier_group(
+    data: CreateModifierGroupInput,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    group = ModifierGroup(
+        organization_id=user.organization_id,
+        name=data.name,
+        description=data.description,
+        min_selections=data.minSelections,
+        max_selections=data.maxSelections,
+        is_active=data.isActive
+    )
+    db.add(group)
+    await db.flush()
+    
+    for opt_in in data.options:
+        opt = ModifierOption(
+            group_id=group.id,
+            name=opt_in.name,
+            price_adjustment=opt_in.priceAdjustment,
+            sort_order=opt_in.sortOrder,
+            is_active=opt_in.isActive
+        )
+        db.add(opt)
+        
+    await db.commit()
+    await db.refresh(group)
+    
+    opts = [ModifierOptionDto(
+        id=o.id, groupId=o.group_id, name=o.name, priceAdjustment=float(o.price_adjustment),
+        sortOrder=o.sort_order, isActive=o.is_active
+    ) for o in group.options]
+    
+    return ModifierGroupDto(
+        id=group.id, organizationId=group.organization_id, name=group.name, description=group.description,
+        minSelections=group.min_selections, maxSelections=group.max_selections, isActive=group.is_active,
+        options=opts
+    )

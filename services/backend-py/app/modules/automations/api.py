@@ -11,6 +11,7 @@ from .controllers.developer_apps_controller import router as dev_router
 from .controllers.webhooks_controller import router as webhooks_router
 from .controllers.telegram_controller import router as telegram_router
 from .controllers.flows_controller import router as flows_router
+from .controllers.telegram_mini_app_controller import router as telegram_mini_app_router
 
 router = APIRouter(tags=["Automations & Integrations"])
 
@@ -19,3 +20,4 @@ router.include_router(dev_router)
 router.include_router(webhooks_router)
 router.include_router(telegram_router)
 router.include_router(flows_router)
+router.include_router(telegram_mini_app_router)
