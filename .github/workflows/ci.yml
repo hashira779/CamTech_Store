@@ -68,9 +68,18 @@ jobs:
           python -c "import asyncio, asyncpg; asyncio.run(asyncpg.connect('postgresql://camtech:camtech123@127.0.0.1:5433/camtechStore'))"
 
       - name: Every Module Imports Check (Feature Architecture Gate)
+        id: import_check
         run: |
           # Ensures no module contains syntax or circular import errors at the top level
-          python -c "from app.models.entities import *; import app.main; import app.microservices.gateway"
+          python test_imports.py 2>&1 | tee import_output.log
+
+      - name: Report Import Diagnostics on Failure
+        if: failure() && steps.import_check.outcome == 'failure'
+        run: |
+          echo "## ❌ Module Import Check Failure Trace" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat import_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Run Pytest Test Suite
         id: pytest_run
