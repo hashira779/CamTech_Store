@@ -32,7 +32,7 @@ async def get_customer_orders(
     Fetches past sales orders and invoices for a customer directly from PostgreSQL.
     Supports filtering by channel (e.g. 'STORE' for online storefront orders) and lookup by email or phone.
     """
-    if not email and not phone:
+    if not email and not phone and not user:
         return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
 
     # Find customer by email or phone
@@ -47,18 +47,27 @@ async def get_customer_orders(
             func.replace(Customer.phone, " ", "") == phone_clean.replace(" ", "")
         ))
 
-    cust_res = await db.execute(
-        select(Customer).where(or_(*cust_filters)).limit(1)
-    )
-    customer = cust_res.scalar_one_or_none()
+    customer = None
+    if cust_filters:
+        cust_res = await db.execute(
+            select(Customer).where(or_(*cust_filters)).limit(1)
+        )
+        customer = cust_res.scalar_one_or_none()
 
-    if not customer:
+    sale_filters = []
+    if customer:
+        if user and user.id:
+            sale_filters.append(or_(Sale.customer_id == customer.id, Sale.user_id == user.id))
+        else:
+            sale_filters.append(Sale.customer_id == customer.id)
+    elif user and user.id:
+        sale_filters.append(Sale.user_id == user.id)
+    else:
         return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
 
-    sale_filters = [Sale.customer_id == customer.id]
     if user and user.organization_id:
         sale_filters.append(Sale.organization_id == user.organization_id)
-    elif customer.organization_id:
+    elif customer and customer.organization_id:
         sale_filters.append(Sale.organization_id == customer.organization_id)
 
     # Optional channel filtering (e.g. STORE vs POS)
