@@ -69,7 +69,7 @@ export function App() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'BAKONG_KHQR' | 'CASH'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'CASH'>('CASH');
   const [receipt, setReceipt] = useState<any>(null);
 
   // Cashier Authentication & Shift State
@@ -762,36 +762,31 @@ export function App() {
                 </button>
 
                 <button
-                  onClick={() => setPaymentMethod('BAKONG_KHQR')}
+                  onClick={() => setPaymentMethod('ABA_PAYWAY')}
                   className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition ${
-                    paymentMethod === 'BAKONG_KHQR'
-                      ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
+                    paymentMethod === 'ABA_PAYWAY'
+                      ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold'
                       : 'bg-ink-800/80 border-line-strong ds-text-dim'
                   }`}
                 >
-                  <QrCode className="w-8 h-8 text-rose-400" />
-                  <span>Bakong KHQR</span>
-                  <span className="text-[10px] ds-text-dim font-normal">Static / Offline EMVCo</span>
+                  <QrCode className="w-8 h-8 text-blue-400" />
+                  <span>ABA PayWay</span>
+                  <span className="text-[10px] ds-text-dim font-normal">Customer App Scan</span>
                 </button>
               </div>
 
-              {paymentMethod === 'BAKONG_KHQR' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-ink-950 border border-rose-800/40 text-center space-y-2.5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
-                    <span>KHQR</span> • <span>National Bank of Cambodia</span>
+              {paymentMethod === 'ABA_PAYWAY' && (
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-blue-950/40 to-ink-950 border border-blue-800/40 text-center space-y-2.5">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-blue-600/30">
+                    <span>ABA PayWay</span> • <span>Customer QR</span>
                   </div>
-                  <div className="w-48 h-48 mx-auto bg-white rounded-2xl p-3 flex flex-col items-center justify-center shadow-xl shadow-rose-950/50 relative border-2 border-rose-500">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                        `00020101021229380016bakong@nbc.org.kh0108CAMTECH1520459995303840540${total.toFixed(2)}5802KH5912CAMTECH_STORE6010Phnom_Penh6304`
-                      )}`}
-                      alt="NBC Bakong KHQR"
-                      className="w-40 h-40 object-contain"
-                    />
+                  <div className="w-48 h-48 mx-auto bg-ink-900 rounded-2xl p-3 flex flex-col items-center justify-center shadow-xl shadow-blue-950/50 relative border-2 border-blue-500">
+                    <QrCode className="w-20 h-20 text-blue-500/50 mb-3 animate-pulse" />
+                    <p className="text-xs text-blue-300/80 font-medium px-4">Generate dynamic QR upon checkout completion</p>
                   </div>
                   <div>
                     <p className="text-sm font-extrabold ds-text font-mono">${total.toFixed(2)} USD</p>
-                    <p className="text-[10px] text-rose-300/80">Scan with ABA Mobile, Wing, ACLEDA, or any Bakong App</p>
+                    <p className="text-[10px] text-blue-300/80">Customer scans with ABA Mobile</p>
                   </div>
                 </div>
               )}

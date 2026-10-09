@@ -1485,21 +1485,17 @@ export function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center p-3 bg-white rounded-xl space-y-1.5 my-1">
-                    <div className="text-[11px] font-bold text-slate-900 font-mono flex items-center justify-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                      <span>Scan Bakong KHQR to Pay</span>
+                  <div className="text-center p-3 bg-white rounded-xl space-y-1.5 my-1 border-2 border-blue-100">
+                    <div className="text-[11px] font-bold text-blue-900 font-mono flex items-center justify-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                      <span>ABA PayWay Collection</span>
                     </div>
-                    <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl mx-auto w-fit">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://bakong.nbc.gov.kh/pay?amount=${Number(selectedOrder.codAmount).toFixed(2)}&currency=USD&account=camtech_delivery@aclb`)}`}
-                        alt="Bakong KHQR"
-                        className="w-36 h-36 mx-auto object-contain"
-                        loading="eager"
-                      />
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mx-auto w-fit flex flex-col items-center">
+                      <QrCode className="w-24 h-24 text-blue-400 mb-2" />
+                      <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-1 rounded-full">Driver Dynamic QR</span>
                     </div>
                     <div className="text-[10px] text-slate-600 font-mono">
-                      Pay <strong className="text-slate-900">${Number(selectedOrder.codAmount).toFixed(2)}</strong> via ABA, ACLEDA, or Any Bakong App
+                      Pay <strong className="text-slate-900">${Number(selectedOrder.codAmount).toFixed(2)}</strong> via ABA Mobile
                     </div>
                   </div>
                 )}
