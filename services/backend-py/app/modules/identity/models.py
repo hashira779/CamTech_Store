@@ -40,6 +40,7 @@ class UserRole(Base):
 
     user_id = Column("userId", String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role_id = Column("roleId", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+    role_name = Column("roleName", String, nullable=True)
 
     user = relationship("User", back_populates="user_roles")
     role = relationship("Role")

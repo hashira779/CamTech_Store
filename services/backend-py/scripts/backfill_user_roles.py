@@ -28,9 +28,9 @@ async def backfill_rbac():
     async with AsyncSessionLocal() as db:
         # 1. Ensure all canonical roles exist in roles table
         for role_name, desc in CANONICAL_ROLES:
-            existing = await db.get(Role, role_name)
+            existing = (await db.execute(select(Role).where(Role.name == role_name))).scalars().first()
             if not existing:
-                db.add(Role(name=role_name, description=desc))
+                db.add(Role(id=f"rol_{role_name.lower()}", name=role_name, description=desc))
                 print(f"  + Added role: {role_name}")
             else:
                 if not existing.description:
@@ -66,19 +66,21 @@ async def backfill_rbac():
                 roles_list = ["STAFF"]
 
             # Query existing user_roles for this user
-            ur_res = await db.execute(select(UserRole.role_name).where(UserRole.user_id == user.id))
-            existing_user_roles = set(r[0] for r in ur_res.fetchall())
+            ur_res = await db.execute(select(UserRole.role_name, UserRole.role_id).where(UserRole.user_id == user.id))
+            rows = ur_res.fetchall()
+            existing_role_names = set(r[0] for r in rows if r[0])
+            existing_role_ids = set(r[1] for r in rows if r[1])
 
             user_updated = False
             for r_name in roles_list:
-                # Ensure role exists in roles table before foreign key insertion
-                r_obj = await db.get(Role, r_name)
+                r_obj = (await db.execute(select(Role).where(Role.name == r_name))).scalars().first()
                 if not r_obj:
-                    db.add(Role(name=r_name, description=f"{r_name} role"))
+                    r_obj = Role(id=f"rol_{r_name.lower()}", name=r_name, description=f"{r_name} role")
+                    db.add(r_obj)
                     await db.flush()
 
-                if r_name not in existing_user_roles:
-                    db.add(UserRole(user_id=user.id, role_name=r_name))
+                if r_name not in existing_role_names and r_obj.id not in existing_role_ids:
+                    db.add(UserRole(user_id=user.id, role_id=r_obj.id, role_name=r_name))
                     added_roles_count += 1
                     user_updated = True
 

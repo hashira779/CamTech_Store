@@ -72,7 +72,7 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
             r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=org_id, permissions=[], is_system=False)
             db.add(r_obj)
             await db.flush()
-        db.add(UserRole(user_id=user_id, role_id=r_obj.id))
+        db.add(UserRole(user_id=user_id, role_id=r_obj.id, role_name=r_obj.name))
     await db.commit()
 
     # 4. Asynchronous Event-Driven Decoupling: Drop event into Redis & Queue
@@ -391,7 +391,7 @@ async def create_user(
             r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=user.organization_id, permissions=[], is_system=False)
             db.add(r_obj)
             await db.flush()
-        db.add(UserRole(user_id=user_id, role_id=r_obj.id))
+        db.add(UserRole(user_id=user_id, role_id=r_obj.id, role_name=r_obj.name))
     await db.commit()
     await db.refresh(new_user)
     
@@ -440,7 +440,7 @@ async def update_user(
                 r_obj = Role(id=f"rol_{uuid.uuid4().hex[:10]}", name=r, description=f"{r} role", organization_id=user.organization_id, permissions=[], is_system=False)
                 db.add(r_obj)
                 await db.flush()
-            db.add(UserRole(user_id=target.id, role_id=r_obj.id))
+            db.add(UserRole(user_id=target.id, role_id=r_obj.id, role_name=r_obj.name))
     if inp.isActive is not None:
         target.is_active = inp.isActive
     if inp.locationId is not None:
