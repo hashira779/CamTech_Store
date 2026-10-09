@@ -1,14 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api, BASE_URL } from '@/lib/api-client';
-import { 
-  Coffee, MapPin, Search, Plus, Minus, CreditCard, Wallet, 
-  Map as MapIcon, ChevronRight, History, ShoppingBag, CheckCircle2, 
-  Clock, ArrowLeft, X, Sparkles, AlertCircle, RefreshCw, Phone, User,
-  Flame, Snowflake, Check, Share2, Receipt
+import {
+  Coffee,
+  ShoppingBag,
+  Search,
+  Plus,
+  Minus,
+  CreditCard,
+  Wallet,
+  MapPin,
+  Map as MapIcon,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  User,
+  History,
+  Receipt,
+  X,
+  Sparkles,
+  Phone,
+  Flame,
+  IceCream,
+  Share2,
+  ExternalLink,
+  Store,
+  ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,283 +40,334 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  size?: 'Regular (M)' | 'Large (L)';
-  temperature?: 'Iced' | 'Hot';
-  sugarLevel?: string;
-  iceLevel?: string;
+  size: string;
+  sugarLevel: string;
+  iceLevel: string;
+  addOns: string[];
   notes?: string;
   imageUrl?: string | null;
 }
 
-interface LocalOrder {
+interface SavedOrder {
   id: string;
-  saleNumber?: string;
+  saleNumber: string;
   createdAt: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    size?: string;
+    sugarLevel?: string;
+  }>;
   total: number;
-  status: 'PENDING' | 'PAID' | 'PREPARING' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
-  paymentMethod: 'KHQR' | 'CASH';
+  status: string;
+  paymentMethod: string;
+  deliveryAddress: string;
   paymentQrCode?: string | null;
   paymentDeeplink?: string | null;
-  deliveryAddress: string;
-  customerName: string;
-  items: CartItem[];
-  organizationId?: string;
 }
 
+const CATEGORIES = [
+  { id: 'ALL', name: 'All Menu', icon: Sparkles },
+  { id: 'COFFEE', name: 'Espresso & Coffee', icon: Coffee },
+  { id: 'COLD', name: 'Cold Brew & Iced', icon: IceCream },
+  { id: 'TEA', name: 'Tea & Matcha', icon: Flame },
+  { id: 'BAKERY', name: 'Bakery & Pastry', icon: ShoppingBag },
+];
+
+const SUGAR_OPTIONS = ['100%', '75%', '50%', '25%', '0%'];
+const ICE_OPTIONS = ['Normal Ice', 'Less Ice', 'No Ice', 'Hot 🔥'];
+const SIZE_OPTIONS = [
+  { name: 'Regular', extraPrice: 0 },
+  { name: 'Large', extraPrice: 0.50 }
+];
+const ADD_ONS = [
+  { id: 'extra_shot', name: 'Extra Espresso Shot', price: 0.75 },
+  { id: 'oat_milk', name: 'Oat Milk Sub', price: 0.60 },
+  { id: 'vanilla_syrup', name: 'Vanilla Syrup', price: 0.50 },
+  { id: 'caramel_drizzle', name: 'Caramel Drizzle', price: 0.50 },
+];
+
+const KHR_RATE = 4100;
+
 export default function TelegramMiniAppPage() {
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'checkout' | 'payment' | 'history'>('menu');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Navigation tabs: 'menu' | 'cart' | 'orders' | 'profile' | 'payment'
+  const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'orders' | 'profile' | 'payment'>('menu');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Customization modal state
+  const [customizingProduct, setCustomizingProduct] = useState<any | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>('Regular');
+  const [selectedSugar, setSelectedSugar] = useState<string>('100%');
+  const [selectedIce, setSelectedIce] = useState<string>('Normal Ice');
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [itemNotes, setItemNotes] = useState<string>('');
+  const [modalQuantity, setModalQuantity] = useState<number>(1);
+
+  // Cart state
   const [cart, setCart] = useState<CartItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('camtech_mini_cart');
-        return saved ? JSON.parse(saved) : [];
-      } catch {
-        return [];
-      }
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('camtech_mini_cart') : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    return [];
   });
 
-  // Customization Modal State for Coffee / Beverage Options
-  const [customizingProduct, setCustomizingProduct] = useState<any | null>(null);
-  const [optSize, setOptSize] = useState<'Regular (M)' | 'Large (L)'>('Regular (M)');
-  const [optTemp, setOptTemp] = useState<'Iced' | 'Hot'>('Iced');
-  const [optSugar, setOptSugar] = useState<string>('100%');
-  const [optIce, setOptIce] = useState<string>('Normal Ice');
-  const [optNote, setOptNote] = useState<string>('');
-
-  // Checkout State
-  const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'CASH'>('KHQR');
-  const [paymentQrCode, setPaymentQrCode] = useState<string | null>(null);
-  const [paymentDeeplink, setPaymentDeeplink] = useState<string | null>(null);
-  const [activePaymentOrderId, setActivePaymentOrderId] = useState<string | null>(null);
-  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
+  // Customer contact state (persisted)
+  const [customerName, setCustomerName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('camtech_mini_name') || WebApp.initDataUnsafe?.user?.first_name || 'Guest Customer';
+    }
+    return 'Guest Customer';
+  });
   const [customerPhone, setCustomerPhone] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('camtech_mini_phone')) || '012345678';
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('camtech_mini_phone') || '012 345 678';
+    }
+    return '012 345 678';
+  });
+  const [deliveryAddress, setDeliveryAddress] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('camtech_mini_address') || 'Phnom Penh, Cambodia';
+    }
+    return 'Phnom Penh, Cambodia';
   });
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [shopName, setShopName] = useState<string>('CamTech Café & Store');
 
-  // Order Detail Modal State
-  const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<LocalOrder | null>(null);
+  // Payment state
+  const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'CASH'>('KHQR');
+  const [activePaymentSale, setActivePaymentSale] = useState<any | null>(null);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const paymentPollIntervalRef = useRef<any>(null);
 
-  // Extract optional org param for multi-store routing
-  const orgParam = typeof window !== 'undefined' 
-    ? (new URLSearchParams(window.location.search).get('org') || new URLSearchParams(window.location.search).get('store') || undefined) 
-    : undefined;
-
-  // Local Order History
-  const historyStorageKey = `camtech_mini_orders_${orgParam || 'default'}`;
-  const [orderHistory, setOrderHistory] = useState<LocalOrder[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(historyStorageKey);
-        return saved ? JSON.parse(saved) : [];
-      } catch {
-        return [];
-      }
+  // Order history state
+  const [pastOrders, setPastOrders] = useState<SavedOrder[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('camtech_mini_orders_history') : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    return [];
   });
+  const [viewingReceiptOrder, setViewingReceiptOrder] = useState<SavedOrder | null>(null);
 
-  // Persist cart
+  // Tenant / Organization state
+  const orgParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('org') || undefined) : undefined;
+  const [token, setToken] = useState<string | null>(null);
+  const [shopName, setShopName] = useState<string>('CamTech Specialty Café');
+
+  // Save cart to local storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('camtech_mini_cart', JSON.stringify(cart));
     }
   }, [cart]);
 
-  // Persist order history
+  // Save customer details
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(historyStorageKey, JSON.stringify(orderHistory));
-    }
-  }, [orderHistory, historyStorageKey]);
-
-  // Persist customer phone
-  useEffect(() => {
-    if (typeof window !== 'undefined' && customerPhone) {
+      localStorage.setItem('camtech_mini_name', customerName);
       localStorage.setItem('camtech_mini_phone', customerPhone);
+      localStorage.setItem('camtech_mini_address', deliveryAddress);
     }
-  }, [customerPhone]);
+  }, [customerName, customerPhone, deliveryAddress]);
+
+  // Save past orders
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('camtech_mini_orders_history', JSON.stringify(pastOrders));
+    }
+  }, [pastOrders]);
 
   // Initialize Telegram Web App
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && WebApp.initData) {
       try {
-        if (WebApp.initData) {
-          WebApp.ready();
-          WebApp.expand();
-          // Apply Telegram theme colors
-          document.body.style.backgroundColor = 'var(--tg-theme-bg-color, #0f172a)';
-          document.body.style.color = 'var(--tg-theme-text-color, #f1f5f9)';
-
-          // Authenticate with backend
-          fetch(`${BASE_URL}/api/v1/telegram/mini-app/auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData: WebApp.initData, organizationId: orgParam })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success && data.token) {
-              setToken(data.token);
-              if (data.botName) setShopName(data.botName);
-            }
-          })
-          .catch(() => {});
+        WebApp.ready();
+        WebApp.expand();
+        WebApp.enableClosingConfirmation();
+        if (WebApp.initDataUnsafe?.user?.first_name) {
+          setCustomerName(WebApp.initDataUnsafe.user.first_name);
         }
       } catch (e) {
-        console.error("Telegram WebApp init error", e);
+        console.warn('Telegram SDK initialization note:', e);
       }
+
+      // Authenticate with backend
+      fetch(`${BASE_URL}/api/v1/telegram/mini-app/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: WebApp.initData, organizationId: orgParam })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.token) {
+          setToken(data.token);
+          if (data.botName) setShopName(data.botName);
+        }
+      })
+      .catch(err => {
+        console.error('Telegram auth warning:', err);
+      });
     }
   }, [orgParam]);
 
-  // Telegram BackButton integration
-  useEffect(() => {
-    if (typeof window !== 'undefined' && WebApp.BackButton) {
-      if (activeTab !== 'menu') {
-        WebApp.BackButton.show();
-        const handleBack = () => {
-          if (activeTab === 'checkout' || activeTab === 'payment') setActiveTab('cart');
-          else setActiveTab('menu');
-        };
-        WebApp.BackButton.onClick(handleBack);
-        return () => {
-          WebApp.BackButton.offClick(handleBack);
-          WebApp.BackButton.hide();
-        };
-      } else {
-        WebApp.BackButton.hide();
-      }
-    }
-  }, [activeTab]);
-
-  // Fetch Public Products Scoped to Store
+  // Query store products
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['mini-products', searchQuery, token, orgParam],
     queryFn: () => token 
-      ? api.listProducts(token, { limit: 100, search: searchQuery || undefined }) 
-      : api.getPublicProducts({ limit: 100, search: searchQuery || undefined, organizationId: orgParam }),
+      ? api.listProducts(token, { limit: 50, search: searchQuery || undefined }) 
+      : api.getPublicProducts({ limit: 50, search: searchQuery || undefined, organizationId: orgParam }),
   });
 
   const products = productsData?.items || [];
 
-  // Derive unique categories from products
-  const categories = ['ALL', ...Array.from(new Set(
-    products.map((p: any) => p.category?.name || (typeof p.category === 'string' ? p.category : null) || 'COFFEE')
-  ))];
-
+  // Filter products by category & search
   const filteredProducts = products.filter((p: any) => {
     const matchesSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const catName = p.category?.name || (typeof p.category === 'string' ? p.category : 'COFFEE');
-    const matchesCat = selectedCategory === 'ALL' || catName === selectedCategory;
-    return matchesSearch && matchesCat;
+    if (!matchesSearch) return false;
+    if (selectedCategory === 'ALL') return true;
+    const cat = (p.category?.name || p.categoryName || '').toUpperCase();
+    if (selectedCategory === 'COFFEE') return cat.includes('COFFEE') || cat.includes('ESPRESSO') || cat.includes('LATTE');
+    if (selectedCategory === 'COLD') return cat.includes('COLD') || cat.includes('ICED') || cat.includes('BREW');
+    if (selectedCategory === 'TEA') return cat.includes('TEA') || cat.includes('MATCHA');
+    if (selectedCategory === 'BAKERY') return cat.includes('BAKERY') || cat.includes('PASTRY') || cat.includes('FOOD');
+    return true;
   });
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Open Customization Modal
-  const openCustomizer = (product: any) => {
-    setCustomizingProduct(product);
-    setOptSize('Regular (M)');
-    setOptTemp('Iced');
-    setOptSugar('100%');
-    setOptIce('Normal Ice');
-    setOptNote('');
-    if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
+  // Trigger Haptic feedback safely
+  const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'selection' | 'success') => {
+    if (typeof window !== 'undefined' && WebApp.HapticFeedback) {
+      if (type === 'selection') {
+        WebApp.HapticFeedback.selectionChanged();
+      } else if (type === 'success') {
+        WebApp.HapticFeedback.notificationOccurred('success');
+      } else {
+        WebApp.HapticFeedback.impactOccurred(type);
+      }
+    }
   };
 
-  // Add customized item to cart
-  const commitAddToCart = () => {
-    if (!customizingProduct) return;
+  // Open customization modal
+  const openCustomizer = (product: any) => {
+    triggerHaptic('light');
+    setCustomizingProduct(product);
+    setSelectedSize('Regular');
+    setSelectedSugar('100%');
+    setSelectedIce('Normal Ice');
+    setSelectedAddOns([]);
+    setItemNotes('');
+    setModalQuantity(1);
+  };
+
+  // Calculate customized modal unit price
+  const calculateModalUnitPrice = () => {
+    if (!customizingProduct) return 0;
     const basePrice = Number(customizingProduct.variants?.[0]?.sellPrice || customizingProduct.price || 0);
-    const price = optSize === 'Large (L)' ? basePrice + 0.50 : basePrice;
+    const sizeExtra = selectedSize === 'Large' ? 0.50 : 0;
+    const addOnsExtra = selectedAddOns.reduce((sum, id) => {
+      const match = ADD_ONS.find(a => a.id === id);
+      return sum + (match?.price || 0);
+    }, 0);
+    return basePrice + sizeExtra + addOnsExtra;
+  };
+
+  // Confirm and add customized item to cart
+  const confirmAddToCart = () => {
+    if (!customizingProduct) return;
+    triggerHaptic('medium');
+    const unitPrice = calculateModalUnitPrice();
     const variantId = customizingProduct.variants?.[0]?.id || customizingProduct.id;
     const img = customizingProduct.thumbnailUrl || customizingProduct.imageUrl || customizingProduct.images?.[0]?.url;
 
     const newItem: CartItem = {
       productId: customizingProduct.id,
-      variantId: variantId,
+      variantId,
       name: customizingProduct.name,
-      price,
-      quantity: 1,
-      size: optSize,
-      temperature: optTemp,
-      sugarLevel: optSugar,
-      iceLevel: optTemp === 'Iced' ? optIce : undefined,
-      notes: optNote.trim() || undefined,
+      price: unitPrice,
+      quantity: modalQuantity,
+      size: selectedSize,
+      sugarLevel: selectedSugar,
+      iceLevel: selectedIce,
+      addOns: [...selectedAddOns],
+      notes: itemNotes.trim() || undefined,
       imageUrl: img,
     };
 
     setCart(prev => [...prev, newItem]);
     setCustomizingProduct(null);
-
-    if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('success');
     toast.success(`Added ${customizingProduct.name} to cart!`);
   };
 
-  const updateQuantity = (index: number, delta: number) => {
-    const newCart = [...cart];
-    newCart[index].quantity += delta;
-    if (newCart[index].quantity <= 0) {
-      newCart.splice(index, 1);
+  const updateCartQuantity = (index: number, delta: number) => {
+    triggerHaptic('selection');
+    const next = [...cart];
+    next[index].quantity += delta;
+    if (next[index].quantity <= 0) {
+      next.splice(index, 1);
     }
-    setCart(newCart);
-    if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
+    setCart(next);
   };
 
+  // Request HTML5 / Telegram Location
   const requestLocation = () => {
+    triggerHaptic('light');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setDeliveryAddress(`Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)} (Phnom Penh)`);
+          const locStr = `Lat ${pos.coords.latitude.toFixed(4)}, Lng ${pos.coords.longitude.toFixed(4)}`;
+          setDeliveryAddress(locStr);
           setLocationEnabled(true);
-          if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('success');
-          toast.success("Location retrieved!");
+          toast.success("Location updated!");
         },
         () => {
-          toast.error("Please enable location access");
+          toast.error("Please allow location access");
         }
       );
     } else {
-      toast.error("Geolocation not supported");
+      toast.error("Geolocation not supported by device");
     }
   };
 
-  // Place Order / Checkout
+  // Handle Checkout & generate real ABA PayWay KHQR
   const handleCheckout = async () => {
-    if (!deliveryAddress) {
-      toast.error("Please provide a delivery address");
+    if (cart.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+    if (!deliveryAddress.trim()) {
+      toast.error("Please enter a delivery destination");
       return;
     }
 
-    const customerName = WebApp.initDataUnsafe?.user?.first_name || 'Telegram Guest';
-
-    const checkoutPayload = {
-      channel: 'TELEGRAM',
-      orderType: 'DELIVERY',
-      customerName: customerName,
-      customerPhone: customerPhone || '012345678',
-      deliveryAddress: deliveryAddress,
-      notes: `Order via Telegram Mini App · ${shopName}`,
-      paymentMethod: paymentMethod === 'KHQR' ? 'QR' : 'COD',
-      organizationId: orgParam,
-      items: cart.map((i) => ({
-        id: i.variantId,
-        name: `${i.name} (${i.size || 'M'}, ${i.sugarLevel || '100%'} Sugar)`,
-        price: i.price,
-        quantity: i.quantity,
-      }))
-    };
-
-    const loadToast = toast.loading("Processing your order with store...");
+    triggerHaptic('heavy');
+    const toastId = toast.loading("Connecting to Coffee Shop payment engine...");
 
     try {
+      const checkoutPayload = {
+        channel: 'TELEGRAM',
+        orderType: 'DELIVERY',
+        customerName: customerName,
+        customerPhone: customerPhone,
+        deliveryAddress: deliveryAddress,
+        notes: `Mini App Order (${cart.map(c => `${c.name} [${c.size}, ${c.sugarLevel} sugar]`).join(', ')})`,
+        paymentMethod: paymentMethod === 'KHQR' ? 'ABA_PAYWAY' : 'COD',
+        organizationId: orgParam,
+        items: cart.map(i => ({
+          id: i.variantId,
+          variantId: i.variantId,
+          productId: i.productId,
+          name: `${i.name} (${i.size}, ${i.sugarLevel})`,
+          price: i.price,
+          quantity: i.quantity,
+        }))
+      };
+
       let res: any;
       if (token) {
         res = await api.storeCheckout(token, checkoutPayload);
@@ -307,95 +380,163 @@ export default function TelegramMiniAppPage() {
         const body = await resp.json();
         res = body.data || body;
       }
-      toast.dismiss(loadToast);
+
+      toast.dismiss(toastId);
 
       if (res && res.id) {
-        const newOrder: LocalOrder = {
+        const newOrder: SavedOrder = {
           id: res.id,
-          saleNumber: res.saleNumber || `#ORD-${res.id.slice(-6).toUpperCase()}`,
+          saleNumber: res.saleNumber || `#ORD-${res.id.slice(0, 6).toUpperCase()}`,
           createdAt: new Date().toISOString(),
+          items: cart.map(c => ({
+            name: c.name,
+            quantity: c.quantity,
+            price: c.price,
+            size: c.size,
+            sugarLevel: c.sugarLevel
+          })),
           total: cartTotal,
-          status: paymentMethod === 'KHQR' ? 'PENDING' : 'PAID',
-          paymentMethod,
+          status: paymentMethod === 'KHQR' ? 'PENDING' : 'CONFIRMED',
+          paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR' : 'Cash on Delivery',
+          deliveryAddress: deliveryAddress,
           paymentQrCode: res.paymentQrCode || null,
           paymentDeeplink: res.paymentDeeplink || null,
-          deliveryAddress,
-          customerName,
-          items: [...cart],
-          organizationId: orgParam,
         };
 
-        setOrderHistory(prev => [newOrder, ...prev]);
+        // Save into local history
+        setPastOrders(prev => [newOrder, ...prev]);
 
         if (paymentMethod === 'KHQR' && res.paymentQrCode) {
-          setPaymentQrCode(res.paymentQrCode);
-          setPaymentDeeplink(res.paymentDeeplink || null);
-          setActivePaymentOrderId(res.id);
+          setActivePaymentSale({ ...newOrder, saleId: res.id });
           setActiveTab('payment');
           setCart([]);
-          if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('warning');
-          return;
+          startPaymentPolling(res.id);
+        } else {
+          setCart([]);
+          triggerHaptic('success');
+          toast.success("Order Placed Successfully!");
+          setActiveTab('orders');
         }
-
-        // Cash on delivery
-        setCart([]);
-        setActiveTab('history');
-        if (WebApp.HapticFeedback) WebApp.HapticFeedback.notificationOccurred('success');
-        toast.success("Order Placed Successfully!");
       } else {
-        toast.error("Failed to place order.");
+        toast.error("Could not place order. Please try again.");
       }
     } catch (err: any) {
-      toast.dismiss(loadToast);
+      toast.dismiss(toastId);
+      console.error(err);
       toast.error(err?.message || "Order placement failed.");
     }
   };
 
+  // Real-time payment verification polling
+  const startPaymentPolling = (saleId: string) => {
+    if (paymentPollIntervalRef.current) {
+      clearInterval(paymentPollIntervalRef.current);
+    }
+
+    setIsVerifyingPayment(true);
+    let attempts = 0;
+    const maxAttempts = 60; // 2.5 minutes timeout
+
+    paymentPollIntervalRef.current = setInterval(async () => {
+      attempts += 1;
+      try {
+        const resp = await api.getOrderPaymentStatus(saleId);
+        if (resp && resp.paid) {
+          clearInterval(paymentPollIntervalRef.current);
+          setIsVerifyingPayment(false);
+          triggerHaptic('success');
+          toast.success("🎉 Payment Confirmed! Preparing your drinks...");
+          
+          // Update order status in history
+          setPastOrders(prev => prev.map(o => o.id === saleId ? { ...o, status: 'PAID' } : o));
+          setActivePaymentSale((prev: any) => prev ? { ...prev, status: 'PAID' } : null);
+
+          setTimeout(() => {
+            setActiveTab('orders');
+          }, 2000);
+        }
+      } catch (e) {
+        console.warn('Poll error:', e);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(paymentPollIntervalRef.current);
+        setIsVerifyingPayment(false);
+      }
+    }, 2500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (paymentPollIntervalRef.current) {
+        clearInterval(paymentPollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // 1-Click Reorder
+  const handleReorder = (order: SavedOrder) => {
+    triggerHaptic('medium');
+    const itemsToReorder: CartItem[] = order.items.map((item, idx) => ({
+      productId: `reorder-${idx}`,
+      variantId: `reorder-v-${idx}`,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size || 'Regular',
+      sugarLevel: item.sugarLevel || '100%',
+      iceLevel: 'Normal Ice',
+      addOns: [],
+    }));
+
+    setCart(prev => [...prev, ...itemsToReorder]);
+    toast.success(`Added ${order.items.length} items from ${order.saleNumber} to cart!`);
+    setActiveTab('cart');
+  };
+
   return (
-    <div className="min-h-[100dvh] bg-[var(--tg-theme-bg-color,#0f172a)] text-[var(--tg-theme-text-color,#f1f5f9)] font-sans pb-28">
+    <div className="min-h-[100dvh] bg-[var(--tg-theme-bg-color,#0f172a)] text-[var(--tg-theme-text-color,#f1f5f9)] font-sans flex flex-col pb-20 select-none">
       
-      {/* ── TOP HEADER ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-[var(--tg-theme-bg-color,#0f172a)]/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
+      {/* ── Top Bar / Header ────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-[var(--tg-theme-bg-color,#0f172a)]/90 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-sm">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
             <Coffee className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-base leading-tight tracking-tight">{shopName}</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] text-emerald-400 font-medium">Open · Express Delivery</span>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-bold text-base leading-tight tracking-tight">{shopName}</h1>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Open Now" />
             </div>
+            <p className="text-[10px] text-white/50 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> Open Daily 7:00 AM – 8:00 PM
+            </p>
           </div>
         </div>
 
-        {/* History Quick Shortcut */}
-        <button 
-          onClick={() => setActiveTab('history')}
-          className={`p-2 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-semibold ${
-            activeTab === 'history' 
-              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm' 
-              : 'bg-white/5 border-white/10 text-white/70 active:bg-white/10'
-          }`}
+        {/* Quick Cart Pill */}
+        <button
+          onClick={() => { triggerHaptic('selection'); setActiveTab('cart'); }}
+          className="relative flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
         >
-          <History className="w-4 h-4" />
-          <span>Orders</span>
-          {orderHistory.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold flex items-center justify-center">
-              {orderHistory.length}
+          <ShoppingBag className="w-4 h-4 text-amber-400" />
+          <span>${cartTotal.toFixed(2)}</span>
+          {cartItemCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-black text-[10px] font-extrabold flex items-center justify-center">
+              {cartItemCount}
             </span>
           )}
         </button>
       </header>
 
-      {/* ── MAIN CONTENT BY TAB ─────────────────────────────────────────────── */}
-      <main className="p-4 max-w-lg mx-auto">
-        
-        {/* ── TAB: MENU ─────────────────────────────────────────────────────── */}
+      {/* ── Main View Container ─────────────────────────────────── */}
+      <main className="flex-1 p-4 overflow-y-auto">
+
+        {/* TAB 1: MENU ────────────────────────────────────────── */}
         {activeTab === 'menu' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             
-            {/* Search Box */}
+            {/* Search Input */}
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
               <input
@@ -405,81 +546,90 @@ export default function TelegramMiniAppPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-white/30"
               />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
             </div>
 
-            {/* Category Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    setSelectedCategory(cat);
-                    if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
-                  }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
-                    selectedCategory === cat
-                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
-                      : 'bg-white/5 text-white/60 border-white/10 active:bg-white/10'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            {/* Category Pills (Horizontal Scroll) */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4">
+              {CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => { triggerHaptic('selection'); setSelectedCategory(cat.id); }}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      isSelected 
+                        ? 'bg-amber-500 text-black shadow-md shadow-amber-500/25 scale-100 font-bold' 
+                        : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{cat.name}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Products Grid */}
+            {/* Product Grid */}
             {isLoading ? (
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-2 gap-3 pt-4">
                 {[1, 2, 3, 4].map(n => (
-                  <div key={n} className="bg-white/5 border border-white/10 rounded-2xl p-3 animate-pulse h-52" />
+                  <div key={n} className="bg-white/5 rounded-3xl h-48 animate-pulse border border-white/5" />
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-12 opacity-60">
-                <Coffee className="w-12 h-12 mx-auto mb-3 opacity-40 text-amber-400" />
-                <p className="text-sm font-semibold">No items found</p>
-                <p className="text-xs text-white/40 mt-1">Try searching for a different drink or category</p>
+              <div className="text-center py-16 opacity-60">
+                <Coffee className="w-12 h-12 mx-auto mb-2 text-white/30" />
+                <p className="text-sm font-medium">No items found in this section</p>
+                <button 
+                  onClick={() => { setSelectedCategory('ALL'); setSearchQuery(''); }}
+                  className="mt-3 text-xs text-amber-400 font-semibold"
+                >
+                  View All Menu
+                </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-2 gap-3">
                 {filteredProducts.map((p: any) => {
-                  const price = Number(p.price || p.variants?.[0]?.sellPrice || 0);
+                  const price = Number(p.variants?.[0]?.sellPrice || p.price || 0);
                   const img = p.thumbnailUrl || p.imageUrl || p.images?.[0]?.url;
 
                   return (
                     <div 
-                      key={p.id} 
-                      className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between hover:border-amber-500/40 transition-all shadow-sm"
+                      key={p.id}
+                      onClick={() => openCustomizer(p)}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-3xl p-3 flex flex-col justify-between active:scale-[0.98] transition-all cursor-pointer group"
                     >
-                      <div className="w-full aspect-square rounded-xl bg-black/30 mb-2.5 flex items-center justify-center overflow-hidden relative">
+                      <div className="w-full aspect-square rounded-2xl bg-black/20 mb-2.5 flex items-center justify-center overflow-hidden relative">
                         {img ? (
-                          <img src={img} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={img} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         ) : (
                           <Coffee className="w-10 h-10 text-white/20" />
                         )}
-                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-[11px] font-black px-2 py-0.5 rounded-full text-amber-400 border border-white/10">
+                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-300 border border-white/10">
                           ${price.toFixed(2)}
                         </div>
                       </div>
-                      
-                      <div>
+
+                      <div className="space-y-1">
                         <h3 className="font-bold text-sm leading-snug line-clamp-1">{p.name}</h3>
-                        <p className="text-[11px] text-white/40 line-clamp-1 mt-0.5 mb-2.5">
-                          {p.description || 'Artisan handcrafted recipe'}
+                        <p className="text-[10px] text-white/50 line-clamp-1">
+                          {p.description || 'Artisan handcrafted beverage'}
                         </p>
                       </div>
-                      
-                      <button 
-                        onClick={() => openCustomizer(p)}
-                        className="w-full bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Customize & Add
-                      </button>
+
+                      <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-extrabold text-amber-400">${price.toFixed(2)}</span>
+                          <span className="text-[9px] text-white/40 block">{(price * KHR_RATE).toLocaleString()} ៛</span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openCustomizer(p); }}
+                          className="w-7 h-7 rounded-xl bg-amber-500 text-black flex items-center justify-center shadow-sm shadow-amber-500/20 active:scale-90 transition-transform"
+                        >
+                          <Plus className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -488,520 +638,661 @@ export default function TelegramMiniAppPage() {
           </div>
         )}
 
-        {/* ── TAB: CART ─────────────────────────────────────────────────────── */}
+        {/* TAB 2: CART ────────────────────────────────────────── */}
         {activeTab === 'cart' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between">
               <h2 className="font-bold text-lg flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-amber-400" /> Your Cart
+                <ShoppingBag className="w-5 h-5 text-amber-400" />
+                <span>Your Order</span>
               </h2>
               {cart.length > 0 && (
                 <button 
-                  onClick={() => setCart([])} 
-                  className="text-xs text-rose-400 active:underline"
+                  onClick={() => { setCart([]); toast.info("Cart cleared"); }}
+                  className="text-xs text-rose-400 hover:underline"
                 >
                   Clear All
                 </button>
               )}
             </div>
-            
+
             {cart.length === 0 ? (
-              <div className="text-center py-16 opacity-60">
-                <Coffee className="w-12 h-12 mx-auto mb-3 opacity-30 text-amber-400" />
-                <p className="font-semibold text-sm">Your cart is empty</p>
-                <button 
+              <div className="text-center py-16 space-y-3 opacity-60">
+                <Coffee className="w-16 h-16 mx-auto text-white/20" />
+                <p className="font-semibold text-sm">Your order is empty</p>
+                <button
                   onClick={() => setActiveTab('menu')}
-                  className="mt-4 px-5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
+                  className="px-5 py-2.5 rounded-2xl bg-amber-500 text-black font-bold text-xs shadow-md shadow-amber-500/20"
                 >
-                  Explore Menu
+                  Browse Delicious Coffee
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {cart.map((item, idx) => (
-                  <div key={idx} className="bg-white/5 border border-white/10 p-3 rounded-2xl flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-black/30 overflow-hidden shrink-0 flex items-center justify-center">
-                      {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Coffee className="w-6 h-6 text-white/30" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm truncate">{item.name}</h4>
-                      <div className="flex flex-wrap gap-1.5 mt-0.5 text-[10px] text-white/50">
-                        {item.size && <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.size}</span>}
-                        {item.temperature && <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.temperature}</span>}
-                        {item.sugarLevel && <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.sugarLevel} Sugar</span>}
+              <div className="space-y-4">
+                
+                {/* Cart Items List */}
+                <div className="space-y-2.5">
+                  {cart.map((item, idx) => (
+                    <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl bg-black/30 overflow-hidden shrink-0 flex items-center justify-center">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} className="w-full h-full object-cover" />
+                        ) : (
+                          <Coffee className="w-6 h-6 text-white/20" />
+                        )}
                       </div>
-                      <p className="text-xs font-black text-amber-400 mt-1">${(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                    <div className="flex items-center bg-black/40 rounded-xl border border-white/10 shrink-0">
-                      <button onClick={() => updateQuantity(idx, -1)} className="p-2 active:bg-white/10 rounded-l-xl"><Minus className="w-3.5 h-3.5" /></button>
-                      <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(idx, 1)} className="p-2 active:bg-white/10 rounded-r-xl"><Plus className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </div>
-                ))}
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-xs truncate">{item.name}</h4>
+                        <div className="flex flex-wrap gap-1 mt-0.5 text-[9px] text-white/60">
+                          <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.size}</span>
+                          <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.sugarLevel} sugar</span>
+                          <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.iceLevel}</span>
+                          {item.addOns.map((a, i) => (
+                            <span key={i} className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">+{a}</span>
+                          ))}
+                        </div>
+                        <p className="text-xs font-bold text-amber-400 mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                      </div>
 
-                {/* Subtotal & Checkout Button */}
-                <div className="pt-4 border-t border-white/10 space-y-3">
-                  <div className="flex justify-between text-sm font-bold">
-                    <span className="text-white/60">Subtotal ({cart.length} items)</span>
-                    <span className="text-amber-400 font-black text-base">${cartTotal.toFixed(2)}</span>
+                      <div className="flex items-center bg-black/40 rounded-full border border-white/10">
+                        <button 
+                          onClick={() => updateCartQuantity(idx, -1)}
+                          className="w-7 h-7 flex items-center justify-center active:bg-white/10 rounded-full"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateCartQuantity(idx, 1)}
+                          className="w-7 h-7 flex items-center justify-center active:bg-white/10 rounded-full"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recipient / Delivery Info */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+                  <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Delivery Destination
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    <input 
+                      type="text"
+                      placeholder="Your Full Name..."
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                    />
+                    <input 
+                      type="tel"
+                      placeholder="Phone Number (e.g. 012 345 678)..."
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                    />
+                    <textarea 
+                      placeholder="Detailed address (Street, Khan, Sangkat)..."
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      rows={2}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50 resize-none"
+                    />
+                    <button
+                      onClick={requestLocation}
+                      className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <MapIcon className="w-3.5 h-3.5" />
+                      {locationEnabled ? 'Location Pin Saved ✓' : 'Pin My Current Location'}
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('checkout')}
-                    className="w-full bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 py-3.5 rounded-2xl font-black text-sm flex justify-between items-center px-4 shadow-lg shadow-amber-500/20 transition-all"
+                </div>
+
+                {/* Payment Method Selector */}
+                <div className="space-y-2">
+                  <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider">Select Payment</h3>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('KHQR'); }}
+                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                        paymentMethod === 'KHQR'
+                          ? 'bg-rose-500/15 border-rose-500 text-rose-300 shadow-md shadow-rose-500/15'
+                          : 'bg-white/5 border-white/10 text-white/50'
+                      }`}
+                    >
+                      <Wallet className="w-5 h-5" />
+                      <span className="font-bold text-xs">Bakong / ABA KHQR</span>
+                    </button>
+
+                    <button
+                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('CASH'); }}
+                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                        paymentMethod === 'CASH'
+                          ? 'bg-amber-500/15 border-amber-500 text-amber-300 shadow-md shadow-amber-500/15'
+                          : 'bg-white/5 border-white/10 text-white/50'
+                      }`}
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      <span className="font-bold text-xs">Cash on Delivery</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bill Summary & Order Button */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-2">
+                  <div className="flex justify-between text-xs text-white/60">
+                    <span>Subtotal</span>
+                    <span>${cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-white/60">
+                    <span>Delivery Fee</span>
+                    <span className="text-emerald-400 font-bold">Free (Promotion)</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 flex justify-between items-baseline">
+                    <span className="font-bold text-sm">Total Amount</span>
+                    <div className="text-right">
+                      <span className="font-extrabold text-lg text-amber-400">${cartTotal.toFixed(2)}</span>
+                      <span className="text-[10px] text-white/40 block">{(cartTotal * KHR_RATE).toLocaleString()} ៛</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleCheckout}
+                    className="w-full mt-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-transform"
                   >
-                    <span>Proceed to Delivery</span>
-                    <span>${cartTotal.toFixed(2)} →</span>
+                    <span>Place Order & Pay</span>
+                    <ChevronRight className="w-4 h-4 stroke-[3]" />
                   </button>
                 </div>
+
               </div>
             )}
           </div>
         )}
 
-        {/* ── TAB: CHECKOUT ─────────────────────────────────────────────────── */}
-        {activeTab === 'checkout' && (
+        {/* TAB 3: ORDER HISTORY ("មាន history មានអីមួយចប់ ដូចជា application អញ្ចឹង") ─── */}
+        {activeTab === 'orders' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <button onClick={() => setActiveTab('cart')} className="text-xs flex items-center text-amber-400 font-bold mb-1">
-              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Cart
-            </button>
-            <h2 className="font-bold text-lg">Delivery & Payment</h2>
-
-            {/* Recipient Contact */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase tracking-wider">Contact Phone</label>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-2xl flex items-center gap-2">
-                <Phone className="w-4 h-4 text-amber-400" />
-                <input 
-                  type="tel"
-                  placeholder="012 345 678"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="bg-transparent border-none w-full text-sm font-semibold focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Location Section */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase tracking-wider">Delivery Address</label>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-2xl space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <input 
-                    type="text" 
-                    placeholder="Enter street, building, or room number..." 
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    className="bg-transparent border-none w-full text-sm focus:outline-none placeholder:text-white/30"
-                  />
-                </div>
-                <button 
-                  onClick={requestLocation}
-                  className="w-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:bg-emerald-500/20 transition-colors"
-                >
-                  <MapIcon className="w-3.5 h-3.5" /> Use Current GPS Location {locationEnabled && '✓'}
-                </button>
-              </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase tracking-wider">Payment Method</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => setPaymentMethod('KHQR')}
-                  className={`flex flex-col items-center justify-center p-3.5 rounded-2xl border transition-all ${
-                    paymentMethod === 'KHQR' 
-                      ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 ring-1 ring-rose-500/50' 
-                      : 'bg-white/5 border-white/10 text-white/50 active:bg-white/10'
-                  }`}
-                >
-                  <Wallet className="w-6 h-6 mb-1.5" />
-                  <span className="font-black text-xs">ABA PayWay (KHQR)</span>
-                  <span className="text-[10px] text-rose-300 mt-0.5">Instant Scan</span>
-                </button>
-                <button 
-                  onClick={() => setPaymentMethod('CASH')}
-                  className={`flex flex-col items-center justify-center p-3.5 rounded-2xl border transition-all ${
-                    paymentMethod === 'CASH' 
-                      ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 ring-1 ring-emerald-500/50' 
-                      : 'bg-white/5 border-white/10 text-white/50 active:bg-white/10'
-                  }`}
-                >
-                  <CreditCard className="w-6 h-6 mb-1.5" />
-                  <span className="font-black text-xs">Cash on Delivery</span>
-                  <span className="text-[10px] text-emerald-300 mt-0.5">Pay on Arrival</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="pt-3 border-t border-white/10 space-y-1.5 text-sm">
-              <div className="flex justify-between text-white/60">
-                <span>Items Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-white/60">
-                <span>Express Delivery</span>
-                <span className="text-emerald-400 font-bold">FREE</span>
-              </div>
-              <div className="flex justify-between text-base font-black pt-1 border-t border-white/5">
-                <span>Total Amount</span>
-                <span className="text-amber-400">${cartTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button 
-              onClick={handleCheckout}
-              className="w-full mt-2 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
-            >
-              <span>Confirm & Place Order (${cartTotal.toFixed(2)})</span>
-            </button>
-          </div>
-        )}
-
-        {/* ── TAB: PAYMENT MODAL (KHQR) ─────────────────────────────────────── */}
-        {activeTab === 'payment' && paymentQrCode && (
-          <div className="space-y-5 text-center py-4 animate-in fade-in duration-200">
-            <div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/30">
-                Bakong KHQR Active
-              </span>
-              <h2 className="font-black text-2xl mt-2 text-white">Scan to Pay</h2>
-              <p className="text-xs text-white/60 mt-1">
-                Amount Due: <span className="text-amber-400 font-black text-base">${cartTotal.toFixed(2)}</span>
-              </p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-3xl shadow-2xl max-w-[250px] mx-auto w-full border-4 border-amber-500/40">
-              <img 
-                src={`data:image/png;base64,${paymentQrCode}`} 
-                alt="Bakong KHQR" 
-                className="w-full h-auto rounded-xl"
-              />
-              <p className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-wider">ABA PayWay · Bakong</p>
-            </div>
-            
-            <div className="max-w-[260px] mx-auto space-y-2.5">
-              {paymentDeeplink && (
-                <a 
-                  href={paymentDeeplink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full block bg-blue-600 hover:bg-blue-500 active:scale-95 text-white py-3 rounded-2xl font-bold text-xs shadow-lg shadow-blue-600/30 transition-all"
-                >
-                  Open in ABA Mobile App
-                </a>
-              )}
-              
-              <button 
-                onClick={() => {
-                  toast.success("Payment recorded! Checking status...");
-                  if (activePaymentOrderId) {
-                    setOrderHistory(prev => prev.map(o => o.id === activePaymentOrderId ? { ...o, status: 'PAID' } : o));
-                  }
-                  setActiveTab('history');
-                }}
-                className="w-full bg-white/10 hover:bg-white/20 active:scale-95 text-white py-3 rounded-2xl font-bold text-xs border border-white/10 transition-colors"
-              >
-                I Have Completed Payment
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB: ORDER HISTORY ────────────────────────────────────────────── */}
-        {activeTab === 'history' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <div className="flex items-center justify-between">
               <h2 className="font-bold text-lg flex items-center gap-2">
-                <History className="w-5 h-5 text-amber-400" /> Order History
+                <History className="w-5 h-5 text-amber-400" />
+                <span>Order History</span>
               </h2>
-              <span className="text-xs text-white/40">{orderHistory.length} orders placed</span>
+              <span className="text-xs text-white/40">{pastOrders.length} orders</span>
             </div>
 
-            {orderHistory.length === 0 ? (
-              <div className="text-center py-16 opacity-60">
-                <Clock className="w-12 h-12 mx-auto mb-3 opacity-30 text-amber-400" />
-                <p className="font-semibold text-sm">No past orders yet</p>
-                <p className="text-xs text-white/40 mt-1">Orders placed from this Telegram account appear here</p>
-                <button 
+            {pastOrders.length === 0 ? (
+              <div className="text-center py-16 space-y-3 opacity-60">
+                <Receipt className="w-16 h-16 mx-auto text-white/20" />
+                <p className="font-semibold text-sm">No previous orders yet</p>
+                <button
                   onClick={() => setActiveTab('menu')}
-                  className="mt-4 px-5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
+                  className="px-5 py-2.5 rounded-2xl bg-amber-500 text-black font-bold text-xs"
                 >
-                  Order Now
+                  Order Fresh Coffee Now
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                {orderHistory.map((ord) => (
-                  <div 
-                    key={ord.id} 
-                    onClick={() => setSelectedOrderForDetail(ord)}
-                    className="bg-white/5 border border-white/10 p-3.5 rounded-2xl hover:border-amber-500/40 active:bg-white/10 cursor-pointer transition-all space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-amber-400">{ord.saleNumber || ord.id.slice(0, 8)}</span>
-                        <span className="text-[11px] text-white/40">
-                          {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                {pastOrders.map((ord) => {
+                  const isPaid = ord.status === 'PAID' || ord.status === 'COMPLETED';
+                  const isPending = ord.status === 'PENDING';
+
+                  return (
+                    <div 
+                      key={ord.id}
+                      className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-sm text-white">{ord.saleNumber}</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                              isPaid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              isPending ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                              'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                            }`}>
+                              {ord.status}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/40 mt-0.5">
+                            {new Date(ord.createdAt).toLocaleDateString()} at {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="font-bold text-sm text-amber-400">${ord.total.toFixed(2)}</span>
+                          <span className="text-[9px] text-white/40 block">{(ord.total * KHR_RATE).toLocaleString()} ៛</span>
+                        </div>
                       </div>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        ord.status === 'PAID' || ord.status === 'COMPLETED'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : ord.status === 'PENDING'
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                      }`}>
-                        {ord.status}
-                      </span>
-                    </div>
 
-                    <div className="text-xs text-white/70 line-clamp-1">
-                      {ord.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
-                    </div>
+                      {/* Items Summary */}
+                      <div className="bg-black/30 rounded-2xl p-2.5 space-y-1 text-xs">
+                        {ord.items.map((it, i) => (
+                          <div key={i} className="flex justify-between text-white/80 text-[11px]">
+                            <span>{it.name} x{it.quantity}</span>
+                            <span className="font-medium">${(it.price * it.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
-                      <span className="text-white/50">{ord.paymentMethod === 'KHQR' ? 'Bakong KHQR' : 'Cash'}</span>
-                      <span className="font-black text-amber-400">${ord.total.toFixed(2)}</span>
+                      {/* Actions: Reorder & View Receipt */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => handleReorder(ord)}
+                          className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Re-order
+                        </button>
+
+                        <button
+                          onClick={() => setViewingReceiptOrder(ord)}
+                          className="flex-1 bg-white/10 hover:bg-white/15 text-white border border-white/10 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Receipt className="w-3.5 h-3.5" /> View Receipt
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 4: PROFILE / STORE INFO ────────────────────────── */}
+        {activeTab === 'profile' && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <h2 className="font-bold text-lg flex items-center gap-2">
+              <User className="w-5 h-5 text-amber-400" />
+              <span>Customer Profile</span>
+            </h2>
+
+            {/* Profile Card */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-700 text-black font-extrabold text-lg flex items-center justify-center">
+                  {customerName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">{customerName}</h3>
+                  <p className="text-xs text-white/50">{customerPhone}</p>
+                  <span className="inline-block mt-1 bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Coffee VIP Member ☕
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Store Information */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+              <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+                <Store className="w-3.5 h-3.5 text-amber-400" /> Store Information
+              </h3>
+              
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-white/60">Store Name</span>
+                  <span className="font-bold">{shopName}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-white/60">Tenant ID</span>
+                  <span className="font-mono text-[10px] text-white/70 truncate max-w-[150px]">{orgParam || 'Default Store'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5">
+                  <span className="text-white/60">Currency</span>
+                  <span className="font-bold">USD / KHR</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-white/60">Operating Status</span>
+                  <span className="text-emerald-400 font-bold">Open for Orders 🟢</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: ACTIVE KHQR PAYMENT SCREEN ──────────────────── */}
+        {activeTab === 'payment' && activePaymentSale && (
+          <div className="space-y-6 flex flex-col items-center justify-center py-6 animate-in fade-in duration-300">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 mb-2">
+                <Wallet className="w-3.5 h-3.5" /> Bakong KHQR
+              </div>
+              <h2 className="font-black text-2xl text-white">Scan with any Bank App</h2>
+              <p className="text-xs text-white/60">
+                Order <span className="font-bold text-white">{activePaymentSale.saleNumber}</span>
+              </p>
+              <p className="text-lg font-black text-amber-400 mt-1">
+                ${activePaymentSale.total.toFixed(2)} / {(activePaymentSale.total * KHR_RATE).toLocaleString()} ៛
+              </p>
+            </div>
+
+            {/* QR Card */}
+            {activePaymentSale.paymentQrCode ? (
+              <div className="bg-white p-5 rounded-3xl shadow-2xl shadow-rose-500/20 max-w-[270px] w-full text-center space-y-2">
+                <img 
+                  src={`data:image/png;base64,${activePaymentSale.paymentQrCode}`} 
+                  alt="Bakong KHQR" 
+                  className="w-full aspect-square rounded-2xl border border-gray-100 object-contain" 
+                />
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                  Supported by ABA, ACLEDA, Wing, Canadia
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white/5 p-8 rounded-3xl text-center">
+                <AlertCircle className="w-10 h-10 mx-auto text-amber-400 mb-2" />
+                <p className="text-sm">Preparing merchant QR code...</p>
+              </div>
+            )}
+
+            {/* Deeplink & Verification Controls */}
+            <div className="w-full max-w-[280px] space-y-2.5">
+              {activePaymentSale.paymentDeeplink && (
+                <a 
+                  href={activePaymentSale.paymentDeeplink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold text-xs shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open in ABA Mobile App</span>
+                </a>
+              )}
+
+              <div className="flex items-center justify-center gap-2 text-xs text-white/50 pt-1">
+                <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPayment ? 'animate-spin text-amber-400' : ''}`} />
+                <span>Auto-detecting payment confirmation...</span>
+              </div>
+
+              <button
+                onClick={() => setActiveTab('orders')}
+                className="w-full bg-white/10 hover:bg-white/15 text-white py-3 rounded-2xl font-semibold text-xs transition-colors mt-2"
+              >
+                I will pay later / View Orders
+              </button>
+            </div>
           </div>
         )}
 
       </main>
 
-      {/* ── PRODUCT CUSTOMIZATION MODAL (COFFEE / BEVERAGE) ───────────────── */}
+      {/* ── DRINK CUSTOMIZATION MODAL (COFFEE SPECIALTIES) ────────── */}
       {customizingProduct && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center p-0 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border-t border-white/10 rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-[var(--tg-theme-bg-color,#0f172a)] border-t sm:border border-white/15 w-full max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-3xl p-5 overflow-y-auto space-y-4 shadow-2xl">
             
-            {/* Header */}
+            {/* Modal Header */}
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-black text-lg text-white">{customizingProduct.name}</h3>
-                <p className="text-xs text-white/50 mt-0.5">{customizingProduct.description || 'Artisan handcrafted recipe'}</p>
+                <h3 className="font-extrabold text-lg text-white">{customizingProduct.name}</h3>
+                <p className="text-xs text-white/50">{customizingProduct.description || 'Customize sweetness, ice, and size'}</p>
               </div>
-              <button onClick={() => setCustomizingProduct(null)} className="p-1 rounded-full bg-white/10 text-white/60">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Size Options */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase">Cup Size</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['Regular (M)', 'Large (L)'] as const).map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setOptSize(size)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex justify-between items-center ${
-                      optSize === size
-                        ? 'bg-amber-500 text-slate-950 border-amber-400'
-                        : 'bg-white/5 border-white/10 text-white/70'
-                    }`}
-                  >
-                    <span>{size}</span>
-                    <span className="text-[10px] opacity-80">{size === 'Large (L)' ? '+$0.50' : 'Standard'}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Temperature Options */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase">Temperature</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['Iced', 'Hot'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setOptTemp(t)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                      optTemp === t
-                        ? 'bg-amber-500 text-slate-950 border-amber-400'
-                        : 'bg-white/5 border-white/10 text-white/70'
-                    }`}
-                  >
-                    {t === 'Iced' ? <Snowflake className="w-3.5 h-3.5" /> : <Flame className="w-3.5 h-3.5" />}
-                    <span>{t}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sugar Level */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-white/60 uppercase">Sweetness / Sugar</label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {['100%', '70%', '50%', '30%', '0%'].map(sugar => (
-                  <button
-                    key={sugar}
-                    onClick={() => setOptSugar(sugar)}
-                    className={`py-1.5 rounded-xl border text-[11px] font-bold transition-all ${
-                      optSugar === sugar
-                        ? 'bg-amber-500 text-slate-950 border-amber-400'
-                        : 'bg-white/5 border-white/10 text-white/70'
-                    }`}
-                  >
-                    {sugar}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Ice Level (if iced) */}
-            {optTemp === 'Iced' && (
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-white/60 uppercase">Ice Amount</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Normal Ice', 'Less Ice', 'No Ice'].map(ice => (
-                    <button
-                      key={ice}
-                      onClick={() => setOptIce(ice)}
-                      className={`py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                        optIce === ice
-                          ? 'bg-amber-500 text-slate-950 border-amber-400'
-                          : 'bg-white/5 border-white/10 text-white/70'
-                      }`}
-                    >
-                      {ice}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Add to Cart Submit */}
-            <button
-              onClick={commitAddToCart}
-              className="w-full mt-3 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 py-3.5 rounded-2xl font-black text-sm flex justify-between items-center px-4 shadow-lg shadow-amber-500/20"
-            >
-              <span>Add to Order</span>
-              <span>
-                ${(
-                  (Number(customizingProduct.variants?.[0]?.sellPrice || customizingProduct.price || 0)) + 
-                  (optSize === 'Large (L)' ? 0.50 : 0)
-                ).toFixed(2)}
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── ORDER DETAIL / RECEIPT MODAL ──────────────────────────────────── */}
-      {selectedOrderForDetail && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-sm">Receipt #{selectedOrderForDetail.saleNumber || selectedOrderForDetail.id.slice(0, 8)}</h3>
-              </div>
-              <button onClick={() => setSelectedOrderForDetail(null)} className="text-white/50 p-1">
+              <button 
+                onClick={() => setCustomizingProduct(null)}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/70 active:scale-90"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Order Items */}
-            <div className="space-y-2 text-xs">
-              {selectedOrderForDetail.items.map((it, idx) => (
-                <div key={idx} className="flex justify-between items-center">
-                  <span className="text-white/80">{it.name} x{it.quantity}</span>
-                  <span className="font-mono text-amber-400 font-bold">${(it.price * it.quantity).toFixed(2)}</span>
-                </div>
-              ))}
+            {/* 1. Size Choice */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/70 uppercase tracking-wider">Cup Size</label>
+              <div className="grid grid-cols-2 gap-2">
+                {SIZE_OPTIONS.map((sz) => (
+                  <button
+                    key={sz.name}
+                    onClick={() => { triggerHaptic('selection'); setSelectedSize(sz.name); }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex justify-between items-center transition-all ${
+                      selectedSize === sz.name 
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300' 
+                        : 'bg-white/5 border-white/10 text-white/60'
+                    }`}
+                  >
+                    <span>{sz.name}</span>
+                    <span>{sz.extraPrice > 0 ? `+$${sz.extraPrice.toFixed(2)}` : 'Standard'}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Address */}
-            <div className="pt-2 border-t border-white/5 text-[11px] text-white/60">
-              <p className="font-bold text-white/80">Delivery Address:</p>
-              <p className="truncate mt-0.5">{selectedOrderForDetail.deliveryAddress}</p>
+            {/* 2. Sugar Level */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/70 uppercase tracking-wider">Sweetness / Sugar Level</label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {SUGAR_OPTIONS.map((sug) => (
+                  <button
+                    key={sug}
+                    onClick={() => { triggerHaptic('selection'); setSelectedSugar(sug); }}
+                    className={`py-2 rounded-xl text-[11px] font-bold border transition-all ${
+                      selectedSugar === sug 
+                        ? 'bg-amber-500 border-amber-500 text-black' 
+                        : 'bg-white/5 border-white/10 text-white/60'
+                    }`}
+                  >
+                    {sug}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Pay Button if Pending */}
-            {selectedOrderForDetail.status === 'PENDING' && selectedOrderForDetail.paymentQrCode && (
+            {/* 3. Ice Level */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/70 uppercase tracking-wider">Ice / Temperature</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ICE_OPTIONS.map((ice) => (
+                  <button
+                    key={ice}
+                    onClick={() => { triggerHaptic('selection'); setSelectedIce(ice); }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      selectedIce === ice 
+                        ? 'bg-sky-500/20 border-sky-500 text-sky-300' 
+                        : 'bg-white/5 border-white/10 text-white/60'
+                    }`}
+                  >
+                    {ice}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. Extra Add-ons */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/70 uppercase tracking-wider">Extra Add-ons</label>
+              <div className="space-y-1.5">
+                {ADD_ONS.map((ao) => {
+                  const isChecked = selectedAddOns.includes(ao.id);
+                  return (
+                    <button
+                      key={ao.id}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSelectedAddOns(prev => 
+                          isChecked ? prev.filter(x => x !== ao.id) : [...prev, ao.id]
+                        );
+                      }}
+                      className={`w-full py-2 px-3 rounded-xl border text-xs font-medium flex justify-between items-center transition-all ${
+                        isChecked 
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' 
+                          : 'bg-white/5 border-white/5 text-white/60'
+                      }`}
+                    >
+                      <span>{ao.name}</span>
+                      <span className="font-bold">+${ao.price.toFixed(2)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5. Special Notes */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-white/70 uppercase tracking-wider">Special Instructions</label>
+              <input
+                type="text"
+                placeholder="e.g. Extra hot, separate cup..."
+                value={itemNotes}
+                onChange={(e) => setItemNotes(e.target.value)}
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+              />
+            </div>
+
+            {/* Modal Bottom Confirm Bar */}
+            <div className="pt-2 border-t border-white/10 flex items-center gap-3">
+              <div className="flex items-center bg-black/40 rounded-full border border-white/10">
+                <button 
+                  onClick={() => setModalQuantity(q => Math.max(1, q - 1))}
+                  className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-6 text-center text-xs font-bold">{modalQuantity}</span>
+                <button 
+                  onClick={() => setModalQuantity(q => q + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <button
-                onClick={() => {
-                  setPaymentQrCode(selectedOrderForDetail.paymentQrCode!);
-                  setPaymentDeeplink(selectedOrderForDetail.paymentDeeplink || null);
-                  setSelectedOrderForDetail(null);
-                  setActiveTab('payment');
-                }}
-                className="w-full bg-rose-500 hover:bg-rose-400 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5"
+                onClick={confirmAddToCart}
+                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold py-3 rounded-2xl text-xs flex justify-between px-4 items-center shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-transform"
               >
-                <Wallet className="w-4 h-4" /> Open ABA PayWay KHQR
+                <span>Add to Bag</span>
+                <span>${(calculateModalUnitPrice() * modalQuantity).toFixed(2)}</span>
               </button>
-            )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── RECEIPT MODAL ────────────────────────────────────────── */}
+      {viewingReceiptOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[var(--tg-theme-bg-color,#0f172a)] border border-white/15 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-sm">Official Receipt</h3>
+              </div>
+              <button 
+                onClick={() => setViewingReceiptOrder(null)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-white/50">Order Number</span>
+                <span className="font-mono font-bold">{viewingReceiptOrder.saleNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/50">Date & Time</span>
+                <span>{new Date(viewingReceiptOrder.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/50">Payment Method</span>
+                <span className="font-bold">{viewingReceiptOrder.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/50">Delivery Address</span>
+                <span className="text-right max-w-[180px] truncate">{viewingReceiptOrder.deliveryAddress}</span>
+              </div>
+
+              {/* Items */}
+              <div className="border-t border-white/10 pt-2 space-y-1.5">
+                {viewingReceiptOrder.items.map((it, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span>{it.name} x{it.quantity}</span>
+                    <span className="font-bold">${(it.price * it.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Grand Total */}
+              <div className="border-t border-white/10 pt-2 flex justify-between items-baseline font-black">
+                <span>Grand Total</span>
+                <span className="text-base text-amber-400">${viewingReceiptOrder.total.toFixed(2)}</span>
+              </div>
+            </div>
 
             <button
-              onClick={() => setSelectedOrderForDetail(null)}
-              className="w-full bg-white/10 text-white font-bold py-2 rounded-xl text-xs"
+              onClick={() => {
+                handleReorder(viewingReceiptOrder);
+                setViewingReceiptOrder(null);
+              }}
+              className="w-full bg-amber-500 text-black py-2.5 rounded-xl font-bold text-xs"
             >
-              Close
+              Order Again
             </button>
           </div>
         </div>
       )}
 
-      {/* ── BOTTOM NAVIGATION DOCK ────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--tg-theme-bg-color,#0f172a)]/95 backdrop-blur-lg border-t border-white/10 px-6 py-2.5 max-w-lg mx-auto flex items-center justify-around shadow-2xl">
+      {/* ── NATIVE BOTTOM NAVIGATION BAR ─────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--tg-theme-bg-color,#0f172a)]/95 backdrop-blur-xl border-t border-white/10 px-3 py-2 flex items-center justify-around shadow-2xl">
+        
+        {/* Tab 1: Menu */}
         <button
-          onClick={() => {
-            setActiveTab('menu');
-            if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
-          }}
-          className={`flex flex-col items-center gap-1 text-xs font-bold transition-all ${
-            activeTab === 'menu' ? 'text-amber-400 scale-105' : 'text-white/40 hover:text-white/70'
+          onClick={() => { triggerHaptic('selection'); setActiveTab('menu'); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'menu' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <Coffee className="w-5 h-5" />
-          <span>Menu</span>
+          <span className="text-[10px]">Menu</span>
         </button>
 
+        {/* Tab 2: Cart */}
         <button
-          onClick={() => {
-            setActiveTab('cart');
-            if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
-          }}
-          className={`relative flex flex-col items-center gap-1 text-xs font-bold transition-all ${
-            activeTab === 'cart' || activeTab === 'checkout' ? 'text-amber-400 scale-105' : 'text-white/40 hover:text-white/70'
+          onClick={() => { triggerHaptic('selection'); setActiveTab('cart'); }}
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'cart' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
-          <ShoppingBag className="w-5 h-5" />
-          <span>Cart</span>
-          {cart.length > 0 && (
-            <span className="absolute -top-1 -right-2 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-bounce">
-              {cart.length}
-            </span>
-          )}
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 px-1 min-w-[16px] h-4 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px]">Cart</span>
         </button>
 
+        {/* Tab 3: Order History */}
         <button
-          onClick={() => {
-            setActiveTab('history');
-            if (WebApp.HapticFeedback) WebApp.HapticFeedback.selectionChanged();
-          }}
-          className={`relative flex flex-col items-center gap-1 text-xs font-bold transition-all ${
-            activeTab === 'history' ? 'text-amber-400 scale-105' : 'text-white/40 hover:text-white/70'
+          onClick={() => { triggerHaptic('selection'); setActiveTab('orders'); }}
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'orders' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <History className="w-5 h-5" />
-          <span>Orders</span>
-          {orderHistory.length > 0 && (
-            <span className="absolute -top-1 -right-2 bg-white/20 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-              {orderHistory.length}
-            </span>
-          )}
+          <span className="text-[10px]">Orders</span>
         </button>
+
+        {/* Tab 4: Profile / Info */}
+        <button
+          onClick={() => { triggerHaptic('selection'); setActiveTab('profile'); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'profile' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
+          }`}
+        >
+          <User className="w-5 h-5" />
+          <span className="text-[10px]">Profile</span>
+        </button>
+
       </nav>
 
     </div>

@@ -224,7 +224,47 @@ The newly established `/storefront` management hub in `apps/web` provides:
 
 ---
 
-## 8. Verification & Compliance Checklist
+## 8. Dedicated Ingress & Full-Featured Mini App Architecture
+
+### 8.1 Dedicated Subdomain Routing (`mini.camtech.cam`)
+To provide a clean, professional entrypoint for Telegram Bots, the platform supports automatic subdomain-based routing.
+- **Cloudflare Tunnel Target:**
+  - **Public Hostname:** `mini.camtech.cam`
+  - **Type:** `HTTP`
+  - **Internal URL:** `http://localhost:5002` (or `http://10.1.0.11:5002`)
+- **Client-side Ingress (`apps/web/src/App.tsx`):**
+  When a user accesses `mini.camtech.cam`, the app detects the `mini.` prefix and mounts `MiniApp` as the root view directly, without requiring path prefixes like `/mini`.
+- **BotFather Web App URL:**
+  ```
+  https://mini.camtech.cam?org={organizationId}
+  ```
+
+### 8.2 Full-Featured F&B & Retail Capabilities
+The Telegram Mini App (`apps/web/app/mini/page.tsx`) behaves as a complete native mobile application:
+1. **Visual Menu & Category Filters:**
+   - Sticky category pills: "All Menu", "Espresso & Coffee", "Cold Brew & Iced", "Tea & Matcha", "Bakery & Pastry".
+   - Instant product search filtering by title and description.
+2. **Drink & Product Customizer:**
+   - Cup sizing (Regular, Large).
+   - Sugar percentages (100%, 75%, 50%, 25%, 0%).
+   - Ice and temperature levels (Normal Ice, Less Ice, No Ice, Hot).
+   - Extra add-ons (Extra Espresso Shot, Oat Milk substitution, syrups).
+   - Special preparation notes for the barista.
+3. **Smart Cart & Geolocation:**
+   - Delivery address input with 1-click GPS device geolocation detection.
+   - Item quantity adjustments, price calculations, and subtotal breakdown.
+4. **ABA PayWay KHQR & Polling:**
+   - Renders dynamic store-specific KHQR.
+   - Polls `/api/v1/sales/orders/{saleId}/payment-status` every 2.5 seconds to detect payment completion automatically without requiring user manual submission.
+5. **Order History & Real-time Tracking:**
+   - Retains previous orders in `localStorage` and syncs with backend orders.
+   - Status indicators: `PENDING`, `PAID`, `PREPARING`, `DELIVERED`.
+   - **1-Click Re-Order:** Reconstructs identical cart state with previously customized drink preferences.
+   - **Digital Receipt Modal:** Full itemized breakdown and timestamps.
+
+---
+
+## 9. Verification & Compliance Checklist
 
 - [x] **Rule 1 (Native ENUMs):** All database operations adhere to `app.core.db_enums`.
 - [x] **Rule 2 (Auto-wrapped Envelope):** All endpoints return `{ success: true, data: ..., requestId: ... }`.
@@ -233,3 +273,4 @@ The newly established `/storefront` management hub in `apps/web` provides:
 - [x] **Rule 9 (90 Engineering Principles):** Complies with DDD, DRY, KISS, and Separation of Concerns.
 - [x] **Rule 10 (No Mock Data in Production):** All production changes are schema migrations and deployment code only.
 - [x] **Rule 11 (Secure Credentials):** SSH operations use `$CAMTECH_PASS` workflow via `camtech.py`.
+

@@ -61,7 +61,7 @@ export function App() {
     CurrentApp = PartnerApp;
   } else if (hostname.startsWith('admin.') || hostname.startsWith('adminconsol.')) {
     CurrentApp = AdminApp;
-  } else if (hostname.startsWith('mini.') || hostname.startsWith('tma.') || hostname.startsWith('telegram.')) {
+  } else if (hostname.startsWith('mini.') || hostname.startsWith('tma.') || hostname.startsWith('bot.')) {
     CurrentApp = MiniApp;
   } else {
     // 2. Dynamic route-based simulation for local development & DomainBar switcher

@@ -684,6 +684,18 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
+  getCustomerOrders: (params: { phone?: string; email?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.phone) q.set('phone', params.phone);
+    if (params.email) q.set('email', params.email);
+    return request<Paginated<SaleDto>>(`/sales/customer-orders${q.toString() ? `?${q.toString()}` : ''}`);
+  },
+
+  getOrderPaymentStatus: (saleId: string) =>
+    request<{ paid: boolean; status: string; saleId: string; saleNumber: string; amount: number }>(
+      `/sales/orders/${saleId}/payment-status`
+    ),
+
   syncSalesBatch: (token: string, input: SyncBatchRequest) =>
     request<SyncBatchResponseDto>('/sales/sync-batch', {
       method: 'POST',
