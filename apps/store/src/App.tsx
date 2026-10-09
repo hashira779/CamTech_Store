@@ -49,6 +49,7 @@ import { ThemeToggle } from '@mystore/ui';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
 import { signInWithFirebaseGoogle, signOutFromFirebase, firebaseAuth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { CheckoutModal } from './components/modals/CheckoutModal';
 import { OrderHistoryModal } from './components/modals/OrderHistoryModal';
 
 const API_BASE_URL = (() => {
@@ -1451,237 +1452,29 @@ export function App() {
       )}
 
       {/* Checkout Modal */}
-      {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-line">
-              <h3 className="font-bold text-lg ds-text flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                Secure Checkout
-              </h3>
-              <button
-                onClick={() => setIsCheckoutOpen(false)}
-                className="p-1 rounded-lg hover:bg-ink-800 ds-text-dim hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="py-4 space-y-4">
-              {/* Customer / Guest Identity */}
-              {customer ? (
-                <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-3.5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold ds-text flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-emerald-400" />
-                        Ordering as <span className="text-emerald-300 font-bold">{customer.name}</span>
-                      </p>
-                      <p className="text-[10px] ds-text-dim mt-0.5">
-                        {customer.email}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomer(null);
-                        toast.info('Switched to Guest Checkout');
-                      }}
-                      className="text-[11px] ds-text-dim hover:text-emerald-400 underline"
-                    >
-                      Buy as Guest
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider font-semibold ds-text-dim block mb-1">
-                      Phone Number (For Driver Contact) *
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="e.g. 012 345 678 or +855..."
-                      value={customer.phone || guestPhone}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setGuestPhone(val);
-                        setCustomer((prev) => (prev ? { ...prev, phone: val } : null));
-                        localStorage.setItem('camtech_customer_phone', val);
-                        if (customer?.email) {
-                          syncCustomerWithDatabase({
-                            name: customer.name,
-                            email: customer.email,
-                            phone: val,
-                          });
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-ink-850 border border-line-strong focus:border-emerald-500 rounded-lg text-xs ds-text placeholder-slate-500 focus:outline-none transition"
-                    />
-                    {!(customer.phone || guestPhone) && (
-                      <p className="text-[11px] text-brand-400 mt-1 flex items-center gap-1">
-                        <span>⚠️</span> Please enter your phone number so our driver can contact you.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-ink-950/70 p-3.5 rounded-xl border border-line space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Guest Checkout (No Account Needed)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="text-[11px] ds-text-dim hover:text-white underline"
-                    >
-                      Have an account? Sign In
-                    </button>
-                  </div>
-
-                  {/* 1-Click Google Sign In */}
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    className="w-full py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs transition flex items-center justify-center gap-2 border border-slate-200 shadow-sm"
-                  >
-                    <GoogleIcon className="w-4 h-4" />
-                    <span>Auto-fill details with Google</span>
-                  </button>
-
-                  <div className="relative text-center my-1">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-line"></div>
-                    </div>
-                    <span className="relative bg-ink-950 px-2 text-[10px] ds-text-faint uppercase">or enter manually</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold ds-text-dim block mb-1">
-                        Your Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dara Pich"
-                        value={guestName}
-                        onChange={(e) => setGuestName(e.target.value)}
-                        className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs ds-text placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold ds-text-dim block mb-1">
-                        Phone (For Delivery) *
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="e.g. +855 12 345 678"
-                        value={guestPhone}
-                        onChange={(e) => setGuestPhone(e.target.value)}
-                        className="w-full px-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs ds-text placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold ds-text-dim">Delivery Destination *</label>
-                  <button
-                    type="button"
-                    onClick={handleCaptureLocation}
-                    disabled={isLocating}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 transition"
-                  >
-                    <Navigation className="w-3 h-3" />
-                    {isLocating ? 'Locating...' : coords ? `GPS Locked (${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)})` : 'Use Current GPS'}
-                  </button>
-                </div>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 ds-text-faint absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="Enter street, building, or district..."
-                    className="w-full pl-9 pr-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs ds-text"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold ds-text-dim block mb-2">Select Payment Method</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setPaymentMethod('KHQR')}
-                    className={`p-3 rounded-xl border flex items-center gap-2 transition ${
-                      paymentMethod === 'KHQR'
-                        ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
-                        : 'bg-ink-800/80 border-line-strong ds-text-dim'
-                    }`}
-                  >
-                    <QrCode className="w-5 h-5 text-rose-400" />
-                    <div className="text-left">
-                      <p className="text-xs">Bakong KHQR</p>
-                      <p className="text-[10px] ds-text-dim font-normal">Scan & Pay Any Bank</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`p-3 rounded-xl border flex items-center gap-2 transition ${
-                      paymentMethod === 'COD'
-                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                        : 'bg-ink-800/80 border-line-strong ds-text-dim'
-                    }`}
-                  >
-                    <Truck className="w-5 h-5 text-emerald-400" />
-                    <div className="text-left">
-                      <p className="text-xs">Cash on Delivery</p>
-                      <p className="text-[10px] ds-text-dim font-normal">Pay Driver Upon Arrival</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* KHQR Preview */}
-              {paymentMethod === 'KHQR' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-b from-rose-950/40 to-ink-950 border border-rose-800/40 text-center space-y-2.5">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
-                    <span>KHQR</span> • <span>National Bank of Cambodia</span>
-                  </div>
-                  <div className="w-44 h-44 mx-auto bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-xl shadow-rose-950/50 relative border-2 border-rose-500">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-                        `00020101021229380016bakong@nbc.org.kh0108CAMTECH1520459995303840540${(cartTotal * 1.1).toFixed(2)}5802KH5912CAMTECH_STORE6010Phnom_Penh6304`
-                      )}`}
-                      alt="NBC Bakong KHQR"
-                      className="w-36 h-36 object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-extrabold ds-text font-mono">${(cartTotal * 1.1).toFixed(2)} USD</p>
-                    <p className="text-[10px] text-rose-300/80 font-medium">Scan with ABA Mobile, Wing, ACLEDA, or any Bakong App</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-line flex items-center justify-between">
-              <div>
-                <span className="text-xs ds-text-dim block">Total Due</span>
-                <span className="text-lg font-bold text-emerald-400 font-mono">${(cartTotal * 1.1).toFixed(2)}</span>
-              </div>
-              <button
-                onClick={handleCheckout}
-                className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Place Order Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        customer={customer}
+        setCustomer={setCustomer}
+        guestName={guestName}
+        setGuestName={setGuestName}
+        guestPhone={guestPhone}
+        setGuestPhone={setGuestPhone}
+        setIsAuthModalOpen={setIsAuthModalOpen}
+        handleGoogleSignIn={handleGoogleSignIn}
+        deliveryAddress={deliveryAddress}
+        setDeliveryAddress={setDeliveryAddress}
+        handleCaptureLocation={handleCaptureLocation}
+        isLocating={isLocating}
+        coords={coords}
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+        cartTotal={cartTotal}
+        handleCheckout={handleCheckout}
+        syncCustomerWithDatabase={syncCustomerWithDatabase}
+        toast={toast}
+      />
 
       {/* Order Confirmed View */}
       {confirmedOrder && (
