@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text, func
 from sqlalchemy.orm import selectinload
@@ -120,11 +120,14 @@ router = APIRouter(tags=["Catalog"])
 async def list_public_products(
     response: Response,
     search: Optional[str] = None,
+    organization_id: Optional[str] = Query(None, alias="organizationId"),
+    slug: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
     db: AsyncSession = Depends(get_db)
 ):
     """Public customer storefront catalog endpoint (§161, §228).
+    Supports multi-tenant scoping via organizationId or store slug.
     Does not require enterprise login. Sanitizes internal margins/cost prices.
     """
     response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
@@ -133,6 +136,18 @@ async def list_public_products(
         selectinload(Product.images).selectinload(ProductImage.storage_object),
         selectinload(Product.category)
     )
+    
+    # Resolve organization filter
+    target_org_id = organization_id
+    if not target_org_id and slug:
+        from app.modules.organizations.models import Organization
+        org = (await db.execute(select(Organization).where(Organization.slug == slug))).scalar_one_or_none()
+        if org:
+            target_org_id = org.id
+
+    if target_org_id:
+        stmt = stmt.where(Product.organization_id == target_org_id)
+
     if search:
         stmt = stmt.where(Product.name.ilike(f"%{search}%"))
     stmt = stmt.limit(limit).offset((page - 1) * limit)
@@ -690,13 +705,26 @@ async def get_categories_tree(
 @router.get("/public/categories/tree", response_model=List[CategoryTreeNodeDto])
 async def get_public_categories_tree(
     response: Response,
+    organization_id: Optional[str] = Query(None, alias="organizationId"),
+    slug: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Public endpoint returning the active category tree (no auth required)."""
+    """Public endpoint returning the active category tree (no auth required).
+    Supports store-specific filtering via organizationId or slug."""
     response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
-    result = await db.execute(
-        select(Category).where(Category.is_active == True)
-    )
+    
+    target_org_id = organization_id
+    if not target_org_id and slug:
+        from app.modules.organizations.models import Organization
+        org = (await db.execute(select(Organization).where(Organization.slug == slug))).scalar_one_or_none()
+        if org:
+            target_org_id = org.id
+
+    stmt = select(Category).where(Category.is_active == True)
+    if target_org_id:
+        stmt = stmt.where(Category.organization_id == target_org_id)
+
+    result = await db.execute(stmt)
     categories = result.scalars().all()
 
     dict_items = [

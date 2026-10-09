@@ -30,6 +30,9 @@ export default function TelegramMiniAppPage() {
   const [token, setToken] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string>('MyStore Café');
 
+  // Extract optional org param for multi-store routing
+  const orgParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('org') || undefined : undefined;
+
   // Initialize Telegram Web App
   useEffect(() => {
     if (typeof window !== 'undefined' && WebApp.initData) {
@@ -43,7 +46,7 @@ export default function TelegramMiniAppPage() {
       fetch(`${BASE_URL}/api/v1/telegram/mini-app/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: WebApp.initData })
+        body: JSON.stringify({ initData: WebApp.initData, organizationId: orgParam })
       })
       .then(res => res.json())
       .then(data => {
@@ -59,13 +62,14 @@ export default function TelegramMiniAppPage() {
         toast.error("Network error during verification.");
       });
     }
-  }, []);
+  }, [orgParam]);
 
-  // Fetch Products via API Client with JWT Token
+  // Fetch Products: use authenticated list if token present, else public catalog scoped to store
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ['products', searchQuery, token],
-    queryFn: () => token ? api.listProducts(token, { limit: 50, search: searchQuery || undefined }) : Promise.resolve({ items: [], meta: { page: 1, limit: 50, total: 0, totalPages: 0 }, total: 0 }),
-    enabled: !!token,
+    queryKey: ['products', searchQuery, token, orgParam],
+    queryFn: () => token 
+      ? api.listProducts(token, { limit: 50, search: searchQuery || undefined }) 
+      : api.getPublicProducts({ limit: 50, search: searchQuery || undefined, organizationId: orgParam }),
   });
 
   const products = productsData?.items || [];
@@ -152,47 +156,58 @@ export default function TelegramMiniAppPage() {
       customer: WebApp.initDataUnsafe?.user?.first_name || 'Guest'
     };
 
-    if (WebApp.initData && token) {
-      // If opened via inline button, sendData closes the app and sends data to bot
-      // We can also make an API call to our backend here first.
-      try {
-        const res = await api.storeCheckout(token, {
-          channel: 'TELEGRAM',
-          orderType: 'DELIVERY',
-          customerName: orderData.customer,
-          deliveryAddress,
-          notes: `Sugar: ${sugarLevel}`,
-          paymentMethod: paymentMethod === 'KHQR' ? 'QR' : 'CASH',
-          items: cart.map((i) => ({
-            id: i.variantId,
-            name: i.name,
-            price: i.price,
-            quantity: i.quantity,
-          }))
+    try {
+      const checkoutPayload = {
+        channel: 'TELEGRAM',
+        orderType: 'DELIVERY',
+        customerName: orderData.customer,
+        customerPhone: '012345678',
+        deliveryAddress: deliveryAddress || 'Phnom Penh, Cambodia',
+        notes: `Sugar: ${sugarLevel}`,
+        paymentMethod: paymentMethod === 'KHQR' ? 'QR' : 'CASH',
+        organizationId: orgParam,
+        items: cart.map((i) => ({
+          id: i.variantId,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+        }))
+      };
+
+      let res: any;
+      if (token) {
+        res = await api.storeCheckout(token, checkoutPayload);
+      } else {
+        const resp = await fetch(`${BASE_URL}/api/v1/sales/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(checkoutPayload)
         });
-        if (res.id) {
-          if (res.paymentQrCode) {
-            setPaymentQrCode(res.paymentQrCode);
-            setPaymentDeeplink(res.paymentDeeplink || null);
-            setActiveTab('payment');
-            return;
-          }
+        const body = await resp.json();
+        res = body.data || body;
+      }
+
+      if (res && res.id) {
+        if (res.paymentQrCode) {
+          setPaymentQrCode(res.paymentQrCode);
+          setPaymentDeeplink(res.paymentDeeplink || null);
+          setActiveTab('payment');
+          return;
+        }
+        if (WebApp.initData) {
           WebApp.showAlert('Order Placed Successfully! Returning to chat...');
           setTimeout(() => WebApp.close(), 1500);
         } else {
-          toast.error("Failed to place order.");
+          toast.success("Order Placed Successfully!");
+          setCart([]);
+          setActiveTab('menu');
         }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error communicating with server.");
-        // Fallback
-        WebApp.sendData(JSON.stringify(orderData));
+      } else {
+        toast.error("Failed to place order.");
       }
-    } else {
-      // Web testing fallback
-      toast.success("Order Placed (Test Mode)");
-      setCart([]);
-      setActiveTab('menu');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Error communicating with server.");
     }
   };
 

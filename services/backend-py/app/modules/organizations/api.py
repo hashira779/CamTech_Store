@@ -1,4 +1,7 @@
 import json
+import re
+import uuid
+from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,6 +20,8 @@ from .schemas import (
     UpdateOrganizationInput,
     PaywayConfigDto,
     UpdatePaywayConfigInput,
+    CreateOrganizationInput,
+    OrganizationChannelsDto,
 )
 
 router = APIRouter(tags=["Organizations"])
@@ -78,6 +83,108 @@ def map_org_to_dto(org: Organization) -> OrganizationDto:
         createdAt=org.created_at,
         updatedAt=org.updated_at,
     )
+
+@router.get("", response_model=List[OrganizationDto])
+async def list_organizations(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List organizations. SUPER_ADMIN sees all organizations (e.g. all 10 coffee shops).
+    Regular ORG_ADMIN sees their assigned organization."""
+    if "SUPER_ADMIN" in user.roles:
+        result = await db.execute(select(Organization).order_by(Organization.created_at.desc()))
+        orgs = result.scalars().all()
+    else:
+        result = await db.execute(select(Organization).where(Organization.id == user.organization_id))
+        orgs = result.scalars().all()
+    return [map_org_to_dto(o) for o in orgs]
+
+@router.post("", response_model=OrganizationDto, status_code=status.HTTP_201_CREATED)
+async def create_organization(
+    inp: CreateOrganizationInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new Organization/Store (e.g. onboarding a new coffee shop owner).
+    Automatically provisions default location and optional store owner admin account."""
+    if "SUPER_ADMIN" not in user.roles and "ORG_ADMIN" not in user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super administrator privileges required to provision new organizations."
+        )
+
+    # Generate slug if empty
+    slug = inp.slug or re.sub(r'[^a-z0-9]+', '-', inp.name.lower()).strip('-')
+    if not slug:
+        slug = f"store-{uuid.uuid4().hex[:6]}"
+
+    # Check unique slug
+    existing = (await db.execute(select(Organization).where(Organization.slug == slug))).scalar_one_or_none()
+    if existing:
+        slug = f"{slug}-{uuid.uuid4().hex[:4]}"
+
+    org_id = f"org_{uuid.uuid4().hex[:12]}"
+    settings_dict = dict(DEFAULT_SETTINGS)
+    settings_dict["currency"] = inp.currency or "USD"
+    settings_dict["timezone"] = inp.timezone or "UTC"
+    settings_dict["businessType"] = inp.businessType or "CAFE"
+
+    new_org = Organization(
+        id=org_id,
+        name=inp.name,
+        slug=slug,
+        currency=inp.currency or "USD",
+        timezone=inp.timezone or "UTC",
+        tax_rate_pct=Decimal(str(inp.taxRatePct if inp.taxRatePct is not None else 10.0)),
+        business_type=inp.businessType or "CAFE",
+        settings=json.dumps(settings_dict),
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+    db.add(new_org)
+    await db.flush()
+
+    # Automatically create root Branch location for the new store
+    from app.modules.locations.models import Location
+    root_loc = Location(
+        id=f"loc_{uuid.uuid4().hex[:10]}",
+        organization_id=org_id,
+        name=f"{inp.name} - Main Branch",
+        code=f"{slug[:4].upper()}-01",
+        type="BRANCH",
+        is_active=True,
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+    db.add(root_loc)
+
+    # Optionally create store owner user
+    if inp.ownerEmail and inp.ownerPassword:
+        from app.modules.identity.models import User, Role, UserRole
+        from app.core.security import hash_password
+        import asyncio
+        pwd_hash = await asyncio.to_thread(hash_password, inp.ownerPassword)
+        owner_user_id = f"usr_{uuid.uuid4().hex[:10]}"
+        owner_user = User(
+            id=owner_user_id,
+            organization_id=org_id,
+            email=inp.ownerEmail.strip().lower(),
+            name=inp.ownerName or f"{inp.name} Owner",
+            password_hash=pwd_hash,
+            roles=json.dumps(["ORG_ADMIN"]),
+            is_active=True,
+            created_at=utc_now(),
+            updated_at=utc_now(),
+        )
+        db.add(owner_user)
+        # Assign ORG_ADMIN role
+        r_obj = (await db.execute(select(Role).where(Role.name == "ORG_ADMIN"))).scalars().first()
+        if r_obj:
+            db.add(UserRole(user_id=owner_user_id, role_id=r_obj.id, role_name=r_obj.name))
+
+    await db.commit()
+    await db.refresh(new_org)
+    return map_org_to_dto(new_org)
 
 @router.get("/current", response_model=OrganizationDto)
 async def get_current_organization(
@@ -295,3 +402,59 @@ async def update_current_payway_config(
         createdAt=pw_config.created_at,
         updatedAt=pw_config.updated_at
     )
+
+@router.get("/current/channels", response_model=OrganizationChannelsDto)
+async def get_current_organization_channels(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve full storefront URLs, Telegram Mini App URLs, and live API endpoints for current organization."""
+    return await _resolve_org_channels(user.organization_id, db)
+
+@router.get("/{org_id}/channels", response_model=OrganizationChannelsDto)
+async def get_organization_channels_by_id(
+    org_id: str,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve storefront URLs, Telegram Mini App URLs, and API endpoints for a specific organization."""
+    if org_id != user.organization_id and "SUPER_ADMIN" not in user.roles:
+        raise HTTPException(status_code=403, detail="Access denied to external organization channels.")
+    return await _resolve_org_channels(org_id, db)
+
+async def _resolve_org_channels(target_id: str, db: AsyncSession) -> OrganizationChannelsDto:
+    org = (await db.execute(select(Organization).where(Organization.id == target_id))).scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    from .models import PaywayConfig
+    pw = (await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_id))).scalar_one_or_none()
+
+    import os
+    base_domain = os.getenv("APP_DOMAIN", "camtech.cam")
+    gw_env = os.getenv("GATEWAY_URL", "")
+    is_local = "localhost" in gw_env or "127.0.0.1" in gw_env
+
+    if is_local:
+        store_url = f"http://localhost:5001/?org={org.id}"
+        mini_url = f"http://localhost:5002/mini?org={org.id}"
+        api_base = "http://localhost:4000/api/v1"
+    else:
+        store_url = f"https://store.{base_domain}/?org={org.id}"
+        mini_url = f"https://admin.{base_domain}/mini?org={org.id}"
+        api_base = f"https://gateway.{base_domain}/api/v1"
+
+    return OrganizationChannelsDto(
+        organizationId=org.id,
+        organizationName=org.name,
+        organizationSlug=org.slug,
+        storefrontUrl=store_url,
+        telegramMiniAppUrl=mini_url,
+        apiBaseUrl=api_base,
+        publicCatalogEndpoint=f"{api_base}/public/products?organizationId={org.id}",
+        checkoutEndpoint=f"{api_base}/sales/checkout",
+        telegramBotAuthEndpoint=f"{api_base}/telegram/mini-app/auth",
+        paywayConfigured=bool(pw and pw.merchant_id and pw.public_key),
+        paywayMerchantId=pw.merchant_id if pw else None
+    )
+

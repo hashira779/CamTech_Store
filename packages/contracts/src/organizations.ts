@@ -61,3 +61,30 @@ export interface OrganizationDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateOrganizationInput {
+  name: string;
+  slug?: string;
+  currency?: string;
+  timezone?: string;
+  taxRatePct?: number;
+  businessType?: BusinessType;
+  ownerEmail?: string;
+  ownerName?: string;
+  ownerPassword?: string;
+}
+
+export interface OrganizationChannelsDto {
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
+  storefrontUrl: string;
+  telegramMiniAppUrl: string;
+  apiBaseUrl: string;
+  publicCatalogEndpoint: string;
+  checkoutEndpoint: string;
+  telegramBotAuthEndpoint: string;
+  paywayConfigured: boolean;
+  paywayMerchantId?: string | null;
+}
+

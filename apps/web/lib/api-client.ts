@@ -28,6 +28,8 @@ import type {
   CreateLocationInput,
   UpdateLocationInput,
   OrganizationDto,
+  CreateOrganizationInput,
+  OrganizationChannelsDto,
   UpdateOrganizationSettingsInput,
   SupplierDto,
   CreateSupplierInput,
@@ -584,14 +586,21 @@ export const api = {
       body: JSON.stringify({ items }),
     }),
 
-  getPublicCategoriesTree: () =>
-    request<CategoryTreeNodeDto[]>('/public/categories/tree', {}),
+  getPublicCategoriesTree: (params: { organizationId?: string; slug?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.organizationId) qs.set('organizationId', params.organizationId);
+    if (params.slug) qs.set('slug', params.slug);
+    const q = qs.toString();
+    return request<CategoryTreeNodeDto[]>(`/public/categories/tree${q ? `?${q}` : ''}`, {});
+  },
 
-  getPublicProducts: (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getPublicProducts: (params: { page?: number; limit?: number; search?: string; organizationId?: string; slug?: string } = {}) => {
     const qs = new URLSearchParams();
     if (params.page) qs.set('page', String(params.page));
     if (params.limit) qs.set('limit', String(params.limit));
     if (params.search) qs.set('search', params.search);
+    if (params.organizationId) qs.set('organizationId', params.organizationId);
+    if (params.slug) qs.set('slug', params.slug);
     const q = qs.toString();
     return request<Paginated<ProductDto>>(`/public/products${q ? `?${q}` : ''}`, {});
   },
@@ -762,6 +771,19 @@ export const api = {
   // ─── Organizations ─────────────────────────────────────────────
   getCurrentOrg: (token: string) =>
     request<OrganizationDto>('/organizations/current', { token }),
+
+  listOrganizations: (token: string) =>
+    request<OrganizationDto[]>('/organizations', { token }),
+
+  createOrganization: (token: string, input: CreateOrganizationInput) =>
+    request<OrganizationDto>('/organizations', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  getOrgChannels: (token: string, orgId?: string) =>
+    request<OrganizationChannelsDto>(`/organizations/${orgId || 'current'}/channels`, { token }),
 
   updateOrgSettings: (token: string, input: UpdateOrganizationSettingsInput) =>
     request<OrganizationDto>('/organizations/current/settings', {

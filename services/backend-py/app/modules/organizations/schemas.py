@@ -58,3 +58,28 @@ class UpdatePaywayConfigInput(BaseModel):
     publicKey: str
     rsaPublicKey: Optional[str] = None
     rsaPrivateKey: Optional[str] = None
+
+class CreateOrganizationInput(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    currency: Optional[str] = "USD"
+    timezone: Optional[str] = "UTC"
+    taxRatePct: Optional[float] = 10.0
+    businessType: Optional[str] = "CAFE"
+    ownerEmail: Optional[str] = None
+    ownerName: Optional[str] = None
+    ownerPassword: Optional[str] = None
+
+class OrganizationChannelsDto(BaseModel):
+    organizationId: str
+    organizationName: str
+    organizationSlug: str
+    storefrontUrl: str
+    telegramMiniAppUrl: str
+    apiBaseUrl: str
+    publicCatalogEndpoint: str
+    checkoutEndpoint: str
+    telegramBotAuthEndpoint: str
+    paywayConfigured: bool
+    paywayMerchantId: Optional[str] = None
+
