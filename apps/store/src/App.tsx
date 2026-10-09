@@ -781,7 +781,11 @@ export function App() {
       } catch {}
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
-      toast.success('🎉 Order confirmed! Dispatched to delivery fleet.');
+      if (newOrder.status === 'DRAFT') {
+        toast.info('⏳ Order saved! Please complete your payment to proceed.');
+      } else {
+        toast.success('🎉 Order confirmed! Dispatched to delivery fleet.');
+      }
       refetchHistory();
     } catch (err: any) {
       toast.dismiss(loadingToast);
@@ -1525,16 +1529,20 @@ export function App() {
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 border border-emerald-500/40">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold ds-text">Order Confirmed!</h3>
+            <h3 className="text-xl font-bold ds-text">
+              {confirmedOrder.status === 'DRAFT' ? 'Awaiting Payment' : 'Order Confirmed!'}
+            </h3>
             <p className="text-xs text-emerald-400 font-mono mt-1">{confirmedOrder.orderNumber}</p>
             <p className="text-xs ds-text-dim mt-2">
-              Thank you, {confirmedOrder.customer.name}! We have routed your dispatch request to our nearest delivery fleet.
+              {confirmedOrder.status === 'DRAFT' 
+                ? `Thank you, ${confirmedOrder.customer.name}! Please complete your payment via ABA PayWay to dispatch your order.`
+                : `Thank you, ${confirmedOrder.customer.name}! We have routed your dispatch request to our nearest delivery fleet.`}
             </p>
 
-            {confirmedOrder.paymentMethod === 'KHQR' && confirmedOrder.paymentQrCode && (
+            {(confirmedOrder.paymentMethod === 'KHQR' || confirmedOrder.paymentMethod === 'ABA_PAYWAY') && confirmedOrder.paymentQrCode && (
               <div className="mt-4 p-4 rounded-2xl bg-white text-center shadow-xl shadow-emerald-500/10">
-                <h4 className="text-slate-900 font-bold mb-2">Scan to Pay with ABA</h4>
-                <img src={`data:image/png;base64,${confirmedOrder.paymentQrCode}`} alt="KHQR" className="w-48 h-48 mx-auto" />
+                <h4 className="text-slate-900 font-bold mb-2">Scan to Pay with ABA PayWay</h4>
+                <img src={`data:image/png;base64,${confirmedOrder.paymentQrCode}`} alt="ABA_PAYWAY" className="w-48 h-48 mx-auto" />
                 {confirmedOrder.paymentDeeplink && (
                   <a href={confirmedOrder.paymentDeeplink} target="_blank" rel="noopener noreferrer" className="mt-3 block w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">
                     Pay with ABA Mobile

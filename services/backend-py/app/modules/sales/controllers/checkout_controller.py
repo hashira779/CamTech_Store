@@ -179,7 +179,9 @@ async def store_checkout(
         currency=sale.currency,
         itemCount=len(line_entities),
         customerName=name_clean,
-        paymentStatus="PAID",
+        paymentStatus=payment_initial_status,
+        paymentQrCode=payment_qr_code,
+        paymentDeeplink=payment_deeplink,
         createdAt=sale.created_at.isoformat(),
         lineItems=[
             SaleLineItemDto(
