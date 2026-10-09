@@ -71,7 +71,7 @@ async def store_checkout(
     }
     
     # The sale remains pending while the warehouse prepares its delivery.
-    pay_method = "QR" if "QR" in payload.paymentMethod.upper() else "CASH"
+    pay_method = "QR" if any(x in payload.paymentMethod.upper() for x in ["QR", "PAYWAY", "BAKONG"]) else "CASH"
     sale_initial_status = "DRAFT" if pay_method == "QR" else "COMPLETED"
     payment_initial_status = "PENDING" if pay_method == "QR" else "COMPLETED"
 
@@ -105,7 +105,7 @@ async def store_checkout(
         sale_id=sale_id,
         method=pay_method,
         status=payment_initial_status,
-        provider="Bakong KHQR" if pay_method == "QR" else "Cash on Delivery",
+        provider="ABA PayWay" if pay_method == "QR" else "Pay by Cash",
         amount=grand_total,
         reference=f"TXN-{secrets.token_hex(4).upper()}",
         paid_at=utc_now() if payment_initial_status == "COMPLETED" else None,

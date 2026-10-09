@@ -43,7 +43,7 @@ class StoreCheckoutInput(BaseModel):
     deliveryAddress: Optional[str] = None
     destLat: Optional[float] = None
     destLng: Optional[float] = None
-    paymentMethod: str = "KHQR"  # KHQR, COD, CASH, CARD, QR
+    paymentMethod: str = "ABA_PAYWAY"  # ABA_PAYWAY, COD, CASH, CARD, QR
     items: List[StoreCheckoutItemInput]
     notes: Optional[str] = None
     organizationId: Optional[str] = None

@@ -333,7 +333,7 @@ async def create_sale(
                 detail="Payment amount must be positive",
             )
         raw_method = (p_in.method or "CASH").upper().strip()
-        if "QR" in raw_method or "KHQR" in raw_method or "BAKONG" in raw_method:
+        if any(x in raw_method for x in ["QR", "KHQR", "BAKONG", "PAYWAY"]):
             norm_method = "QR"
         elif raw_method in ["CASH", "CARD", "BANK_TRANSFER", "WALLET", "CREDIT", "OTHER"]:
             norm_method = raw_method
