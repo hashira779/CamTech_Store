@@ -6,8 +6,10 @@ import hashlib
 import base64
 import httpx
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-import qrcode
+try:
+    import qrcode
+except ImportError:
+    qrcode = None
 import logging
 
 from app.domain.commerce_engines import KhqrGenerator
@@ -199,11 +201,13 @@ class PaywayService:
         )
         qr_string = khqr_data.get("qrString", "")
 
-        # Generate PNG QR image in base64
-        qr_img = qrcode.make(qr_string)
-        buf = io.BytesIO()
-        qr_img.save(buf, format="PNG")
-        qr_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        # Generate PNG QR image in base64 if qrcode library available
+        qr_b64 = ""
+        if qrcode is not None and qr_string:
+            qr_img = qrcode.make(qr_string)
+            buf = io.BytesIO()
+            qr_img.save(buf, format="PNG")
+            qr_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
         deeplink = f"https://link.payway.com.kh/khqr?tran_id={transaction_id}&amount={amount_str}"
 
