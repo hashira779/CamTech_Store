@@ -14,12 +14,29 @@ from app.core.dependencies import get_optional_user, TenantUser
 from app.core.config import settings
 from app.core.payway import PaywayService
 
+import os
 from ..models import Sale, SaleLineItem, SalePayment
 from ..schemas import SaleDto, StoreCheckoutInput, SaleLineItemDto, SalePaymentDto
 from ..services.checkout_orchestrator import CheckoutOrchestrator
 from app.modules.organizations.models import PaywayConfig
 
 router = APIRouter(tags=["Storefront Checkout"])
+
+DEFAULT_PAYWAY_MERCHANT_ID = os.getenv("PAYWAY_MERCHANT_ID", "ec479308")
+DEFAULT_PAYWAY_API_KEY = os.getenv("PAYWAY_API_KEY", "E844DCD28210869E112E8A4AB674C296E2238C98")
+
+def _resolve_payway_credentials(pw_config: Optional[PaywayConfig]):
+    merchant_id = (
+        (pw_config.merchant_id if pw_config and pw_config.merchant_id else None)
+        or DEFAULT_PAYWAY_MERCHANT_ID
+    )
+    api_key = (
+        (pw_config.public_key if pw_config and pw_config.public_key else None)
+        or DEFAULT_PAYWAY_API_KEY
+    )
+    is_prod = pw_config.is_production if pw_config else (os.getenv("PAYWAY_ENV", "").lower() == "production")
+    return merchant_id, api_key, is_prod
+
 
 @router.post("/sales/store-checkout", response_model=SaleDto)
 @router.post("/sales/public-checkout", response_model=SaleDto)
@@ -152,10 +169,7 @@ async def store_checkout(
         pw_config = (
             await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))
         ).scalar_one_or_none()
-        import os
-        merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "")
-        api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "")
-        is_prod = pw_config.is_production if pw_config else False
+        merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
 
         qr_result = await PaywayService.generate_qr(
             merchant_id=merchant_id,
@@ -267,12 +281,13 @@ async def get_order_payment_status(
         await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
     ).scalar_one_or_none()
 
-    if pw_config and pw_config.merchant_id and pw_config.public_key:
+    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
+    if merchant_id and api_key:
         is_verified = await PaywayService.verify_transaction(
-            merchant_id=pw_config.merchant_id,
-            api_key=pw_config.public_key,
+            merchant_id=merchant_id,
+            api_key=api_key,
             tran_id=sale.sale_number,
-            is_production=pw_config.is_production,
+            is_production=is_prod,
         )
         if is_verified:
             await _finalize_paid_sale(db, sale, payment)
@@ -436,13 +451,11 @@ async def payway_webhook(
         await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
     ).scalar_one_or_none()
 
-    import os
-    merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "")
-    api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "")
+    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
 
     if merchant_id and api_key:
         is_verified = await PaywayService.verify_transaction(
-            merchant_id=merchant_id, api_key=api_key, tran_id=tran_id, is_production=bool(pw_config and pw_config.is_production)
+            merchant_id=merchant_id, api_key=api_key, tran_id=tran_id, is_production=is_prod
         )
         if not is_verified:
             raise HTTPException(status_code=400, detail="Transaction verification failed on ABA server.")

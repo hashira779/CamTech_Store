@@ -360,7 +360,7 @@ async def update_current_payway_config(
         api_key=pw_in.publicKey,
         transaction_id=dummy_tran_id,
         amount=1.00,
-        items=[{"name": "Validation Test", "quantity": "1", "price": "1.00"}],
+        items=[{"name": "Validation Test", "quantity": 1, "price": 1.00}],
         firstname="Test",
         lastname="User",
         email="test@example.com",
@@ -368,8 +368,8 @@ async def update_current_payway_config(
         is_production=pw_in.isProduction or False,
     )
     
-    if not test_result.get("success"):
-        raise HTTPException(status_code=400, detail="Invalid ABA PayWay credentials. Validation failed.")
+    if not test_result.get("success") or test_result.get("source") != "ABA_PAYWAY":
+        raise HTTPException(status_code=400, detail="Invalid ABA PayWay credentials. Verification failed by ABA Bank.")
 
     # Validated! Now save to DB
     result = await db.execute(
