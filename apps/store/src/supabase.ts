@@ -1,16 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://ypfztbwdvkfdupsniixw.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZnp0YndkdmtmZHVwc25paXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjY1MDgsImV4cCI6MjEwNDEwMjUwOH0.0xU0S2_S45a9xHjHR6fdSJwRuHdc1w6i3Pm7Ahq8pQ0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL;
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("CRITICAL: Supabase Environment Variables are missing. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Cloudflare/Vite ENV.");
+}
 
-const supabaseUrl = (rawUrl && rawUrl.trim()) ? rawUrl.trim() : DEFAULT_SUPABASE_URL;
-const supabaseAnonKey = (rawKey && rawKey.trim()) ? rawKey.trim() : DEFAULT_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
