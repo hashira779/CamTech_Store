@@ -45,6 +45,9 @@ def _to_dto(c: Customer) -> CustomerDto:
         loyaltyTier=c.loyalty_tier or "BRONZE",
         storeCredit=float(c.store_credit or 0),
         creditBalance=float(c.store_credit or 0),
+        defaultAddress=c.default_address,
+        defaultLat=c.default_lat,
+        defaultLng=c.default_lng,
         notes=c.notes,
         isActive=c.is_active,
         createdAt=c.created_at.isoformat() if c.created_at else None,
@@ -126,6 +129,9 @@ async def sync_customer(
             loyalty_points=500,  # 500 VIP Welcome points
             loyalty_tier="Executive Gold",
             store_credit=0.0,
+            default_address=input_data.defaultAddress,
+            default_lat=input_data.defaultLat,
+            default_lng=input_data.defaultLng,
             notes=f"Store customer via {input_data.authProvider or 'Google OAuth'}",
             is_active=True
         )
@@ -139,6 +145,12 @@ async def sync_customer(
             customer.loyalty_tier = "Executive Gold"
         if not customer.loyalty_points:
             customer.loyalty_points = 500
+        if input_data.defaultAddress is not None:
+            customer.default_address = input_data.defaultAddress
+        if input_data.defaultLat is not None:
+            customer.default_lat = input_data.defaultLat
+        if input_data.defaultLng is not None:
+            customer.default_lng = input_data.defaultLng
         customer.is_active = True
 
     # 2. Sync / Provision in 'users' table (Visible to Super Admin in User Directory)

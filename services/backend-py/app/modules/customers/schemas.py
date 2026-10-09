@@ -27,6 +27,9 @@ class CustomerDto(BaseModel):
     loyaltyTier: Optional[str] = "BRONZE"
     storeCredit: Optional[float] = 0.0
     creditBalance: Optional[float] = 0.0
+    defaultAddress: Optional[str] = None
+    defaultLat: Optional[float] = None
+    defaultLng: Optional[float] = None
     notes: Optional[str] = None
     isActive: bool = True
     createdAt: Optional[str] = None
@@ -38,6 +41,9 @@ class CustomerSyncInput(BaseModel):
     phone: Optional[str] = None
     avatarUrl: Optional[str] = None
     authProvider: Optional[str] = "google"
+    defaultAddress: Optional[str] = None
+    defaultLat: Optional[float] = None
+    defaultLng: Optional[float] = None
 
 class CustomerCartSyncInput(BaseModel):
     email: str

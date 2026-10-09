@@ -5,6 +5,7 @@ from sqlalchemy import (
     String,
     Boolean,
     Numeric,
+    Float,
     DateTime,
     ForeignKey,
     Integer
@@ -31,6 +32,9 @@ class Customer(Base):
     loyalty_points = Column("loyaltyPoints", Integer, default=0, nullable=False)
     loyalty_tier = Column("loyaltyTier", String, default="BRONZE", nullable=False)
     store_credit = Column("storeCredit", Numeric(14, 4), default=0.0, nullable=False)
+    default_address = Column("defaultAddress", String, nullable=True)
+    default_lat = Column("defaultLat", Float, nullable=True)
+    default_lng = Column("defaultLng", Float, nullable=True)
     notes = Column(String, nullable=True)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
