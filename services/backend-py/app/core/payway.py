@@ -6,6 +6,7 @@ import hashlib
 import base64
 import httpx
 from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional
 try:
     import qrcode
 except ImportError:
@@ -101,34 +102,40 @@ class PaywayService:
         items_list = items or [{"name": "Store Item", "quantity": 1, "price": amount_val}]
         items_b64 = base64.b64encode(json.dumps(items_list).encode("utf-8")).decode("utf-8")
 
-        cb_url = callback_url or "https://gateway.camtech.cam/api/v1/sales/payway-webhook"
-        cb_b64 = base64.b64encode(cb_url.encode("utf-8")).decode("utf-8")
+        cb_url = callback_url or ""
+        cb_b64 = base64.b64encode(cb_url.encode("utf-8")).decode("utf-8") if cb_url else None
 
         # 1. Attempt official ABA PayWay API if merchant_id and api_key are provided
         if merchant_id and api_key and merchant_id != "unconfigured":
             try:
-                hash_val = cls.calculate_aba_hash(
-                    api_key=api_key,
-                    req_time=req_time,
-                    merchant_id=merchant_id,
-                    tran_id=transaction_id,
-                    amount=amount_str,
-                    items=items_b64,
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=cust_email,
-                    phone=cust_phone,
-                    purchase_type=purchase_type,
-                    payment_option=payment_option,
-                    callback_url=cb_b64,
-                    return_deeplink="",
-                    currency=currency,
-                    custom_fields="",
-                    return_params="",
-                    payout="",
-                    lifetime=str(lifetime),
-                    qr_image_template=qr_image_template,
-                )
+                # Official ABA PayWay HMAC-SHA512 value sequence for /generate-qr
+                # Only include present non-None fields in the hash and payload
+                hash_values = [
+                    req_time,
+                    merchant_id,
+                    transaction_id,
+                    str(amount_val),
+                ]
+                if items_b64:
+                    hash_values.append(items_b64)
+                hash_values.extend([
+                    first_name,
+                    last_name,
+                    cust_email,
+                    cust_phone,
+                    purchase_type,
+                    payment_option,
+                ])
+                if cb_b64:
+                    hash_values.append(cb_b64)
+                hash_values.append(currency)
+                hash_values.append(str(lifetime))
+                hash_values.append(qr_image_template)
+
+                raw_msg = "".join(str(v) for v in hash_values)
+                hash_val = base64.b64encode(
+                    hmac.new(api_key.encode("utf-8"), raw_msg.encode("utf-8"), hashlib.sha512).digest()
+                ).decode("utf-8")
 
                 payload = {
                     "req_time": req_time,
@@ -141,17 +148,15 @@ class PaywayService:
                     "amount": amount_val,
                     "purchase_type": purchase_type,
                     "payment_option": payment_option,
-                    "items": items_b64,
                     "currency": currency,
-                    "callback_url": cb_b64,
-                    "return_deeplink": None,
-                    "custom_fields": None,
-                    "return_params": None,
-                    "payout": None,
                     "lifetime": lifetime,
                     "qr_image_template": qr_image_template,
                     "hash": hash_val,
                 }
+                if items_b64:
+                    payload["items"] = items_b64
+                if cb_b64:
+                    payload["callback_url"] = cb_b64
 
                 base_url = (
                     "https://checkout.payway.com.kh"

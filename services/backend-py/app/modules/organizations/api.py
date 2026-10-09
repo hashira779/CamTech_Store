@@ -336,6 +336,8 @@ async def get_current_payway_config(
         id=pw_config.id,
         merchantId=pw_config.merchant_id,
         publicKey=pw_config.public_key,
+        rsaPublicKey=pw_config.rsa_public_key,
+        isProduction=pw_config.is_production,
         createdAt=pw_config.created_at,
         updatedAt=pw_config.updated_at
     )
@@ -349,7 +351,7 @@ async def update_current_payway_config(
     from .models import PaywayConfig
     from app.core.payway import PaywayService
     
-    # Validation step: check if the sandbox ABA sends is correct
+    # Validation step: check if the credentials sent are valid
     # We do a test generation of QR code with $1. If the credentials are wrong, ABA PayWay will return success=False
     import uuid
     dummy_tran_id = f"TEST-{str(uuid.uuid4())[:8].upper()}"
@@ -362,7 +364,8 @@ async def update_current_payway_config(
         firstname="Test",
         lastname="User",
         email="test@example.com",
-        phone="012345678"
+        phone="012345678",
+        is_production=pw_in.isProduction or False,
     )
     
     if not test_result.get("success"):
@@ -381,6 +384,7 @@ async def update_current_payway_config(
             public_key=pw_in.publicKey,
             rsa_public_key=pw_in.rsaPublicKey,
             rsa_private_key=pw_in.rsaPrivateKey,
+            is_production=pw_in.isProduction or False,
         )
         db.add(pw_config)
     else:
@@ -390,6 +394,8 @@ async def update_current_payway_config(
             pw_config.rsa_public_key = pw_in.rsaPublicKey
         if pw_in.rsaPrivateKey is not None:
             pw_config.rsa_private_key = pw_in.rsaPrivateKey
+        if pw_in.isProduction is not None:
+            pw_config.is_production = pw_in.isProduction
         pw_config.updated_at = utc_now()
 
     await db.commit()
@@ -399,6 +405,8 @@ async def update_current_payway_config(
         id=pw_config.id,
         merchantId=pw_config.merchant_id,
         publicKey=pw_config.public_key,
+        rsaPublicKey=pw_config.rsa_public_key,
+        isProduction=pw_config.is_production,
         createdAt=pw_config.created_at,
         updatedAt=pw_config.updated_at
     )

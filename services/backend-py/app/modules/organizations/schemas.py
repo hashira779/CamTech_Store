@@ -50,6 +50,8 @@ class PaywayConfigDto(BaseModel):
     id: str
     merchantId: str
     publicKey: str
+    rsaPublicKey: Optional[str] = None
+    isProduction: Optional[bool] = False
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
 
@@ -58,6 +60,7 @@ class UpdatePaywayConfigInput(BaseModel):
     publicKey: str
     rsaPublicKey: Optional[str] = None
     rsaPrivateKey: Optional[str] = None
+    isProduction: Optional[bool] = False
 
 class CreateOrganizationInput(BaseModel):
     name: str
