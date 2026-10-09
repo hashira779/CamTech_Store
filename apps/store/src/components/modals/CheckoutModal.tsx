@@ -204,14 +204,14 @@ export function CheckoutModal({
                 onClick={() => setPaymentMethod('KHQR')}
                 className={`p-3 rounded-xl border flex items-center gap-2 transition ${
                   paymentMethod === 'KHQR'
-                    ? 'bg-rose-500/10 border-rose-500 text-rose-400 font-bold'
+                    ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold'
                     : 'bg-ink-800/80 border-line-strong ds-text-dim'
                 }`}
               >
-                <QrCode className="w-5 h-5 text-rose-400" />
+                <QrCode className="w-5 h-5 text-blue-400" />
                 <div className="text-left">
-                  <p className="text-xs">Bakong KHQR</p>
-                  <p className="text-[10px] ds-text-dim font-normal">Scan & Pay Any Bank</p>
+                  <p className="text-xs">ABA PayWay</p>
+                  <p className="text-[10px] ds-text-dim font-normal">Scan with ABA Mobile</p>
                 </div>
               </button>
 
@@ -225,21 +225,21 @@ export function CheckoutModal({
               >
                 <Truck className="w-5 h-5 text-emerald-400" />
                 <div className="text-left">
-                  <p className="text-xs">Cash on Delivery</p>
+                  <p className="text-xs">Pay by Cash</p>
                   <p className="text-[10px] ds-text-dim font-normal">Pay Driver Upon Arrival</p>
                 </div>
               </button>
             </div>
           </div>
 
-          {/* Dynamic KHQR Integration Notice */}
+          {/* Dynamic ABA PayWay Integration Notice */}
           {paymentMethod === 'KHQR' && (
-            <div className="p-3.5 rounded-xl bg-gradient-to-b from-rose-950/20 to-ink-950/80 border border-rose-800/20 text-center space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
-                <span>KHQR</span> • <span>ABA PayWay Integration</span>
+            <div className="p-3.5 rounded-xl bg-gradient-to-b from-blue-950/20 to-ink-950/80 border border-blue-800/20 text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-blue-600/30">
+                <span>ABA PayWay</span> • <span>Secure Payment</span>
               </div>
               <p className="text-xs ds-text-dim px-2">
-                Your official ABA PayWay QR code and deep link will be generated securely on the next screen once your order is placed.
+                Your official ABA PayWay QR code and mobile deep link will be generated securely on the next screen once your order is placed.
               </p>
             </div>
           )}
