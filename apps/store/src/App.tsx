@@ -226,10 +226,24 @@ export function App() {
     }
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lng: longitude });
+        
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.display_name) {
+              setDeliveryAddress(data.display_name);
+            }
+          }
+        } catch (e) {
+          console.warn('Geocoding failed', e);
+        }
+
         setIsLocating(false);
-        toast.success(`📍 Live GPS Locked: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+        toast.success(`📍 Live GPS Locked`);
       },
       () => {
         setIsLocating(false);
