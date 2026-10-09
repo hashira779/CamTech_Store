@@ -745,11 +745,14 @@ export function App() {
 
       toast.dismiss(loadingToast);
 
+      const grandTotal = serverSale.grandTotal || cartTotal * 1.1;
       const newOrder = {
         orderNumber: serverSale.saleNumber || (serverSale.id ? `ORD-${serverSale.id.slice(-6).toUpperCase()}` : 'ORD-2026-ONLINE'),
         id: serverSale.id,
         items: [...cart],
-        total: serverSale.grandTotal || cartTotal * 1.1,
+        total: grandTotal,
+        grandTotal: grandTotal,
+        totalAmount: grandTotal,
         paymentMethod,
         channel: 'STORE',
         customer: {
@@ -758,6 +761,8 @@ export function App() {
           phone: buyerPhone,
         },
         address: deliveryAddress,
+        destLat: coords?.lat ?? null,
+        destLng: coords?.lng ?? null,
         date: serverSale.createdAt || new Date().toISOString(),
         status: serverSale.status || 'COMPLETED',
         paymentQrCode: serverSale.paymentQrCode || null,
@@ -1898,12 +1903,12 @@ export function App() {
       {/* ─── Real-Time Customer Order Tracking Modal (Reference Image 1) ─── */}
       {selectedOrderForTracking && (() => {
         const order = selectedOrderForTracking;
-        const trackingNum = order.trackingNumber || (order.id ? `TRK-${String(order.id).slice(-4).toUpperCase()}` : 'TRK-2026-LIVE');
+        const trackingNum = order.trackingNumber || (order.id ? `TRK-${String(order.id).slice(-4).toUpperCase()}` : '');
         const destLat = typeof order.destLat === 'number' && order.destLat !== 0 ? order.destLat : (coords?.lat ?? 11.5564);
         const destLng = typeof order.destLng === 'number' && order.destLng !== 0 ? order.destLng : (coords?.lng ?? 104.9282);
 
-        // 4-digit verification code (matching Image 1 "2045 Your code")
-        const verificationCode = order.deliveryPin || (order.id ? order.id.replace(/\D/g, '').slice(-4) || '2045' : '2045');
+        // 4-digit verification code derived from real order data
+        const verificationCode = order.deliveryPin || (order.id ? order.id.replace(/\D/g, '').slice(-4) || '----' : '----');
 
         // Status determination
         const rawStatus = String(order.deliveryStatus || order.status || 'PENDING').toUpperCase();
@@ -1930,9 +1935,10 @@ export function App() {
           activeStep = 4;
         }
 
-        const driverName = order.driverName || 'James Williams';
-        const driverRating = '4.8';
-        const driverPhone = order.driverPhone || '+85512888999';
+        const driverName = order.driverName || 'Assigning driver...';
+        const driverRating = order.driverRating || null;
+        const driverPhone = order.driverPhone || null;
+        const hasDriver = !!order.driverName;
 
         const handleSelectTip = (amount: number) => {
           setActiveTip(amount);
@@ -2207,56 +2213,65 @@ export function App() {
                   </div>
                 )}
 
-                {/* Assigned Driver Profile Card (Image 1) */}
+                {/* Assigned Driver Profile Card */}
                 <div className="p-3.5 rounded-2xl bg-ink-900 border border-line flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {/* Avatar photo */}
+                    {/* Avatar */}
                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500/40 bg-ink-800 shrink-0 flex items-center justify-center">
-                      <img
-                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-                        alt={driverName}
-                        className="w-full h-full object-cover"
-                        onError={(e: any) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      <User className="w-6 h-6 text-emerald-400" />
+                      {hasDriver ? (
+                        <User className="w-6 h-6 text-emerald-400" />
+                      ) : (
+                        <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+                      )}
                     </div>
                     <div>
                       <h5 className="font-extrabold text-sm text-white">{driverName}</h5>
                       <div className="flex items-center gap-1 mt-0.5 text-xs text-zinc-400">
-                        <span>Coming to you</span>
-                        <span className="text-amber-400 font-bold flex items-center gap-0.5">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          {driverRating}
-                        </span>
+                        {hasDriver ? (
+                          <>
+                            <span>Coming to you</span>
+                            {driverRating && (
+                              <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                {driverRating}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span>Finding the nearest available driver...</span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Communication Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toast.info(`Direct chat with ${driverName} is active via Telegram Fleet Dispatch.`);
-                      }}
-                      className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
-                      title="Chat with courier"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </button>
-                    <a
-                      href={`tel:${driverPhone}`}
-                      className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
-                      title="Call courier"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </a>
-                  </div>
+                  {/* Communication Action Buttons — only when driver is assigned */}
+                  {hasDriver && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toast.info(`Direct chat with ${driverName} is active via Telegram Fleet Dispatch.`);
+                        }}
+                        className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                        title="Chat with courier"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                      {driverPhone && (
+                        <a
+                          href={`tel:${driverPhone}`}
+                          className="w-10 h-10 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                          title="Call courier"
+                        >
+                          <Phone className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Tip Your Shopper Section (Image 1) */}
+                {/* Tip Your Shopper Section — only when a real driver is assigned */}
+                {hasDriver && (
                 <div className="p-4 rounded-2xl bg-ink-900 border border-line space-y-3">
                   <div>
                     <h5 className="font-extrabold text-xs text-white">Tip your shopper</h5>
@@ -2284,6 +2299,7 @@ export function App() {
                     })}
                   </div>
                 </div>
+                )}
 
                 {/* Footer Controls: Switch to Invoice or Close */}
                 <div className="flex items-center gap-2.5 pt-1">
