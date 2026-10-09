@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ShieldCheck, X, User, Navigation, MapPin, QrCode, Truck, CheckCircle2 } from 'lucide-react';
 
 const GoogleIcon = ({ className }: { className?: string }) => (
@@ -42,6 +42,17 @@ export function CheckoutModal({
   isLocating, coords, setCoords, paymentMethod, setPaymentMethod,
   cartTotal, handleCheckout, syncCustomerWithDatabase, toast
 }: CheckoutModalProps) {
+  useEffect(() => {
+    if (isOpen && customer) {
+      if (customer.defaultAddress && !deliveryAddress) {
+        setDeliveryAddress(customer.defaultAddress);
+      }
+      if (customer.defaultLat && customer.defaultLng && !coords) {
+        setCoords({ lat: customer.defaultLat, lng: customer.defaultLng });
+      }
+    }
+  }, [isOpen, customer, deliveryAddress, coords, setDeliveryAddress, setCoords]);
+
   if (!isOpen) return null;
 
   return (

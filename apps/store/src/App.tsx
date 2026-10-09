@@ -245,6 +245,9 @@ export function App() {
     email: string;
     phone?: string;
     avatarUrl?: string;
+    defaultAddress?: string;
+    defaultLat?: number | null;
+    defaultLng?: number | null;
   }) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/customers/sync`, {
@@ -256,6 +259,9 @@ export function App() {
           phone: info.phone || '',
           avatarUrl: info.avatarUrl || '',
           authProvider: 'google',
+          defaultAddress: info.defaultAddress,
+          defaultLat: info.defaultLat,
+          defaultLng: info.defaultLng,
         }),
       });
       if (res.ok) {

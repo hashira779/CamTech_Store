@@ -83,6 +83,9 @@ export function ProfileSettingsModal({
       name: customer.name,
       email: customer.email,
       phone,
+      defaultAddress: address,
+      defaultLat: lat,
+      defaultLng: lng,
     });
     toast.success('Profile settings updated successfully!');
     onClose();
