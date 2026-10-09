@@ -62,7 +62,8 @@
     "ajv": ">=8.18.0",
     "file-type": ">=21.3.2",
     "webpack": ">=5.104.1",
-    "body-parser": ">=1.20.6"
+    "body-parser": ">=1.20.6",
+    "brace-expansion": ">=1.1.21"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
