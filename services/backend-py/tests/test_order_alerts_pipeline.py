@@ -102,7 +102,7 @@ async def test_store_checkout_order_alerts_pipeline(mock_pipeline_user):
             "deliveryAddress": "Preah Sihanouk Blvd, Khan 7 Makara, Phnom Penh",
             "destLat": 11.5580,
             "destLng": 104.9250,
-            "paymentMethod": "KHQR",
+            "paymentMethod": "COD",
             "items": [
                 {
                     "id": var_id,
