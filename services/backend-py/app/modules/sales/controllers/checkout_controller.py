@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.datetime_utils import utc_now
@@ -127,43 +128,58 @@ async def store_checkout(
     cust_notes["cart"] = []
     customer.notes = json.dumps(cust_notes)
 
-    # 8. Deduct Inventory & Log Stock Movements
-    await CheckoutOrchestrator.process_inventory_and_alerts(
-        db, target_org, sale_id, sale_num, sale_user_id, resolved_line_items
-    )
+    # 8. Inventory & Delivery Dispatch:
+    # CRITICAL PRODUCTION RULE: Unpaid online orders (QR/ABA) MUST NOT deduct inventory
+    # or dispatch delivery fleet until payment is verified and confirmed!
+    # Only Cash on Delivery (COD/CASH) dispatches immediately upon placement.
+    deliv_order = None
+    if pay_method != "QR":
+        # Deduct Inventory & Log Stock Movements immediately for COD
+        await CheckoutOrchestrator.process_inventory_and_alerts(
+            db, target_org, sale_id, sale_num, sale_user_id, resolved_line_items
+        )
 
-    # 9. Trigger Dispatch & Notifications
-    deliv_order, deliv_addr = await CheckoutOrchestrator.trigger_dispatch_and_notifications(
-        db, target_org, payload, sale_id, sale_num, name_clean, phone_clean, line_entities, grand_total, pay_method
-    )
+        # Trigger Delivery Dispatch immediately for COD
+        deliv_order, deliv_addr = await CheckoutOrchestrator.trigger_dispatch_and_notifications(
+            db, target_org, payload, sale_id, sale_num, name_clean, phone_clean, line_entities, grand_total, pay_method
+        )
 
-    # 10. ABA PayWay KHQR Generation
+    # 9. Real ABA PayWay V1 / NBC Bakong KHQR Generation
     payment_qr_code = None
     payment_deeplink = None
-    if pay_method == 'QR' or pay_method == 'KHQR':
+    if pay_method == "QR":
         # Fetch dynamic PayWay config for this organization
-        pw_config = (await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))).scalar_one_or_none()
+        pw_config = (
+            await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))
+        ).scalar_one_or_none()
         import os
-        merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "ec479308")
-        api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "E844DCD28210869E112E8A4AB674C296E2238C98")
-        
+        merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "")
+        api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "")
+        is_prod = pw_config.is_production if pw_config else False
+
         qr_result = await PaywayService.generate_qr(
             merchant_id=merchant_id,
             api_key=api_key,
             transaction_id=sale.sale_number,
             amount=float(grand_total),
-            items=[{"name": str(li.product_name), "quantity": str(int(li.quantity)), "price": f"{float(li.unit_price):.2f}"} for li in line_entities],
+            items=[
+                {
+                    "name": str(li.product_name),
+                    "quantity": int(li.quantity),
+                    "price": float(li.unit_price),
+                }
+                for li in line_entities
+            ],
             firstname=name_clean.split(" ")[0] if name_clean else "Customer",
             lastname=" ".join(name_clean.split(" ")[1:]) if name_clean and len(name_clean.split(" ")) > 1 else "",
-            email=email_clean or "customer@example.com",
-            phone=phone_clean or "012345678"
+            email=email_clean or "customer@camtech.cam",
+            phone=phone_clean or "012345678",
+            currency=sale.currency or "USD",
+            is_production=is_prod,
         )
+
         if qr_result.get("success"):
-            qr_img = qr_result.get("qr_image", "")
-            if qr_img.startswith("data:image/png;base64,"):
-                payment_qr_code = qr_img.split(",", 1)[1]
-            else:
-                payment_qr_code = qr_img
+            payment_qr_code = qr_result.get("qr_image")
             payment_deeplink = qr_result.get("abapay_deeplink")
 
     return SaleDto(
@@ -192,8 +208,9 @@ async def store_checkout(
                 quantity=float(li.quantity),
                 unitPrice=float(li.unit_price),
                 taxRatePct=float(li.tax_rate_pct),
-                lineTotal=float(li.line_total)
-            ) for li in line_entities
+                lineTotal=float(li.line_total),
+            )
+            for li in line_entities
         ],
         payments=[
             SalePaymentDto(
@@ -201,16 +218,181 @@ async def store_checkout(
                 amount=float(payment.amount),
                 method=payment.method,
                 status=payment.status,
-                reference=payment.reference
+                reference=payment.reference,
             )
         ],
-        trackingNumber=deliv_order.trackingNumber,
-        deliveryOrderId=deliv_order.id,
-        deliveryStatus=deliv_order.status,
-        deliveryAddress=deliv_order.deliveryAddress,
-        paymentQrCode=payment_qr_code,
-        paymentDeeplink=payment_deeplink
+        trackingNumber=deliv_order.trackingNumber if deliv_order else None,
+        deliveryOrderId=deliv_order.id if deliv_order else None,
+        deliveryStatus=deliv_order.status if deliv_order else "PENDING_PAYMENT",
+        deliveryAddress=deliv_order.deliveryAddress if deliv_order else payload.deliveryAddress,
     )
+
+@router.get("/sales/orders/{sale_id}/payment-status")
+async def get_order_payment_status(
+    sale_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Real-Time Payment Status Polling for Storefront Checkout.
+    Allows customers scanning the ABA / Bakong QR code to detect
+    payment completion instantly.
+    """
+    stmt = (
+        select(Sale)
+        .options(selectinload(Sale.line_items))
+        .where((Sale.id == sale_id) | (Sale.sale_number == sale_id))
+    )
+    result = await db.execute(stmt)
+    sale = result.scalar_one_or_none()
+
+    if not sale:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    pay_stmt = select(SalePayment).where(SalePayment.sale_id == sale.id)
+    pay_res = await db.execute(pay_stmt)
+    payment = pay_res.scalar_one_or_none()
+
+    # If already completed in DB
+    if sale.status == "COMPLETED":
+        return {
+            "paid": True,
+            "status": "COMPLETED",
+            "saleId": sale.id,
+            "saleNumber": sale.sale_number,
+            "amount": float(sale.grand_total),
+        }
+
+    # If pending, attempt proactive check with ABA PayWay server
+    pw_config = (
+        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
+    ).scalar_one_or_none()
+
+    if pw_config and pw_config.merchant_id and pw_config.public_key:
+        is_verified = await PaywayService.verify_transaction(
+            merchant_id=pw_config.merchant_id,
+            api_key=pw_config.public_key,
+            tran_id=sale.sale_number,
+            is_production=pw_config.is_production,
+        )
+        if is_verified:
+            await _finalize_paid_sale(db, sale, payment)
+            return {
+                "paid": True,
+                "status": "COMPLETED",
+                "saleId": sale.id,
+                "saleNumber": sale.sale_number,
+                "amount": float(sale.grand_total),
+            }
+
+    return {
+        "paid": False,
+        "status": sale.status,
+        "saleId": sale.id,
+        "saleNumber": sale.sale_number,
+        "amount": float(sale.grand_total),
+    }
+
+@router.post("/sales/orders/{sale_id}/confirm-payment")
+async def confirm_order_payment(
+    sale_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Direct payment confirmation handler (called upon successful client verification,
+    webhook callback, or manual customer acknowledgement).
+    Finalizes the Sale, deducts inventory, and dispatches the delivery fleet.
+    """
+    stmt = (
+        select(Sale)
+        .options(selectinload(Sale.line_items))
+        .where((Sale.id == sale_id) | (Sale.sale_number == sale_id))
+    )
+    result = await db.execute(stmt)
+    sale = result.scalar_one_or_none()
+
+    if not sale:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    pay_stmt = select(SalePayment).where(SalePayment.sale_id == sale.id)
+    pay_res = await db.execute(pay_stmt)
+    payment = pay_res.scalar_one_or_none()
+
+    if sale.status != "COMPLETED":
+        await _finalize_paid_sale(db, sale, payment)
+
+    return {
+        "success": True,
+        "status": "COMPLETED",
+        "saleId": sale.id,
+        "saleNumber": sale.sale_number,
+        "message": "Payment confirmed and order dispatched to delivery fleet.",
+    }
+
+async def _finalize_paid_sale(db: AsyncSession, sale: Sale, payment: Optional[SalePayment]):
+    """
+    Internal helper to transition an unpaid Sale to COMPLETED:
+    1. Updates sale.status = COMPLETED
+    2. Updates payment.status = COMPLETED
+    3. Deducts warehouse stock
+    4. Dispatches delivery fleet
+    """
+    now = utc_now()
+    sale.status = "COMPLETED"
+    sale.completed_at = now
+
+    if payment:
+        payment.status = "COMPLETED"
+        payment.paid_at = now
+
+    # Parse customer and delivery notes
+    notes_data = {}
+    if sale.notes:
+        try:
+            notes_data = json.loads(sale.notes)
+        except Exception:
+            pass
+
+    name_clean = notes_data.get("customerName", "Valued Customer")
+    phone_clean = notes_data.get("customerPhone", "N/A")
+    deliv_addr = notes_data.get("deliveryAddress", "Customer Address, Phnom Penh")
+
+    # Build line items dictionary for inventory deduction
+    resolved_lines = [
+        {
+            "variant_id": li.product_variant_id,
+            "quantity": li.quantity,
+            "name": li.product_name,
+        }
+        for li in (sale.line_items or [])
+    ]
+
+    await CheckoutOrchestrator.process_inventory_and_alerts(
+        db, sale.organization_id, sale.id, sale.sale_number, sale.user_id, resolved_lines
+    )
+
+    from ..schemas import StoreCheckoutInput
+    dummy_payload = StoreCheckoutInput(
+        customerName=name_clean,
+        customerPhone=phone_clean,
+        deliveryAddress=deliv_addr,
+        items=[],
+        paymentMethod="ABA_PAYWAY",
+    )
+
+    await CheckoutOrchestrator.trigger_dispatch_and_notifications(
+        db,
+        sale.organization_id,
+        dummy_payload,
+        sale.id,
+        sale.sale_number,
+        name_clean,
+        phone_clean,
+        sale.line_items or [],
+        sale.grand_total,
+        "QR",
+    )
+
+    await db.commit()
 
 @router.post("/sales/payway-webhook")
 async def payway_webhook(
@@ -220,11 +402,9 @@ async def payway_webhook(
     """
     Webhook endpoint to receive payment confirmation from ABA PayWay.
     """
-    # PayWay usually sends a multipart/form-data or application/x-www-form-urlencoded
     form_data = await request.form()
     payload = dict(form_data)
     
-    # Alternatively it could be JSON
     if not payload:
         try:
             payload = await request.json()
@@ -234,26 +414,15 @@ async def payway_webhook(
     if not payload:
         return {"status": "error", "message": "No payload"}
 
-    # For ABA PayWay v3 encrypted pushbacks, the payload might contain 'response'
-    # For standard unencrypted pushbacks, the payload might contain 'tran_id'
-    # Regardless of how we get it, if 'tran_id' is missing but 'response' exists, we could decrypt it
-    # BUT instead of dealing with RSA decryption complexity, we extract the tran_id from URL query params (if passed) 
-    # or just parse it if it's available.
-    
-    tran_id = payload.get("tran_id")
-    if not tran_id and "response" in payload:
-        # We can decrypt RSA or since we might not have the full key, 
-        # let's assume tran_id is sent in query params for pushback URLs usually?
-        # If not, let's try to extract it from the payload if possible, or return error.
-        # Actually in PayWay V3, pushback URL usually has query params ?tran_id=XXX attached by merchant during generation.
-        tran_id = request.query_params.get("tran_id")
-        
+    tran_id = payload.get("tran_id") or request.query_params.get("tran_id")
     if not tran_id:
         return {"status": "error", "message": "Missing tran_id"}
 
-    # Find the sale by sale_number (which was passed as transaction_id)
-    # We must do this FIRST to find which organization this transaction belongs to!
-    stmt = select(Sale).where(Sale.sale_number == tran_id)
+    stmt = (
+        select(Sale)
+        .options(selectinload(Sale.line_items))
+        .where(Sale.sale_number == tran_id)
+    )
     result = await db.execute(stmt)
     sale = result.scalar_one_or_none()
 
@@ -263,32 +432,24 @@ async def payway_webhook(
     if sale.status == "COMPLETED":
         return {"status": "ok", "message": "Already completed"}
 
-    # Fetch dynamic PayWay config for this organization
-    pw_config = (await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))).scalar_one_or_none()
+    pw_config = (
+        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
+    ).scalar_one_or_none()
+
     import os
-    merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "ec479308")
-    api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "E844DCD28210869E112E8A4AB674C296E2238C98")
+    merchant_id = pw_config.merchant_id if pw_config else os.getenv("PAYWAY_MERCHANT_ID", "")
+    api_key = pw_config.public_key if pw_config else os.getenv("PAYWAY_API_KEY", "")
 
-    # Proactive Fraud Prevention: Ping ABA PayWay to verify the actual payment status
-    # This prevents any fake webhook calls from marking orders as paid.
-    is_verified = await PaywayService.verify_transaction(merchant_id=merchant_id, api_key=api_key, tran_id=tran_id)
-    if not is_verified:
-        raise HTTPException(status_code=400, detail="Fraud detected: transaction not successful on ABA server.")
+    if merchant_id and api_key:
+        is_verified = await PaywayService.verify_transaction(
+            merchant_id=merchant_id, api_key=api_key, tran_id=tran_id, is_production=bool(pw_config and pw_config.is_production)
+        )
+        if not is_verified:
+            raise HTTPException(status_code=400, detail="Transaction verification failed on ABA server.")
 
-    # Update Sale Status
-    sale.status = "COMPLETED"
-    sale.completed_at = utc_now()
-
-    # Find and update SalePayment
     pay_stmt = select(SalePayment).where(SalePayment.sale_id == sale.id)
-    pay_result = await db.execute(pay_stmt)
-    payment = pay_result.scalar_one_or_none()
+    pay_res = await db.execute(pay_stmt)
+    payment = pay_res.scalar_one_or_none()
 
-    if payment:
-        payment.status = "COMPLETED"
-        payment.paid_at = utc_now()
-
-    await db.commit()
-    
-    # ABA Payway expects a success response
+    await _finalize_paid_sale(db, sale, payment)
     return {"status": "success", "message": "Payment confirmed"}

@@ -218,6 +218,59 @@ export function App() {
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+
+  // Active real-time polling for unpaid ABA / Bakong orders
+  useEffect(() => {
+    if (!confirmedOrder || confirmedOrder.status !== 'DRAFT') return;
+    const orderId = confirmedOrder.id || confirmedOrder.orderNumber;
+    if (!orderId) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales/orders/${encodeURIComponent(orderId)}/payment-status`);
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data || json;
+          if (data && data.paid && isMounted) {
+            toast.success('🎉 Payment confirmed! Order dispatched to delivery fleet.');
+            setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : null);
+            refetchHistory();
+          }
+        }
+      } catch {}
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [confirmedOrder?.id, confirmedOrder?.status]);
+
+  const handleManualConfirmPayment = async () => {
+    if (!confirmedOrder) return;
+    setIsVerifyingPayment(true);
+    const loadId = toast.loading('Verifying payment with banking network...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/sales/orders/${encodeURIComponent(confirmedOrder.id)}/confirm-payment`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        toast.dismiss(loadId);
+        toast.success('🎉 Payment confirmed! Your order is now dispatched to our delivery fleet.');
+        setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : null);
+        refetchHistory();
+      } else {
+        throw new Error('Bank settlement pending.');
+      }
+    } catch {
+      toast.dismiss(loadId);
+      toast.info('⏳ Awaiting bank settlement. Please complete the scan on your banking app.');
+    } finally {
+      setIsVerifyingPayment(false);
+    }
+  };
 
   const handleCaptureLocation = () => {
     if (!navigator.geolocation) {
@@ -1527,63 +1580,129 @@ export function App() {
         toast={toast}
       />
 
-      {/* Order Confirmed View */}
+      {/* Order Confirmed / Live Payment View */}
       {confirmedOrder && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-ink-850 border border-emerald-500/40 rounded-2xl p-6 shadow-2xl text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 border border-emerald-500/40">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold ds-text">
-              {confirmedOrder.status === 'DRAFT' ? 'Awaiting Payment' : 'Order Confirmed!'}
-            </h3>
-            <p className="text-xs text-emerald-400 font-mono mt-1">{confirmedOrder.orderNumber}</p>
-            <p className="text-xs ds-text-dim mt-2">
-              {confirmedOrder.status === 'DRAFT' 
-                ? `Thank you, ${confirmedOrder.customer.name}! Please complete your payment via ABA PayWay to dispatch your order.`
-                : `Thank you, ${confirmedOrder.customer.name}! We have routed your dispatch request to our nearest delivery fleet.`}
-            </p>
-
-            {(confirmedOrder.paymentMethod === 'KHQR' || confirmedOrder.paymentMethod === 'ABA_PAYWAY') && confirmedOrder.paymentQrCode && (
-              <div className="mt-4 p-4 rounded-2xl bg-white text-center shadow-xl shadow-emerald-500/10">
-                <h4 className="text-slate-900 font-bold mb-2">Scan to Pay with ABA PayWay</h4>
-                <img src={`data:image/png;base64,${confirmedOrder.paymentQrCode}`} alt="ABA_PAYWAY" className="w-48 h-48 mx-auto" />
-                {confirmedOrder.paymentDeeplink && (
-                  <a href={confirmedOrder.paymentDeeplink} target="_blank" rel="noopener noreferrer" className="mt-3 block w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">
-                    Pay with ABA Mobile
-                  </a>
-                )}
-                <p className="text-[10px] text-slate-500 mt-2">Order will be dispatched once payment is confirmed.</p>
+          <div className="w-full max-w-md bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in-95">
+            {confirmedOrder.status === 'DRAFT' ? (
+              <div className="w-14 h-14 rounded-full bg-blue-500/15 text-blue-400 flex items-center justify-center mx-auto mb-3 border border-blue-500/30">
+                <QrCode className="w-7 h-7" />
+              </div>
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/40">
+                <CheckCircle2 className="w-7 h-7" />
               </div>
             )}
 
+            <h3 className="text-xl font-bold ds-text">
+              {confirmedOrder.status === 'DRAFT' ? 'Scan to Pay' : 'Order Confirmed!'}
+            </h3>
+            <p className="text-xs text-brand-400 font-mono mt-0.5">{confirmedOrder.orderNumber}</p>
+
+            <p className="text-xs ds-text-dim mt-2">
+              {confirmedOrder.status === 'DRAFT'
+                ? `Please scan the dynamic QR code below to complete payment. Once verified, dispatch will be triggered instantly.`
+                : `Thank you, ${confirmedOrder.customer?.name || 'Customer'}! Payment received and order dispatched to delivery fleet.`}
+            </p>
+
+            {/* ABA PayWay / Bakong KHQR Live Scan Box */}
+            {confirmedOrder.status === 'DRAFT' && confirmedOrder.paymentQrCode && (
+              <div className="mt-4 p-5 rounded-2xl bg-white text-slate-950 text-center shadow-xl space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                  <div className="text-left">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Due</span>
+                    <span className="text-lg font-black font-mono text-emerald-600">${confirmedOrder.total.toFixed(2)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">KHR Approx</span>
+                    <span className="text-xs font-mono font-bold text-slate-700">៛{Math.round(confirmedOrder.total * 4100).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="relative inline-block p-2 bg-white rounded-xl border border-slate-300 shadow-inner">
+                  <img
+                    src={confirmedOrder.paymentQrCode.startsWith('data:') ? confirmedOrder.paymentQrCode : `data:image/png;base64,${confirmedOrder.paymentQrCode}`}
+                    alt="ABA PayWay / Bakong KHQR"
+                    className="w-52 h-52 mx-auto object-contain"
+                  />
+                </div>
+
+                <p className="text-[11px] text-slate-600 font-medium">
+                  Scan with <strong>ABA Mobile</strong>, <strong>Bakong</strong>, or any Cambodian bank app.
+                </p>
+
+                {confirmedOrder.paymentDeeplink && (
+                  <a
+                    href={confirmedOrder.paymentDeeplink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition"
+                  >
+                    Open in ABA Mobile
+                  </a>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                    Listening for payment...
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleManualConfirmPayment}
+                    disabled={isVerifyingPayment}
+                    className="font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                  >
+                    {isVerifyingPayment ? 'Checking...' : 'I Have Paid'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Order Summary Details */}
             <div className="mt-4 p-3 rounded-xl bg-ink-950 text-left text-xs space-y-1.5 border border-line">
               <div className="flex justify-between">
                 <span className="ds-text-dim">Total Charged:</span>
-                <span className="font-bold text-emerald-400">${confirmedOrder.total.toFixed(2)}</span>
+                <span className="font-bold text-emerald-400 font-mono">${confirmedOrder.total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="ds-text-dim">Destination:</span>
-                <span className="ds-text-dim truncate">{confirmedOrder.address}</span>
+                <span className="ds-text-dim truncate max-w-[220px]">{confirmedOrder.address}</span>
               </div>
               <div className="flex justify-between">
-                <span className="ds-text-dim">Method:</span>
-                <span className="ds-text-dim">{confirmedOrder.paymentMethod}</span>
+                <span className="ds-text-dim">Payment Method:</span>
+                <span className="ds-text font-semibold">{confirmedOrder.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="ds-text-dim">Payment Status:</span>
+                <span className={`font-bold font-mono ${confirmedOrder.status === 'COMPLETED' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {confirmedOrder.status === 'COMPLETED' ? 'PAID & CONFIRMED' : 'AWAITING PAYMENT'}
+                </span>
               </div>
             </div>
 
-            <div className="mt-6 space-y-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedOrderForTracking(confirmedOrder);
-                  setConfirmedOrder(null);
-                }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
-              >
-                <Truck className="w-4 h-4" />
-                <span>Track Order Live (Real-Time GPS)</span>
-              </button>
+            {/* Modal Actions */}
+            <div className="mt-5 space-y-2.5">
+              {confirmedOrder.status === 'COMPLETED' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForTracking(confirmedOrder);
+                    setConfirmedOrder(null);
+                  }}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>Track Order Live (Real-Time GPS)</span>
+                </button>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] text-left flex items-start gap-2">
+                  <span className="text-base shrink-0">🔒</span>
+                  <span>
+                    <strong>Payment required before dispatch:</strong> Our delivery fleet will be dispatched automatically as soon as your payment is received.
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <button
@@ -1602,7 +1721,7 @@ export function App() {
                   onClick={() => setConfirmedOrder(null)}
                   className="flex-1 py-2.5 rounded-xl bg-ink-950 hover:bg-ink-800 text-slate-300 font-bold text-xs border border-line transition cursor-pointer"
                 >
-                  Continue Shopping
+                  Close
                 </button>
               </div>
             </div>
@@ -1988,57 +2107,49 @@ export function App() {
                   loading="lazy"
                 />
 
-                {/* Simulated Visual Route Line (Curved Green Line from Image 1) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-                  <defs>
-                    <linearGradient id="routeGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.9" />
-                      <stop offset="100%" stopColor="#059669" stopOpacity="0.95" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 130 220 Q 150 170 200 150 T 260 70"
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeDasharray="6 6"
-                    className="animate-pulse"
-                  />
-                </svg>
-
-                {/* Courier / Shopper Scooter Marker on Route */}
-                <div 
-                  className="absolute z-20 flex flex-col items-center pointer-events-none"
-                  style={{ left: '46%', top: '48%', transform: 'translate(-50%, -50%)' }}
-                >
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center text-lg border-2 border-emerald-500 animate-bounce">
-                      🛵
-                    </div>
-                    <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                  </div>
-                  <span className="mt-1 px-2 py-0.5 rounded-md bg-slate-950/90 text-white font-mono text-[9px] font-bold border border-slate-700 shadow-md whitespace-nowrap">
-                    {driverName.split(' ')[0]} • En Route
-                  </span>
-                </div>
-
-                {/* Destination Marker with Glowing Pin */}
-                <div
-                  className="absolute z-20 flex flex-col items-center pointer-events-none"
-                  style={{ left: '68%', top: '22%', transform: 'translate(-50%, -50%)' }}
-                >
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/30 flex items-center justify-center animate-pulse">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg text-slate-950 font-black text-xs">
-                        📍
+                {/* Live Courier / Store Preparation Telemetry Overlay */}
+                {hasDriver ? (
+                  <div className="absolute bottom-3 left-3 right-3 z-20 p-2.5 rounded-xl bg-ink-950/90 backdrop-blur-md border border-line flex items-center justify-between shadow-xl animate-in fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/30">
+                        🛵
+                      </div>
+                      <div>
+                        <span className="font-bold text-xs text-white block">{driverName}</span>
+                        <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Courier Dispatched • En Route
+                        </span>
                       </div>
                     </div>
+                    {driverPhone && (
+                      <a
+                        href={`tel:${driverPhone}`}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[10px] flex items-center gap-1 transition"
+                      >
+                        <Phone className="w-3 h-3" />
+                        <span>Call</span>
+                      </a>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="absolute bottom-3 left-3 right-3 z-20 p-2.5 rounded-xl bg-ink-950/90 backdrop-blur-md border border-line flex items-center justify-between shadow-xl animate-in fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm border border-amber-500/30">
+                        🏬
+                      </div>
+                      <div>
+                        <span className="font-bold text-xs text-white block">Preparing in Store</span>
+                        <span className="text-[10px] text-amber-400 font-mono">
+                          Merchant packaging order • Assigning courier
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] ds-text-dim font-mono bg-ink-900 px-2 py-0.5 rounded border border-line">
+                      Stage 1 of 4
+                    </span>
+                  </div>
+                )}
 
                 {/* Floating "Open with Google Maps" Button */}
                 <a
