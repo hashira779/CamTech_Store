@@ -3,7 +3,7 @@
 > **Platform Status:** All Enterprise Specifications (§1–§116, §151–§197, §198–§199, §228–§258) Implemented & Verified  
 > **Canonical Backend:** Python/FastAPI (`services/backend-py`) — Modular Monolith with 18 Decoupled Domain Modules (**97/97 Tests Passing 100%**)  
 > **Canonical Frontend:** Multi-Experience Vite 6 SPA (`apps/web`) — 11 Subdomain Experiences & Dedicated Shells  
-> **Architecture Guides:** [docs/architecture/module-map.md](docs/architecture/module-map.md) · [docs/architecture/multi-experience-ux.md](docs/architecture/multi-experience-ux.md) · [docs/audits/session-2026-09-06.md](docs/audits/session-2026-09-06.md)
+> **Architecture Guides:** [docs/architecture/module-map.md](docs/architecture/module-map.md) · [docs/architecture/multi-experience-ux.md](docs/architecture/multi-experience-ux.md) · [docs/architecture/mini-app-ecommerce-multi-store.md](docs/architecture/mini-app-ecommerce-multi-store.md) · [docs/audits/session-2026-10-10.md](docs/audits/session-2026-10-10.md)
 
 ---
 
@@ -12,14 +12,14 @@
 ```text
 MyStore/
 ├── apps/
-│   ├── web/            # ⭐ CANONICAL MULTI-EXPERIENCE SPA (Powers all 11 subdomains dynamically)
+│   ├── web/            # ⭐ CANONICAL MULTI-EXPERIENCE SPA (Powers all 11 subdomains & Mini App)
 │   ├── cashier/        # Standalone terminal build target (Retail POS)
 │   ├── delivery/       # Standalone terminal build target (Driver Dispatch)
 │   ├── store/          # Standalone terminal build target (Public Storefront)
 │   ├── hr/             # Standalone terminal build target (HR Workforce)
 │   └── ceo/            # Standalone terminal build target (CEO Command Center)
 ├── services/
-│   ├── backend-py/     # ⭐ CANONICAL PYTHON/FASTAPI BACKEND (18 modular domains, 97 tests)
+│   ├── backend-py/     # ⭐ CANONICAL PYTHON/FASTAPI BACKEND (18 modular domains, 227+ tests)
 │   └── backend/        # Legacy NestJS backend (retained for architectural reference)
 ├── packages/
 │   └── contracts/      # TypeScript DTOs, interfaces, and App Registry (@mystore/contracts)
@@ -30,7 +30,7 @@ MyStore/
 
 ---
 
-> 📖 **Architecture & Operations Guide**: See the [Microservices, Docker & High-Concurrency Architecture Guide](docs/architecture/microservices-and-docker-guide.md) for full port mappings, container fault isolation diagrams, and high-concurrency benchmarks.
+> 📖 **Architecture & Operations Guide**: See the [Microservices, Docker & High-Concurrency Architecture Guide](docs/architecture/microservices-and-docker-guide.md) and [Multi-Store Mini App Architecture](docs/architecture/mini-app-ecommerce-multi-store.md).
 >
 > 🤖 **Extending / scaling this platform** (human or AI): start with [`AGENTS.md`](AGENTS.md) — conventions, step-by-step flows for adding modules/services/screens, and the long-term scaling roadmap.
 
@@ -40,9 +40,10 @@ MyStore/
 
 The platform supports multiple independent web experiences based on the incoming domain/subdomain:
 
-| Subdomain | Target Persona | Application Shell | Purpose & Experience |
+| Subdomain / Route | Target Persona | Application Shell | Purpose & Experience |
 |---|---|---|---|
 | `store.camtech.cam` | Public Consumer | `PublicStoreShell` | Fast product discovery, cart, Bakong KHQR checkout |
+| `t.me/<bot>/app` / `/mini` | Mobile Consumer | `MiniApp` | Telegram Mini App E-commerce with per-store branding & ABA PayWay |
 | `cashier.camtech.cam` | Cashier / Retail Staff | `POSShell` | Fast register, barcode scanning, split payments, cash drawer |
 | `delivery.camtech.cam` | Courier / Driver | `DeliveryShell` | Mobile-first route map, GPS telemetry, proof of delivery (POD), COD |
 | `warehouse.camtech.cam` | WMS Clerk | `WarehouseShell` | Stock receiving, bin barcode scanning, transfer dispatch, lot quarantine |
@@ -52,7 +53,7 @@ The platform supports multiple independent web experiences based on the incoming
 | `partner.camtech.cam` | Developer / Partner | `PartnerShell` | Developer hub: API key generation, HMAC webhooks, automations |
 | `support.camtech.cam` | Service Desk Agent | `SupportShell` | Incident ticketing queue, SLA priority timers, resolution comments |
 | `ceo.camtech.cam` | CEO / Executive | `ExecutiveShell` | Executive decision support: revenue velocity, cash, branch drill-downs |
-| `admin.camtech.cam` | Enterprise Administrator | `AdminShell` | Enterprise control center: multi-tenant provisioning, RBAC, audit |
+| `admin.camtech.cam` | Enterprise Administrator | `AdminShell` | Enterprise control center: multi-store onboarding, channels at `/storefront`, RBAC |
 
 ---
 

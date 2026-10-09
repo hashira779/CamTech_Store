@@ -1,18 +1,16 @@
 # Current State — Universal Enterprise Business Platform
 
-> **Document Version:** 5.0.0  
-> **Last Verified:** 2026-09-06  
-> **Status:** Python canonical backend — **Enterprise Architecture Modernization Complete**. 112/112 tests passing (0 warnings). Relational RBAC normalized, God-routers decomposed, OpenTelemetry distributed tracing integrated, PgBouncer deployed, automated pre-push gate active.
+> **Document Version:** 6.0.0  
+> **Last Verified:** 2026-10-10  
+> **Status:** Python canonical backend — **Multi-Store Telegram Mini App & Per-Store ABA PayWay Isolation Active**. 227+ tests passing. Storefront & Channels hub deployed at `/storefront`. Public catalog multi-tenant scoping live on production.
 
 > [!NOTE]
-> **What changed in 5.0.0 (2026-09-06):**
-> 1. **Datetime Deprecation Swept:** Migrated `datetime.utcnow()` across 25 files to `utc_now()`, eliminating all 58 Pytest deprecation warnings.
-> 2. **REST Auth Hardened:** Isolated `?token=` parameter strictly to SSE and WebSocket streaming; standard REST mandates `Authorization: Bearer <token>`.
-> 3. **Relational RBAC Normalization:** Populated `user_roles` table across 853 users with 876 assignments; added dual-write and dual-read via `selectinload`.
-> 4. **God-Router Decomposition:** Decomposed 1,007-line `automations/api.py` (4 sub-controllers) and 867-line `sales/api.py` (3 sub-controllers + helpers).
-> 5. **Distributed Observability:** Implemented OpenTelemetry W3C traceparent propagation and structured JSON logging (`app/core/telemetry.py`), verified via `test_telemetry.py`.
-> 6. **Infrastructure Resilience:** Added PgBouncer connection pooling, OTLP Collector, and Jaeger to Docker Compose.
-> 7. **CI/CD Quality Gate:** Installed `pnpm audit:check` and `.git/hooks/pre-push` blocking schema drift, test failures, or typecheck errors. Full detail: [`docs/audits/session-2026-09-06.md`](../audits/session-2026-09-06.md).
+> **What changed in 6.0.0 (2026-10-10):**
+> 1. **Multi-Store Telegram Mini App:** Implemented dedicated Telegram Mini App e-commerce channel (`apps/web/app/mini/page.tsx`, `/mini?org={orgId}`).
+> 2. **Per-Store ABA PayWay Binding:** Isolated merchant accounts per store (`payway_configs`) with dynamic merchant signature generation in `checkout_controller.py`.
+> 3. **Storefront & Mini App Hub:** Interactive channels management page at `/storefront` (`apps/web/app/storefront/page.tsx`) with QR codes, BotFather instructions, and API directory.
+> 4. **Public Catalog Tenant Scoping:** Enhanced `/api/v1/public/products` and `/api/v1/public/categories/tree` to filter strictly by `organizationId` or `slug`.
+> 5. **New Documentation & Audits:** Added [`docs/architecture/mini-app-ecommerce-multi-store.md`](mini-app-ecommerce-multi-store.md) and [`docs/audits/session-2026-10-10.md`](../audits/session-2026-10-10.md).
 
 ---
 
@@ -30,7 +28,7 @@ d:\Project\MyStore/
 │   ├── hr/                      # HR & Workforce Management
 │   └── ceo/                     # CEO Executive Command Center
 ├── services/
-│   ├── backend-py/              # ⭐ CANONICAL — FastAPI + SQLAlchemy 2.0 backend (97 tests)
+│   ├── backend-py/              # ⭐ CANONICAL — FastAPI + SQLAlchemy 2.0 backend (227+ tests)
 │   └── backend/                 # ⚠️ LEGACY — NestJS 10 (retained for reference)
 ├── packages/
 │   └── contracts/               # Shared Zod schemas, DTOs, and Permission constants
@@ -47,15 +45,15 @@ d:\Project\MyStore/
 | Component | Path | Technology | Status | Notes |
 |---|---|---|---|---|
 | **Root Workspace** | `/` | pnpm 11, Turbo 2.3 | ✅ Active | Scripts: `dev`, `build`, `test`, `typecheck`, `lint` |
-| **Web Application** | `apps/web/` | Vite 6, React 19, react-router-dom 7, Tailwind, TanStack Query | ✅ Active | 28 routes via react-router, enterprise UI with design system |
-| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 68 tables mapped, 0 schema drift, 112/112 tests passing (0 warnings). See [audit](../audits/session-2026-09-06.md). |
+| **Web Application** | `apps/web/` | Vite 6, React 19, react-router-dom 7, Tailwind, TanStack Query | ✅ Active | 30+ routes via react-router, enterprise UI, Storefront hub at `/storefront` |
+| **Backend (Canonical)** | `services/backend-py/` | FastAPI, SQLAlchemy 2.0, Python 3.12+ | ✅ Active | 68 tables mapped, 0 schema drift, 227+ tests passing. See [audit](../audits/session-2026-10-10.md). |
 | **Backend (Legacy)** | `services/backend/` | NestJS 10.4, Express, Prisma 6 | ⚠️ Legacy | 28 modules implemented. Retained for reference; not actively developed. |
 | **Shared Contracts** | `packages/contracts/` | TypeScript, Zod 3.24 | ✅ Active | Single source of truth for DTOs & contracts (used by web app) |
 | **Dev Infrastructure** | `docker-compose.yml` | Docker Compose v3.8 | ✅ Active | PostgreSQL 16, Redis 7 Alpine, MinIO S3 |
 | **Shared UI Components** | `packages/ui/` | — | ❌ Planned | To be extracted in a future phase |
 | **POS Application** | `apps/pos/` | Electron, React, SQLite | ❌ Planned | Web POS slice active at `/sales/new` |
 | **Mobile Application** | `apps/mobile/` | Flutter | ❌ Planned | Deferred |
-| **Telegram Mini App** | `apps/telegram-mini-app/` | — | ❌ Planned | Deferred |
+| **Telegram Mini App** | `apps/web/app/mini/` | React 19, Vite 6, Telegram WebApp SDK | ✅ Active | Scoped multi-tenant e-commerce at `/mini?org={orgId}` |
 
 ---
 

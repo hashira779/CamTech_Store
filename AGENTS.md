@@ -6,8 +6,9 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 
 > Orientation first: [`README.md`](README.md) · [`docs/architecture/current-state.md`](docs/architecture/current-state.md) ·
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
+> [`docs/architecture/mini-app-ecommerce-multi-store.md`](docs/architecture/mini-app-ecommerce-multi-store.md) ·
 > [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
-> latest change log [`docs/audits/session-2026-09-18.md`](docs/audits/session-2026-09-18.md).
+> latest change log [`docs/audits/session-2026-10-10.md`](docs/audits/session-2026-10-10.md).
 
 ---
 
@@ -112,7 +113,11 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
 1. Log in via `POST /api/v1/auth/login` → get token.
 2. Hit the endpoint with a realistic payload; assert `200/201` and the persisted shape.
 3. Open the screen in the browser; confirm it renders real data and the network call is `200`.
-4. **Clean up any test rows you created** (this is a real DB).
+### Flow E — Provision a new store & bind Telegram Mini App channels
+1. Create store via `POST /api/v1/organizations` (provisions tenant row, default `BRANCH` location, and optional `ORG_ADMIN` owner account).
+2. Query live channels via `GET /api/v1/organizations/{id}/channels`.
+3. In `@BotFather`, run `/setmenubutton` and supply the store's dedicated Mini App URL (`https://admin.camtech.cam/mini?org={organizationId}`).
+4. In Admin Console (`/storefront`), verify live QR code, BotFather link, and ABA PayWay merchant configuration status.
 
 ---
 
@@ -135,8 +140,13 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
 6. **Deployment & Autoscaling:** [✅ DELIVERED]
    - Created Kubernetes manifests in `infra/k8s/` (`namespace.yaml`, `gateway-hpa.yaml`, `microservices-hpa.yaml`) with HorizontalPodAutoscalers scaling between 2 and 12 replicas on 70% CPU / 80% Memory utilization.
 7. **Test depth:** [✅ DELIVERED]
-   - Automated Pytest suite expanded to **97/97 passing tests** with 0 warnings.
+   - Automated Pytest suite expanded to **227+ passing tests** with 0 warnings.
    - Established Playwright automated E2E browser regression test harness (`apps/web/e2e/`, `apps/web/playwright.config.ts`) integrated into `.github/workflows/ci.yml`.
+8. **Multi-Store Telegram Mini App & Isolated ABA PayWay:** [✅ DELIVERED]
+   - Interactive Storefront & Mini App Channels hub delivered at `/storefront` ([`apps/web/app/storefront/page.tsx`](apps/web/app/storefront/page.tsx)).
+   - Dynamic per-store ABA PayWay merchant resolution in [`checkout_controller.py`](services/backend-py/app/modules/sales/controllers/checkout_controller.py).
+   - Multi-tenant catalog scoping on public endpoints (`GET /api/v1/public/products?organizationId=...`).
+   - Complete architectural blueprint delivered in [`docs/architecture/mini-app-ecommerce-multi-store.md`](docs/architecture/mini-app-ecommerce-multi-store.md).
 
 ---
 
