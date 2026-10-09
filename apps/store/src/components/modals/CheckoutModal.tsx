@@ -26,8 +26,8 @@ interface CheckoutModalProps {
   handleCaptureLocation: () => void;
   isLocating: boolean;
   coords: { lat: number; lng: number } | null;
-  paymentMethod: string;
-  setPaymentMethod: (m: string) => void;
+  paymentMethod: 'ABA_PAYWAY' | 'COD';
+  setPaymentMethod: (m: 'ABA_PAYWAY' | 'COD') => void;
   cartTotal: number;
   handleCheckout: () => void;
   syncCustomerWithDatabase: (data: any) => void;
@@ -201,9 +201,9 @@ export function CheckoutModal({
             <label className="text-xs font-semibold ds-text-dim block mb-2">Select Payment Method</label>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setPaymentMethod('KHQR')}
+                onClick={() => setPaymentMethod('ABA_PAYWAY')}
                 className={`p-3 rounded-xl border flex items-center gap-2 transition ${
-                  paymentMethod === 'KHQR'
+                  paymentMethod === 'ABA_PAYWAY'
                     ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold'
                     : 'bg-ink-800/80 border-line-strong ds-text-dim'
                 }`}
@@ -233,7 +233,7 @@ export function CheckoutModal({
           </div>
 
           {/* Dynamic ABA PayWay Integration Notice */}
-          {paymentMethod === 'KHQR' && (
+          {paymentMethod === 'ABA_PAYWAY' && (
             <div className="p-3.5 rounded-xl bg-gradient-to-b from-blue-950/20 to-ink-950/80 border border-blue-800/20 text-center space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-blue-600/30">
                 <span>ABA PayWay</span> • <span>Secure Payment</span>
@@ -255,7 +255,7 @@ export function CheckoutModal({
             className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-500/20"
           >
             <CheckCircle2 className="w-4 h-4" />
-            {paymentMethod === 'KHQR' ? 'Place Order & Get QR' : 'Place Order Now'}
+            {paymentMethod === 'ABA_PAYWAY' ? 'Place Order & Get QR' : 'Place Order Now'}
           </button>
         </div>
       </div>

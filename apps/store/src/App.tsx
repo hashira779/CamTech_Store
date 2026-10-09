@@ -132,7 +132,7 @@ export function App() {
   const [trackLookupQuery, setTrackLookupQuery] = useState('');
   const [isSearchingTracking, setIsSearchingTracking] = useState(false);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
+  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'COD'>('ABA_PAYWAY');
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
