@@ -67,6 +67,19 @@ jobs:
         run: |
           python -c "import asyncio, asyncpg; asyncio.run(asyncpg.connect('postgresql://camtech:camtech123@127.0.0.1:5433/camtechStore'))"
 
+      - name: Run Database Migrations (Schema Evolution Gate)
+        id: db_migrate
+        run: |
+          python scripts/auto_migrate.py 2>&1 | tee migrate_output.log
+
+      - name: Report Migration Diagnostics on Failure
+        if: failure() && steps.db_migrate.outcome == 'failure'
+        run: |
+          echo "## ❌ Database Migration Failure Trace" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat migrate_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Every Module Imports Check (Feature Architecture Gate)
         id: import_check
         run: |
@@ -86,18 +99,27 @@ jobs:
         run: |
           python -m pytest -v --tb=short tests 2>&1 | tee pytest_output.log
 
-      - name: Report Pytest Diagnostics on Failure
-        if: failure() && steps.pytest_run.outcome == 'failure'
+      - name: Report Pytest Diagnostics
+        if: always() && steps.pytest_run.outcome != 'skipped'
         run: |
-          echo "## ❌ Pytest Test Suite Failure Trace" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Pytest Test Suite Summary" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 80 pytest_output.log >> $GITHUB_STEP_SUMMARY
+          tail -n 35 pytest_output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Schema Drift Audit (Database Architecture Gate)
+        id: schema_audit
         run: |
           # Fails the build if SQLAlchemy models drift from the live database
-          python scripts/schema_audit.py
+          python scripts/schema_audit.py 2>&1 | tee schema_output.log
+
+      - name: Report Schema Audit Diagnostics
+        if: always() && steps.schema_audit.outcome != 'skipped'
+        run: |
+          echo "## 📊 Schema Drift Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat schema_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   typescript-monorepo:
     name: TypeScript Build & Typecheck

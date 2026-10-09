@@ -27,16 +27,31 @@ def dsn() -> str:
 
 
 async def main() -> int:
-    conn = await asyncpg.connect(dsn())
-    rows = await conn.fetch(
-        """
-        select table_name, column_name, is_nullable, column_default
-        from information_schema.columns
-        where table_schema = 'public'
-        order by table_name, ordinal_position
-        """
-    )
-    await conn.close()
+    target_dsn = dsn()
+    # Mask password for secure logging
+    masked_dsn = target_dsn
+    if "@" in target_dsn and ":" in target_dsn.split("@")[0]:
+        prefix, rest = target_dsn.split("@", 1)
+        scheme_user = prefix.split("://")[0] + "://" + prefix.split("://")[1].split(":")[0]
+        masked_dsn = f"{scheme_user}:****@{rest}"
+    print(f"🔍 Running Schema Drift Audit against: {masked_dsn}")
+
+    try:
+        conn = await asyncpg.connect(target_dsn)
+        rows = await conn.fetch(
+            """
+            select table_name, column_name, is_nullable, column_default
+            from information_schema.columns
+            where table_schema = 'public'
+            order by table_name, ordinal_position
+            """
+        )
+        await conn.close()
+    except Exception as e:
+        import traceback
+        print(f"❌ Failed to connect to database or fetch schema: {e}", file=sys.stderr)
+        traceback.print_exc()
+        return 1
 
     db: dict[str, dict[str, dict]] = {}
     for r in rows:

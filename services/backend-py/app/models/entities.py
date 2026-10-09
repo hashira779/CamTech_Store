@@ -23,7 +23,7 @@ def gen_id():
 # ==============================================================================
 # 1. CORE TENANT & USER
 # ==============================================================================
-from app.modules.organizations.models import Organization
+from app.modules.organizations.models import Organization, PaywayConfig
 from app.modules.identity.models import User, Role, UserRole, UserPasskey
 from app.modules.locations.models import Location
 
