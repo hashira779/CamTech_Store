@@ -43,6 +43,7 @@ import {
   Heart,
   Share2,
   Info,
+  Settings,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
@@ -51,6 +52,7 @@ import { signInWithFirebaseGoogle, signOutFromFirebase, firebaseAuth } from './f
 import { onAuthStateChanged } from 'firebase/auth';
 import { CheckoutModal } from './components/modals/CheckoutModal';
 import { OrderHistoryModal } from './components/modals/OrderHistoryModal';
+import { ProfileSettingsModal } from './components/modals/ProfileSettingsModal';
 
 const API_BASE_URL = (() => {
   if (typeof window !== 'undefined') {
@@ -207,6 +209,7 @@ export function App() {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [authNameInput, setAuthNameInput] = useState('');
   const [authEmailInput, setAuthEmailInput] = useState('');
   const [authPhoneInput, setAuthPhoneInput] = useState('');
@@ -1346,6 +1349,15 @@ export function App() {
         >
           <User className="w-4 h-4" />
         </button>
+        {customer && (
+          <button
+            onClick={() => setIsProfileSettingsOpen(true)}
+            className="p-2 rounded-full hover:bg-ink-800/80 ds-text-dim hover:text-white transition"
+            title="Profile Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Cart Drawer */}
@@ -1468,10 +1480,20 @@ export function App() {
         handleCaptureLocation={handleCaptureLocation}
         isLocating={isLocating}
         coords={coords}
+        setCoords={setCoords}
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
         cartTotal={cartTotal}
         handleCheckout={handleCheckout}
+        syncCustomerWithDatabase={syncCustomerWithDatabase}
+        toast={toast}
+      />
+
+      <ProfileSettingsModal
+        isOpen={isProfileSettingsOpen}
+        onClose={() => setIsProfileSettingsOpen(false)}
+        customer={customer}
+        setCustomer={setCustomer}
         syncCustomerWithDatabase={syncCustomerWithDatabase}
         toast={toast}
       />

@@ -26,6 +26,7 @@ interface CheckoutModalProps {
   handleCaptureLocation: () => void;
   isLocating: boolean;
   coords: { lat: number; lng: number } | null;
+  setCoords: (c: { lat: number; lng: number } | null) => void;
   paymentMethod: 'ABA_PAYWAY' | 'COD';
   setPaymentMethod: (m: 'ABA_PAYWAY' | 'COD') => void;
   cartTotal: number;
@@ -38,7 +39,7 @@ export function CheckoutModal({
   isOpen, onClose, customer, setCustomer, guestName, setGuestName,
   guestPhone, setGuestPhone, setIsAuthModalOpen, handleGoogleSignIn,
   deliveryAddress, setDeliveryAddress, handleCaptureLocation,
-  isLocating, coords, paymentMethod, setPaymentMethod,
+  isLocating, coords, setCoords, paymentMethod, setPaymentMethod,
   cartTotal, handleCheckout, syncCustomerWithDatabase, toast
 }: CheckoutModalProps) {
   if (!isOpen) return null;
@@ -175,15 +176,31 @@ export function CheckoutModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold ds-text-dim">Delivery Destination *</label>
-              <button
-                type="button"
-                onClick={handleCaptureLocation}
-                disabled={isLocating}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 transition"
-              >
-                <Navigation className="w-3 h-3" />
-                {isLocating ? 'Locating...' : coords ? `GPS Locked (${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)})` : 'Use Current GPS'}
-              </button>
+              <div className="flex items-center gap-2">
+                {customer?.defaultLat && customer?.defaultLng && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoords({ lat: customer.defaultLat, lng: customer.defaultLng });
+                      if (customer.defaultAddress) setDeliveryAddress(customer.defaultAddress);
+                      toast.success('Applied Saved Location');
+                    }}
+                    className="text-[10px] text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 transition"
+                  >
+                    <MapPin className="w-3 h-3" />
+                    Use Saved Location
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCaptureLocation}
+                  disabled={isLocating}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 transition"
+                >
+                  <Navigation className="w-3 h-3" />
+                  {isLocating ? 'Locating...' : coords ? `GPS Locked` : 'Use Current GPS'}
+                </button>
+              </div>
             </div>
             <div className="relative">
               <MapPin className="w-4 h-4 ds-text-faint absolute left-3 top-1/2 -translate-y-1/2" />
@@ -195,6 +212,15 @@ export function CheckoutModal({
                 className="w-full pl-9 pr-3 py-2 bg-ink-800 border border-line-strong rounded-lg text-xs ds-text"
               />
             </div>
+            {coords && (
+              <div className="mt-2 w-full h-32 rounded-lg overflow-hidden border border-line">
+                <iframe
+                  title="Checkout-Map-Preview"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.005}%2C${coords.lat - 0.003}%2C${coords.lng + 0.005}%2C${coords.lat + 0.003}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
+                  className="w-full h-full border-0 pointer-events-none"
+                />
+              </div>
+            )}
           </div>
 
           <div>
