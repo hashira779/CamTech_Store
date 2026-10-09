@@ -43,6 +43,7 @@ interface PosItem {
   price: number;
   sku: string;
   category: string;
+  taxRatePct?: number;
   imageUrl?: string | null;
 }
 
@@ -215,13 +216,21 @@ export function App() {
               ? (rawThumbUrl.startsWith('http') ? rawThumbUrl : `${API_BASE_URL}${rawThumbUrl}`)
               : (rawImgUrl ? (rawImgUrl.startsWith('http') ? rawImgUrl : `${API_BASE_URL}${rawImgUrl}`) : null);
 
+            const categoryName = (
+              p.categoryName ||
+              p.category?.name ||
+              (typeof p.category === 'string' ? p.category : null) ||
+              'GENERAL'
+            ).toUpperCase();
+
             return {
               id: p.id,
               variantId: p.variants?.[0]?.id || p.id,
               name: p.name,
               price: Number(p.variants?.[0]?.sellPrice ?? p.sellPrice ?? p.price ?? 0),
               sku: p.variants?.[0]?.sku || p.sku || `SKU-${p.id.slice(0, 6)}`,
-              category: p.category?.name?.toUpperCase() || p.category?.toUpperCase() || 'GENERAL',
+              category: categoryName,
+              taxRatePct: Number(p.variants?.[0]?.taxRatePct ?? 0),
               imageUrl
             };
           });
@@ -244,7 +253,7 @@ export function App() {
   }, [catalog]);
 
   const filteredItems = catalog.filter((i) => {
-    const matchesCat = selectedCategory === 'ALL' || i.category.includes(selectedCategory);
+    const matchesCat = selectedCategory === 'ALL' || i.category === selectedCategory || i.category.includes(selectedCategory);
     const matchesSearch =
       i.name.toLowerCase().includes(barcodeInput.toLowerCase()) ||
       i.sku.toLowerCase().includes(barcodeInput.toLowerCase());
@@ -252,7 +261,7 @@ export function App() {
   });
 
   const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const tax = subtotal * 0.10;
+  const tax = cart.reduce((sum, i) => sum + (i.price * i.quantity * ((i.taxRatePct ?? 0) / 100)), 0);
   const total = subtotal + tax;
 
   const addToCart = (item: PosItem) => {

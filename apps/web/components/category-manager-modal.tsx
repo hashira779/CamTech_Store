@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
+import { CategoryForm } from './category-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type CategoryDto,
@@ -269,17 +270,6 @@ export function CategoryManagerModal({
   const [loading, setLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // Form state
-  const [formName, setFormName] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formSlug, setFormSlug] = useState('');
-  const [formIcon, setFormIcon] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
-  const [formSeoTitle, setFormSeoTitle] = useState('');
-  const [formSeoDescription, setFormSeoDescription] = useState('');
-  const [formParentId, setFormParentId] = useState('');
-  const [formIsActive, setFormIsActive] = useState(true);
-
   // ─── Queries ──────────────────────────────────────────────────
   const { data: treeData, isLoading: isTreeLoading } = useQuery({
     queryKey: ['categories-tree'],
@@ -324,32 +314,7 @@ export function CategoryManagerModal({
   const totalCount = flatCategories?.length ?? 0;
 
   // ─── Helpers ──────────────────────────────────────────────────
-  const resetForm = useCallback(() => {
-    setFormName('');
-    setFormDescription('');
-    setFormSlug('');
-    setFormIcon('');
-    setFormImageUrl('');
-    setFormSeoTitle('');
-    setFormSeoDescription('');
-    setFormParentId('');
-    setFormIsActive(true);
-    setError(null);
-  }, []);
 
-  const loadCategory = useCallback((cat: CategoryDto) => {
-    setFormName(cat.name);
-    setFormDescription(cat.description ?? '');
-    setFormSlug(cat.slug ?? '');
-    setFormIcon(cat.icon ?? '');
-    setFormImageUrl(cat.imageUrl ?? '');
-    setFormSeoTitle(cat.seoTitle ?? '');
-    setFormSeoDescription(cat.seoDescription ?? '');
-    setFormParentId(cat.parentId ?? '');
-    setFormIsActive(cat.isActive);
-    setIsCreating(false);
-    setError(null);
-  }, []);
 
   const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -373,111 +338,25 @@ export function CategoryManagerModal({
         // Deselect
         setSelectedId(null);
         setIsCreating(false);
-        resetForm();
         return;
       }
       setSelectedId(id);
       setIsCreating(false);
-      const cat = flatCategories?.find((c) => c.id === id);
-      if (cat) {
-        loadCategory(cat);
-      } else if (treeData) {
-        const fromTree = findNodeInTree(treeData, id);
-        if (fromTree) {
-          loadCategory({
-            ...fromTree,
-            organizationId: '',
-            breadcrumb: [],
-          } as CategoryDto);
-        }
-      }
     },
-    [selectedId, isCreating, flatCategories, treeData, loadCategory, resetForm]
+    [selectedId, isCreating]
   );
 
   const handleStartCreate = useCallback(
     (parentId?: string) => {
-      resetForm();
-      setSelectedId(null);
+            setSelectedId(null);
       setIsCreating(true);
-      if (parentId) setFormParentId(parentId);
+      if (parentId) { setExpandedIds(prev => new Set([...prev, parentId])); }
     },
-    [resetForm]
+    []
   );
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formName.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const input: CreateCategoryInput = {
-        name: formName.trim(),
-        description: formDescription.trim() || undefined,
-        parentId: formParentId || undefined,
-        slug: formSlug.trim() || undefined,
-        icon: formIcon || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
-        seoTitle: formSeoTitle.trim() || undefined,
-        seoDescription: formSeoDescription.trim() || undefined,
-      };
-      const created = await api.createCategory(token, input);
-      invalidateAll();
-      resetForm();
-      setIsCreating(false);
-      setSelectedId(created.id);
-      // Auto-expand parent
-      if (created.parentId) {
-        setExpandedIds((prev) => new Set([...prev, created.parentId!]));
-      }
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to create category');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedId || !formName.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const input: UpdateCategoryInput = {
-        name: formName.trim(),
-        description: formDescription.trim() || undefined,
-        parentId: formParentId || undefined,
-        slug: formSlug.trim() || undefined,
-        icon: formIcon || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
-        seoTitle: formSeoTitle.trim() || undefined,
-        seoDescription: formSeoDescription.trim() || undefined,
-        isActive: formIsActive,
-      };
-      await api.updateCategory(token, selectedId, input);
-      invalidateAll();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to update category');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleDelete = async () => {
-    if (!selectedId) return;
-    const catName = selectedCategory?.name ?? '';
-    if (!confirm(`Delete "${catName}"? This cannot be undone.`)) return;
-    setError(null);
-    try {
-      await api.deleteCategory(token, selectedId);
-      setSelectedId(null);
-      setIsCreating(false);
-      resetForm();
-      invalidateAll();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to delete category');
-    }
-  };
 
   const handleMoveUp = useCallback(
     async (id: string) => {
@@ -615,258 +494,19 @@ export function CategoryManagerModal({
           {/* ─── Right: Form / Detail Panel ───────────────── */}
           <div className="flex-1 overflow-y-auto">
             {showForm ? (
-              <form
-                onSubmit={isCreating ? handleCreate : handleUpdate}
-                className="p-5 space-y-4 animate-in fade-in slide-in-from-right-2 duration-200"
-              >
-                {/* Breadcrumb bar */}
-                {!isCreating && breadcrumb.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pb-2 border-b border-border">
-                    {breadcrumb.map((item, idx) => (
-                      <React.Fragment key={item.id}>
-                        {idx > 0 && <span className="text-muted-foreground/40">›</span>}
-                        <span
-                          className={`cursor-pointer hover:text-primary transition-colors ${
-                            idx === breadcrumb.length - 1
-                              ? 'text-primary font-semibold'
-                              : ''
-                          }`}
-                          onClick={() => handleSelect(item.id)}
-                        >
-                          {item.name}
-                        </span>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                )}
+              <CategoryForm
+                  token={token}
+                  isCreating={isCreating}
+                  selectedCategory={selectedCategory}
+                  flatCategories={flatCategories || []}
 
-                {/* Form header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <span className="text-lg">{getCategoryIcon(formIcon)}</span>
-                    {isCreating ? 'New Category' : `Edit: ${formName}`}
-                  </h3>
-                  <div className="flex items-center gap-1.5">
-                    {!isCreating && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1"
-                        onClick={handleDelete}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Delete
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => {
-                        setSelectedId(null);
-                        setIsCreating(false);
-                        resetForm();
-                      }}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Core fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Category Name *
-                    </label>
-                    <input
-                      required
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder="e.g. Specialty Coffee"
-                      className="input w-full text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      URL Slug
-                    </label>
-                    <input
-                      value={formSlug}
-                      onChange={(e) => setFormSlug(e.target.value)}
-                      placeholder="auto-generated from name"
-                      className="input w-full text-xs font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Icon
-                    </label>
-                    <IconPicker value={formIcon} onChange={setFormIcon} />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Parent Category
-                    </label>
-                    <select
-                      value={formParentId}
-                      onChange={(e) => setFormParentId(e.target.value)}
-                      className="input w-full text-xs"
-                    >
-                      <option value="">(Root — Top Level)</option>
-                      {(flatCategories ?? [])
-                        .filter((c) => c.id !== selectedId)
-                        .map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {'  '.repeat(c.level)}{getCategoryIcon(c.icon)} {c.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      value={formDescription}
-                      onChange={(e) => setFormDescription(e.target.value)}
-                      placeholder="Brief description of this category"
-                      className="input w-full text-xs min-h-[60px]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Image URL
-                    </label>
-                    <input
-                      value={formImageUrl}
-                      onChange={(e) => setFormImageUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="input w-full text-xs"
-                    />
-                  </div>
-
-                  {/* Active toggle */}
-                  {!isCreating && (
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Active</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Inactive categories are hidden from storefront
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formIsActive}
-                        onCheckedChange={setFormIsActive}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* SEO section */}
-                <div className="pt-2 border-t border-border space-y-3">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    SEO & Meta
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-foreground mb-1">
-                        SEO Title
-                      </label>
-                      <input
-                        value={formSeoTitle}
-                        onChange={(e) => setFormSeoTitle(e.target.value)}
-                        placeholder="Page title for search engines"
-                        className="input w-full text-xs"
-                        maxLength={200}
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {formSeoTitle.length}/200
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-foreground mb-1">
-                        SEO Description
-                      </label>
-                      <textarea
-                        value={formSeoDescription}
-                        onChange={(e) => setFormSeoDescription(e.target.value)}
-                        placeholder="Meta description for search engine results"
-                        className="input w-full text-xs min-h-[50px]"
-                        maxLength={1000}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats (edit mode only) */}
-                {!isCreating && selectedCategory && (
-                  <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
-                    <div className="text-center p-2 rounded-lg bg-muted/20 border border-border">
-                      <p className="text-lg font-bold font-mono text-foreground">
-                        {selectedCategory.productCount}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Products</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-muted/20 border border-border">
-                      <p className="text-lg font-bold font-mono text-foreground">
-                        {selectedCategory.level}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Depth Level</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-muted/20 border border-border">
-                      <p className="text-lg font-bold font-mono text-foreground">
-                        {selectedCategory.childrenCount ?? 0}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Sub-categories</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  {!isCreating && selectedId && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-xs gap-1.5"
-                      onClick={() => handleStartCreate(selectedId)}
-                    >
-                      <Plus className="w-3 h-3" />
-                      Add Child
-                    </Button>
-                  )}
-                  {isCreating && <div />}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedId(null);
-                        setIsCreating(false);
-                        resetForm();
-                      }}
-                      disabled={loading}
-                      className="text-xs"
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" size="sm" disabled={loading} className="text-xs gap-1">
-                      <Check className="w-3 h-3" />
-                      {loading ? 'Saving…' : isCreating ? 'Create' : 'Save Changes'}
-                    </Button>
-                  </div>
-                </div>
-              </form>
+                  onCancel={() => { setSelectedId(null); setIsCreating(false); }}
+                  onSuccess={() => { setSelectedId(null); setIsCreating(false); queryClient.invalidateQueries({ queryKey: ['categories'] }); queryClient.invalidateQueries({ queryKey: ['categories-tree'] }); }}
+                  onDelete={async () => { if(confirm('Delete category?')) { await api.deleteCategory(token, selectedId!); setSelectedId(null); setIsCreating(false); queryClient.invalidateQueries({ queryKey: ['categories'] }); queryClient.invalidateQueries({ queryKey: ['categories-tree'] }); } }}
+                  onSelectNode={handleSelect}
+                  onStartCreateChild={handleStartCreate}
+                />
             ) : (
               /* Empty state — no selection */
               <div className="h-full flex items-center justify-center p-8">

@@ -2,6 +2,8 @@ import datetime
 import re
 import uuid
 from sqlalchemy import (
+    func,
+    Table,
     Column,
     String,
     Boolean,
@@ -84,6 +86,7 @@ class Product(Base):
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    modifier_groups = relationship("ModifierGroup", secondary="product_modifier_groups", lazy="selectin")
     category = relationship("Category", foreign_keys=[category_id], back_populates="products")
 
 class ProductVariant(Base):
@@ -122,3 +125,39 @@ class ProductImage(Base):
 
     product = relationship("Product", back_populates="images")
     storage_object = relationship("StorageObject", foreign_keys=[storage_object_id], uselist=False, viewonly=True)
+
+# Many-to-Many association table
+product_modifier_groups = Table(
+    "product_modifier_groups",
+    Base.metadata,
+    Column("product_id", String, ForeignKey("products.id", ondelete="CASCADE"), primary_key=True),
+    Column("modifier_group_id", String, ForeignKey("modifier_groups.id", ondelete="CASCADE"), primary_key=True),
+)
+
+class ModifierGroup(Base):
+    __tablename__ = "modifier_groups"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    organization_id = Column("organizationId", String, ForeignKey("organizations.id"), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    min_selections = Column("minSelections", Integer, default=0, nullable=False)
+    max_selections = Column("maxSelections", Integer, default=1, nullable=False)
+    is_active = Column("isActive", Boolean, default=True, nullable=False)
+    created_at = Column("createdAt", DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column("updatedAt", DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    options = relationship("ModifierOption", back_populates="group", cascade="all, delete-orphan", lazy="selectin")
+
+class ModifierOption(Base):
+    __tablename__ = "modifier_options"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    group_id = Column("groupId", String, ForeignKey("modifier_groups.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    price_adjustment = Column("priceAdjustment", Numeric(14, 4), default=0.0, nullable=False)
+    sort_order = Column("sortOrder", Integer, default=0, nullable=False)
+    is_active = Column("isActive", Boolean, default=True, nullable=False)
+    created_at = Column("createdAt", DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    group = relationship("ModifierGroup", back_populates="options")

@@ -66,6 +66,16 @@ export type ListSalesQuery = z.infer<typeof listSalesQuerySchema>;
 // DTOs
 // ---------------------------------------------------------------------------
 
+
+export const ORDER_TYPES = ['DINE_IN', 'TAKEAWAY', 'DELIVERY'] as const;
+export type OrderType = (typeof ORDER_TYPES)[number];
+
+export interface SaleLineItemModifierDto {
+  id: string;
+  modifierOptionId: string;
+  name: string;
+  priceAdjustment: number;
+}
 export interface SaleLineItemDto {
   id: string;
   productVariantId: string;
@@ -78,6 +88,7 @@ export interface SaleLineItemDto {
   taxRatePct: number;
   taxAmount: number;
   lineTotal: number;
+  modifiers?: SaleLineItemModifierDto[];
 }
 
 export interface SalePaymentDto {
@@ -99,6 +110,8 @@ export interface SaleDto {
   userId: string;
   saleNumber: string;
   channel: SaleChannel;
+  orderType?: OrderType;
+  tableNumber?: string | null;
   status: SaleStatus;
   subtotal: number;
   discountTotal: number;
@@ -132,6 +145,8 @@ export interface SaleSummaryDto {
   id: string;
   saleNumber: string;
   channel: SaleChannel;
+  orderType?: OrderType;
+  tableNumber?: string | null;
   status: SaleStatus;
   grandTotal: number;
   currency: string;
@@ -143,3 +158,4 @@ export interface SaleSummaryDto {
   deliveryStatus?: string | null;
   trackingNumber?: string | null;
 }
+

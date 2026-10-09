@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import type { ProductDto } from '@mystore/contracts';
+import { getCategoryIcon } from '@/components/category-tree-select';
 
 interface CartItem {
   productId: string;
@@ -74,18 +75,62 @@ export default function CustomerShopPage() {
 
   // Fetch Public Products (sanitize: only sell price exposed!)
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ['public-products'],
-    queryFn: () => api.listProducts(token || 'guest', { limit: 50 }),
+    queryKey: ['public-products', searchQuery],
+    queryFn: () => api.getPublicProducts({ limit: 100, search: searchQuery || undefined }),
+  });
+
+  // Fetch Public Categories Tree dynamically
+  const { data: categoryTree } = useQuery({
+    queryKey: ['public-categories-tree'],
+    queryFn: () => api.getPublicCategoriesTree(),
   });
 
   const products = productsData?.items || [];
 
-  const categories = ['ALL', 'ELECTRONICS', 'BEVERAGES', 'GROCERIES', 'ACCESSORIES'];
+  // Extract dynamic categories from live tree or product items
+  const categories = React.useMemo(() => {
+    const list: Array<{ id: string; name: string; icon?: string | null }> = [
+      { id: 'ALL', name: 'All Products', icon: '✨' },
+    ];
+    if (categoryTree && categoryTree.length > 0) {
+      function flatten(nodes: typeof categoryTree) {
+        for (const n of nodes || []) {
+          if (n.isActive) {
+            list.push({ id: n.id, name: n.name, icon: n.icon });
+            if (n.children?.length) flatten(n.children);
+          }
+        }
+      }
+      flatten(categoryTree);
+    } else {
+      const seen = new Set<string>();
+      for (const p of products) {
+        const cat = p.categoryName || 'General';
+        if (!seen.has(cat)) {
+          seen.add(cat);
+          list.push({ id: cat, name: cat, icon: '📁' });
+        }
+      }
+    }
+    return list;
+  }, [categoryTree, products]);
 
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredProducts = React.useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.variants?.some((v) => v.sku.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCat =
+        selectedCategory === 'ALL' ||
+        p.categoryId === selectedCategory ||
+        p.categoryName?.toLowerCase() === selectedCategory.toLowerCase() ||
+        (selectedCategory && p.categoryName && p.categoryName.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+      return matchesSearch && matchesCat;
+    });
+  }, [products, searchQuery, selectedCategory]);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -333,15 +378,16 @@ export default function CustomerShopPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6">
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedCategory === cat
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                selectedCategory === cat.id
                   ? 'bg-sky-500 text-white shadow-md'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
             >
-              {cat}
+              <span>{getCategoryIcon(cat.icon)}</span>
+              <span>{cat.name}</span>
             </button>
           ))}
         </div>

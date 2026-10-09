@@ -42,6 +42,7 @@ export const createProductSchema = z.object({
   brandId: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
   variants: z.array(createProductVariantSchema).min(1, 'At least one variant is required'),
+  modifierGroupIds: z.array(z.string()).optional(),
 });
 
 export const updateProductVariantSchema = z.object({
@@ -71,6 +72,7 @@ export const updateProductSchema = z.object({
   brandId: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
   variants: z.array(updateProductVariantSchema).optional(),
+  modifierGroupIds: z.array(z.string()).optional(),
 });
 
 export type CreateProductVariantInput = z.infer<typeof createProductVariantSchema>;
@@ -133,6 +135,7 @@ export interface ProductDto {
   syncStatus?: string | null;
   variants: ProductVariantDto[];
   images?: ProductImageDto[];
+  modifierGroups?: ModifierGroupDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -209,3 +212,50 @@ export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type ReorderCategoriesInput = z.infer<typeof reorderCategoriesSchema>;
 
+
+export interface ModifierOptionDto {
+  id: string;
+  groupId: string;
+  name: string;
+  priceAdjustment: number;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface ModifierGroupDto {
+  id: string;
+  organizationId: string;
+  name: string;
+  description?: string | null;
+  minSelections: number;
+  maxSelections: number;
+  isActive: boolean;
+  options: ModifierOptionDto[];
+}
+
+export const createModifierOptionSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  priceAdjustment: money.default(0),
+  sortOrder: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const createModifierGroupSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(500).optional().nullable(),
+  minSelections: z.number().int().min(0).default(0),
+  maxSelections: z.number().int().min(1).default(1),
+  isActive: z.boolean().default(true),
+  options: z.array(createModifierOptionSchema).min(1, 'At least one option is required'),
+});
+
+export const updateModifierOptionSchema = createModifierOptionSchema.partial().extend({
+  id: z.string().optional(),
+});
+
+export const updateModifierGroupSchema = createModifierGroupSchema.partial().extend({
+  options: z.array(updateModifierOptionSchema).optional(),
+});
+
+export type CreateModifierGroupInput = z.infer<typeof createModifierGroupSchema>;
+export type UpdateModifierGroupInput = z.infer<typeof updateModifierGroupSchema>;

@@ -43,6 +43,8 @@ class Sale(Base):
     idempotency_key = Column("idempotencyKey", String, unique=True, nullable=True)
     sale_number = Column("saleNumber", String, nullable=False)
     channel = Column(String, default="POS", nullable=False)
+    order_type = Column("orderType", String, nullable=True)
+    table_number = Column("tableNumber", String, nullable=True)
     status = Column(SaleStatusEnum, default="DRAFT", nullable=False)
     subtotal = Column(Numeric(14, 4), nullable=False)
     discount_total = Column("discountTotal", Numeric(14, 4), default=0.0, nullable=False)
@@ -76,6 +78,7 @@ class SaleLineItem(Base):
     line_total = Column("lineTotal", Numeric(14, 4), nullable=False)
 
     sale = relationship("Sale", back_populates="line_items")
+    modifiers = relationship("SaleLineItemModifier", back_populates="line_item", cascade="all, delete-orphan")
 
 class SalePayment(Base):
     __tablename__ = "sale_payments"
@@ -92,3 +95,14 @@ class SalePayment(Base):
     paid_at = Column("paidAt", DateTime, default=utc_now, nullable=False)
 
     sale = relationship("Sale", back_populates="payments")
+
+class SaleLineItemModifier(Base):
+    __tablename__ = "sale_line_item_modifiers"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    line_item_id = Column("lineItemId", String, ForeignKey("sale_line_items.id", ondelete="CASCADE"), nullable=False)
+    modifier_option_id = Column("modifierOptionId", String, nullable=False)
+    name = Column(String, nullable=False)
+    price_adjustment = Column("priceAdjustment", Numeric(14, 4), default=0.0, nullable=False)
+    
+    line_item = relationship("SaleLineItem", back_populates="modifiers")

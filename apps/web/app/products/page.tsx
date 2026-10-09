@@ -132,12 +132,16 @@ export function ProductsPage() {
   }, [data]);
 
   const categoryFilterOptions = useMemo(() => {
-    if (!categoriesData) return [];
-    return categoriesData.map((c) => ({
+    const options = (categoriesData || []).map((c) => ({
       label: c.name,
       value: c.name,
     }));
-  }, [categoriesData]);
+    const hasUncategorized = tableData.some((row) => !row.categoryName);
+    if (hasUncategorized) {
+      options.push({ label: 'Uncategorized', value: 'Uncategorized' });
+    }
+    return options;
+  }, [categoriesData, tableData]);
 
   const handleDeleteProduct = async () => {
     if (!deletingProduct) return;

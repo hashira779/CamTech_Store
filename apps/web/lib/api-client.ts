@@ -587,6 +587,15 @@ export const api = {
   getPublicCategoriesTree: () =>
     request<CategoryTreeNodeDto[]>('/public/categories/tree', {}),
 
+  getPublicProducts: (params: { page?: number; limit?: number; search?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    if (params.search) qs.set('search', params.search);
+    const q = qs.toString();
+    return request<Paginated<ProductDto>>(`/public/products${q ? `?${q}` : ''}`, {});
+  },
+
   // ─── Customers ─────────────────────────────────────────────────
   listCustomers: (token: string, params: { page?: number; limit?: number; search?: string; type?: string } = {}) => {
     const qs = new URLSearchParams();

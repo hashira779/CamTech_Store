@@ -59,6 +59,7 @@ class ProductDto(BaseModel):
     syncStatus: Optional[str] = None
     variants: List[VariantDto] = []
     images: Optional[List[ProductImageDto]] = []
+    modifierGroups: Optional[List['ModifierGroupDto']] = []
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
@@ -74,6 +75,7 @@ class CreateVariantInput(BaseModel):
     isActive: bool = True
 
 class CreateProductInput(BaseModel):
+    modifierGroupIds: Optional[List[str]] = []
     name: str
     description: Optional[str] = None
     categoryId: Optional[str] = None
@@ -95,6 +97,7 @@ class UpdateVariantInput(BaseModel):
     isActive: Optional[bool] = None
 
 class UpdateProductInput(BaseModel):
+    modifierGroupIds: Optional[List[str]] = None
     name: Optional[str] = None
     description: Optional[str] = None
     categoryId: Optional[str] = None
@@ -178,3 +181,50 @@ class ReorderCategoryItem(BaseModel):
 
 class ReorderCategoriesInput(BaseModel):
     items: List[ReorderCategoryItem]
+
+class ModifierOptionDto(BaseModel):
+    id: str
+    groupId: str
+    name: str
+    priceAdjustment: float = 0.0
+    sortOrder: int = 0
+    isActive: bool = True
+
+class ModifierGroupDto(BaseModel):
+    id: str
+    organizationId: str
+    name: str
+    description: Optional[str] = None
+    minSelections: int = 0
+    maxSelections: int = 1
+    isActive: bool = True
+    options: List[ModifierOptionDto] = []
+
+class CreateModifierOptionInput(BaseModel):
+    name: str
+    priceAdjustment: float = 0.0
+    sortOrder: int = 0
+    isActive: bool = True
+
+class CreateModifierGroupInput(BaseModel):
+    name: str
+    description: Optional[str] = None
+    minSelections: int = 0
+    maxSelections: int = 1
+    isActive: bool = True
+    options: List[CreateModifierOptionInput]
+
+class UpdateModifierOptionInput(BaseModel):
+    id: Optional[str] = None
+    name: Optional[str] = None
+    priceAdjustment: Optional[float] = None
+    sortOrder: Optional[int] = None
+    isActive: Optional[bool] = None
+
+class UpdateModifierGroupInput(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    minSelections: Optional[int] = None
+    maxSelections: Optional[int] = None
+    isActive: Optional[bool] = None
+    options: Optional[List[UpdateModifierOptionInput]] = None

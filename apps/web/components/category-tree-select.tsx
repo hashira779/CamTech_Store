@@ -19,12 +19,13 @@ import {
 
 // ─── Common category icon map ──────────────────────────────────
 const CATEGORY_ICONS: Record<string, string> = {
-  coffee: '☕', tea: '🍵', food: '🍔', drink: '🥤', bakery: '🥐',
-  electronics: '📱', clothing: '👕', shoes: '👟', accessories: '💍',
-  grocery: '🛒', beauty: '💄', health: '💊', sports: '⚽',
-  toys: '🧸', books: '📚', music: '🎵', home: '🏠', garden: '🌿',
-  automotive: '🚗', tools: '🔧', office: '📎', pet: '🐾',
-  jewelry: '💎', furniture: '🪑', kitchen: '🍳', baby: '👶',
+  coffee: '☕', tea: '🍵', food: '🍔', pizza: '🍕', drink: '🥤', bakery: '🥐', cake: '🎂', icecream: '🍦',
+  electronics: '📱', laptop: '💻', headphones: '🎧', camera: '📷', tv: '📺', game: '🎮', battery: '🔋',
+  clothing: '👕', dress: '👗', shoes: '👟', accessories: '💍', jewelry: '💎', bag: '👜', glasses: '🕶️', watch: '⌚',
+  grocery: '🛒', beauty: '💄', perfume: '🧴', health: '💊', sports: '⚽', toys: '🧸', baby: '👶',
+  books: '📚', music: '🎵', home: '🏠', furniture: '🪑', bed: '🛏️', garden: '🌿', flower: '🌸',
+  automotive: '🚗', bike: '🚲', tools: '🔧', office: '📎', pet: '🐾', kitchen: '🍳', package: '📦',
+  gift: '🎁', tag: '🏷️', star: '⭐', fire: '🔥', clean: '🧹',
 };
 
 export function getCategoryIcon(icon?: string | null): string {

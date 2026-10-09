@@ -484,8 +484,8 @@ export function SalesPage() {
             </div>
           </div>
           <div class="footer">
-            <p>Thank you for shopping with Pop-Couch / CamTech Store!</p>
-            <p>Real-time GPS order tracking link: <strong>http://localhost:5000/order-tracking</strong></p>
+            <p>Thank you for shopping with CamTech Store!</p>
+            <p>Real-time order tracking: <strong>${typeof window !== 'undefined' ? `${window.location.origin}/customer` : '/customer'}</strong></p>
           </div>
         </body>
       </html>

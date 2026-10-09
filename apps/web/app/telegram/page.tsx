@@ -5,16 +5,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError, BASE_URL } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-store';
+import { AddBotModal } from './add-bot-modal';
+import { EditBotModal } from './edit-bot-modal';
 import { EnterpriseShell } from '@/components/enterprise-shell';
 import { TableSkeletonRows } from '@/components/page-skeleton';
 import { EmptyState } from '@/components/empty-state';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { BindChatModal } from './bind-chat-modal';
+import { BroadcastModal } from './broadcast-modal';
 import { Badge } from '@/components/ui/badge';
 import type {
   TelegramChatBindingDto,
-  BindTelegramChatInput,
   TelegramBotDto,
-  CreateTelegramBotInput,
-  UpdateTelegramBotInput,
   TelegramBotPurpose,
   TelegramBotTestResult,
 } from '@mystore/contracts';
@@ -31,20 +33,16 @@ import {
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
-  Sparkles,
   Star,
   ShoppingBag,
   Truck,
   Boxes,
   Landmark,
   LifeBuoy,
-  Settings,
   Users,
-  MessageSquare,
   Edit2,
   Check,
   Copy,
-  ExternalLink,
 } from 'lucide-react';
 
 const PURPOSE_CONFIG: Record<
@@ -102,38 +100,6 @@ export default function TelegramPage() {
   const [deletingBinding, setDeletingBinding] = useState<TelegramChatBindingDto | null>(null);
   const [deletingBot, setDeletingBot] = useState<TelegramBotDto | null>(null);
 
-  // Add Bot Form
-  const [botName, setBotName] = useState('');
-  const [botToken, setBotToken] = useState('');
-  const [botPurpose, setBotPurpose] = useState<TelegramBotPurpose>('SALES');
-  const [botDefaultChatId, setBotDefaultChatId] = useState('');
-  const [botDescription, setBotDescription] = useState('');
-  const [botIsPrimary, setBotIsPrimary] = useState(false);
-  const [testTokenResult, setTestTokenResult] = useState<TelegramBotTestResult | null>(null);
-  const [isTestingToken, setIsTestingToken] = useState(false);
-
-  // Edit Bot Form
-  const [editName, setEditName] = useState('');
-  const [editToken, setEditToken] = useState('');
-  const [editPurpose, setEditPurpose] = useState<TelegramBotPurpose>('SALES');
-  const [editDefaultChatId, setEditDefaultChatId] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editIsPrimary, setEditIsPrimary] = useState(false);
-  const [editIsActive, setEditIsActive] = useState(true);
-  const [editTestTokenResult, setEditTestTokenResult] = useState<TelegramBotTestResult | null>(null);
-  const [isTestingEditToken, setIsTestingEditToken] = useState(false);
-
-  // Chat Binding Form
-  const [bindChatId, setBindChatId] = useState('');
-  const [bindChatTitle, setBindChatTitle] = useState('');
-  const [bindRole, setBindRole] = useState('OPERATOR');
-  const [bindBotId, setBindBotId] = useState('');
-  const [bindType, setBindType] = useState<'USER' | 'GROUP'>('GROUP');
-
-  // Broadcast
-  const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [broadcastSelectedBot, setBroadcastSelectedBot] = useState<string>('');
-
   // Testing & Feedback State
   const [testingBotId, setTestingBotId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, TelegramBotTestResult>>({});
@@ -159,38 +125,9 @@ export default function TelegramPage() {
   });
 
   // ─── Mutations ────────────────────────────────────────────────────────
-  const createBotMutation = useMutation({
-    mutationFn: (input: CreateTelegramBotInput) => {
-      console.log('[Telegram] Creating bot:', input.name);
-      return api.createTelegramBot(token!, input);
-    },
-    onSuccess: () => {
-      toast.success('Telegram bot registered successfully');
-      queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
-      setIsAddBotModalOpen(false);
-      resetBotForm();
-    },
-    onError: (err: any) => {
-      console.error('[Telegram] Failed to create bot:', err);
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to create bot');
-    },
-  });
+  
 
-  const updateBotMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateTelegramBotInput }) => {
-      console.log('[Telegram] Updating bot:', id);
-      return api.updateTelegramBot(token!, id, input);
-    },
-    onSuccess: () => {
-      toast.success('Telegram bot updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['telegramBots'] });
-      setEditingBot(null);
-    },
-    onError: (err: any) => {
-      console.error('[Telegram] Failed to update bot:', err);
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to update bot');
-    },
-  });
+  
 
   const deleteBotMutation = useMutation({
     mutationFn: (id: string) => {
@@ -235,25 +172,6 @@ export default function TelegramPage() {
     onSettled: () => setTestingBotId(null),
   });
 
-  const bindMutation = useMutation({
-    mutationFn: (input: BindTelegramChatInput) => {
-      console.log('[Telegram] Binding destination chat:', input);
-      return api.bindTelegramChat(token!, input);
-    },
-    onSuccess: () => {
-      toast.success('Telegram chat destination bound successfully');
-      queryClient.invalidateQueries({ queryKey: ['telegramBindings'] });
-      setIsBindModalOpen(false);
-      setBindChatId('');
-      setBindChatTitle('');
-      setBindBotId('');
-    },
-    onError: (err: any) => {
-      console.error('[Telegram] Failed to bind chat destination:', err);
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to bind chat');
-    },
-  });
-
   const deleteBindingMutation = useMutation({
     mutationFn: (id: string) => {
       console.log('[Telegram] API DELETE /telegram/bindings/' + id);
@@ -271,108 +189,9 @@ export default function TelegramPage() {
     },
   });
 
-  const broadcastMutation = useMutation({
-    mutationFn: ({ msg, botId }: { msg: string; botId?: string }) => {
-      console.log('[Telegram] Broadcasting message with bot:', botId);
-      return api.sendTelegramBroadcast(token!, msg, botId || undefined);
-    },
-    onSuccess: (res) => {
-      setIsBroadcastModalOpen(false);
-      setBroadcastMessage('');
-      toast.success(`Broadcast dispatched! Sent to ${res.sentCount} destination(s).`);
-    },
-    onError: (err: any) => {
-      console.error('[Telegram] Failed to broadcast:', err);
-      toast.error(err instanceof ApiClientError ? err.message : 'Failed to broadcast message');
-    },
-  });
-
-  const resetBotForm = () => {
-    setBotName('');
-    setBotToken('');
-    setBotPurpose('SALES');
-    setBotDefaultChatId('');
-    setBotDescription('');
-    setBotIsPrimary(false);
-    setTestTokenResult(null);
-  };
 
   const handleOpenEdit = (bot: TelegramBotDto) => {
     setEditingBot(bot);
-    setEditName(bot.name);
-    setEditToken('');
-    setEditPurpose(bot.purpose);
-    setEditDefaultChatId(bot.defaultChatId || '');
-    setEditDescription(bot.description || '');
-    setEditIsPrimary(bot.isPrimary);
-    setEditIsActive(bot.isActive);
-    setEditTestTokenResult(null);
-  };
-
-  const handleTestToken = async () => {
-    const trimmed = botToken.trim();
-    if (!trimmed) {
-      toast.error('Please enter a bot token first');
-      return;
-    }
-    setIsTestingToken(true);
-    setTestTokenResult(null);
-    try {
-      console.log('[Telegram] Testing unsaved bot token with Telegram getMe API...');
-      const res = await api.testTelegramToken(token!, trimmed);
-      setTestTokenResult(res);
-      if (res.success) {
-        toast.success(`Verified: @${res.botUsername || 'Online'}!`);
-        if (!botName.trim() && res.botName) {
-          setBotName(res.botName);
-          toast.info(`Bot friendly name auto-filled as "${res.botName}"`);
-        }
-      } else {
-        toast.error(res.botName || 'Verification Failed');
-      }
-    } catch (err: any) {
-      console.error('[Telegram] Token test error:', err);
-      const msg = err instanceof ApiClientError ? err.message : (err.message || 'Connection error');
-      setTestTokenResult({
-        success: false,
-        status: 'ERROR',
-        botName: `Failed: ${msg}`,
-      });
-      toast.error(msg);
-    } finally {
-      setIsTestingToken(false);
-    }
-  };
-
-  const handleTestEditToken = async () => {
-    const trimmed = editToken.trim();
-    if (!trimmed) {
-      toast.error('Please enter a new bot token to test');
-      return;
-    }
-    setIsTestingEditToken(true);
-    setEditTestTokenResult(null);
-    try {
-      console.log('[Telegram] Testing updated bot token...');
-      const res = await api.testTelegramToken(token!, trimmed);
-      setEditTestTokenResult(res);
-      if (res.success) {
-        toast.success(`Verified: @${res.botUsername || 'Online'}!`);
-      } else {
-        toast.error(res.botName || 'Verification Failed');
-      }
-    } catch (err: any) {
-      console.error('[Telegram] Token test error:', err);
-      const msg = err instanceof ApiClientError ? err.message : (err.message || 'Connection error');
-      setEditTestTokenResult({
-        success: false,
-        status: 'ERROR',
-        botName: `Failed: ${msg}`,
-      });
-      toast.error(msg);
-    } finally {
-      setIsTestingEditToken(false);
-    }
   };
 
   const handleTestBot = (id: string) => {
@@ -463,7 +282,7 @@ export default function TelegramPage() {
             </button>
             <button
               onClick={() => {
-                setBroadcastSelectedBot('');
+                setBroadcastTargetBotId('');
                 setIsBroadcastModalOpen(true);
               }}
               className="px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors flex items-center gap-1.5"
@@ -478,8 +297,7 @@ export default function TelegramPage() {
             </button>
             <button
               onClick={() => {
-                resetBotForm();
-                setIsAddBotModalOpen(true);
+                                setIsAddBotModalOpen(true);
               }}
               className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm flex items-center gap-1.5"
             >
@@ -645,7 +463,7 @@ export default function TelegramPage() {
 
                         <button
                           onClick={() => {
-                            setBroadcastSelectedBot(bot.id);
+                            setBroadcastTargetBotId(bot.id);
                             setIsBroadcastModalOpen(true);
                           }}
                           className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary transition-colors flex items-center gap-1"
@@ -856,710 +674,72 @@ export default function TelegramPage() {
           )}
         </div>
 
-        {/* ─── MODAL: ADD TELEGRAM BOT ────────────────────────────────────── */}
-        {isAddBotModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-            <div className="card w-full max-w-lg p-6 rounded-lg border border-border shadow-md bg-card">
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-primary" />
-                  <h3 className="text-base font-bold text-foreground">Add New Telegram Bot</h3>
-                </div>
-                <button onClick={() => setIsAddBotModalOpen(false)} className="p-1 rounded-lg hover:bg-muted">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  createBotMutation.mutate({
-                    name: botName,
-                    botToken,
-                    purpose: botPurpose,
-                    defaultChatId: botDefaultChatId || undefined,
-                    description: botDescription || undefined,
-                    isPrimary: botIsPrimary,
-                    isActive: true,
-                  });
-                }}
-                className="space-y-4 text-xs"
-              >
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Bot Friendly Name *
-                  </label>
-                  <input
-                    required
-                    value={botName}
-                    onChange={(e) => setBotName(e.target.value)}
-                    placeholder="e.g. Sales Alerts Bot or Fleet Dispatcher"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  />
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Operational Purpose / Department *
-                  </label>
-                  <select
-                    value={botPurpose}
-                    onChange={(e) => setBotPurpose(e.target.value as TelegramBotPurpose)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  >
-                    <option value="SALES">Sales & POS (Checkout & Cashier notifications)</option>
-                    <option value="DELIVERY">Delivery & Fleet (Driver dispatch & live tracking)</option>
-                    <option value="INVENTORY">Inventory & WMS (Low stock & transfer alerts)</option>
-                    <option value="FINANCE">Finance & Approvals (Daily executive digests)</option>
-                    <option value="SUPPORT">Customer Support (Helpdesk ticket triage)</option>
-                    <option value="GENERAL">General Operations (All alerts)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block uppercase font-bold text-muted-foreground text-[11px]">
-                      Telegram Bot Token (from @BotFather) *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleTestToken}
-                      disabled={!botToken.trim() || isTestingToken}
-                      className="text-[11px] text-primary hover:text-primary/80 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isTestingToken ? 'animate-spin' : ''}`} />
-                      {isTestingToken ? 'Testing API...' : 'Test & Verify Token'}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      required
-                      type="password"
-                      value={botToken}
-                      onChange={(e) => {
-                        setBotToken(e.target.value);
-                        setTestTokenResult(null);
-                      }}
-                      placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                      className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTestToken}
-                      disabled={!botToken.trim() || isTestingToken}
-                      className="shrink-0 px-3.5 py-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
-                      title="Verify token live with Telegram getMe API before saving"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingToken ? 'animate-spin' : ''}`} />
-                      {isTestingToken ? 'Testing...' : 'Test Bot'}
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground mt-1 block">
-                    Tokens are securely encrypted in the PostgreSQL database.
-                  </span>
-
-                  {/* Live Verification Feedback Card */}
-                  {testTokenResult && (
-                    <div
-                      className={`mt-2 p-3 rounded-lg text-xs border ${
-                        testTokenResult.success
-                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                          : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                      }`}
-                    >
-                      {testTokenResult.success ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            <span>Telegram Bot Online & Verified!</span>
-                          </div>
-                          <div className="text-[11px] font-mono text-emerald-200/90 pl-5 space-y-0.5">
-                            <div>Username: <span className="font-bold">@{testTokenResult.botUsername || 'N/A'}</span></div>
-                            <div>Bot Title: <span className="font-bold">{testTokenResult.botName}</span></div>
-                            <div>Group Access: {testTokenResult.canJoinGroups ? '✅ Allowed' : '⚠️ Restricted'}</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                          <div>
-                            <div className="font-bold text-rose-400">Token Verification Failed</div>
-                            <div className="text-[11px] text-rose-300/90 mt-0.5">{testTokenResult.botName}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Default Group / Channel Chat ID (Optional)
-                  </label>
-                  <input
-                    value={botDefaultChatId}
-                    onChange={(e) => setBotDefaultChatId(e.target.value)}
-                    placeholder="e.g. -100123456789"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Description / Notes
-                  </label>
-                  <input
-                    value={botDescription}
-                    onChange={(e) => setBotDescription(e.target.value)}
-                    placeholder="e.g. Dedicated channel for Phnom Penh retail store"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
-                    id="isPrimary"
-                    checked={botIsPrimary}
-                    onChange={(e) => setBotIsPrimary(e.target.checked)}
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                  <label htmlFor="isPrimary" className="text-xs text-foreground font-medium cursor-pointer">
-                    Set as Primary Default Bot for this organization
-                  </label>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddBotModalOpen(false)}
-                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createBotMutation.isPending}
-                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
-                  >
-                    {createBotMutation.isPending ? 'Verifying & Saving...' : 'Register Bot'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <AddBotModal isOpen={isAddBotModalOpen} onClose={() => setIsAddBotModalOpen(false)} />
 
         {/* ─── MODAL: EDIT TELEGRAM BOT ─────────────────────────────────────── */}
-        {editingBot && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-            <div className="card w-full max-w-lg p-6 rounded-lg border border-border shadow-md bg-card">
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <Edit2 className="w-5 h-5 text-primary" />
-                  <h3 className="text-base font-bold text-foreground">Edit Telegram Bot: {editingBot.name}</h3>
-                </div>
-                <button onClick={() => setEditingBot(null)} className="p-1 rounded-lg hover:bg-muted">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  updateBotMutation.mutate({
-                    id: editingBot.id,
-                    input: {
-                      name: editName,
-                      botToken: editToken || undefined,
-                      purpose: editPurpose,
-                      defaultChatId: editDefaultChatId || undefined,
-                      description: editDescription || undefined,
-                      isPrimary: editIsPrimary,
-                      isActive: editIsActive,
-                    },
-                  });
-                }}
-                className="space-y-4 text-xs"
-              >
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Bot Friendly Name
-                  </label>
-                  <input
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  />
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Operational Purpose / Department
-                  </label>
-                  <select
-                    value={editPurpose}
-                    onChange={(e) => setEditPurpose(e.target.value as TelegramBotPurpose)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  >
-                    <option value="SALES">Sales & POS</option>
-                    <option value="DELIVERY">Delivery & Fleet</option>
-                    <option value="INVENTORY">Inventory & WMS</option>
-                    <option value="FINANCE">Finance & Approvals</option>
-                    <option value="SUPPORT">Customer Support</option>
-                    <option value="GENERAL">General Operations</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block uppercase font-bold text-muted-foreground text-[11px]">
-                      Update Bot Token (Leave blank to keep current token)
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleTestEditToken}
-                      disabled={!editToken.trim() || isTestingEditToken}
-                      className="text-[11px] text-primary hover:text-primary/80 font-semibold flex items-center gap-1 disabled:opacity-40 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isTestingEditToken ? 'animate-spin' : ''}`} />
-                      {isTestingEditToken ? 'Testing API...' : 'Test & Verify Token'}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={editToken}
-                      onChange={(e) => {
-                        setEditToken(e.target.value);
-                        setEditTestTokenResult(null);
-                      }}
-                      placeholder="Enter new token only if rotating credentials..."
-                      className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono text-xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTestEditToken}
-                      disabled={!editToken.trim() || isTestingEditToken}
-                      className="shrink-0 px-3.5 py-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
-                      title="Verify new token live with Telegram getMe API before saving"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingEditToken ? 'animate-spin' : ''}`} />
-                      {isTestingEditToken ? 'Testing...' : 'Test Bot'}
-                    </button>
-                  </div>
-
-                  {/* Live Verification Feedback Card */}
-                  {editTestTokenResult && (
-                    <div
-                      className={`mt-2 p-3 rounded-lg text-xs border ${
-                        editTestTokenResult.success
-                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                          : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                      }`}
-                    >
-                      {editTestTokenResult.success ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            <span>Telegram Bot Online & Verified!</span>
-                          </div>
-                          <div className="text-[11px] font-mono text-emerald-200/90 pl-5 space-y-0.5">
-                            <div>Username: <span className="font-bold">@{editTestTokenResult.botUsername || 'N/A'}</span></div>
-                            <div>Bot Title: <span className="font-bold">{editTestTokenResult.botName}</span></div>
-                            <div>Group Access: {editTestTokenResult.canJoinGroups ? '✅ Allowed' : '⚠️ Restricted'}</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                          <div>
-                            <div className="font-bold text-rose-400">Token Verification Failed</div>
-                            <div className="text-[11px] text-rose-300/90 mt-0.5">{editTestTokenResult.botName}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Default Group / Channel Chat ID
-                  </label>
-                  <input
-                    value={editDefaultChatId}
-                    onChange={(e) => setEditDefaultChatId(e.target.value)}
-                    placeholder="e.g. -100123456789"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="editIsPrimary"
-                      checked={editIsPrimary}
-                      onChange={(e) => setEditIsPrimary(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="editIsPrimary" className="text-xs text-foreground font-medium cursor-pointer">
-                      Primary Bot
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="editIsActive"
-                      checked={editIsActive}
-                      onChange={(e) => setEditIsActive(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="editIsActive" className="text-xs text-foreground font-medium cursor-pointer">
-                      Active (Receiving alerts)
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setEditingBot(null)}
-                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateBotMutation.isPending}
-                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all"
-                  >
-                    {updateBotMutation.isPending ? 'Saving...' : 'Update Bot'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <EditBotModal bot={editingBot} onClose={() => setEditingBot(null)} />
 
         {/* ─── MODAL: BIND CHAT DESTINATION ───────────────────────────────── */}
-        {isBindModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-            <div className="card w-full max-w-sm p-6 rounded-lg border border-border shadow-md bg-card">
-              <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/60">
-                <h3 className="text-base font-bold text-foreground">Bind Telegram Destination</h3>
-                <button onClick={() => setIsBindModalOpen(false)}>
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  bindMutation.mutate({
-                    chatId: bindChatId,
-                    chatTitle: bindChatTitle || undefined,
-                    role: bindRole,
-                    botId: bindBotId || undefined,
-                    bindingType: bindType,
-                  });
-                }}
-                className="space-y-4 text-xs"
-              >
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Telegram Chat ID *
-                  </label>
-                  <input
-                    required
-                    value={bindChatId}
-                    onChange={(e) => setBindChatId(e.target.value)}
-                    placeholder="e.g. 987654321 or -100123456"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Destination Title
-                  </label>
-                  <input
-                    value={bindChatTitle}
-                    onChange={(e) => setBindChatTitle(e.target.value)}
-                    placeholder="e.g. Phnom Penh Cashiers Group"
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Assign Specific Bot (Optional)
-                  </label>
-                  <select
-                    value={bindBotId}
-                    onChange={(e) => setBindBotId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  >
-                    <option value="">Default / Primary Bot</option>
-                    {bots.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.purpose})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Assigned Role
-                  </label>
-                  <select
-                    value={bindRole}
-                    onChange={(e) => setBindRole(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  >
-                    <option value="OPERATOR">OPERATOR (Sales, stock, orders)</option>
-                    <option value="BRANCH_MANAGER">BRANCH_MANAGER (All commands + approvals)</option>
-                    <option value="SUPER_ADMIN">SUPER_ADMIN (Full platform access)</option>
-                    <option value="DISPATCHER">DISPATCHER (Fleet & Delivery)</option>
-                    <option value="CASHIER">CASHIER (Checkout transactions)</option>
-                  </select>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsBindModalOpen(false)}
-                    className="px-3 py-1.5 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={bindMutation.isPending}
-                    className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold"
-                  >
-                    {bindMutation.isPending ? 'Binding...' : 'Authorize'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <BindChatModal
+          isOpen={isBindModalOpen}
+          onClose={() => setIsBindModalOpen(false)}
+          bots={bots}
+        />
 
         {/* ─── MODAL: TARGETED BROADCAST ──────────────────────────────────── */}
-        {isBroadcastModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-            <div className="card w-full max-w-md p-6 rounded-lg border border-border shadow-md bg-card">
-              <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-rose-400" />
-                  <h3 className="text-base font-bold text-foreground">Dispatch Telegram Broadcast</h3>
-                </div>
-                <button onClick={() => setIsBroadcastModalOpen(false)}>
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  broadcastMutation.mutate({
-                    msg: broadcastMessage,
-                    botId: broadcastSelectedBot || undefined,
-                  });
-                }}
-                className="space-y-4 text-xs"
-              >
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Dispatching Bot
-                  </label>
-                  <select
-                    value={broadcastSelectedBot}
-                    onChange={(e) => setBroadcastSelectedBot(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  >
-                    <option value="">All Active Bots / Primary Bot</option>
-                    {bots.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.purpose})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block uppercase font-bold text-muted-foreground mb-1 text-[11px]">
-                    Alert Message *
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={broadcastMessage}
-                    onChange={(e) => setBroadcastMessage(e.target.value)}
-                    placeholder="Type broadcast message (markdown supported)..."
-                    className="w-full px-3 py-2 rounded-lg border border-border/80 bg-background"
-                  />
-                </div>
-
-                {/* Quick Templates */}
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1.5">
-                    Quick Templates:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setBroadcastMessage('🚨 URGENT: Low inventory detected on high-velocity items. Please review replenishment.')
-                      }
-                      className="px-2 py-1 rounded text-[10px] bg-muted/60 hover:bg-muted border border-border/60"
-                    >
-                      📦 Low Stock
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setBroadcastMessage('🎉 FLASH SALE: Weekend promotion is now active across all retail branches!')
-                      }
-                      className="px-2 py-1 rounded text-[10px] bg-muted/60 hover:bg-muted border border-border/60"
-                    >
-                      🛍️ Flash Sale
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setBroadcastMessage('⚡ SYSTEM: Daily fiscal closing completed. All batch receipts reconciled.')
-                      }
-                      className="px-2 py-1 rounded text-[10px] bg-muted/60 hover:bg-muted border border-border/60"
-                    >
-                      ✅ Fiscal Reconciled
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setIsBroadcastModalOpen(false)}
-                    className="px-3.5 py-2 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={broadcastMutation.isPending}
-                    className="px-4 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow-sm transition-all"
-                  >
-                    {broadcastMutation.isPending ? 'Broadcasting...' : 'Send Broadcast'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <BroadcastModal
+          isOpen={isBroadcastModalOpen}
+          onClose={() => setIsBroadcastModalOpen(false)}
+          bots={bots}
+          initialSelectedBot={broadcastTargetBotId}
+        />
 
         {/* ─── MODAL: CONFIRM UNBIND DESTINATION ─────────────────────────── */}
-        {deletingBinding && (
-          <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 rounded-lg border border-destructive/30 shadow-md bg-card space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-lg bg-destructive/15 text-destructive shrink-0">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Unbind Chat Destination?</h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Are you sure you want to remove the destination for Telegram chat{' '}
-                    <span className="font-mono text-primary font-semibold break-all">{deletingBinding.chatId}</span>
-                    {deletingBinding.chatTitle ? ` (${deletingBinding.chatTitle})` : ''}? 
-                    Automations and alerts will no longer be dispatched here.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-                <button
-                  type="button"
-                  disabled={deleteBindingMutation.isPending}
-                  onClick={() => setDeletingBinding(null)}
-                  className="px-3.5 py-2 rounded-lg border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={deleteBindingMutation.isPending}
-                  onClick={() => {
-                    console.log('[Telegram] Confirmed unbind destination:', deletingBinding.id);
-                    deleteBindingMutation.mutate(deletingBinding.id);
-                  }}
-                  className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
-                >
-                  {deleteBindingMutation.isPending ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Unbinding...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-3.5 h-3.5" /> Unbind Destination
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          isOpen={!!deletingBinding}
+          title="Unbind Chat Destination?"
+          description={
+            <>
+              Are you sure you want to remove the destination for Telegram chat{' '}
+              <span className="font-mono text-primary font-semibold break-all">
+                {deletingBinding?.chatId}
+              </span>
+              {deletingBinding?.chatTitle ? ` (${deletingBinding.chatTitle})` : ''}? Automations and
+              alerts will no longer be dispatched here.
+            </>
+          }
+          confirmText="Unbind Destination"
+          isPending={deleteBindingMutation.isPending}
+          onConfirm={() => {
+            if (deletingBinding) {
+              console.log('[Telegram] Confirmed unbind destination:', deletingBinding.id);
+              deleteBindingMutation.mutate(deletingBinding.id);
+            }
+          }}
+          onCancel={() => setDeletingBinding(null)}
+        />
 
         {/* ─── MODAL: CONFIRM DELETE BOT ──────────────────────────────────── */}
-        {deletingBot && (
-          <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
-            <div className="card max-w-md w-full p-6 rounded-lg border border-destructive/30 shadow-md bg-card space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-lg bg-destructive/15 text-destructive shrink-0">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Delete Telegram Bot?</h3>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Are you sure you want to permanently delete bot{' '}
-                    <span className="font-semibold text-foreground">{deletingBot.name}</span>? 
-                    Its encrypted token will be removed, and any linked chat destinations will be unassigned.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-                <button
-                  type="button"
-                  disabled={deleteBotMutation.isPending}
-                  onClick={() => setDeletingBot(null)}
-                  className="px-3.5 py-2 rounded-lg border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={deleteBotMutation.isPending}
-                  onClick={() => {
-                    console.log('[Telegram] Confirmed delete bot ID:', deletingBot.id);
-                    deleteBotMutation.mutate(deletingBot.id);
-                  }}
-                  className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
-                >
-                  {deleteBotMutation.isPending ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-3.5 h-3.5" /> Delete Bot
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          isOpen={!!deletingBot}
+          title="Delete Telegram Bot?"
+          description={
+            <>
+              Are you sure you want to permanently delete bot{' '}
+              <span className="font-semibold text-foreground">{deletingBot?.name}</span>? Its
+              encrypted token will be removed, and any linked chat destinations will be unassigned.
+            </>
+          }
+          confirmText="Delete Bot"
+          isPending={deleteBotMutation.isPending}
+          onConfirm={() => {
+            if (deletingBot) {
+              console.log('[Telegram] Confirmed delete bot ID:', deletingBot.id);
+              deleteBotMutation.mutate(deletingBot.id);
+            }
+          }}
+          onCancel={() => setDeletingBot(null)}
+        />
       </div>
     </EnterpriseShell>
   );
