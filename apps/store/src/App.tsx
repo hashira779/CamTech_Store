@@ -112,6 +112,7 @@ interface ProductItem {
 
 export function App() {
   const queryClient = useQueryClient();
+  const orgParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('org') || new URLSearchParams(window.location.search).get('store') || undefined) : undefined;
   const lastProcessedEmailRef = useRef<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -559,11 +560,12 @@ export function App() {
 
   // 1. Fetch live products from Central Data Center API
   const { data: serverProducts, isLoading: isProductsLoading, refetch: refetchProducts } = useQuery({
-    queryKey: ['store-live-products'],
+    queryKey: ['store-live-products', orgParam],
     queryFn: async () => {
       try {
-        // Try public products endpoint
-        const res = await fetch(`${API_BASE_URL}/api/v1/public/products`);
+        // Try public products endpoint scoped to store organization
+        const url = `${API_BASE_URL}/api/v1/public/products${orgParam ? `?organizationId=${encodeURIComponent(orgParam)}` : ''}`;
+        const res = await fetch(url);
         if (res.ok) {
           setIsBackendConnected(true);
           const json = await res.json();
@@ -775,6 +777,7 @@ export function App() {
           customerPhone: buyerPhone,
           deliveryAddress: deliveryAddress,
           paymentMethod: paymentMethod,
+          organizationId: orgParam,
           items: cart.map((i) => ({
             id: i.variantId || i.id,
             variantId: i.variantId || i.id,
