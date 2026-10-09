@@ -68,12 +68,7 @@ export default function TelegramMiniAppPage() {
 
   const products = productsData?.items || [];
   
-  // Try to mock a nice Coffee list if backend doesn't have many
-  const displayProducts = products.length > 0 ? products : [
-    { id: '1', name: 'Iced Latte', description: 'Freshly brewed espresso with cold milk and ice.', price: 2.5, imageUrl: null },
-    { id: '2', name: 'Americano', description: 'Rich espresso poured over hot water.', price: 1.5, imageUrl: null },
-    { id: '3', name: 'Caramel Macchiato', description: 'Espresso combined with vanilla-flavored syrup, milk and caramel.', price: 3.0, imageUrl: null }
-  ];
+  const displayProducts = products;
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -239,7 +234,13 @@ export default function TelegramMiniAppPage() {
             </div>
 
             {/* Product List */}
-            <div className="grid grid-cols-2 gap-3">
+            {displayProducts.length === 0 ? (
+              <div className="text-center py-10 opacity-50">
+                <Coffee className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No products available yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
               {displayProducts.map((p: any) => (
                 <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between" style={{ backgroundColor: 'var(--tg-theme-secondary-bg-color, rgba(255,255,255,0.05))' }}>
                   <div className="w-full aspect-square rounded-xl bg-white/5 mb-3 flex items-center justify-center overflow-hidden relative">
@@ -277,6 +278,7 @@ export default function TelegramMiniAppPage() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
 
