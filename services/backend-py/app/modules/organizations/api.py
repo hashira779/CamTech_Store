@@ -22,6 +22,8 @@ from .schemas import (
     UpdatePaywayConfigInput,
     BakongConfigDto,
     UpdateBakongConfigInput,
+    VerifyBakongAccountInput,
+    VerifyBakongAccountResultDto,
     CreateOrganizationInput,
     OrganizationChannelsDto,
 )
@@ -471,16 +473,19 @@ async def update_current_organization_bakong(
     currency = (bakong_in.currency or org.currency or "USD").strip().upper()
     enabled = bakong_in.enabled if bakong_in.enabled is not None else True
 
-    # Optionally verify on Bakong network
+    # Live verification on NBC Bakong network
     account_verified_name = None
     if account_clean:
-        try:
-            from app.core.bakong import BakongService
-            verify_res = await BakongService.check_bakong_account(account_clean, token=bakong_in.token)
-            if verify_res.get("valid"):
-                account_verified_name = verify_res.get("accountName")
-        except Exception:
-            pass
+        from app.core.bakong import BakongService
+        verify_res = await BakongService.check_bakong_account(account_clean, token=bakong_in.token)
+        if not verify_res.get("valid"):
+            err_msg = verify_res.get("message") or "Account not found or inactive on NBC Bakong network"
+            err_code = verify_res.get("errorCode")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Bakong Account Verification Failed: {err_msg} (Error Code {err_code}). Please enter a valid Bakong Account ID registered in the Bakong app."
+            )
+        account_verified_name = verify_res.get("accountName")
 
     current_settings = dict(DEFAULT_SETTINGS)
     if org.settings:
@@ -516,6 +521,26 @@ async def update_current_organization_bakong(
         enabled=enabled,
         isConfigured=bool(account_clean),
         accountName=account_verified_name,
+    )
+
+@router.post("/current/bakong/verify", response_model=VerifyBakongAccountResultDto)
+async def verify_current_organization_bakong_account(
+    verify_in: VerifyBakongAccountInput,
+    user: TenantUser = Depends(get_current_user),
+):
+    """
+    Real-time verification of Bakong Account ID on NBC Bakong network.
+    Returns account validity, verified account owner name, and currency.
+    """
+    from app.core.bakong import BakongService
+    res = await BakongService.check_bakong_account(verify_in.accountId.strip(), token=verify_in.token)
+    return VerifyBakongAccountResultDto(
+        valid=bool(res.get("valid")),
+        accountId=verify_in.accountId.strip(),
+        accountName=res.get("accountName"),
+        currency=res.get("data", {}).get("currency") if isinstance(res.get("data"), dict) else None,
+        errorCode=res.get("errorCode"),
+        message=res.get("message") or ("Verified" if res.get("valid") else "Account not found on NBC Bakong network"),
     )
 
 @router.get("/current/channels", response_model=OrganizationChannelsDto)

@@ -33,6 +33,8 @@ import type {
   UpdateOrganizationSettingsInput,
   BakongConfigDto,
   UpdateBakongConfigInput,
+  VerifyBakongAccountInput,
+  VerifyBakongAccountResultDto,
   SupplierDto,
   CreateSupplierInput,
   UpdateSupplierInput,
@@ -823,6 +825,13 @@ export const api = {
   updateOrgBakong: (token: string, input: UpdateBakongConfigInput) =>
     request<BakongConfigDto>('/organizations/current/bakong', {
       method: 'PUT',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  verifyOrgBakongAccount: (token: string, input: VerifyBakongAccountInput) =>
+    request<VerifyBakongAccountResultDto>('/organizations/current/bakong/verify', {
+      method: 'POST',
       token,
       body: JSON.stringify(input),
     }),

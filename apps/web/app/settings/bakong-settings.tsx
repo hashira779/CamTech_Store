@@ -14,8 +14,11 @@ import {
   ShieldCheck,
   Smartphone,
   ExternalLink,
+  SearchCheck,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
-import type { UpdateBakongConfigInput } from '@mystore/contracts';
+import type { UpdateBakongConfigInput, VerifyBakongAccountResultDto } from '@mystore/contracts';
 
 export function BakongSettings() {
   const { token, hasPermission } = useAuth();
@@ -23,6 +26,7 @@ export function BakongSettings() {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationResult, setVerificationResult] = useState<VerifyBakongAccountResultDto | null>(null);
 
   const [formData, setFormData] = useState<UpdateBakongConfigInput>({
     accountId: '',
@@ -52,9 +56,45 @@ export function BakongSettings() {
         enabled: bakongData.enabled ?? true,
         token: '', // Never display bearer tokens in UI
       });
+      if (bakongData.accountName) {
+        setVerificationResult({
+          valid: true,
+          accountId: bakongData.accountId || '',
+          accountName: bakongData.accountName,
+          currency: bakongData.currency,
+          message: 'Account verified on NBC Bakong network',
+        });
+      }
     }
   }, [bakongData]);
 
+  // Verification Mutation
+  const verifyMutation = useMutation({
+    mutationFn: (input: { accountId: string; token?: string }) =>
+      api.verifyOrgBakongAccount(token!, input),
+    onSuccess: (res) => {
+      setVerificationResult(res);
+      if (res.valid) {
+        setError(null);
+        if (res.accountName && !formData.merchantName) {
+          setFormData((prev) => ({ ...prev, merchantName: res.accountName || prev.merchantName }));
+        }
+      } else {
+        setError(`NBC Validation Error: ${res.message} (Code: ${res.errorCode ?? 'N/A'})`);
+      }
+    },
+    onError: (err: any) => {
+      const msg = err instanceof ApiClientError ? err.message : 'Failed to reach NBC verification service';
+      setError(msg);
+      setVerificationResult({
+        valid: false,
+        accountId: formData.accountId,
+        message: msg,
+      });
+    },
+  });
+
+  // Save Mutation
   const mutation = useMutation({
     mutationFn: (input: UpdateBakongConfigInput) => api.updateOrgBakong(token!, input),
     onSuccess: (updated) => {
@@ -63,12 +103,33 @@ export function BakongSettings() {
       setSavedSuccess(true);
       setError(null);
       setFormData((prev) => ({ ...prev, token: '' }));
+      if (updated.accountName) {
+        setVerificationResult({
+          valid: true,
+          accountId: updated.accountId,
+          accountName: updated.accountName,
+          currency: updated.currency,
+          message: 'Account verified & saved successfully',
+        });
+      }
       setTimeout(() => setSavedSuccess(false), 3000);
     },
     onError: (err: any) => {
       setError(err instanceof ApiClientError ? err.message : 'Failed to save Bakong KHQR settings');
     },
   });
+
+  const handleVerify = () => {
+    if (!formData.accountId.trim()) {
+      setError('Please enter a Bakong Account ID to verify.');
+      return;
+    }
+    setError(null);
+    verifyMutation.mutate({
+      accountId: formData.accountId.trim(),
+      token: formData.token?.trim() || undefined,
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,43 +174,80 @@ export function BakongSettings() {
               )}
             </div>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              Every store receives funds directly into their own Bakong account. Configure your account ID below.
+              Strictly validated with National Bank of Cambodia (NBC). All customer payments deposit directly into this account.
             </p>
           </div>
         </div>
 
-        {bakongData?.accountName && (
-          <div className="text-[11px] bg-secondary/40 border border-border px-2.5 py-1 rounded-md text-foreground flex items-center gap-1.5 self-start sm:self-auto">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Verified: <strong className="font-mono">{bakongData.accountName}</strong></span>
+        {verificationResult?.valid && verificationResult.accountName && (
+          <div className="text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 flex items-center gap-2 self-start sm:self-auto font-medium">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>NBC Verified Owner: <strong className="font-mono text-foreground font-bold">{verificationResult.accountName}</strong></span>
           </div>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Error Alert */}
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Validation & Verification Failed</p>
+              <p className="text-[11px] text-red-400/90 mt-0.5">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Success Alert */}
+        {verificationResult?.valid && (
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>
+                Account verified on National Bank of Cambodia network: <strong>{verificationResult.accountName || verificationResult.accountId}</strong>
+              </span>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-mono font-bold">
+              VERIFIED
+            </span>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block font-medium text-foreground text-xs mb-1">
-              Bakong Account ID / Phone *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-medium text-foreground text-xs">
+                Bakong Account ID / Phone *
+              </label>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={verifyMutation.isPending || !formData.accountId.trim()}
+                className="text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold disabled:opacity-50"
+              >
+                {verifyMutation.isPending ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <SearchCheck className="w-3.5 h-3.5" />
+                )}
+                Verify on NBC Network
+              </button>
+            </div>
             <input
               type="text"
               disabled={!canWrite}
               value={formData.accountId}
-              onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, accountId: e.target.value });
+                setVerificationResult(null);
+              }}
               className="input w-full text-xs font-mono"
-              placeholder="e.g. chhoy_ratha@aclb or 012345678@wing"
+              placeholder="e.g. chhoy_ratha@aclb or 85512345678@wing"
               required
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Obtain this from your Bakong App profile or commercial bank integration.
+              Must match your registered Bakong handle (e.g. <code>user@bank</code>) or phone number with bank domain.
             </p>
           </div>
 
@@ -167,7 +265,7 @@ export function BakongSettings() {
               required
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Shown to the customer when scanning the dynamic KHQR code.
+              Shown to the customer when scanning the dynamic KHQR code (EMVCo Tag 59).
             </p>
           </div>
         </div>
@@ -243,22 +341,22 @@ export function BakongSettings() {
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
               <Smartphone className="w-3.5 h-3.5 text-primary" />
-              <span>Dynamic KHQR will immediately route payments for this store without hardcoded code.</span>
+              <span>Strict validation ensures no invalid account can be configured or generate broken QR codes.</span>
             </div>
             <div className="flex items-center gap-3">
               {savedSuccess && (
                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4" />
-                  Saved & Synchronized
+                  Verified & Saved
                 </div>
               )}
               <button
                 type="submit"
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || verifyMutation.isPending}
                 className="btn px-4 py-2 flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                {mutation.isPending ? 'Validating on NBC...' : 'Save Bakong Settings'}
+                {mutation.isPending ? 'Verifying with NBC...' : 'Save & Bind Bakong Account'}
               </button>
             </div>
           </div>

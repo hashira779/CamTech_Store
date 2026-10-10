@@ -93,6 +93,20 @@ export interface UpdateBakongConfigInput {
   token?: string;
 }
 
+export interface VerifyBakongAccountInput {
+  accountId: string;
+  token?: string;
+}
+
+export interface VerifyBakongAccountResultDto {
+  valid: boolean;
+  accountId: string;
+  accountName?: string | null;
+  currency?: string | null;
+  errorCode?: number | null;
+  message: string;
+}
+
 export interface OrganizationChannelsDto {
   organizationId: string;
   organizationName: string;
