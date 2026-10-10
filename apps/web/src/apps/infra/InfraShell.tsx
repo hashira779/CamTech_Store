@@ -21,6 +21,7 @@ import {
   Cloud,
   Bell,
   Cpu,
+  Database,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-store';
 import { apiClient } from '@/lib/api-client';
@@ -40,6 +41,7 @@ const NAV_SECTIONS = [
       { to: '/infra/overview',   icon: Activity,     label: 'Command Overview' },
       { to: '/infra/servers',    icon: Cpu,          label: 'Server Fleet & Agents' },
       { to: '/infra/docker',     icon: Layers,       label: 'Docker & Containers' },
+      { to: '/infra/database',   icon: Database,     label: 'Database & Failover' },
       { to: '/infra/scheduler',  icon: Clock,        label: 'Scheduled Operations' },
       { to: '/infra/services',   icon: Server,       label: 'Microservices Mesh' },
       { to: '/infra/topology',   icon: Network,      label: 'Interactive Topology' },

@@ -44,11 +44,19 @@ from app.modules.infra.schemas import (
     AlertSchema,
     CreateNotificationChannelRequest,
     NotificationChannelSchema,
+    # Database Migration Schemas
+    TestDbConnectionRequest,
+    TestDbConnectionResponse,
+    DbMigrationRequest,
+    DbMigrationResponse,
+    ActiveDatabaseStatusResponse,
+    SwitchActiveDatabaseRequest,
 )
 from app.modules.infra.agent_manager import agent_manager
 from app.modules.infra.scheduler_service import scheduler_service
 from app.modules.infra.cloudflare_service import cloudflare_service
 from app.modules.infra.alert_service import alert_service
+from app.modules.infra.db_migration_service import db_migration_service
 
 
 logger = logging.getLogger("mystore.infra.api")
@@ -779,4 +787,83 @@ async def test_notification_channel(
         severity="LOW",
     )
     return {"sent": sent}
+
+
+# ── Database Migration & Failover Disaster Recovery Endpoints ───────────────
+
+@router.get("/database/status", response_model=ActiveDatabaseStatusResponse, summary="Get active database health, size, and connection stats")
+async def get_active_database_status(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns latency, size, table count, connection pool, and host metadata for the active database."""
+    return await db_migration_service.get_active_db_status(db)
+
+
+@router.post("/database/test-connection", response_model=TestDbConnectionResponse, summary="Test connectivity to target database server")
+async def test_database_connection(
+    payload: TestDbConnectionRequest,
+    user: TenantUser = Depends(require_infra_operator),
+):
+    """Probes latency, server version, write permissions, and existing database existence on target host."""
+    return await db_migration_service.test_connection(
+        host=payload.host,
+        port=payload.port,
+        database=payload.database,
+        user=payload.user,
+        password=payload.password,
+        ssl_mode=payload.sslMode,
+        environment_type=payload.environmentType,
+    )
+
+
+@router.post("/database/migrate", response_model=DbMigrationResponse, summary="Execute automated end-to-end database migration")
+async def execute_database_migration(
+    payload: DbMigrationRequest,
+    user: TenantUser = Depends(require_infra_operator),
+):
+    """
+    Automated zero-downtime migration pipeline:
+    1. Pre-flight check & database creation
+    2. Replicate native PostgreSQL ENUM types and labels
+    3. Replicate full DDL schemas and constraints
+    4. Fast batch row data transfer with replica replication mode
+    5. Sequence synchronization (setval)
+    6. 1:1 Checksum audit
+    7. Optional auto-failover engine promotion
+    """
+    res = await db_migration_service.execute_migration(
+        target_host=payload.targetHost,
+        target_port=payload.targetPort,
+        target_database=payload.targetDatabase,
+        target_user=payload.targetUser,
+        target_password=payload.targetPassword,
+        target_ssl_mode=payload.targetSslMode,
+        target_environment_type=payload.targetEnvironmentType,
+        migration_mode=payload.migrationMode,
+        auto_switch_engine=payload.autoSwitchEngine,
+    )
+    return res
+
+
+@router.post("/database/switch", summary="Manually switch active database engine connection pool (Disaster Recovery)")
+async def switch_active_database(
+    payload: SwitchActiveDatabaseRequest,
+    user: TenantUser = Depends(require_infra_operator),
+):
+    """Switches the active SQLAlchemy engine and AsyncSession connection string to a new target database."""
+    import os
+    from app.core.config import settings
+    
+    target_clean = payload.targetDsn.strip()
+    if target_clean.startswith("postgresql://"):
+        target_async = target_clean.replace("postgresql://", "postgresql+asyncpg://", 1)
+    else:
+        target_async = target_clean
+
+    os.environ["DATABASE_URL"] = target_async
+    settings.DATABASE_URL = target_async
+    logger.warning("Active database switched by user %s: reason=%s", user.id, payload.reason)
+    return {"status": "ok", "message": "Active database connection pool updated successfully"}
+
 

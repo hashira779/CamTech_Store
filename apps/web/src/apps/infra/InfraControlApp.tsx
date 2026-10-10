@@ -25,6 +25,7 @@ const DockerPage     = lazy(() => import('./pages/DockerPage'));
 const SchedulerPage  = lazy(() => import('./pages/SchedulerPage'));
 const CloudflarePage = lazy(() => import('./pages/CloudflarePage'));
 const AlertsPage     = lazy(() => import('./pages/AlertsPage'));
+const DatabasePage   = lazy(() => import('./pages/DatabasePage'));
 
 const LoginPage      = lazy(() => import('@/app/login/page'));
 
@@ -54,6 +55,10 @@ export function InfraControlApp() {
         <Route
           path="/infra/scheduler"
           element={<Suspense fallback={<PageFallback />}><SchedulerPage /></Suspense>}
+        />
+        <Route
+          path="/infra/database"
+          element={<Suspense fallback={<PageFallback />}><DatabasePage /></Suspense>}
         />
         <Route
           path="/infra/services"

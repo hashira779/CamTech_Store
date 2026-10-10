@@ -213,3 +213,86 @@ export interface CreateIncidentRequest {
   description: string;
   affectedServices: string[];
 }
+
+// ─── Database Migration & Failover Disaster Recovery ─────────────────────────
+
+export interface TestDbConnectionRequest {
+  host: string;
+  port?: number;
+  database: string;
+  user: string;
+  password: string;
+  sslMode?: 'disable' | 'prefer' | 'require';
+  environmentType?: 'LOCAL_NODE' | 'PRIVATE_VPC' | 'CLOUD_MANAGED';
+}
+
+export interface TestDbConnectionResponse {
+  success: boolean;
+  latencyMs: number;
+  serverVersion?: string | null;
+  databaseExists: boolean;
+  tableCount: number;
+  writable: boolean;
+  message: string;
+}
+
+export interface TableMigrationStats {
+  tableName: string;
+  sourceRows: number;
+  migratedRows: number;
+  status: 'PENDING' | 'SYNCING' | 'COMPLETED' | 'SKIPPED' | 'FAILED';
+  durationMs?: number | null;
+}
+
+export interface DbMigrationRequest {
+  targetHost: string;
+  targetPort?: number;
+  targetDatabase: string;
+  targetUser: string;
+  targetPassword: string;
+  targetSslMode?: 'disable' | 'prefer' | 'require';
+  targetEnvironmentType?: 'LOCAL_NODE' | 'PRIVATE_VPC' | 'CLOUD_MANAGED';
+  migrationMode?: 'FULL_MIGRATION' | 'SCHEMA_ONLY' | 'DATA_SYNC' | 'FAILOVER_PROMOTE';
+  autoSwitchEngine?: boolean;
+}
+
+export interface DbMigrationResponse {
+  migrationId: string;
+  status: 'COMPLETED' | 'FAILED' | 'RUNNING';
+  totalTables: number;
+  completedTables: number;
+  totalRows: number;
+  migratedRows: number;
+  checksumVerified: boolean;
+  durationSeconds: number;
+  tableStats: TableMigrationStats[];
+  targetDsnMasked: string;
+  activeEngineSwitched: boolean;
+  message: string;
+}
+
+export interface ActiveDatabaseStatusResponse {
+  currentDsnMasked: string;
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  environmentType: string;
+  pingLatencyMs: number;
+  tableCount: number;
+  databaseSizeBytes: number;
+  databaseSizeFormatted: string;
+  poolSize: number;
+  activeConnections: number;
+  maxOverflow: number;
+  serverVersion: string;
+  hasReplica: boolean;
+  replicaLatencyMs?: number | null;
+  status: string;
+}
+
+export interface SwitchActiveDatabaseRequest {
+  targetDsn: string;
+  reason?: string;
+}
+

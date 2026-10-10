@@ -442,3 +442,86 @@ class NotificationChannelSchema(BaseModel):
         return v or {}
 
 
+# ── Database Migration & Failover Disaster Recovery ──────────────────────────
+
+class TestDbConnectionRequest(BaseModel):
+    host: str = Field(..., min_length=1, description="Target database hostname or IP address")
+    port: int = Field(default=5432, ge=1, le=65535)
+    database: str = Field(..., min_length=1, description="Database name")
+    user: str = Field(..., min_length=1, description="Database user")
+    password: str = Field(..., description="Database password")
+    sslMode: str = Field(default="prefer", pattern="^(disable|prefer|require)$")
+    environmentType: str = Field(default="LOCAL_NODE", pattern="^(LOCAL_NODE|PRIVATE_VPC|CLOUD_MANAGED)$")
+
+
+class TestDbConnectionResponse(BaseModel):
+    success: bool
+    latencyMs: float
+    serverVersion: Optional[str] = None
+    databaseExists: bool
+    tableCount: int
+    writable: bool
+    message: str
+
+
+class TableMigrationStats(BaseModel):
+    tableName: str
+    sourceRows: int
+    migratedRows: int
+    status: str
+    durationMs: Optional[float] = None
+
+
+class DbMigrationRequest(BaseModel):
+    targetHost: str = Field(..., min_length=1)
+    targetPort: int = Field(default=5432, ge=1, le=65535)
+    targetDatabase: str = Field(..., min_length=1)
+    targetUser: str = Field(..., min_length=1)
+    targetPassword: str = Field(...)
+    targetSslMode: str = Field(default="prefer", pattern="^(disable|prefer|require)$")
+    targetEnvironmentType: str = Field(default="LOCAL_NODE", pattern="^(LOCAL_NODE|PRIVATE_VPC|CLOUD_MANAGED)$")
+    migrationMode: str = Field(default="FULL_MIGRATION", pattern="^(FULL_MIGRATION|SCHEMA_ONLY|DATA_SYNC|FAILOVER_PROMOTE)$")
+    autoSwitchEngine: bool = Field(default=False, description="Promote target database as active connection upon verification")
+
+
+class DbMigrationResponse(BaseModel):
+    migrationId: str
+    status: str
+    totalTables: int
+    completedTables: int
+    totalRows: int
+    migratedRows: int
+    checksumVerified: bool
+    durationSeconds: float
+    tableStats: List[TableMigrationStats]
+    targetDsnMasked: str
+    activeEngineSwitched: bool
+    message: str
+
+
+class ActiveDatabaseStatusResponse(BaseModel):
+    currentDsnMasked: str
+    host: str
+    port: int
+    database: str
+    user: str
+    environmentType: str
+    pingLatencyMs: float
+    tableCount: int
+    databaseSizeBytes: int
+    databaseSizeFormatted: str
+    poolSize: int
+    activeConnections: int
+    maxOverflow: int
+    serverVersion: str
+    hasReplica: bool
+    replicaLatencyMs: Optional[float] = None
+    status: str
+
+
+class SwitchActiveDatabaseRequest(BaseModel):
+    targetDsn: str = Field(..., min_length=10, description="Target postgresql:// connection string to activate")
+    reason: Optional[str] = Field(default="Manual Disaster Recovery Failover")
+
+
+
