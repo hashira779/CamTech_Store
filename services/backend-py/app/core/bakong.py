@@ -51,6 +51,7 @@ class BakongService:
         app_name: str = "CamTech Store",
         app_icon_url: str = "https://bakong.nbc.gov.kh/images/logo.svg",
         callback_url: str = "https://adminconsol.camtech.cam",
+        token: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate dynamic KHQR code according to NBC specifications:
