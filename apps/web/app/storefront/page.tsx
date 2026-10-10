@@ -126,9 +126,25 @@ export default function StorefrontChannelsPage() {
     createStoreMutation.mutate(newStore);
   };
 
+  // Ensure Telegram Mini App URL always uses dedicated mini domain (mini.camtech.cam or localhost:5007)
+  const resolveMiniAppUrl = (rawUrl?: string, orgId?: string) => {
+    const targetOrg = orgId || activeOrgId;
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return `http://localhost:5007/?org=${targetOrg}`;
+    }
+    if (rawUrl) {
+      return rawUrl
+        .replace(/https?:\/\/(adminconsol|admin)\.[^/]+\/mini\/?/, 'https://mini.camtech.cam/')
+        .replace(/\/mini\/?\?/, '/?');
+    }
+    return `https://mini.camtech.cam/?org=${targetOrg}`;
+  };
+
+  const activeMiniAppUrl = resolveMiniAppUrl(channels?.telegramMiniAppUrl, activeOrgId);
+
   // QR Code URL via standard image generator
-  const qrCodeUrl = channels?.telegramMiniAppUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(channels.telegramMiniAppUrl)}`
+  const qrCodeUrl = activeMiniAppUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(activeMiniAppUrl)}`
     : '';
 
   return (
@@ -223,7 +239,7 @@ export default function StorefrontChannelsPage() {
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </a>
           <a
-            href={channels?.telegramMiniAppUrl || '/mini'}
+            href={activeMiniAppUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
@@ -277,13 +293,13 @@ export default function StorefrontChannelsPage() {
                   <input
                     type="text"
                     readOnly
-                    value={channels?.telegramMiniAppUrl || ''}
+                    value={activeMiniAppUrl}
                     className="w-full text-xs font-mono bg-background border border-border rounded px-2.5 py-1.5 text-foreground truncate"
                   />
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleCopy(channels?.telegramMiniAppUrl || '', 'mini-url')}
+                    onClick={() => handleCopy(activeMiniAppUrl, 'mini-url')}
                   >
                     {copiedKey === 'mini-url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </Button>

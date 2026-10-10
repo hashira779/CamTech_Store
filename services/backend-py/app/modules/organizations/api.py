@@ -593,7 +593,7 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
         api_base = "http://localhost:4000/api/v1"
     else:
         admin_host = os.getenv("ADMIN_DOMAIN", f"adminconsol.{base_domain}")
-        mini_host = os.getenv("MINI_DOMAIN")
+        mini_host = os.getenv("MINI_DOMAIN", f"mini.{base_domain}")
         store_url = f"https://store.{base_domain}/?org={org.id}"
         if mini_host:
             mini_url = f"https://{mini_host}/?org={org.id}"
