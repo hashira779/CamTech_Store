@@ -449,6 +449,19 @@ services:
     networks:
       - mystore-net
 
+  # ── TELEGRAM MINI APP STOREFRONT (DEDICATED CONTAINER · PORT 5007) ──────────
+  mini-app:
+    build:
+      context: .
+      dockerfile: apps/Dockerfile.prod
+      target: mini-app
+    container_name: mystore-mini-app
+    restart: always
+    ports:
+      - '${MINI_PORT_HOST:-5007}:80'
+    networks:
+      - mystore-net
+
   # ── MAIN EDGE REVERSE PROXY (PORT 80 & 443) ──────────────────────────────────
   nginx-ingress:
     image: nginx:1.27-alpine
@@ -469,6 +482,7 @@ services:
       - hr-app
       - ceo-app
       - infra-app
+      - mini-app
     networks:
       - mystore-net
 

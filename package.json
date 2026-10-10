@@ -18,6 +18,8 @@
     "typecheck": "turbo run typecheck --filter=!@mystore/backend --concurrency=2",
     "audit:check": "python services/backend-py/scripts/schema_audit.py && pnpm typecheck",
     "store:dev": "pnpm --filter @mystore/store dev",
+    "mini:dev": "pnpm --filter @mystore/mini dev",
+    "mini:build": "pnpm --filter @mystore/mini build",
     "admin:dev": "pnpm --filter @mystore/web dev",
     "cashier:dev": "pnpm --filter @mystore/cashier dev",
     "delivery:dev": "pnpm --filter @mystore/delivery dev",

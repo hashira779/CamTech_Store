@@ -589,12 +589,16 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
 
     if is_local:
         store_url = f"http://localhost:5001/?org={org.id}"
-        mini_url = f"http://localhost:5002/mini?org={org.id}"
+        mini_url = os.getenv("MINI_APP_URL") or f"http://localhost:5007/?org={org.id}"
         api_base = "http://localhost:4000/api/v1"
     else:
         admin_host = os.getenv("ADMIN_DOMAIN", f"adminconsol.{base_domain}")
+        mini_host = os.getenv("MINI_DOMAIN")
         store_url = f"https://store.{base_domain}/?org={org.id}"
-        mini_url = f"https://{admin_host}/mini?org={org.id}"
+        if mini_host:
+            mini_url = f"https://{mini_host}/?org={org.id}"
+        else:
+            mini_url = os.getenv("MINI_APP_URL") or f"https://{admin_host}/mini/?org={org.id}"
         api_base = f"https://gateway.{base_domain}/api/v1"
 
     return OrganizationChannelsDto(
