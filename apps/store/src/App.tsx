@@ -137,7 +137,7 @@ export function App() {
   const [trackLookupQuery, setTrackLookupQuery] = useState('');
   const [isSearchingTracking, setIsSearchingTracking] = useState(false);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'COD'>('ABA_PAYWAY');
+  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'BAKONG' | 'COD'>('ABA_PAYWAY');
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
@@ -829,8 +829,8 @@ export function App() {
         destLat: coords?.lat ?? null,
         destLng: coords?.lng ?? null,
         date: serverSale.createdAt || new Date().toISOString(),
-        status: serverSale.status || (paymentMethod === 'ABA_PAYWAY' ? 'DRAFT' : 'COMPLETED'),
-        paymentStatus: serverSale.paymentStatus || (paymentMethod === 'ABA_PAYWAY' ? 'PENDING' : 'COMPLETED'),
+        status: serverSale.status || (paymentMethod === 'COD' ? 'COMPLETED' : 'DRAFT'),
+        paymentStatus: serverSale.paymentStatus || (paymentMethod === 'COD' ? 'COMPLETED' : 'PENDING'),
         paymentQrCode: serverSale.paymentQrCode || null,
         paymentDeeplink: serverSale.paymentDeeplink || null,
       };
@@ -1801,7 +1801,7 @@ export function App() {
 
             <p className="text-xs ds-text-dim mt-2">
               {confirmedOrder.status === 'DRAFT'
-                ? `Please scan the dynamic ABA QR code below to complete payment. Your order will NOT be confirmed or dispatched until money is received in the merchant account.`
+                ? `Please scan the dynamic ${confirmedOrder.paymentMethod === 'BAKONG' ? 'NBC Bakong KHQR' : 'ABA PayWay'} code below to complete payment. Your order will NOT be confirmed or dispatched until money is received in the merchant account.`
                 : `Thank you, ${confirmedOrder.customer?.name || 'Customer'}! Payment received and order dispatched to delivery fleet.`}
             </p>
 
@@ -1822,13 +1822,17 @@ export function App() {
                 <div className="relative inline-block p-2 bg-white rounded-xl border border-slate-300 shadow-inner">
                   <img
                     src={confirmedOrder.paymentQrCode.startsWith('data:') ? confirmedOrder.paymentQrCode : `data:image/png;base64,${confirmedOrder.paymentQrCode}`}
-                    alt="ABA PayWay / Bakong KHQR"
+                    alt={confirmedOrder.paymentMethod === 'BAKONG' ? "NBC Bakong KHQR" : "ABA PayWay"}
                     className="w-44 h-44 sm:w-52 sm:h-52 mx-auto object-contain"
                   />
                 </div>
 
                 <p className="text-[11px] text-slate-600 font-medium">
-                  Scan with <strong>ABA Mobile</strong>, <strong>Bakong</strong>, or any Cambodian bank app.
+                  {confirmedOrder.paymentMethod === 'BAKONG' ? (
+                    <>Scan with <strong>Bakong</strong>, <strong>ABA</strong>, <strong>ACLEDA</strong>, <strong>Wing</strong>, or any Cambodian bank app.</>
+                  ) : (
+                    <>Scan with <strong>ABA Mobile</strong> or any Bakong KHQR supported app.</>
+                  )}
                 </p>
 
                 {confirmedOrder.paymentDeeplink && (
@@ -1836,9 +1840,13 @@ export function App() {
                     href={confirmedOrder.paymentDeeplink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition"
+                    className={`block w-full py-2.5 rounded-xl text-white font-bold text-xs shadow-md transition ${
+                      confirmedOrder.paymentMethod === 'BAKONG'
+                        ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 shadow-rose-600/30'
+                        : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
+                    }`}
                   >
-                    Open in ABA Mobile
+                    {confirmedOrder.paymentMethod === 'BAKONG' ? 'Open in Bakong App' : 'Open in ABA Mobile'}
                   </a>
                 )}
 

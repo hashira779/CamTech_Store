@@ -13,12 +13,13 @@ from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_optional_user, TenantUser
 from app.core.config import settings
 from app.core.payway import PaywayService
+from app.core.bakong import BakongService
 
 import os
 from ..models import Sale, SaleLineItem, SalePayment
 from ..schemas import SaleDto, StoreCheckoutInput, SaleLineItemDto, SalePaymentDto
 from ..services.checkout_orchestrator import CheckoutOrchestrator
-from app.modules.organizations.models import PaywayConfig
+from app.modules.organizations.models import PaywayConfig, Organization
 
 router = APIRouter(tags=["Storefront Checkout"])
 
@@ -118,12 +119,18 @@ async def store_checkout(
         db.add(li)
 
     # 6. Create Payment Record
+    provider_name = "Pay by Cash"
+    if "BAKONG" in payload.paymentMethod.upper():
+        provider_name = "NBC Bakong"
+    elif pay_method == "QR":
+        provider_name = "ABA PayWay"
+
     payment = SalePayment(
         id=str(uuid.uuid4()),
         sale_id=sale_id,
         method=pay_method,
         status=payment_initial_status,
-        provider="ABA PayWay" if pay_method == "QR" else "Pay by Cash",
+        provider=provider_name,
         amount=grand_total,
         reference=f"TXN-{secrets.token_hex(4).upper()}",
         paid_at=utc_now() if payment_initial_status == "COMPLETED" else None,
@@ -146,7 +153,7 @@ async def store_checkout(
     customer.notes = json.dumps(cust_notes)
 
     # 8. Inventory & Delivery Dispatch:
-    # CRITICAL PRODUCTION RULE: Unpaid online orders (QR/ABA) MUST NOT deduct inventory
+    # CRITICAL PRODUCTION RULE: Unpaid online orders (QR/ABA/Bakong) MUST NOT deduct inventory
     # or dispatch delivery fleet until payment is verified and confirmed!
     # Only Cash on Delivery (COD/CASH) dispatches immediately upon placement.
     deliv_order = None
@@ -165,36 +172,67 @@ async def store_checkout(
     payment_qr_code = None
     payment_deeplink = None
     if pay_method == "QR":
-        # Fetch dynamic PayWay config for this organization
-        pw_config = (
-            await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))
-        ).scalar_one_or_none()
-        merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
+        if "BAKONG" in payload.paymentMethod.upper():
+            org_stmt = select(Organization).where(Organization.id == target_org)
+            org_res = await db.execute(org_stmt)
+            org = org_res.scalar_one_or_none()
+            merchant_name = org.name if org else "CamTech Store"
+            bakong_account = "camtech@devb"
+            if org and org.settings:
+                try:
+                    s_data = json.loads(org.settings)
+                    if isinstance(s_data, dict) and s_data.get("bakongAccountId"):
+                        bakong_account = s_data["bakongAccountId"]
+                except Exception:
+                    pass
 
-        qr_result = await PaywayService.generate_qr(
-            merchant_id=merchant_id,
-            api_key=api_key,
-            transaction_id=sale.sale_number,
-            amount=float(grand_total),
-            items=[
-                {
-                    "name": str(li.product_name),
-                    "quantity": int(li.quantity),
-                    "price": float(li.unit_price),
-                }
-                for li in line_entities
-            ],
-            firstname=name_clean.split(" ")[0] if name_clean else "Customer",
-            lastname=" ".join(name_clean.split(" ")[1:]) if name_clean and len(name_clean.split(" ")) > 1 else "",
-            email=email_clean or "customer@camtech.cam",
-            phone=phone_clean or "012345678",
-            currency=sale.currency or "USD",
-            is_production=is_prod,
-        )
+            bakong_res = await BakongService.generate_khqr(
+                merchant_name=merchant_name,
+                account_id=bakong_account,
+                amount=float(grand_total),
+                currency=sale.currency or "USD",
+                app_name="CamTech Store",
+            )
+            if bakong_res.get("success"):
+                payment_qr_code = bakong_res.get("qr_image")
+                payment_deeplink = bakong_res.get("deeplink")
+                payment.reference = f"MD5:{bakong_res['md5']}"
+                notes_dict["bakong_md5"] = bakong_res["md5"]
+                notes_dict["bakong_qr_string"] = bakong_res.get("qr_string")
+                sale.notes = json.dumps(notes_dict)
+                db.add(sale)
+                db.add(payment)
+        else:
+            # Fetch dynamic PayWay config for this organization
+            pw_config = (
+                await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))
+            ).scalar_one_or_none()
+            merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
 
-        if qr_result.get("success"):
-            payment_qr_code = qr_result.get("qr_image")
-            payment_deeplink = qr_result.get("abapay_deeplink")
+            qr_result = await PaywayService.generate_qr(
+                merchant_id=merchant_id,
+                api_key=api_key,
+                transaction_id=sale.sale_number,
+                amount=float(grand_total),
+                items=[
+                    {
+                        "name": str(li.product_name),
+                        "quantity": int(li.quantity),
+                        "price": float(li.unit_price),
+                    }
+                    for li in line_entities
+                ],
+                firstname=name_clean.split(" ")[0] if name_clean else "Customer",
+                lastname=" ".join(name_clean.split(" ")[1:]) if name_clean and len(name_clean.split(" ")) > 1 else "",
+                email=email_clean or "customer@camtech.cam",
+                phone=phone_clean or "012345678",
+                currency=sale.currency or "USD",
+                is_production=is_prod,
+            )
+
+            if qr_result.get("success"):
+                payment_qr_code = qr_result.get("qr_image")
+                payment_deeplink = qr_result.get("abapay_deeplink")
 
     return SaleDto(
         id=sale.id,
@@ -274,9 +312,50 @@ async def get_order_payment_status(
             "saleId": sale.id,
             "saleNumber": sale.sale_number,
             "amount": float(sale.grand_total),
+            "provider": payment.provider if payment else "UNKNOWN",
         }
 
-    # If pending, attempt proactive check with ABA PayWay server
+    # Check if this order is NBC Bakong KHQR
+    is_bakong = False
+    bakong_md5 = None
+    if payment and (payment.provider == "NBC Bakong" or (payment.reference and payment.reference.startswith("MD5:"))):
+        is_bakong = True
+        if payment.reference and payment.reference.startswith("MD5:"):
+            bakong_md5 = payment.reference.replace("MD5:", "").strip()
+
+    if not bakong_md5 and sale.notes:
+        try:
+            n_data = json.loads(sale.notes)
+            if isinstance(n_data, dict) and n_data.get("bakong_md5"):
+                bakong_md5 = n_data["bakong_md5"]
+                is_bakong = True
+        except Exception:
+            pass
+
+    if is_bakong and bakong_md5:
+        # Check transaction status via official NBC Bakong Open API
+        bakong_status = await BakongService.check_transaction_by_md5(bakong_md5)
+        if bakong_status.get("verified"):
+            await _finalize_paid_sale(db, sale, payment)
+            return {
+                "paid": True,
+                "status": "COMPLETED",
+                "saleId": sale.id,
+                "saleNumber": sale.sale_number,
+                "amount": float(sale.grand_total),
+                "provider": "NBC Bakong",
+            }
+        return {
+            "paid": False,
+            "status": sale.status,
+            "saleId": sale.id,
+            "saleNumber": sale.sale_number,
+            "amount": float(sale.grand_total),
+            "provider": "NBC Bakong",
+            "message": bakong_status.get("message", "Awaiting customer payment"),
+        }
+
+    # If pending ABA PayWay, attempt proactive check with ABA PayWay server
     pw_config = (
         await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
     ).scalar_one_or_none()
@@ -297,6 +376,7 @@ async def get_order_payment_status(
                 "saleId": sale.id,
                 "saleNumber": sale.sale_number,
                 "amount": float(sale.grand_total),
+                "provider": "ABA PayWay",
             }
 
     return {
@@ -305,6 +385,7 @@ async def get_order_payment_status(
         "saleId": sale.id,
         "saleNumber": sale.sale_number,
         "amount": float(sale.grand_total),
+        "provider": "ABA PayWay",
     }
 
 @router.post("/sales/orders/{sale_id}/confirm-payment")
@@ -344,25 +425,50 @@ async def confirm_order_payment(
     # CRITICAL E-COMMERCE INTEGRITY RULE:
     # Online QR / ABA PayWay / Bakong payments MUST NOT be marked COMPLETED without
     # positive verification from the banking gateway.
-    pw_config = (
-        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
-    ).scalar_one_or_none()
+    is_bakong = False
+    bakong_md5 = None
+    if payment and (payment.provider == "NBC Bakong" or (payment.reference and payment.reference.startswith("MD5:"))):
+        is_bakong = True
+        if payment.reference and payment.reference.startswith("MD5:"):
+            bakong_md5 = payment.reference.replace("MD5:", "").strip()
 
-    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
+    if not bakong_md5 and sale.notes:
+        try:
+            n_data = json.loads(sale.notes)
+            if isinstance(n_data, dict) and n_data.get("bakong_md5"):
+                bakong_md5 = n_data["bakong_md5"]
+                is_bakong = True
+        except Exception:
+            pass
+
     is_verified = False
-    if merchant_id and api_key and merchant_id != "unconfigured":
-        is_verified = await PaywayService.verify_transaction(
-            merchant_id=merchant_id,
-            api_key=api_key,
-            tran_id=sale.sale_number,
-            is_production=is_prod,
-        )
+    if is_bakong and bakong_md5:
+        bakong_status = await BakongService.check_transaction_by_md5(bakong_md5)
+        is_verified = bakong_status.get("verified", False)
+        if not is_verified:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Transaction not yet verified by NBC Bakong Open API. {bakong_status.get('message', 'Funds have not been received in merchant account.')}",
+            )
+    else:
+        pw_config = (
+            await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
+        ).scalar_one_or_none()
 
-    if not is_verified:
-        raise HTTPException(
-            status_code=400,
-            detail="Transaction not yet verified by ABA PayWay banking gateway. Funds have not been received in merchant account.",
-        )
+        merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
+        if merchant_id and api_key and merchant_id != "unconfigured":
+            is_verified = await PaywayService.verify_transaction(
+                merchant_id=merchant_id,
+                api_key=api_key,
+                tran_id=sale.sale_number,
+                is_production=is_prod,
+            )
+
+        if not is_verified:
+            raise HTTPException(
+                status_code=400,
+                detail="Transaction not yet verified by ABA PayWay banking gateway. Funds have not been received in merchant account.",
+            )
 
     await _finalize_paid_sale(db, sale, payment)
 
@@ -422,7 +528,7 @@ async def _finalize_paid_sale(db: AsyncSession, sale: Sale, payment: Optional[Sa
         customerPhone=phone_clean,
         deliveryAddress=deliv_addr,
         items=[],
-        paymentMethod="ABA_PAYWAY",
+        paymentMethod="BAKONG" if (payment and payment.provider == "NBC Bakong") else "ABA_PAYWAY",
     )
 
     await CheckoutOrchestrator.trigger_dispatch_and_notifications(

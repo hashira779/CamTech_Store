@@ -28,13 +28,32 @@ interface CheckoutModalProps {
   isLocating: boolean;
   coords: { lat: number; lng: number } | null;
   setCoords: (c: { lat: number; lng: number } | null) => void;
-  paymentMethod: 'ABA_PAYWAY' | 'COD';
-  setPaymentMethod: (m: 'ABA_PAYWAY' | 'COD') => void;
+  paymentMethod: 'ABA_PAYWAY' | 'BAKONG' | 'COD';
+  setPaymentMethod: (m: 'ABA_PAYWAY' | 'BAKONG' | 'COD') => void;
   cartTotal: number;
   handleCheckout: () => void;
   syncCustomerWithDatabase: (data: any) => void;
   toast: any;
 }
+
+const AbaLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-[#004b7a] text-white font-black text-[11px] tracking-tight rounded-xl select-none px-2 py-1 shadow-sm border border-[#00bcd4]/30 ${className}`}>
+    <span className="text-[#00bcd4]">A</span>
+    <span>BA</span>
+  </div>
+);
+
+const BakongLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-gradient-to-r from-[#E1251B] to-[#b3140c] text-white font-black text-[10px] tracking-wider rounded-xl select-none px-2 py-1 shadow-sm border border-rose-400/30 ${className}`}>
+    <span>KHQR</span>
+  </div>
+);
+
+const CashLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-[11px] rounded-xl select-none px-2 py-1 shadow-sm border border-emerald-400/30 ${className}`}>
+    <span>COD 💵</span>
+  </div>
+);
 
 export function CheckoutModal({
   isOpen, onClose, customer, setCustomer, guestName, setGuestName,
@@ -257,47 +276,105 @@ export function CheckoutModal({
 
           <div>
             <label className="text-xs font-semibold ds-text-dim block mb-2">Select Payment Method</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* ABA PayWay */}
               <button
+                type="button"
                 onClick={() => setPaymentMethod('ABA_PAYWAY')}
-                className={`p-3 rounded-xl border flex items-center gap-2 transition ${
+                className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                   paymentMethod === 'ABA_PAYWAY'
-                    ? 'bg-blue-500/10 border-blue-500 text-blue-400 font-bold'
-                    : 'bg-ink-800/80 border-line-strong ds-text-dim'
+                    ? 'bg-blue-600/15 border-blue-500 text-blue-400 ring-2 ring-blue-500/30 shadow-lg shadow-blue-900/30'
+                    : 'bg-ink-800/70 border-line-strong ds-text-dim hover:border-slate-500 hover:bg-ink-800'
                 }`}
               >
-                <QrCode className="w-5 h-5 text-blue-400" />
-                <div className="text-left">
-                  <p className="text-xs">ABA PayWay</p>
-                  <p className="text-[10px] ds-text-dim font-normal">Scan with ABA Mobile</p>
+                <div className="flex items-center justify-between w-full mb-2">
+                  <AbaLogo className="w-9 h-7 rounded-lg" />
+                  {paymentMethod === 'ABA_PAYWAY' && (
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-bold ds-text">ABA PayWay</p>
+                  <p className="text-[10px] ds-text-dim font-normal mt-0.5">ABA Mobile App</p>
                 </div>
               </button>
 
+              {/* Bakong KHQR */}
               <button
-                onClick={() => setPaymentMethod('COD')}
-                className={`p-3 rounded-xl border flex items-center gap-2 transition ${
-                  paymentMethod === 'COD'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
-                    : 'bg-ink-800/80 border-line-strong ds-text-dim'
+                type="button"
+                onClick={() => setPaymentMethod('BAKONG')}
+                className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                  paymentMethod === 'BAKONG'
+                    ? 'bg-rose-600/15 border-rose-500 text-rose-400 ring-2 ring-rose-500/30 shadow-lg shadow-rose-900/30'
+                    : 'bg-ink-800/70 border-line-strong ds-text-dim hover:border-slate-500 hover:bg-ink-800'
                 }`}
               >
-                <Truck className="w-5 h-5 text-emerald-400" />
-                <div className="text-left">
-                  <p className="text-xs">Pay by Cash</p>
-                  <p className="text-[10px] ds-text-dim font-normal">Pay Driver Upon Arrival</p>
+                <div className="flex items-center justify-between w-full mb-2">
+                  <BakongLogo className="w-11 h-7 rounded-lg" />
+                  {paymentMethod === 'BAKONG' && (
+                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-bold ds-text">Bakong KHQR</p>
+                  <p className="text-[10px] ds-text-dim font-normal mt-0.5">All Cambodian Banks</p>
+                </div>
+              </button>
+
+              {/* Cash on Delivery */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('COD')}
+                className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                  paymentMethod === 'COD'
+                    ? 'bg-emerald-600/15 border-emerald-500 text-emerald-400 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-900/30'
+                    : 'bg-ink-800/70 border-line-strong ds-text-dim hover:border-slate-500 hover:bg-ink-800'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-2">
+                  <CashLogo className="w-14 h-7 rounded-lg" />
+                  {paymentMethod === 'COD' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-bold ds-text">Pay by Cash</p>
+                  <p className="text-[10px] ds-text-dim font-normal mt-0.5">Pay Driver On Arrival</p>
                 </div>
               </button>
             </div>
           </div>
 
-          {/* Dynamic ABA PayWay Integration Notice */}
+          {/* Dynamic Payment Integration Notice */}
           {paymentMethod === 'ABA_PAYWAY' && (
-            <div className="p-3.5 rounded-xl bg-gradient-to-b from-blue-950/20 to-ink-950/80 border border-blue-800/20 text-center space-y-2">
+            <div className="p-3.5 rounded-xl bg-gradient-to-b from-blue-950/30 to-ink-950/80 border border-blue-800/30 text-center space-y-1.5 animate-in fade-in">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-blue-600/30">
-                <span>ABA PayWay</span> • <span>Secure Payment</span>
+                <span>ABA PayWay</span> • <span>Direct Payment</span>
               </div>
               <p className="text-xs ds-text-dim px-2">
-                Your official ABA PayWay QR code and mobile deep link will be generated securely on the next screen once your order is placed.
+                Official ABA PayWay QR code and mobile deep link will be generated securely on the next screen once your order is placed.
+              </p>
+            </div>
+          )}
+
+          {paymentMethod === 'BAKONG' && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-b from-rose-950/30 to-ink-950/80 border border-rose-800/30 text-center space-y-1.5 animate-in fade-in">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-md shadow-rose-600/30">
+                <span>NBC Bakong KHQR</span> • <span>National Network</span>
+              </div>
+              <p className="text-xs ds-text-dim px-2">
+                Scannable with Bakong, ABA Mobile, ACLEDA, Wing, Canadia, Sathapana, or any Cambodian bank app. Deep link provided.
+              </p>
+            </div>
+          )}
+
+          {paymentMethod === 'COD' && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-b from-emerald-950/30 to-ink-950/80 border border-emerald-800/30 text-center space-y-1.5 animate-in fade-in">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-slate-950 font-bold text-[10px] tracking-wider uppercase shadow-md shadow-emerald-600/30">
+                <span>Cash on Delivery</span> • <span>Driver Settlement</span>
+              </div>
+              <p className="text-xs ds-text-dim px-2">
+                Your order is confirmed and dispatched immediately to our delivery driver. Settle payment in cash upon delivery.
               </p>
             </div>
           )}
@@ -313,7 +390,13 @@ export function CheckoutModal({
             className="px-4 sm:px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer shrink-0"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>{paymentMethod === 'ABA_PAYWAY' ? 'Order & Get QR' : 'Place Order'}</span>
+            <span>
+              {paymentMethod === 'ABA_PAYWAY'
+                ? 'Order & Get ABA QR'
+                : paymentMethod === 'BAKONG'
+                ? 'Order & Get Bakong KHQR'
+                : 'Place Order (Pay Cash)'}
+            </span>
           </button>
         </div>
       </div>

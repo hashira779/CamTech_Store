@@ -252,10 +252,10 @@ class InfraControlService:
         for defn in MICROSERVICE_DEFINITIONS:
             health = await self.probe_service_health(defn["port"])
             stat = svc_map.get(defn["id"]) or svc_map.get(defn["name"]) or {}
-            rps = round(float(stat.get("requests", 0)) / 900.0, 2)
+            rps = round(float(stat.get("requests") or 0) / 900.0, 2)
             p95 = float(stat.get("p95") or health["latencyMs"])
-            errs = int(stat.get("server_errors", 0))
-            total_reqs = int(stat.get("requests", 0))
+            errs = int(stat.get("server_errors") or 0)
+            total_reqs = int(stat.get("requests") or 0)
             err_pct = round((errs / total_reqs * 100), 2) if total_reqs > 0 else 0.0
 
             services.append(

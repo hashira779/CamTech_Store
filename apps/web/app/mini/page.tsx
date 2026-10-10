@@ -65,7 +65,27 @@ interface SavedOrder {
   deliveryAddress: string;
   paymentQrCode?: string | null;
   paymentDeeplink?: string | null;
+  provider?: string;
 }
+
+const AbaLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-[#004b7a] text-white font-black text-[11px] tracking-tight rounded-xl select-none px-2 py-1 shadow-sm border border-[#00bcd4]/30 ${className}`}>
+    <span className="text-[#00bcd4]">A</span>
+    <span>BA</span>
+  </div>
+);
+
+const BakongLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-gradient-to-r from-[#E1251B] to-[#b3140c] text-white font-black text-[10px] tracking-wider rounded-xl select-none px-2 py-1 shadow-sm border border-rose-400/30 ${className}`}>
+    <span>KHQR</span>
+  </div>
+);
+
+const CashLogo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-[10px] rounded-xl select-none px-2 py-1 shadow-sm border border-emerald-400/30 ${className}`}>
+    <span>COD 💵</span>
+  </div>
+);
 
 const CATEGORIES = [
   { id: 'ALL', name: 'All Menu', icon: Sparkles },
@@ -137,7 +157,7 @@ export default function TelegramMiniAppPage() {
   const [locationEnabled, setLocationEnabled] = useState(false);
 
   // Payment state
-  const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'CASH'>('KHQR');
+  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'BAKONG' | 'COD'>('BAKONG');
   const [activePaymentSale, setActivePaymentSale] = useState<any | null>(null);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const paymentPollIntervalRef = useRef<any>(null);
@@ -356,7 +376,7 @@ export default function TelegramMiniAppPage() {
         customerPhone: customerPhone,
         deliveryAddress: deliveryAddress,
         notes: `Mini App Order (${cart.map(c => `${c.name} [${c.size}, ${c.sugarLevel} sugar]`).join(', ')})`,
-        paymentMethod: paymentMethod === 'KHQR' ? 'ABA_PAYWAY' : 'COD',
+        paymentMethod: paymentMethod,
         organizationId: orgParam,
         items: cart.map(i => ({
           id: i.variantId,
@@ -384,6 +404,7 @@ export default function TelegramMiniAppPage() {
       toast.dismiss(toastId);
 
       if (res && res.id) {
+        const isQr = paymentMethod === 'ABA_PAYWAY' || paymentMethod === 'BAKONG';
         const newOrder: SavedOrder = {
           id: res.id,
           saleNumber: res.saleNumber || `#ORD-${res.id.slice(0, 6).toUpperCase()}`,
@@ -396,18 +417,19 @@ export default function TelegramMiniAppPage() {
             sugarLevel: c.sugarLevel
           })),
           total: cartTotal,
-          status: paymentMethod === 'KHQR' ? 'PENDING' : 'CONFIRMED',
-          paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR' : 'Cash on Delivery',
+          status: isQr ? 'PENDING' : 'CONFIRMED',
+          paymentMethod: paymentMethod === 'BAKONG' ? 'Bakong KHQR' : paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay' : 'Cash on Delivery',
           deliveryAddress: deliveryAddress,
           paymentQrCode: res.paymentQrCode || null,
           paymentDeeplink: res.paymentDeeplink || null,
+          provider: paymentMethod,
         };
 
         // Save into local history
         setPastOrders(prev => [newOrder, ...prev]);
 
-        if (paymentMethod === 'KHQR' && res.paymentQrCode) {
-          setActivePaymentSale({ ...newOrder, saleId: res.id });
+        if (isQr && res.paymentQrCode) {
+          setActivePaymentSale({ ...newOrder, saleId: res.id, provider: paymentMethod });
           setActiveTab('payment');
           setCart([]);
           startPaymentPolling(res.id);
@@ -754,30 +776,57 @@ export default function TelegramMiniAppPage() {
 
                 {/* Payment Method Selector */}
                 <div className="space-y-2">
-                  <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider">Select Payment</h3>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider">Select Payment Method</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* ABA PayWay */}
                     <button
-                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('KHQR'); }}
-                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
-                        paymentMethod === 'KHQR'
-                          ? 'bg-rose-500/15 border-rose-500 text-rose-300 shadow-md shadow-rose-500/15'
-                          : 'bg-white/5 border-white/10 text-white/50'
+                      type="button"
+                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('ABA_PAYWAY'); }}
+                      className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
+                        paymentMethod === 'ABA_PAYWAY'
+                          ? 'bg-blue-600/25 border-blue-500 text-blue-300 shadow-md shadow-blue-500/20 ring-1 ring-blue-400/50'
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
                     >
-                      <Wallet className="w-5 h-5" />
-                      <span className="font-bold text-xs">Bakong / ABA KHQR</span>
+                      <AbaLogo className="w-10 h-7 rounded-lg" />
+                      <div>
+                        <span className="font-bold text-[11px] block text-white">ABA Pay</span>
+                        <span className="text-[9px] text-white/40 block">ABA Mobile</span>
+                      </div>
                     </button>
 
+                    {/* Bakong KHQR */}
                     <button
-                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('CASH'); }}
-                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
-                        paymentMethod === 'CASH'
-                          ? 'bg-amber-500/15 border-amber-500 text-amber-300 shadow-md shadow-amber-500/15'
-                          : 'bg-white/5 border-white/10 text-white/50'
+                      type="button"
+                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('BAKONG'); }}
+                      className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
+                        paymentMethod === 'BAKONG'
+                          ? 'bg-rose-600/25 border-rose-500 text-rose-300 shadow-md shadow-rose-500/20 ring-1 ring-rose-400/50'
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
                     >
-                      <CreditCard className="w-5 h-5" />
-                      <span className="font-bold text-xs">Cash on Delivery</span>
+                      <BakongLogo className="w-11 h-7 rounded-lg" />
+                      <div>
+                        <span className="font-bold text-[11px] block text-white">Bakong</span>
+                        <span className="text-[9px] text-white/40 block">All Banks</span>
+                      </div>
+                    </button>
+
+                    {/* Cash on Delivery */}
+                    <button
+                      type="button"
+                      onClick={() => { triggerHaptic('selection'); setPaymentMethod('COD'); }}
+                      className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
+                        paymentMethod === 'COD'
+                          ? 'bg-emerald-600/25 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/50'
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
+                    >
+                      <CashLogo className="w-12 h-7 rounded-lg" />
+                      <div>
+                        <span className="font-bold text-[11px] block text-white">Cash</span>
+                        <span className="text-[9px] text-white/40 block">On Delivery</span>
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -960,10 +1009,26 @@ export default function TelegramMiniAppPage() {
         {activeTab === 'payment' && activePaymentSale && (
           <div className="space-y-6 flex flex-col items-center justify-center py-6 animate-in fade-in duration-300">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30 mb-2">
-                <Wallet className="w-3.5 h-3.5" /> Bakong KHQR
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-2 ${
+                activePaymentSale.provider === 'ABA_PAYWAY'
+                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+              }`}>
+                {activePaymentSale.provider === 'ABA_PAYWAY' ? (
+                  <>
+                    <AbaLogo className="w-7 h-5 text-[9px] rounded" />
+                    <span>ABA PayWay QR</span>
+                  </>
+                ) : (
+                  <>
+                    <BakongLogo className="w-8 h-5 text-[9px] rounded" />
+                    <span>NBC Bakong KHQR</span>
+                  </>
+                )}
               </div>
-              <h2 className="font-black text-2xl text-white">Scan with any Bank App</h2>
+              <h2 className="font-black text-2xl text-white">
+                {activePaymentSale.provider === 'ABA_PAYWAY' ? 'Scan with ABA Mobile' : 'Scan with any Bank App'}
+              </h2>
               <p className="text-xs text-white/60">
                 Order <span className="font-bold text-white">{activePaymentSale.saleNumber}</span>
               </p>
@@ -974,14 +1039,18 @@ export default function TelegramMiniAppPage() {
 
             {/* QR Card */}
             {activePaymentSale.paymentQrCode ? (
-              <div className="bg-white p-5 rounded-3xl shadow-2xl shadow-rose-500/20 max-w-[270px] w-full text-center space-y-2">
+              <div className={`bg-white p-5 rounded-3xl shadow-2xl max-w-[270px] w-full text-center space-y-2 ${
+                activePaymentSale.provider === 'ABA_PAYWAY' ? 'shadow-blue-500/20' : 'shadow-rose-500/20'
+              }`}>
                 <img 
                   src={`data:image/png;base64,${activePaymentSale.paymentQrCode}`} 
-                  alt="Bakong KHQR" 
+                  alt={activePaymentSale.provider === 'ABA_PAYWAY' ? "ABA PayWay QR" : "NBC Bakong KHQR"} 
                   className="w-full aspect-square rounded-2xl border border-gray-100 object-contain" 
                 />
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-                  Supported by ABA, ACLEDA, Wing, Canadia
+                  {activePaymentSale.provider === 'ABA_PAYWAY'
+                    ? 'Supported by ABA Bank Mobile'
+                    : 'Supported by ABA, ACLEDA, Wing, Canadia & 40+ Banks'}
                 </p>
               </div>
             ) : (
@@ -998,10 +1067,14 @@ export default function TelegramMiniAppPage() {
                   href={activePaymentSale.paymentDeeplink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold text-xs shadow-lg shadow-blue-500/25 transition-transform active:scale-95"
+                  className={`w-full flex items-center justify-center gap-2 text-white py-3.5 rounded-2xl font-bold text-xs shadow-lg transition-transform active:scale-95 ${
+                    activePaymentSale.provider === 'ABA_PAYWAY'
+                      ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
+                      : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/25'
+                  }`}
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>Open in ABA Mobile App</span>
+                  <span>{activePaymentSale.provider === 'ABA_PAYWAY' ? 'Open in ABA Mobile App' : 'Open in Bakong App'}</span>
                 </a>
               )}
 
