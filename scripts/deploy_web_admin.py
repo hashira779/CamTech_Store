@@ -77,9 +77,20 @@ def main():
     else:
         print("mystore-admin-app container not found running.")
 
+    # Check if mystore-infra-app is running
+    ps_infra = run_cmd("docker ps --filter name=mystore-infra-app -q")
+    if ps_infra:
+        print("Deploying to mystore-infra-app...")
+        run_cmd("docker exec mystore-infra-app rm -rf /usr/share/nginx/html/*")
+        run_cmd("docker cp /tmp/web_dist/. mystore-infra-app:/usr/share/nginx/html/")
+        print("mystore-infra-app updated successfully!")
+    else:
+        print("mystore-infra-app container not found running.")
+
     run_cmd("rm -rf /tmp/web_dist /tmp/web_dist.tar.gz")
     if os.path.exists(web_tar):
         os.remove(web_tar)
+
 
     ssh.close()
     print("Done!")
