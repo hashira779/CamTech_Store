@@ -48,9 +48,20 @@ class CheckoutOrchestrator:
         name_clean = payload.customerName.strip() or email_clean.split("@")[0]
 
         cust_result = await db.execute(
-            select(Customer).where(func.lower(Customer.email) == email_clean).limit(1)
+            select(Customer).where(
+                Customer.organization_id == target_org,
+                func.lower(Customer.email) == email_clean
+            ).limit(1)
         )
         customer = cust_result.scalar_one_or_none()
+        if not customer and phone_clean:
+            cust_phone_result = await db.execute(
+                select(Customer).where(
+                    Customer.organization_id == target_org,
+                    Customer.phone == phone_clean
+                ).limit(1)
+            )
+            customer = cust_phone_result.scalar_one_or_none()
         if not customer:
             customer = Customer(
                 organization_id=target_org,

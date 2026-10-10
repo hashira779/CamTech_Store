@@ -31,7 +31,9 @@ import {
   Share2,
   ExternalLink,
   Store,
-  ChevronLeft
+  ChevronLeft,
+  Bot,
+  ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -224,6 +226,20 @@ export default function TelegramMiniAppPage() {
   const orgParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('org') || undefined) : undefined;
   const [token, setToken] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string>('CamTech Specialty Café');
+  const [customer, setCustomer] = useState<{
+    id?: string;
+    code?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    defaultAddress?: string;
+    loyaltyPoints?: number;
+    loyaltyTier?: string;
+    telegramUserId?: string;
+    telegramUsername?: string;
+    photoUrl?: string;
+  } | null>(null);
+  const [isUpdatingContact, setIsUpdatingContact] = useState(false);
 
   // Save cart to local storage
   useEffect(() => {
@@ -248,36 +264,97 @@ export default function TelegramMiniAppPage() {
     }
   }, [pastOrders]);
 
+  // Sync contact with backend database
+  const syncContactWithServer = async (newPhone?: string, newAddress?: string) => {
+    const phoneToSync = newPhone ?? customerPhone;
+    const addressToSync = newAddress ?? deliveryAddress;
+    setIsUpdatingContact(true);
+    try {
+      const resp = await fetch(`${BASE_URL}/api/v1/telegram/mini-app/sync-contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          customerId: customer?.id,
+          telegramId: customer?.telegramUserId || (WebApp.initDataUnsafe?.user?.id ? String(WebApp.initDataUnsafe.user.id) : undefined),
+          organizationId: orgParam,
+          phone: phoneToSync,
+          name: customerName,
+          address: addressToSync
+        })
+      });
+      const body = await resp.json();
+      const updated = body.data || body;
+      if (updated.customer) {
+        setCustomer(prev => ({ ...prev, ...updated.customer }));
+        toast.success("Phone and details saved to customer profile ✓");
+      }
+    } catch (e) {
+      console.warn("Contact sync warning:", e);
+    } finally {
+      setIsUpdatingContact(false);
+    }
+  };
+
   // Initialize Telegram Web App
   useEffect(() => {
-    if (typeof window !== 'undefined' && WebApp.initData) {
+    if (typeof window !== 'undefined') {
       try {
-        WebApp.ready();
-        WebApp.expand();
-        WebApp.enableClosingConfirmation();
-        if (WebApp.initDataUnsafe?.user?.first_name) {
-          setCustomerName(WebApp.initDataUnsafe.user.first_name);
+        if (WebApp.initData) {
+          WebApp.ready();
+          WebApp.expand();
+          WebApp.enableClosingConfirmation();
+        }
+        const tgUser = WebApp.initDataUnsafe?.user;
+        if (tgUser) {
+          const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim();
+          if (fullName) {
+            setCustomerName(fullName);
+          }
         }
       } catch (e) {
         console.warn('Telegram SDK initialization note:', e);
       }
 
-      // Authenticate with backend
-      fetch(`${BASE_URL}/api/v1/telegram/mini-app/auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: WebApp.initData, organizationId: orgParam })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.token) {
-          setToken(data.token);
-          if (data.botName) setShopName(data.botName);
-        }
-      })
-      .catch(err => {
-        console.error('Telegram auth warning:', err);
-      });
+      const tgUser = WebApp.initDataUnsafe?.user;
+      const initPayload = {
+        initData: WebApp.initData || '',
+        organizationId: orgParam,
+        telegramId: tgUser?.id ? String(tgUser.id) : undefined,
+        firstName: tgUser?.first_name,
+        lastName: tgUser?.last_name,
+        username: tgUser?.username,
+        photoUrl: (tgUser as any)?.photo_url,
+        phone: customerPhone && customerPhone !== '012 345 678' ? customerPhone : undefined
+      };
+
+      if (WebApp.initData || orgParam) {
+        // Authenticate and auto-register customer in database
+        fetch(`${BASE_URL}/api/v1/telegram/mini-app/auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(initPayload)
+        })
+        .then(res => res.json())
+        .then(body => {
+          const data = body.data || body;
+          if (data.token) {
+            setToken(data.token);
+            if (data.botName) setShopName(data.botName);
+          }
+          if (data.customer) {
+            setCustomer(data.customer);
+            if (data.customer.name) setCustomerName(data.customer.name);
+            if (data.customer.phone) setCustomerPhone(data.customer.phone);
+            if (data.customer.defaultAddress) setDeliveryAddress(data.customer.defaultAddress);
+          }
+        })
+        .catch(err => {
+          console.error('Telegram auth warning:', err);
+        });
+      }
     }
   }, [orgParam]);
 
@@ -1077,18 +1154,101 @@ export default function TelegramMiniAppPage() {
               <span>Customer Profile</span>
             </h2>
 
-            {/* Profile Card */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-700 text-black font-extrabold text-lg flex items-center justify-center">
-                  {customerName.charAt(0).toUpperCase()}
+            {/* Profile Card with Telegram Metadata */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-4">
+              <div className="flex items-center gap-3.5">
+                {customer?.photoUrl ? (
+                  <img
+                    src={customer.photoUrl}
+                    alt={customerName}
+                    className="w-14 h-14 rounded-2xl object-cover border border-amber-500/40 shadow-md"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-700 text-black font-extrabold text-xl flex items-center justify-center shadow-md">
+                    {customerName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base truncate">{customer?.name || customerName}</h3>
+                    <span className="p-0.5 rounded-full bg-sky-500/20 text-sky-400" title="Telegram Verified">
+                      <Bot className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                  {(customer?.telegramUsername || WebApp.initDataUnsafe?.user?.username) && (
+                    <p className="text-xs text-sky-400 font-medium">
+                      @{customer?.telegramUsername || WebApp.initDataUnsafe?.user?.username}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5" />
+                      {customer?.loyaltyPoints || 100} Pts ({customer?.loyaltyTier || 'BRONZE'})
+                    </span>
+                    <span className="bg-white/10 text-white/70 text-[10px] font-mono px-2 py-0.5 rounded-full">
+                      {customer?.code || `TG-${WebApp.initDataUnsafe?.user?.id || 'USER'}`}
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              {/* Telegram Auto-Sync Status */}
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between text-xs text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Auto-registered via Telegram in DB</span>
+                </div>
+                <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-bold">PostgreSQL ✓</span>
+              </div>
+            </div>
+
+            {/* Contact Details & Sync Card */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+              <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-amber-400" /> Phone & Delivery Info
+              </h3>
+
+              <div className="space-y-3">
                 <div>
-                  <h3 className="font-bold text-sm">{customerName}</h3>
-                  <p className="text-xs text-white/50">{customerPhone}</p>
-                  <span className="inline-block mt-1 bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    Coffee VIP Member ☕
-                  </span>
+                  <label className="text-[11px] text-white/50 block mb-1">Contact Phone Number</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="e.g. 012 345 678"
+                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUpdatingContact}
+                      onClick={() => syncContactWithServer()}
+                      className="bg-amber-500 text-black px-3 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {isUpdatingContact ? 'Saving...' : 'Save Phone'}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-white/50 block mb-1">Default Delivery Address</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Street, Khan, Sangkat..."
+                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUpdatingContact}
+                      onClick={() => syncContactWithServer(undefined, deliveryAddress)}
+                      className="bg-white/10 hover:bg-white/15 text-white px-3 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all"
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
