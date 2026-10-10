@@ -57,7 +57,7 @@ export default function CustomerShopPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'KHQR' | 'COD'>('KHQR');
+  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'KHQR' | 'COD'>('ABA_PAYWAY');
   const [customerName, setCustomerName] = useState(user?.name || '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -262,7 +262,7 @@ export default function CustomerShopPage() {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         deliveryAddress: deliveryAddress.trim(),
-        paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : 'Cash On Delivery',
+        paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay' : 'Cash On Delivery',
         itemCount: cartItemCount,
         items: cart.map((c) => `${c.quantity}x ${c.name}`),
         createdAt: new Date().toISOString(),
@@ -581,46 +581,79 @@ export default function CustomerShopPage() {
             {/* Payment Method Selector */}
             <div>
               <label className="text-[11px] font-medium text-slate-300 block mb-1.5">Select Payment Method</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('ABA_PAYWAY')}
+                  className={`p-2.5 rounded-lg border text-center transition-all ${
+                    paymentMethod === 'ABA_PAYWAY'
+                      ? 'bg-blue-500/15 border-blue-500/50 text-blue-300 font-bold shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 mx-auto mb-1 text-blue-400" />
+                  <span className="block text-[11px]">ABA PayWay</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('KHQR')}
-                  className={`p-3 rounded-lg border text-center transition-all ${
+                  className={`p-2.5 rounded-lg border text-center transition-all ${
                     paymentMethod === 'KHQR'
-                      ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                      ? 'bg-rose-500/15 border-rose-500/50 text-rose-300 font-bold shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   <QrCode className="w-4 h-4 mx-auto mb-1 text-rose-400" />
-                  Bakong KHQR
+                  <span className="block text-[11px]">Bakong KHQR</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('COD')}
-                  className={`p-3 rounded-lg border text-center transition-all ${
+                  className={`p-2.5 rounded-lg border text-center transition-all ${
                     paymentMethod === 'COD'
-                      ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400'
+                      ? 'bg-amber-500/15 border-amber-500/50 text-amber-300 font-bold shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   <Truck className="w-4 h-4 mx-auto mb-1 text-amber-400" />
-                  Cash On Delivery
+                  <span className="block text-[11px]">Cash on Delivery</span>
                 </button>
               </div>
             </div>
 
-            {/* KHQR Visual Preview */}
-            {paymentMethod === 'KHQR' && (
-              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center space-y-2">
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
-                  Scan With Any Cambodian Banking App
+            {/* Payment Notice Preview */}
+            {paymentMethod === 'ABA_PAYWAY' && (
+              <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-800/40 text-center space-y-1.5">
+                <span className="text-[10px] text-blue-300 font-bold uppercase tracking-wider block">
+                  ABA PayWay Direct Payment
                 </span>
-                <div className="w-32 h-32 bg-white rounded-lg mx-auto flex items-center justify-center p-2 shadow-md">
-                  <div className="w-full h-full border-2 border-dashed border-rose-600 rounded-lg flex flex-col items-center justify-center text-rose-600 font-black text-[11px]">
-                    <QrCode className="w-12 h-12 mb-1" />
-                    <span>KHQR PAY</span>
-                  </div>
-                </div>
+                <p className="text-[11px] text-slate-300">
+                  Scan with ABA Mobile app or tap deep link to pay immediately.
+                </p>
+                <span className="text-xs font-bold text-blue-200 block">${cartTotal.toFixed(2)} USD</span>
+              </div>
+            )}
+
+            {paymentMethod === 'KHQR' && (
+              <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/40 text-center space-y-1.5">
+                <span className="text-[10px] text-rose-300 font-bold uppercase tracking-wider block">
+                  NBC Bakong KHQR National Network
+                </span>
+                <p className="text-[11px] text-slate-300">
+                  Scannable with all Cambodian banking apps (Bakong, ACLEDA, Wing, Canadia, Sathapana, etc.).
+                </p>
+                <span className="text-xs font-bold text-rose-200 block">${cartTotal.toFixed(2)} USD</span>
+              </div>
+            )}
+
+            {paymentMethod === 'COD' && (
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center space-y-1.5">
+                <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                  Pay Driver Upon Arrival
+                </span>
+                <p className="text-[11px] text-slate-400">
+                  Settle the balance in cash with the courier upon receiving your package.
+                </p>
                 <span className="text-xs font-bold text-slate-200 block">${cartTotal.toFixed(2)} USD</span>
               </div>
             )}
