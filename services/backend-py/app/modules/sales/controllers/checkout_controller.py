@@ -197,6 +197,9 @@ async def store_checkout(
                 payment_qr_code = bakong_res.get("qr_image")
                 payment_deeplink = bakong_res.get("deeplink")
                 payment.reference = f"MD5:{bakong_res['md5']}"
+                payment.provider = "NBC Bakong"
+                payment.qr_string = bakong_res.get("qr_string")
+                payment.external_id = bakong_res.get("deeplink")
                 notes_dict["bakong_md5"] = bakong_res["md5"]
                 notes_dict["bakong_qr_string"] = bakong_res.get("qr_string")
                 sale.notes = json.dumps(notes_dict)
@@ -233,6 +236,17 @@ async def store_checkout(
             if qr_result.get("success"):
                 payment_qr_code = qr_result.get("qr_image")
                 payment_deeplink = qr_result.get("abapay_deeplink")
+                payment.reference = sale.sale_number
+                payment.provider = "ABA PayWay"
+                payment.qr_string = qr_result.get("qr_string")
+                payment.external_id = qr_result.get("abapay_deeplink")
+                notes_dict["abapay_deeplink"] = payment_deeplink
+                sale.notes = json.dumps(notes_dict)
+                db.add(sale)
+                db.add(payment)
+
+    # CRITICAL DATA INTEGRITY: Persist order, line items, and payment record permanently in PostgreSQL
+    await db.commit()
 
     return SaleDto(
         id=sale.id,
@@ -271,6 +285,9 @@ async def store_checkout(
                 method=payment.method,
                 status=payment.status,
                 reference=payment.reference,
+                provider=payment.provider,
+                qrString=payment.qr_string,
+                paidAt=payment.paid_at.isoformat() if payment.paid_at else None,
             )
         ],
         trackingNumber=deliv_order.trackingNumber if deliv_order else None,

@@ -77,6 +77,9 @@ class SalePaymentDto(BaseModel):
     method: str
     status: str
     reference: Optional[str] = None
+    provider: Optional[str] = None
+    qrString: Optional[str] = None
+    paidAt: Optional[str] = None
 
 class SaleDto(BaseModel):
     id: str

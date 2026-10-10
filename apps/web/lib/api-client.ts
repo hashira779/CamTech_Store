@@ -684,10 +684,11 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
-  getCustomerOrders: (params: { phone?: string; email?: string } = {}) => {
+  getCustomerOrders: (params: { phone?: string; email?: string; organizationId?: string } = {}) => {
     const q = new URLSearchParams();
     if (params.phone) q.set('phone', params.phone);
     if (params.email) q.set('email', params.email);
+    if (params.organizationId) q.set('organization_id', params.organizationId);
     return request<Paginated<SaleDto>>(`/sales/customer-orders${q.toString() ? `?${q.toString()}` : ''}`);
   },
 

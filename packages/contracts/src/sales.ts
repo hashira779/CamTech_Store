@@ -99,7 +99,7 @@ export interface SalePaymentDto {
   provider?: string | null;
   reference: string | null;
   qrString?: string | null;
-  paidAt: string;
+  paidAt?: string | null;
 }
 
 export interface SaleDto {
@@ -113,6 +113,7 @@ export interface SaleDto {
   orderType?: OrderType;
   tableNumber?: string | null;
   status: SaleStatus;
+  paymentStatus?: string | null;
   subtotal: number;
   discountTotal: number;
   taxTotal: number;

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { useQuery } from '@tanstack/react-query';
 import { api, BASE_URL } from '@/lib/api-client';
+import type { SaleDto } from '@mystore/contracts';
 import {
   Coffee,
   ShoppingBag,
@@ -66,6 +67,52 @@ interface SavedOrder {
   paymentQrCode?: string | null;
   paymentDeeplink?: string | null;
   provider?: string;
+  paymentStatus?: string;
+  paymentReference?: string | null;
+  paidAt?: string | null;
+}
+
+function mapSaleDtoToSavedOrder(s: SaleDto): SavedOrder {
+  const firstPayment = s.payments?.[0];
+  let methodLabel = 'Cash on Delivery';
+  if (firstPayment?.method === 'QR' || s.paymentQrCode) {
+    if (firstPayment?.provider === 'NBC Bakong' || firstPayment?.provider?.toLowerCase().includes('bakong')) {
+      methodLabel = 'Bakong KHQR';
+    } else {
+      methodLabel = 'ABA PayWay';
+    }
+  } else if (firstPayment?.method) {
+    methodLabel = String(firstPayment.method);
+  }
+
+  let deliveryAddr = s.deliveryAddress || 'Store Pickup / Delivery';
+  if (s.notes) {
+    try {
+      const parsed = JSON.parse(s.notes);
+      if (parsed.deliveryAddress) deliveryAddr = parsed.deliveryAddress;
+    } catch {}
+  }
+
+  return {
+    id: s.id,
+    saleNumber: s.saleNumber,
+    createdAt: s.createdAt,
+    items: (s.lineItems || []).map(li => ({
+      name: li.productName || (li as any).name || 'Coffee Beverage',
+      quantity: Number(li.quantity),
+      price: Number(li.unitPrice),
+    })),
+    total: Number(s.grandTotal),
+    status: s.status,
+    paymentMethod: methodLabel,
+    deliveryAddress: deliveryAddr,
+    paymentQrCode: s.paymentQrCode || firstPayment?.qrString || null,
+    paymentDeeplink: s.paymentDeeplink || null,
+    provider: firstPayment?.provider || (methodLabel.includes('Bakong') ? 'NBC Bakong' : methodLabel.includes('ABA') ? 'ABA PayWay' : 'Cash on Delivery'),
+    paymentStatus: s.paymentStatus || firstPayment?.status || (s.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING'),
+    paymentReference: firstPayment?.reference || null,
+    paidAt: firstPayment?.paidAt || s.completedAt || null,
+  };
 }
 
 const AbaLogo = ({ className }: { className?: string }) => (
@@ -242,6 +289,24 @@ export default function TelegramMiniAppPage() {
       : api.getPublicProducts({ limit: 50, search: searchQuery || undefined, organizationId: orgParam }),
   });
 
+  // Query customer past orders directly from PostgreSQL database
+  const { data: serverOrdersData, isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
+    queryKey: ['mini-customer-orders', customerPhone, orgParam],
+    queryFn: () => api.getCustomerOrders({ phone: customerPhone, organizationId: orgParam }),
+    enabled: !!customerPhone,
+  });
+
+  useEffect(() => {
+    if (serverOrdersData?.items) {
+      const mapped = serverOrdersData.items.map(mapSaleDtoToSavedOrder);
+      setPastOrders(prev => {
+        const serverIds = new Set(mapped.map(m => m.id));
+        const localOnly = prev.filter(p => !serverIds.has(p.id));
+        return [...localOnly, ...mapped];
+      });
+    }
+  }, [serverOrdersData]);
+
   const products = productsData?.items || [];
 
   // Filter products by category & search
@@ -405,6 +470,8 @@ export default function TelegramMiniAppPage() {
 
       if (res && res.id) {
         const isQr = paymentMethod === 'ABA_PAYWAY' || paymentMethod === 'BAKONG';
+        const providerTitle = paymentMethod === 'BAKONG' ? 'NBC Bakong' : paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay' : 'Cash on Delivery';
+        const firstPay = res.payments?.[0];
         const newOrder: SavedOrder = {
           id: res.id,
           saleNumber: res.saleNumber || `#ORD-${res.id.slice(0, 6).toUpperCase()}`,
@@ -417,16 +484,19 @@ export default function TelegramMiniAppPage() {
             sugarLevel: c.sugarLevel
           })),
           total: cartTotal,
-          status: isQr ? 'PENDING' : 'CONFIRMED',
+          status: isQr ? 'PENDING' : 'COMPLETED',
           paymentMethod: paymentMethod === 'BAKONG' ? 'Bakong KHQR' : paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay' : 'Cash on Delivery',
           deliveryAddress: deliveryAddress,
           paymentQrCode: res.paymentQrCode || null,
           paymentDeeplink: res.paymentDeeplink || null,
-          provider: paymentMethod,
+          provider: firstPay?.provider || providerTitle,
+          paymentStatus: isQr ? 'PENDING' : 'COMPLETED',
+          paymentReference: firstPay?.reference || null,
+          paidAt: isQr ? null : new Date().toISOString(),
         };
 
         // Save into local history
-        setPastOrders(prev => [newOrder, ...prev]);
+        setPastOrders(prev => [newOrder, ...prev.filter(p => p.id !== res.id)]);
 
         if (isQr && res.paymentQrCode) {
           setActivePaymentSale({ ...newOrder, saleId: res.id, provider: paymentMethod });
@@ -437,6 +507,7 @@ export default function TelegramMiniAppPage() {
           setCart([]);
           triggerHaptic('success');
           toast.success("Order Placed Successfully!");
+          refetchOrders();
           setActiveTab('orders');
         }
       } else {
@@ -470,8 +541,14 @@ export default function TelegramMiniAppPage() {
           toast.success("🎉 Payment Confirmed! Preparing your drinks...");
           
           // Update order status in history
-          setPastOrders(prev => prev.map(o => o.id === saleId ? { ...o, status: 'PAID' } : o));
-          setActivePaymentSale((prev: any) => prev ? { ...prev, status: 'PAID' } : null);
+          setPastOrders(prev => prev.map(o => o.id === saleId ? {
+            ...o,
+            status: 'COMPLETED',
+            paymentStatus: 'COMPLETED',
+            paidAt: new Date().toISOString()
+          } : o));
+          setActivePaymentSale((prev: any) => prev ? { ...prev, status: 'COMPLETED', paymentStatus: 'COMPLETED' } : null);
+          refetchOrders();
 
           setTimeout(() => {
             setActiveTab('orders');
@@ -871,7 +948,16 @@ export default function TelegramMiniAppPage() {
                 <History className="w-5 h-5 text-amber-400" />
                 <span>Order History</span>
               </h2>
-              <span className="text-xs text-white/40">{pastOrders.length} orders</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refetchOrders()}
+                  className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                  title="Refresh orders from database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin text-amber-400' : ''}`} />
+                </button>
+                <span className="text-xs text-white/40">{pastOrders.length} orders</span>
+              </div>
             </div>
 
             {pastOrders.length === 0 ? (
@@ -905,7 +991,7 @@ export default function TelegramMiniAppPage() {
                               isPending ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
                               'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                             }`}>
-                              {ord.status}
+                              {isPaid ? 'PAID & RECORDED' : ord.status}
                             </span>
                           </div>
                           <p className="text-[10px] text-white/40 mt-0.5">
@@ -916,6 +1002,36 @@ export default function TelegramMiniAppPage() {
                         <div className="text-right">
                           <span className="font-bold text-sm text-amber-400">${ord.total.toFixed(2)}</span>
                           <span className="text-[9px] text-white/40 block">{(ord.total * KHR_RATE).toLocaleString()} ៛</span>
+                        </div>
+                      </div>
+
+                      {/* Payment History Record Badge */}
+                      <div className="flex items-center justify-between bg-white/[0.04] border border-white/5 rounded-2xl px-3 py-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          {ord.paymentMethod?.includes('Bakong') ? (
+                            <BakongLogo className="scale-90" />
+                          ) : ord.paymentMethod?.includes('ABA') ? (
+                            <AbaLogo className="scale-90" />
+                          ) : (
+                            <CashLogo className="scale-90" />
+                          )}
+                          <div>
+                            <span className="font-semibold text-white/90 text-[11px] block">{ord.provider || ord.paymentMethod}</span>
+                            {ord.paymentReference && (
+                              <span className="text-[9px] font-mono text-white/40 block">Ref: {ord.paymentReference}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className={`text-[10px] font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {isPaid ? '✓ Recorded in DB' : '⏳ Pending'}
+                          </span>
+                          {ord.paidAt && (
+                            <span className="text-[9px] text-white/40 block">
+                              {new Date(ord.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1276,6 +1392,34 @@ export default function TelegramMiniAppPage() {
               <div className="flex justify-between">
                 <span className="text-white/50">Payment Method</span>
                 <span className="font-bold">{viewingReceiptOrder.paymentMethod}</span>
+              </div>
+              {viewingReceiptOrder.provider && (
+                <div className="flex justify-between">
+                  <span className="text-white/50">Payment Provider</span>
+                  <span className="font-bold text-amber-400">{viewingReceiptOrder.provider}</span>
+                </div>
+              )}
+              {viewingReceiptOrder.paymentReference && (
+                <div className="flex justify-between">
+                  <span className="text-white/50">Transaction Ref</span>
+                  <span className="font-mono text-[11px] text-white/80">{viewingReceiptOrder.paymentReference}</span>
+                </div>
+              )}
+              {viewingReceiptOrder.paidAt && (
+                <div className="flex justify-between">
+                  <span className="text-white/50">Settlement Time</span>
+                  <span className="text-emerald-400 font-semibold">{new Date(viewingReceiptOrder.paidAt).toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-white/50">Payment Status</span>
+                <span className={`font-bold ${
+                  viewingReceiptOrder.status === 'PAID' || viewingReceiptOrder.status === 'COMPLETED'
+                    ? 'text-emerald-400'
+                    : 'text-amber-400'
+                }`}>
+                  {viewingReceiptOrder.status === 'PAID' || viewingReceiptOrder.status === 'COMPLETED' ? '✓ PAID & RECORDED IN DB' : viewingReceiptOrder.status}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/50">Delivery Address</span>

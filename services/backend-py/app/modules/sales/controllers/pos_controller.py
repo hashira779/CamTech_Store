@@ -77,7 +77,10 @@ async def list_sales(
                     amount=float(p.amount),
                     method=p.method,
                     status=p.status,
-                    reference=p.reference
+                    reference=p.reference,
+                    provider=p.provider,
+                    qrString=p.qr_string,
+                    paidAt=p.paid_at.isoformat() if p.paid_at else None,
                 ) for p in s.payments
             ],
             deliveryStatus=do.status if do else None,
@@ -168,7 +171,10 @@ async def get_sale(
                 amount=float(p.amount),
                 method=p.method,
                 status=p.status,
-                reference=p.reference
+                reference=p.reference,
+                provider=p.provider,
+                qrString=p.qr_string,
+                paidAt=p.paid_at.isoformat() if p.paid_at else None,
             ) for p in s.payments
         ],
         trackingNumber=deliv_order.tracking_number if deliv_order else None,
@@ -242,7 +248,10 @@ async def create_sale(
                         amount=float(p.amount),
                         method=p.method,
                         status=p.status,
-                        reference=p.reference
+                        reference=p.reference,
+                        provider=p.provider,
+                        qrString=p.qr_string,
+                        paidAt=p.paid_at.isoformat() if p.paid_at else None,
                     ) for p in existing_sale.payments
                 ]
             )
@@ -449,7 +458,10 @@ async def create_sale(
                 amount=float(p.amount),
                 method=p.method,
                 status=p.status,
-                reference=p.reference
+                reference=p.reference,
+                provider=p.provider,
+                qrString=p.qr_string,
+                paidAt=p.paid_at.isoformat() if p.paid_at else None,
             ) for p in sale.payments
         ]
     )
@@ -529,7 +541,10 @@ async def complete_sale(
                 amount=float(p.amount),
                 method=p.method,
                 status=p.status,
-                reference=p.reference
+                reference=p.reference,
+                provider=p.provider,
+                qrString=p.qr_string,
+                paidAt=p.paid_at.isoformat() if p.paid_at else None,
             ) for p in sale.payments
         ]
     )
