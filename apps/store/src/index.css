@@ -87,7 +87,14 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
-
+/* Hide scrollbar for Chrome, Safari, Opera and Firefox */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 /* Print Styles for Official Tax Invoice */
 @media print {
   body * {

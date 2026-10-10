@@ -44,6 +44,8 @@ import {
   Share2,
   Info,
   Settings,
+  Menu,
+  AlertCircle,
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
@@ -220,6 +222,8 @@ export function App() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   // Active real-time polling for unpaid ABA / Bakong orders
   useEffect(() => {
@@ -258,16 +262,21 @@ export function App() {
         method: 'POST'
       });
       if (res.ok) {
-        toast.dismiss(loadId);
-        toast.success('🎉 Payment confirmed! Your order is now dispatched to our delivery fleet.');
-        setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : null);
-        refetchHistory();
-      } else {
-        throw new Error('Bank settlement pending.');
+        const json = await res.json();
+        const data = json.data || json;
+        if (data && data.status === 'COMPLETED') {
+          toast.dismiss(loadId);
+          toast.success('🎉 Payment confirmed! Your order is now dispatched to our delivery fleet.');
+          setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : null);
+          refetchHistory();
+          return;
+        }
       }
-    } catch {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.detail || errJson?.message || 'Bank settlement pending.');
+    } catch (err: any) {
       toast.dismiss(loadId);
-      toast.info('⏳ Awaiting bank settlement. Please complete the scan on your banking app.');
+      toast.error(err?.message || '⏳ Bank settlement not detected. Money has not been received in our merchant account yet.');
     } finally {
       setIsVerifyingPayment(false);
     }
@@ -820,7 +829,8 @@ export function App() {
         destLat: coords?.lat ?? null,
         destLng: coords?.lng ?? null,
         date: serverSale.createdAt || new Date().toISOString(),
-        status: serverSale.status || 'COMPLETED',
+        status: serverSale.status || (paymentMethod === 'ABA_PAYWAY' ? 'DRAFT' : 'COMPLETED'),
+        paymentStatus: serverSale.paymentStatus || (paymentMethod === 'ABA_PAYWAY' ? 'PENDING' : 'COMPLETED'),
         paymentQrCode: serverSale.paymentQrCode || null,
         paymentDeeplink: serverSale.paymentDeeplink || null,
       };
@@ -843,7 +853,7 @@ export function App() {
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
       if (newOrder.status === 'DRAFT') {
-        toast.info('⏳ Order saved! Please complete your payment to proceed.');
+        toast.info('⏳ Order saved (Awaiting Payment). Please scan the QR code to complete payment.');
       } else {
         toast.success('🎉 Order confirmed! Dispatched to delivery fleet.');
       }
@@ -885,12 +895,12 @@ export function App() {
       </div>
 
       {/* Floating Glassmorphic Capsule Navbar (Lightswind Style) */}
-      <header className="sticky top-3 z-40 max-w-6xl mx-auto px-3 sm:px-4 mt-2">
-        <div className="h-14 px-3 sm:px-5 rounded-full bg-ink-950/75 backdrop-blur-2xl border border-line/80 shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-2 sm:top-3 z-40 max-w-6xl mx-auto px-2.5 sm:px-4 mt-1 sm:mt-2">
+        <div className="h-13 sm:h-14 px-3 sm:px-5 rounded-full bg-ink-950/80 backdrop-blur-2xl border border-line/80 shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand Identity */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-500 via-brand-500 to-brand-400 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-              <Store className="w-4 h-4" />
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-brand-500 via-brand-500 to-brand-400 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-extrabold ds-text tracking-tight">CamTech</span>
@@ -900,7 +910,7 @@ export function App() {
             </div>
           </div>
 
-          {/* Quick Search Capsule with Keyboard Shortcut */}
+          {/* Quick Search Capsule with Keyboard Shortcut (Desktop) */}
           <div className="flex-1 max-w-md relative hidden md:block">
             <Search className="w-3.5 h-3.5 ds-text-dim absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -915,8 +925,8 @@ export function App() {
             </span>
           </div>
 
-          {/* Customer Auth & Cart Controls */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Desktop Customer Auth & Controls (hidden on mobile) */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
             <ThemeToggle />
             {customer ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -926,7 +936,7 @@ export function App() {
                   title="Track Order Status"
                 >
                   <Truck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">Track</span>
+                  <span>Track</span>
                 </button>
                 <button
                   onClick={() => setIsHistoryOpen(true)}
@@ -934,13 +944,13 @@ export function App() {
                   title="View Purchase History"
                 >
                   <History className="w-3.5 h-3.5 text-brand-400" />
-                  <span className="hidden sm:inline">Orders</span>
+                  <span>Orders</span>
                 </button>
                 <div className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-ink-850/80 border border-line">
                   <div className="w-5 h-5 rounded-full bg-brand-500/30 text-brand-300 font-bold text-[10px] flex items-center justify-center">
                     {customer.name.slice(0, 1).toUpperCase()}
                   </div>
-                  <span className="text-xs font-semibold ds-text max-w-[80px] truncate hidden sm:inline">
+                  <span className="text-xs font-semibold ds-text max-w-[80px] truncate">
                     {customer.name}
                   </span>
                 </div>
@@ -960,7 +970,7 @@ export function App() {
                   title="Track Order Status"
                 >
                   <Truck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">Track</span>
+                  <span>Track</span>
                 </button>
                 <button
                   onClick={() => setIsHistoryOpen(true)}
@@ -968,74 +978,257 @@ export function App() {
                   title="View Purchase History"
                 >
                   <History className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">Orders</span>
+                  <span>Orders</span>
                 </button>
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
                   className="px-3 py-1.5 rounded-full bg-ink-850 hover:bg-ink-800 border border-line text-xs font-medium ds-text-dim transition flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <GoogleIcon className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign In</span>
+                  <span>Sign In</span>
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Right Action Group: Mobile Search + Cart Pill + Mobile Hamburger Drawer */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+              className="md:hidden p-2 rounded-full hover:bg-ink-850 ds-text-dim hover:text-white transition cursor-pointer"
+              title="Search Products"
+            >
+              <Search className="w-4 h-4" />
+            </button>
 
             {/* Floating High-Contrast Cart Pill */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative px-3 sm:px-4 py-1.5 rounded-full ds-btn-solid font-bold text-xs flex items-center gap-2 shadow-lg shadow-white/10 transition active:scale-95 cursor-pointer"
+              className="relative px-2.5 sm:px-4 py-1.5 rounded-full ds-btn-solid font-bold text-xs flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-white/10 transition active:scale-95 cursor-pointer"
             >
               <ShoppingCart className="w-3.5 h-3.5" />
-              <span className="font-mono">${cartTotal.toFixed(2)}</span>
+              <span className="font-mono text-xs">${cartTotal.toFixed(2)}</span>
               {cartCount > 0 && (
                 <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
             </button>
+
+            {/* Mobile Menu Drawer Toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="sm:hidden p-1.5 rounded-full bg-ink-850 border border-line text-zinc-300 hover:text-white hover:bg-ink-800 transition cursor-pointer flex items-center justify-center"
+              title="Menu"
+            >
+              {customer ? (
+                <div className="w-6 h-6 rounded-full bg-brand-500/30 text-brand-300 font-bold text-[10px] flex items-center justify-center border border-brand-500/40">
+                  {customer.name.slice(0, 1).toUpperCase()}
+                </div>
+              ) : (
+                <Menu className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Search Overlay Bar */}
+        {isMobileSearchOpen && (
+          <div className="mt-2 p-2 bg-ink-950/90 backdrop-blur-xl border border-line rounded-2xl shadow-xl md:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 ds-text-dim absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search MacBook, AirPods, Coffee..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 bg-ink-850 border border-line rounded-xl text-xs ds-text placeholder-zinc-500 focus:outline-none focus:border-brand-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
+      {/* Mobile Navigation & Account Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm sm:hidden flex justify-end animate-in fade-in duration-200">
+          <div className="w-4/5 max-w-xs bg-ink-900 border-l border-line h-full flex flex-col p-5 shadow-2xl animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-500 to-brand-400 flex items-center justify-center text-white">
+                  <Store className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-extrabold text-sm ds-text">CamTech Menu</span>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-ink-800 ds-text-dim hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4 flex-1 overflow-y-auto">
+              {/* Customer Profile Card */}
+              {customer ? (
+                <div className="p-3.5 rounded-2xl bg-ink-850 border border-line space-y-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-full bg-brand-500/25 text-brand-300 font-bold text-sm flex items-center justify-center border border-brand-500/40">
+                      {customer.name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm ds-text truncate">{customer.name}</p>
+                      <p className="text-[10px] ds-text-dim truncate">{customer.email}</p>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span className="ds-text-dim">VIP Tier:</span>
+                    <span className="text-brand-300 font-semibold">{customer.loyaltyTier || 'Executive Gold'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="ds-text-dim">Points:</span>
+                    <span className="font-mono text-emerald-400 font-bold">{(customer.loyaltyPoints ?? 500).toLocaleString()} pts</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsProfileSettingsOpen(true);
+                    }}
+                    className="w-full mt-2 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-750 text-xs font-semibold ds-text flex items-center justify-center gap-1.5 border border-line cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Profile & Address</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-ink-850 border border-line space-y-2.5 text-center">
+                  <p className="text-xs font-semibold ds-text">Welcome to CamTech</p>
+                  <p className="text-[11px] ds-text-dim">Sign in to sync your cart, view past orders, and earn VIP points.</p>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full py-2 rounded-xl ds-btn-solid text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <GoogleIcon className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Navigation Links */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsTrackLookupOpen(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl hover:bg-ink-850 flex items-center gap-3 text-xs font-semibold ds-text transition cursor-pointer"
+                >
+                  <Truck className="w-4 h-4 text-emerald-400" />
+                  <span>Track Order Status</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsHistoryOpen(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl hover:bg-ink-850 flex items-center gap-3 text-xs font-semibold ds-text transition cursor-pointer"
+                >
+                  <History className="w-4 h-4 text-brand-400" />
+                  <span>Order History & Invoices</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsCartOpen(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl hover:bg-ink-850 flex items-center justify-between text-xs font-semibold ds-text transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="w-4 h-4 text-blue-400" />
+                    <span>Shopping Cart</span>
+                  </div>
+                  <span className="font-mono text-emerald-400 font-bold">${cartTotal.toFixed(2)}</span>
+                </button>
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs ds-text-dim">Appearance</span>
+                <ThemeToggle />
+              </div>
+            </div>
+
+            {/* Sign Out or Footer */}
+            {customer && (
+              <div className="pt-3 border-t border-line shrink-0">
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                  className="w-full py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center gap-2 border border-rose-500/20 transition cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Compact product-first hero */}
-      <section className="max-w-6xl mx-auto px-4 pt-8 pb-6">
-        <div className="relative overflow-hidden rounded-3xl border border-line/80 bg-gradient-to-br from-ink-850/70 to-ink-950/80 p-6 sm:p-8">
+      <section className="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-8 pb-4 sm:pb-6">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-line/80 bg-gradient-to-br from-ink-850/70 to-ink-950/80 p-4 sm:p-8">
           <div className="pointer-events-none absolute -top-24 -right-16 w-72 h-72 bg-brand-500/15 blur-[90px] rounded-full" />
           <div className="relative z-10 max-w-2xl">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink-950/70 border border-line text-[11px] ds-text-dim">
+            <span className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-ink-950/70 border border-line text-[10px] sm:text-[11px] ds-text-dim">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
-              Live &bull; Instant NBC Bakong KHQR &bull; 15-min delivery
+              Live &bull; NBC Bakong KHQR &bull; 15-min delivery
             </span>
-            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight ds-text leading-[1.1]">
+            <h1 className="mt-2.5 sm:mt-4 text-2xl sm:text-4xl font-extrabold tracking-tight ds-text leading-[1.15]">
               Shop tech &amp; coffee,{' '}
               <span className="bg-gradient-to-r from-brand-300 to-brand-400 bg-clip-text text-transparent">delivered in minutes</span>
             </h1>
-            <p className="mt-2 text-sm ds-text-dim max-w-lg">
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm ds-text-dim max-w-lg">
               Genuine Apple, Sony &amp; Anker hardware and artisan Mondulkiri roast &mdash; pay instantly with Bakong KHQR.
             </p>
-            <div className="mt-5 relative max-w-xl">
-              <Search className="w-4 h-4 ds-text-dim absolute left-4 top-1/2 -translate-y-1/2" />
+            <div className="mt-3.5 sm:mt-5 relative max-w-xl">
+              <Search className="w-4 h-4 ds-text-dim absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search MacBook, AirPods, coffee…"
-                className="w-full pl-11 pr-4 py-3 bg-ink-950/70 border border-line rounded-2xl text-sm ds-text placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"
+                className="w-full pl-10 pr-4 py-2 sm:py-3 bg-ink-950/70 border border-line rounded-xl sm:rounded-2xl text-xs sm:text-sm ds-text placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"
               />
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2.5">
-              <a href="#catalog" className="px-5 py-2.5 rounded-full ds-btn-solid font-bold text-sm transition inline-flex items-center gap-2 cursor-pointer">
+            <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2">
+              <a href="#catalog" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full ds-btn-solid font-bold text-xs sm:text-sm transition inline-flex items-center gap-1.5 cursor-pointer">
                 <span>Shop now</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </a>
               <button
                 onClick={() => setIsHistoryOpen(true)}
-                className="px-4 py-2.5 rounded-full bg-ink-850/80 hover:bg-ink-800 ds-text-dim font-semibold text-sm border border-line transition inline-flex items-center gap-2 cursor-pointer"
+                className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-ink-850/80 hover:bg-ink-800 ds-text-dim font-semibold text-xs sm:text-sm border border-line transition inline-flex items-center gap-1.5 cursor-pointer"
               >
-                <Compass className="w-4 h-4 text-brand-400" />
+                <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-400" />
                 <span>Track delivery</span>
               </button>
             </div>
@@ -1044,15 +1237,15 @@ export function App() {
       </section>
 
       {/* Main Products Catalog Section */}
-      <main id="catalog" className="max-w-6xl mx-auto px-4 scroll-mt-20">
-        {/* Category Pills & Refresh Action */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 p-2 bg-ink-950/70 border border-line/80 rounded-2xl backdrop-blur-md">
-          <div className="flex flex-wrap items-center gap-1.5">
+      <main id="catalog" className="max-w-6xl mx-auto px-3 sm:px-4 scroll-mt-20 pb-28 sm:pb-24">
+        {/* Category Pills & Refresh Action - Swipeable horizontal scroll on mobile */}
+        <div className="flex items-center justify-between gap-2 sm:gap-4 mb-5 sm:mb-8 p-1.5 sm:p-2 bg-ink-950/70 border border-line/80 rounded-2xl backdrop-blur-md">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 px-0.5 flex-1 min-w-0">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                   selectedCategory === cat
                     ? 'ds-btn-solid shadow-md shadow-white/10'
                     : 'ds-text-dim hover:text-white hover:bg-ink-850'
@@ -1067,67 +1260,68 @@ export function App() {
               refetchProducts();
               toast.info('Catalog refreshed from Central Data Center!');
             }}
-            className="text-[11px] font-mono ds-text-dim hover:text-brand-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-ink-850 border border-line transition cursor-pointer"
+            className="text-[11px] font-mono ds-text-dim hover:text-brand-400 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-ink-850 border border-line transition cursor-pointer shrink-0"
+            title="Sync Catalog"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Sync Catalog</span>
+            <span className="hidden sm:inline">Sync Catalog</span>
           </button>
         </div>
 
         {/* Catalog Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h3 className="text-xl font-extrabold ds-text">Featured Catalog</h3>
-            <p className="text-xs ds-text-dim">
-              Showing {filteredProducts.length} verified item(s) in category {selectedCategory}
+            <h3 className="text-lg sm:text-xl font-extrabold ds-text">Featured Catalog</h3>
+            <p className="text-[11px] sm:text-xs ds-text-dim">
+              Showing {filteredProducts.length} verified item(s) in {selectedCategory}
             </p>
           </div>
-          <span className="text-xs font-mono">
+          <span className="text-[11px] sm:text-xs font-mono">
             {isBackendConnected ? (
-              <span className="text-emerald-400 font-semibold">● Central Data Center</span>
+              <span className="text-emerald-400 font-semibold">● Central Cloud</span>
             ) : (
-              <span className="text-brand-400 font-semibold">○ Container Autonomous</span>
+              <span className="text-brand-400 font-semibold">○ Autonomous</span>
             )}
           </span>
         </div>
 
         {isProductsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
             {Array.from({ length: 8 }).map((_, n) => (
               <div
                 key={n}
-                className="bg-ink-850/50 border border-line/80 rounded-[2rem] p-5 flex flex-col justify-between animate-pulse space-y-4"
+                className="bg-ink-850/50 border border-line/80 rounded-2xl sm:rounded-[2rem] p-3 sm:p-5 flex flex-col justify-between animate-pulse space-y-3 sm:space-y-4"
               >
                 <div>
-                  <div className="w-full h-40 bg-ink-800/60 rounded-2xl mb-4" />
+                  <div className="w-full aspect-square bg-ink-800/60 rounded-xl sm:rounded-2xl mb-3" />
                   <div className="h-3 bg-ink-800 rounded w-16 mb-2" />
-                  <div className="h-5 bg-ink-800 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-ink-800/60 rounded w-full mb-1" />
+                  <div className="h-4 bg-ink-800 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-ink-800/60 rounded w-full mb-1 hidden sm:block" />
                 </div>
-                <div className="pt-3 border-t border-line/80 flex items-center justify-between">
-                  <div className="h-5 bg-ink-800 rounded w-16" />
-                  <div className="h-8 w-24 bg-ink-800 rounded-full" />
+                <div className="pt-2 sm:pt-3 border-t border-line/80 flex items-center justify-between">
+                  <div className="h-4 bg-ink-800 rounded w-12 sm:w-16" />
+                  <div className="h-7 w-14 sm:h-8 sm:w-20 bg-ink-800 rounded-full" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="p-16 text-center rounded-[2.5rem] bg-ink-950/60 border border-line/80 my-4 shadow-xl">
-            <Package className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
+          <div className="p-10 sm:p-16 text-center rounded-[2rem] sm:rounded-[2.5rem] bg-ink-950/60 border border-line/80 my-4 shadow-xl">
+            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-3" />
             <h3 className="text-base font-bold ds-text mb-1">Nothing here yet</h3>
             <p className="text-xs ds-text-dim max-w-sm mx-auto mb-4">
               We&apos;re loading fresh stock into this category. Try another category, or refresh to pull the latest catalog.
             </p>
             <button
               onClick={() => refetchProducts()}
-              className="px-5 py-2.5 rounded-full ds-btn-solid text-xs font-bold inline-flex items-center gap-2 transition"
+              className="px-5 py-2.5 rounded-full ds-btn-solid text-xs font-bold inline-flex items-center gap-2 transition cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Refresh Catalog</span>
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
@@ -1135,10 +1329,10 @@ export function App() {
                   setSelectedProduct(product);
                   setSelectedVariantId(product.variantId || product.variants?.[0]?.id || null);
                 }}
-                className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-[2rem] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1.5 relative overflow-hidden cursor-pointer"
+                className="group bg-ink-850/50 border border-line/80 hover:border-brand-500/50 rounded-2xl sm:rounded-[2rem] p-2.5 sm:p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 relative overflow-hidden cursor-pointer"
               >
                 <div>
-                  <div className="w-full h-44 rounded-2xl bg-ink-950/80 border border-line/80 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
+                  <div className="w-full aspect-square rounded-xl sm:rounded-2xl bg-ink-950/80 border border-line/80 mb-2 sm:mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-brand-500/40 transition">
                     {(product.thumbUrl || product.imageUrl) ? (
                       <img
                         src={product.thumbUrl || product.imageUrl!}
@@ -1153,36 +1347,37 @@ export function App() {
                       />
                     ) : null}
                     <div className={`w-full h-full flex items-center justify-center ${(product.thumbUrl || product.imageUrl) ? 'hidden' : 'flex'}`}>
-                      <Package className="w-12 h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
+                      <Package className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-600 group-hover:text-brand-400 transition transform group-hover:scale-110 duration-300" />
                     </div>
-                    <span className="absolute top-2.5 right-2.5 text-[10px] font-mono px-2 py-0.5 rounded-full bg-ink-850/90 ds-text-dim border border-line backdrop-blur-sm z-10">
+                    <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 text-[8px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded-full bg-ink-850/90 ds-text-dim border border-line backdrop-blur-sm z-10">
                       {product.sku}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-brand-400 tracking-wider uppercase">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-brand-400 tracking-wider uppercase truncate block">
                     {product.category}
                   </span>
-                  <h4 className="text-base font-bold ds-text mt-1 group-hover:text-brand-300 transition line-clamp-1">
+                  <h4 className="text-xs sm:text-base font-bold ds-text mt-0.5 sm:mt-1 group-hover:text-brand-300 transition line-clamp-2 leading-tight min-h-[2rem] sm:min-h-0">
                     {product.name}
                   </h4>
-                  <p className="text-xs ds-text-dim mt-1 line-clamp-2">
+                  <p className="text-xs ds-text-dim mt-1 line-clamp-2 hidden sm:block">
                     {product.description || 'Premium standard verified inventory with instant NBC Bakong settlement.'}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-line/80 flex items-center justify-between">
+                <div className="mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-line/80 flex items-center justify-between gap-1">
                   <div>
-                    <span className="text-[10px] font-mono ds-text-faint block">PRICE</span>
-                    <span className="text-lg font-extrabold ds-text font-mono">
+                    <span className="text-[9px] sm:text-[10px] font-mono ds-text-faint block leading-tight">PRICE</span>
+                    <span className="text-xs sm:text-lg font-extrabold ds-text font-mono">
                       ${product.price.toFixed(2)}
                     </span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                    className="px-3.5 py-2 rounded-full ds-btn-solid text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-white/5 active:scale-95 cursor-pointer"
+                    className="p-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-full ds-btn-solid text-xs font-bold flex items-center gap-1 transition shadow-lg shadow-white/5 active:scale-90 cursor-pointer shrink-0"
+                    title="Add to Cart"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Add</span>
+                    <span className="hidden sm:inline">Add</span>
                   </button>
                 </div>
               </div>
@@ -1211,18 +1406,19 @@ export function App() {
             {/* Modal */}
             <div
               onClick={(e) => e.stopPropagation()}
-              className="relative z-10 w-full max-w-lg bg-ink-900 border border-line/80 rounded-t-[2.5rem] sm:rounded-[2.5rem] max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-4 duration-300"
+              className="relative z-10 w-full max-w-lg bg-ink-900 border border-line/80 rounded-t-3xl sm:rounded-[2.5rem] max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-4 duration-300 flex flex-col"
             >
+              <div className="w-10 h-1 rounded-full bg-zinc-600 mx-auto mt-2.5 -mb-1 sm:hidden shrink-0" />
               {/* Close Button */}
               <button
                 onClick={() => setSelectedProduct(null)}
-                className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-ink-800/90 border border-line/80 flex items-center justify-center hover:bg-ink-700 transition cursor-pointer"
+                className="absolute top-4 right-4 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-ink-800/90 border border-line/80 flex items-center justify-center hover:bg-ink-700 transition cursor-pointer"
               >
                 <X className="w-4 h-4 ds-text" />
               </button>
 
               {/* Image */}
-              <div className="w-full h-64 sm:h-72 bg-ink-950 rounded-t-[2.5rem] sm:rounded-t-[2.5rem] overflow-hidden relative flex items-center justify-center">
+              <div className="w-full h-52 sm:h-72 bg-ink-950 rounded-t-3xl sm:rounded-t-[2.5rem] overflow-hidden relative flex items-center justify-center shrink-0">
                 {sp.imageUrl ? (
                   <img
                     src={sp.imageUrl}
@@ -1245,7 +1441,7 @@ export function App() {
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 flex-1 overflow-y-auto overscroll-contain">
                 {/* Title & SKU */}
                 <div>
                   <h2 className="text-xl font-extrabold ds-text leading-tight">{sp.name}</h2>
@@ -1448,7 +1644,7 @@ export function App() {
       {/* Cart Drawer */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-md bg-ink-850 border-l border-line h-full flex flex-col p-6 shadow-2xl animate-in slide-in-from-right duration-200">
+          <div className="w-full sm:max-w-md bg-ink-850 border-l border-line h-full flex flex-col p-4 sm:p-6 shadow-2xl animate-in slide-in-from-right duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-line">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-emerald-400" />
@@ -1585,36 +1781,37 @@ export function App() {
 
       {/* Order Confirmed / Live Payment View */}
       {confirmedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-md bg-ink-850 border border-line rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl text-center max-h-[94vh] sm:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 flex flex-col">
+            <div className="w-10 h-1 rounded-full bg-zinc-600 mx-auto mb-2.5 sm:hidden shrink-0" />
             {confirmedOrder.status === 'DRAFT' ? (
-              <div className="w-14 h-14 rounded-full bg-blue-500/15 text-blue-400 flex items-center justify-center mx-auto mb-3 border border-blue-500/30">
-                <QrCode className="w-7 h-7" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-amber-500/15 text-amber-400 flex items-center justify-center mx-auto mb-2.5 sm:mb-3 border border-amber-500/30">
+                <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/40">
-                <CheckCircle2 className="w-7 h-7" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2.5 sm:mb-3 border border-emerald-500/40">
+                <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
             )}
 
-            <h3 className="text-xl font-bold ds-text">
-              {confirmedOrder.status === 'DRAFT' ? 'Scan to Pay' : 'Order Confirmed!'}
+            <h3 className="text-lg sm:text-xl font-bold ds-text">
+              {confirmedOrder.status === 'DRAFT' ? 'Awaiting Payment' : 'Order Confirmed & Paid!'}
             </h3>
             <p className="text-xs text-brand-400 font-mono mt-0.5">{confirmedOrder.orderNumber}</p>
 
             <p className="text-xs ds-text-dim mt-2">
               {confirmedOrder.status === 'DRAFT'
-                ? `Please scan the dynamic QR code below to complete payment. Once verified, dispatch will be triggered instantly.`
+                ? `Please scan the dynamic ABA QR code below to complete payment. Your order will NOT be confirmed or dispatched until money is received in the merchant account.`
                 : `Thank you, ${confirmedOrder.customer?.name || 'Customer'}! Payment received and order dispatched to delivery fleet.`}
             </p>
 
             {/* ABA PayWay / Bakong KHQR Live Scan Box */}
             {confirmedOrder.status === 'DRAFT' && confirmedOrder.paymentQrCode && (
-              <div className="mt-4 p-5 rounded-2xl bg-white text-slate-950 text-center shadow-xl space-y-3">
+              <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-white text-slate-950 text-center shadow-xl space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                   <div className="text-left">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Due</span>
-                    <span className="text-lg font-black font-mono text-emerald-600">${confirmedOrder.total.toFixed(2)}</span>
+                    <span className="text-base sm:text-lg font-black font-mono text-emerald-600">${confirmedOrder.total.toFixed(2)}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">KHR Approx</span>
@@ -1626,7 +1823,7 @@ export function App() {
                   <img
                     src={confirmedOrder.paymentQrCode.startsWith('data:') ? confirmedOrder.paymentQrCode : `data:image/png;base64,${confirmedOrder.paymentQrCode}`}
                     alt="ABA PayWay / Bakong KHQR"
-                    className="w-52 h-52 mx-auto object-contain"
+                    className="w-44 h-44 sm:w-52 sm:h-52 mx-auto object-contain"
                   />
                 </div>
 
@@ -1656,7 +1853,7 @@ export function App() {
                     disabled={isVerifyingPayment}
                     className="font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
                   >
-                    {isVerifyingPayment ? 'Checking...' : 'I Have Paid'}
+                    {isVerifyingPayment ? 'Checking...' : 'Check Payment'}
                   </button>
                 </div>
               </div>
@@ -1679,7 +1876,7 @@ export function App() {
               <div className="flex justify-between">
                 <span className="ds-text-dim">Payment Status:</span>
                 <span className={`font-bold font-mono ${confirmedOrder.status === 'COMPLETED' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {confirmedOrder.status === 'COMPLETED' ? 'PAID & CONFIRMED' : 'AWAITING PAYMENT'}
+                  {confirmedOrder.status === 'COMPLETED' ? 'PAID & CONFIRMED' : 'AWAITING BANK PAYMENT'}
                 </span>
               </div>
             </div>
@@ -1687,46 +1884,71 @@ export function App() {
             {/* Modal Actions */}
             <div className="mt-5 space-y-2.5">
               {confirmedOrder.status === 'COMPLETED' ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOrderForTracking(confirmedOrder);
-                    setConfirmedOrder(null);
-                  }}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
-                >
-                  <Truck className="w-4 h-4" />
-                  <span>Track Order Live (Real-Time GPS)</span>
-                </button>
-              ) : (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] text-left flex items-start gap-2">
-                  <span className="text-base shrink-0">🔒</span>
-                  <span>
-                    <strong>Payment required before dispatch:</strong> Our delivery fleet will be dispatched automatically as soon as your payment is received.
-                  </span>
-                </div>
-              )}
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForTracking(confirmedOrder);
+                      setConfirmedOrder(null);
+                    }}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Track Order Live (Real-Time GPS)</span>
+                  </button>
 
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOrderForInvoice(confirmedOrder);
-                    setConfirmedOrder(null);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-line-strong transition cursor-pointer"
-                >
-                  <Receipt className="w-4 h-4" />
-                  View Invoice
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmedOrder(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-ink-950 hover:bg-ink-800 text-slate-300 font-bold text-xs border border-line transition cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForInvoice(confirmedOrder);
+                        setConfirmedOrder(null);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-ink-800 hover:bg-ink-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-line-strong transition cursor-pointer"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      View Tax Invoice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmedOrder(null)}
+                      className="flex-1 py-2.5 rounded-xl bg-ink-950 hover:bg-ink-800 text-slate-300 font-bold text-xs border border-line transition cursor-pointer"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] text-left flex items-start gap-2">
+                    <span className="text-base shrink-0">🔒</span>
+                    <span>
+                      <strong>Payment Required:</strong> Delivery fleet dispatch and official tax invoice will only be issued AFTER real bank payment is confirmed.
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForInvoice(confirmedOrder);
+                        setConfirmedOrder(null);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-ink-850 hover:bg-ink-800 text-amber-400 font-semibold text-xs flex items-center justify-center gap-2 border border-line transition cursor-pointer"
+                    >
+                      <Receipt className="w-4 h-4 text-amber-400" />
+                      View Pro-Forma Estimate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmedOrder(null)}
+                      className="flex-1 py-2.5 rounded-xl bg-ink-950 hover:bg-ink-800 text-slate-300 font-bold text-xs border border-line transition cursor-pointer"
+                    >
+                      Close & Pay Later
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1746,6 +1968,7 @@ export function App() {
       {/* Official Tax Invoice & Order Detail Modal */}
       {selectedOrderForInvoice && (() => {
         const order = selectedOrderForInvoice;
+        const isPaid = (order.status === 'COMPLETED' || order.deliveryStatus === 'DELIVERED') && order.status !== 'DRAFT';
         const invoiceNumber = order.saleNumber || order.orderNumber || (order.id ? `ORD-${String(order.id).slice(-6).toUpperCase()}` : 'ORD-2026-INV');
         const orderDate = order.createdAt || order.date || new Date().toISOString();
         const customerName = order.customerName || order.customer?.name || customer?.name || guestName || 'Valued Customer';
@@ -1773,34 +1996,38 @@ export function App() {
         };
 
         return (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-xl bg-ink-850 border border-line rounded-2xl shadow-2xl overflow-hidden my-6 animate-in zoom-in-95">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+            <div className="w-full max-w-xl bg-ink-850 border border-line rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden my-0 sm:my-6 animate-in slide-in-from-bottom-6 sm:zoom-in-95 max-h-[94vh] sm:max-h-[90vh] flex flex-col">
               {/* Modal Control Header (Hidden when printing) */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-ink-950/80 print:hidden">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-line bg-ink-950/80 print:hidden shrink-0">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-emerald-400" />
-                  <h3 className="font-bold text-base ds-text">Order Details & Tax Invoice</h3>
+                  <Receipt className={`w-5 h-5 ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`} />
+                  <h3 className="font-bold text-sm sm:text-base ds-text">
+                    {isPaid ? 'Official Tax Invoice' : 'Pro-Forma Order Estimate (Unpaid)'}
+                  </h3>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedOrderForTracking(order);
-                      setSelectedOrderForInvoice(null);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold flex items-center gap-1.5 transition border border-emerald-500/30 cursor-pointer"
-                    title="Switch to Real-Time Tracking"
-                  >
-                    <Truck className="w-3.5 h-3.5" />
-                    <span>Live Tracking</span>
-                  </button>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {isPaid && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForTracking(order);
+                        setSelectedOrderForInvoice(null);
+                      }}
+                      className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold flex items-center gap-1.5 transition border border-emerald-500/30 cursor-pointer"
+                      title="Switch to Real-Time Tracking"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Live Tracking</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="px-3 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim text-xs font-semibold flex items-center gap-1.5 transition border border-line-strong cursor-pointer"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-ink-800 hover:bg-ink-700 ds-text-dim text-xs font-semibold flex items-center gap-1.5 transition border border-line-strong cursor-pointer"
                   >
-                    <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Print Invoice</span>
+                    <Printer className={`w-3.5 h-3.5 ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`} />
+                    <span className="hidden sm:inline">Print</span>
                   </button>
                   <button
                     type="button"
@@ -1813,7 +2040,7 @@ export function App() {
               </div>
 
               {/* Printable Invoice Sheet */}
-              <div id="printable-invoice" className="p-6 sm:p-8 space-y-6 ds-text-dim text-xs">
+              <div id="printable-invoice" className="p-4 sm:p-8 space-y-4 sm:space-y-6 ds-text-dim text-xs overflow-y-auto flex-1 overscroll-contain">
                 {/* Brand Header */}
                 <div className="flex items-start justify-between pb-6 border-b border-line">
                   <div>
@@ -1823,7 +2050,11 @@ export function App() {
                       </div>
                       <div>
                         <h2 className="font-black text-lg ds-text tracking-tight">CamTech Store</h2>
-                        <p className="text-[10px] text-emerald-400 font-mono">OFFICIAL TAX INVOICE • វិក្កយបត្រពន្ធ</p>
+                        <p className={`text-[10px] font-mono font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {isPaid 
+                            ? 'OFFICIAL TAX INVOICE • វិក្កយបត្រពន្ធ' 
+                            : 'PRO-FORMA ESTIMATE (UNPAID) • វិក្កយបត្រព្រាង (មិនទាន់ទូទាត់ប្រាក់)'}
+                        </p>
                       </div>
                     </div>
                     <p className="text-[10px] ds-text-dim mt-2">
@@ -1834,10 +2065,17 @@ export function App() {
                     </p>
                   </div>
                   <div className="text-right space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold font-mono">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {order.status || 'PAID & COMPLETED'}
-                    </span>
+                    {isPaid ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold font-mono">
+                        <CheckCircle2 className="w-3 h-3" />
+                        PAID & COMPLETED
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono">
+                        <Clock className="w-3 h-3 text-amber-400" />
+                        AWAITING BANK PAYMENT
+                      </span>
+                    )}
                     <div className="flex items-center justify-end gap-1.5 mt-2">
                       <span className="font-mono text-xs font-bold ds-text">{invoiceNumber}</span>
                       <button
@@ -1861,6 +2099,18 @@ export function App() {
                   </div>
                 </div>
 
+                {/* Unpaid Warning Banner */}
+                {!isPaid && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>NOT AN OFFICIAL TAX INVOICE:</strong> Bank settlement is pending. Official tax invoice and delivery dispatch are only issued upon verified bank deposit.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Customer & Delivery Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-ink-950 border border-line/80">
                   <div className="space-y-1">
@@ -1873,7 +2123,9 @@ export function App() {
                     <span className="text-[10px] font-bold uppercase tracking-wider ds-text-dim block">Delivery Destination</span>
                     <p className="text-[11px] ds-text-dim line-clamp-2">{orderAddress}</p>
                     <div className="flex items-center sm:justify-end gap-2 pt-0.5">
-                      <p className="text-[10px] text-emerald-400 font-medium">⚡ Express Fleet Dispatch</p>
+                      <p className={`text-[10px] font-medium ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {isPaid ? '⚡ Express Fleet Dispatch' : '⏳ Dispatch on Hold (Awaiting Payment)'}
+                      </p>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderAddress)}`}
                         target="_blank"
@@ -1946,7 +2198,9 @@ export function App() {
                   </div>
                   <div className="flex justify-between ds-text-dim text-xs">
                     <span>Fleet Delivery & Handling</span>
-                    <span className="font-mono text-emerald-400 font-semibold">FREE / INCLUDED</span>
+                    <span className={`font-mono font-semibold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {isPaid ? 'FREE / INCLUDED' : 'PENDING PAYMENT'}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between pt-3 border-t border-line">
                     <div>
@@ -1954,7 +2208,7 @@ export function App() {
                       <span className="text-[10px] ds-text-dim font-mono">1 USD ≈ 4,100 KHR</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-black text-xl text-emerald-400 block">
+                      <span className={`font-mono font-black text-xl block ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
                         ${grandTotal.toFixed(2)} USD
                       </span>
                       <span className="font-mono text-xs ds-text-dim">
@@ -1965,9 +2219,15 @@ export function App() {
                 </div>
 
                 {/* Payment & Verification Footer */}
-                <div className="p-3.5 rounded-xl bg-ink-950 border border-line/80 flex items-center justify-between text-[11px]">
+                <div className={`p-3.5 rounded-xl border flex items-center justify-between text-[11px] ${
+                  isPaid ? 'bg-ink-950 border-line/80' : 'bg-amber-950/20 border-amber-500/30'
+                }`}>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                      isPaid 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    }`}>
                       <QrCode className="w-4 h-4" />
                     </div>
                     <div>
@@ -1976,14 +2236,27 @@ export function App() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-emerald-400 font-bold block">Transaction Verified</span>
-                    <span className="ds-text-faint font-mono text-[10px]">National Bakong Network</span>
+                    {isPaid ? (
+                      <>
+                        <span className="text-emerald-400 font-bold block">Transaction Verified</span>
+                        <span className="ds-text-faint font-mono text-[10px]">National Bakong Network</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-amber-400 font-bold block">Payment Not Verified</span>
+                        <span className="ds-text-faint font-mono text-[10px]">Awaiting Bank Settlement</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Thank you note */}
                 <div className="text-center pt-2 text-[10px] ds-text-dim">
-                  <p>Thank you for choosing CamTech Store! For customer support, contact support@camtech.store.</p>
+                  <p>
+                    {isPaid 
+                      ? 'Thank you for choosing CamTech Store! For customer support, contact support@camtech.store.'
+                      : 'This pro-forma estimate is generated by CamTech Store. Please complete payment to finalize your purchase.'}
+                  </p>
                 </div>
               </div>
 
@@ -2000,13 +2273,30 @@ export function App() {
                   ← Back to Order History
                 </button>
                 <div className="flex items-center gap-2">
+                  {!isPaid && order.paymentQrCode && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForInvoice(null);
+                        setConfirmedOrder(order);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-blue-500/20 cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      Scan & Pay Now
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 cursor-pointer"
+                    className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-lg cursor-pointer ${
+                      isPaid
+                        ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                        : 'bg-ink-800 hover:bg-ink-700 text-slate-200 border border-line-strong'
+                    }`}
                   >
                     <Printer className="w-3.5 h-3.5" />
-                    Print Receipt
+                    {isPaid ? 'Print Tax Invoice' : 'Print Pro-Forma Estimate'}
                   </button>
                   <button
                     type="button"
@@ -2070,16 +2360,16 @@ export function App() {
         const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`;
 
         return (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
             {/* Phone/Device Container Card */}
-            <div className="w-full max-w-md bg-ink-900 border border-line rounded-[36px] shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 flex flex-col relative text-zinc-100">
+            <div className="w-full max-w-md bg-ink-900 border border-line rounded-t-3xl sm:rounded-[36px] shadow-2xl overflow-hidden my-0 sm:my-auto max-h-[94vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-6 sm:zoom-in-95 flex flex-col relative text-zinc-100">
               
               {/* Top Navigation Bar */}
-              <div className="px-5 py-3.5 bg-ink-950/80 backdrop-blur-md border-b border-line flex items-center justify-between z-20 shrink-0">
+              <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-ink-950/80 backdrop-blur-md border-b border-line flex items-center justify-between z-20 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSelectedOrderForTracking(null)}
-                  className="w-9 h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
                   title="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2092,7 +2382,7 @@ export function App() {
                       setSelectedOrderForInvoice(order);
                       setSelectedOrderForTracking(null);
                     }}
-                    className="w-9 h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-ink-850 hover:bg-ink-800 border border-line flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
                     title="View Tax Invoice"
                   >
                     <Receipt className="w-4 h-4" />
@@ -2101,7 +2391,7 @@ export function App() {
               </div>
 
               {/* Live Map Header Section with Route Simulation (Image 1) */}
-              <div className="relative w-full h-72 bg-slate-950 overflow-hidden shrink-0 border-b border-line">
+              <div className="relative w-full h-52 sm:h-72 bg-slate-950 overflow-hidden shrink-0 border-b border-line">
                 {/* Real Street Map (OpenStreetMap) */}
                 <iframe
                   title={`Tracking-Map-${destLat}-${destLng}`}
@@ -2446,8 +2736,9 @@ export function App() {
 
       {/* Track Order Quick Lookup Modal */}
       {isTrackLookupOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-md sm:max-w-sm bg-ink-850 border border-line rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom-6 sm:zoom-in-95">
+            <div className="w-10 h-1 rounded-full bg-zinc-600 mx-auto mb-2.5 sm:hidden shrink-0" />
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-emerald-400" />
@@ -2508,8 +2799,9 @@ export function App() {
 
       {/* Customer Sign In / Account Modal */}
       {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-md sm:max-w-sm bg-ink-850 border border-line rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom-6 sm:zoom-in-95 max-h-[92vh] overflow-y-auto">
+            <div className="w-10 h-1 rounded-full bg-zinc-600 mx-auto mb-2.5 sm:hidden shrink-0" />
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-emerald-400" />

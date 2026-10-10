@@ -332,8 +332,39 @@ async def confirm_order_payment(
     pay_res = await db.execute(pay_stmt)
     payment = pay_res.scalar_one_or_none()
 
-    if sale.status != "COMPLETED":
-        await _finalize_paid_sale(db, sale, payment)
+    if sale.status == "COMPLETED":
+        return {
+            "success": True,
+            "status": "COMPLETED",
+            "saleId": sale.id,
+            "saleNumber": sale.sale_number,
+            "message": "Payment already confirmed and order completed.",
+        }
+
+    # CRITICAL E-COMMERCE INTEGRITY RULE:
+    # Online QR / ABA PayWay / Bakong payments MUST NOT be marked COMPLETED without
+    # positive verification from the banking gateway.
+    pw_config = (
+        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
+    ).scalar_one_or_none()
+
+    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
+    is_verified = False
+    if merchant_id and api_key and merchant_id != "unconfigured":
+        is_verified = await PaywayService.verify_transaction(
+            merchant_id=merchant_id,
+            api_key=api_key,
+            tran_id=sale.sale_number,
+            is_production=is_prod,
+        )
+
+    if not is_verified:
+        raise HTTPException(
+            status_code=400,
+            detail="Transaction not yet verified by ABA PayWay banking gateway. Funds have not been received in merchant account.",
+        )
+
+    await _finalize_paid_sale(db, sale, payment)
 
     return {
         "success": True,

@@ -93,22 +93,23 @@ export function ProfileSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-ink-850 border border-line rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
-        <div className="flex items-center justify-between pb-3 border-b border-line">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="w-full max-w-md bg-ink-850 border border-line rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-6 sm:zoom-in-95">
+        <div className="w-10 h-1 rounded-full bg-zinc-600 mx-auto mb-2.5 sm:hidden shrink-0" />
+        <div className="flex items-center justify-between pb-3 border-b border-line shrink-0">
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-emerald-400" />
             <h3 className="font-bold text-base ds-text">Profile Settings</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-ink-800 ds-text-dim hover:text-white"
+            className="p-1 rounded-lg hover:bg-ink-800 ds-text-dim hover:text-white cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="py-4 space-y-4">
+        <div className="py-3 sm:py-4 space-y-4 overflow-y-auto flex-1 overscroll-contain pr-1">
           <div>
             <label className="text-xs font-semibold ds-text-dim block mb-1">Default Phone Number</label>
             <input
@@ -127,7 +128,7 @@ export function ProfileSettingsModal({
                 type="button"
                 onClick={handleCaptureLocation}
                 disabled={isLocating}
-                className="text-[10px] text-brand-400 font-medium hover:text-brand-300 flex items-center gap-1 transition"
+                className="text-[10px] text-brand-400 font-medium hover:text-brand-300 flex items-center gap-1 transition cursor-pointer"
               >
                 {isLocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Navigation className="w-3 h-3" />}
                 {lat ? `GPS Locked` : 'Get Current GPS'}
@@ -169,13 +170,15 @@ export function ProfileSettingsModal({
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition"
-        >
-          <Save className="w-4 h-4" />
-          Save Settings
-        </button>
+        <div className="pt-3 border-t border-line shrink-0">
+          <button
+            onClick={handleSave}
+            className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20"
+          >
+            <Save className="w-4 h-4" />
+            Save Settings
+          </button>
+        </div>
       </div>
     </div>
   );
