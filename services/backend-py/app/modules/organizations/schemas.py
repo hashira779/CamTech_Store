@@ -73,6 +73,23 @@ class CreateOrganizationInput(BaseModel):
     ownerName: Optional[str] = None
     ownerPassword: Optional[str] = None
 
+class BakongConfigDto(BaseModel):
+    accountId: str
+    merchantName: str
+    merchantCity: Optional[str] = "Phnom Penh"
+    currency: Optional[str] = "USD"
+    enabled: bool = True
+    isConfigured: bool = True
+    accountName: Optional[str] = None
+
+class UpdateBakongConfigInput(BaseModel):
+    accountId: str
+    merchantName: Optional[str] = None
+    merchantCity: Optional[str] = "Phnom Penh"
+    currency: Optional[str] = "USD"
+    enabled: Optional[bool] = True
+    token: Optional[str] = None
+
 class OrganizationChannelsDto(BaseModel):
     organizationId: str
     organizationName: str
@@ -85,4 +102,7 @@ class OrganizationChannelsDto(BaseModel):
     telegramBotAuthEndpoint: str
     paywayConfigured: bool
     paywayMerchantId: Optional[str] = None
+    bakongConfigured: bool = False
+    bakongAccountId: Optional[str] = None
+    bakongEnabled: bool = False
 

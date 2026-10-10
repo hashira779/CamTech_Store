@@ -74,6 +74,25 @@ export interface CreateOrganizationInput {
   ownerPassword?: string;
 }
 
+export interface BakongConfigDto {
+  accountId: string;
+  merchantName: string;
+  merchantCity?: string;
+  currency?: string;
+  enabled: boolean;
+  isConfigured: boolean;
+  accountName?: string | null;
+}
+
+export interface UpdateBakongConfigInput {
+  accountId: string;
+  merchantName?: string;
+  merchantCity?: string;
+  currency?: string;
+  enabled?: boolean;
+  token?: string;
+}
+
 export interface OrganizationChannelsDto {
   organizationId: string;
   organizationName: string;
@@ -86,5 +105,8 @@ export interface OrganizationChannelsDto {
   telegramBotAuthEndpoint: string;
   paywayConfigured: boolean;
   paywayMerchantId?: string | null;
+  bakongConfigured?: boolean;
+  bakongAccountId?: string | null;
+  bakongEnabled?: boolean;
 }
 

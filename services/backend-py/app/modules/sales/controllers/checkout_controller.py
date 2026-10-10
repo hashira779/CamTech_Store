@@ -176,22 +176,30 @@ async def store_checkout(
             org_stmt = select(Organization).where(Organization.id == target_org)
             org_res = await db.execute(org_stmt)
             org = org_res.scalar_one_or_none()
-            merchant_name = org.name if org else "CamTech Store"
-            bakong_account = "camtech@devb"
+
+            bakong_cfg = {}
             if org and org.settings:
                 try:
-                    s_data = json.loads(org.settings)
-                    if isinstance(s_data, dict) and s_data.get("bakongAccountId"):
-                        bakong_account = s_data["bakongAccountId"]
+                    s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+                    if isinstance(s_data, dict):
+                        bakong_cfg = s_data.get("bakong") or {}
+                        if not bakong_cfg and s_data.get("bakongAccountId"):
+                            bakong_cfg = {"accountId": s_data["bakongAccountId"]}
                 except Exception:
                     pass
+
+            bakong_account = bakong_cfg.get("accountId") or "camtech@devb"
+            merchant_name = bakong_cfg.get("merchantName") or (org.name if org else "CamTech Store")
+            currency = bakong_cfg.get("currency") or sale.currency or "USD"
+            bakong_token = bakong_cfg.get("token")
 
             bakong_res = await BakongService.generate_khqr(
                 merchant_name=merchant_name,
                 account_id=bakong_account,
                 amount=float(grand_total),
-                currency=sale.currency or "USD",
+                currency=currency,
                 app_name="CamTech Store",
+                token=bakong_token,
             )
             if bakong_res.get("success"):
                 payment_qr_code = bakong_res.get("qr_image")

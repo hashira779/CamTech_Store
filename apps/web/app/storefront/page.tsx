@@ -235,8 +235,8 @@ export default function StorefrontChannelsPage() {
         </div>
       </div>
 
-      {/* 2-Column Grid: Channel 1 & Channel 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 3-Column Grid: Telegram, ABA PayWay & Bakong KHQR */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-6">
         {/* Channel 1: Telegram Mini App */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-start justify-between">
@@ -367,6 +367,68 @@ export default function StorefrontChannelsPage() {
               className="text-xs text-primary border-primary/30 hover:bg-primary/10 mt-2"
             >
               Configure PayWay Credentials in Settings →
+            </Button>
+          </div>
+        </div>
+
+        {/* Channel 3: Bakong KHQR Dynamic Direct */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 font-black text-xs">
+                KHQR
+              </div>
+              <div>
+                <h3 className="font-bold text-foreground text-base">Bakong KHQR Dynamic Direct</h3>
+                <p className="text-xs text-muted-foreground">
+                  Direct National Bank of Cambodia account settlement
+                </p>
+              </div>
+            </div>
+            {channels?.bakongConfigured ? (
+              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Linked & Active
+              </Badge>
+            ) : (
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> Not Configured
+              </Badge>
+            )}
+          </div>
+
+          <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Bakong Account ID:</span>
+              <span className="font-mono font-bold text-foreground">
+                {channels?.bakongAccountId || 'Platform Fallback'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Currencies Supported:</span>
+              <span className="text-foreground font-medium">
+                USD ($) & KHR (៛)
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Account Routing:</span>
+              <span className="text-emerald-400 font-semibold">
+                100% Dynamic per Store Account
+              </span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-muted-foreground space-y-2">
+            <p>
+              Link your store to your Bakong account (e.g. from the Bakong app or any commercial bank).
+              Customer KHQR codes are dynamically personalized without modifying any codebase.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/settings'}
+              className="text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 mt-2"
+            >
+              Configure Bakong Account in Settings →
             </Button>
           </div>
         </div>

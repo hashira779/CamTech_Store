@@ -31,6 +31,8 @@ import type {
   CreateOrganizationInput,
   OrganizationChannelsDto,
   UpdateOrganizationSettingsInput,
+  BakongConfigDto,
+  UpdateBakongConfigInput,
   SupplierDto,
   CreateSupplierInput,
   UpdateSupplierInput,
@@ -810,6 +812,16 @@ export const api = {
 
   updateOrgPayway: (token: string, input: any) =>
     request<any>('/organizations/current/payway', {
+      method: 'PUT',
+      token,
+      body: JSON.stringify(input),
+    }),
+
+  getCurrentOrgBakong: (token: string) =>
+    request<BakongConfigDto>('/organizations/current/bakong', { token }),
+
+  updateOrgBakong: (token: string, input: UpdateBakongConfigInput) =>
+    request<BakongConfigDto>('/organizations/current/bakong', {
       method: 'PUT',
       token,
       body: JSON.stringify(input),

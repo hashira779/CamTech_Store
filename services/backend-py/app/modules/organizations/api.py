@@ -20,6 +20,8 @@ from .schemas import (
     UpdateOrganizationInput,
     PaywayConfigDto,
     UpdatePaywayConfigInput,
+    BakongConfigDto,
+    UpdateBakongConfigInput,
     CreateOrganizationInput,
     OrganizationChannelsDto,
 )
@@ -411,6 +413,111 @@ async def update_current_payway_config(
         updatedAt=pw_config.updated_at
     )
 
+@router.get("/current/bakong", response_model=BakongConfigDto)
+async def get_current_organization_bakong(
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve Bakong KHQR configuration for current organization."""
+    result = await db.execute(select(Organization).where(Organization.id == user.organization_id))
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    bakong_cfg = {}
+    if org.settings:
+        try:
+            s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+            if isinstance(s_data, dict):
+                bakong_cfg = s_data.get("bakong") or {}
+        except Exception:
+            pass
+
+    account_id = bakong_cfg.get("accountId") or ""
+    merchant_name = bakong_cfg.get("merchantName") or org.name or "CamTech Store"
+    merchant_city = bakong_cfg.get("merchantCity") or "Phnom Penh"
+    currency = bakong_cfg.get("currency") or org.currency or "USD"
+    enabled = bakong_cfg.get("enabled", True) if account_id else False
+
+    return BakongConfigDto(
+        accountId=account_id,
+        merchantName=merchant_name,
+        merchantCity=merchant_city,
+        currency=currency,
+        enabled=enabled,
+        isConfigured=bool(account_id),
+        accountName=bakong_cfg.get("accountName"),
+    )
+
+@router.put("/current/bakong", response_model=BakongConfigDto)
+@router.post("/current/bakong", response_model=BakongConfigDto)
+async def update_current_organization_bakong(
+    bakong_in: UpdateBakongConfigInput,
+    user: TenantUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Save or update store-specific NBC Bakong KHQR credentials in PostgreSQL.
+    Enables dynamic, store-by-store Bakong account IDs without code modification.
+    """
+    result = await db.execute(select(Organization).where(Organization.id == user.organization_id))
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    account_clean = bakong_in.accountId.strip()
+    merchant_name = (bakong_in.merchantName or org.name or "CamTech Store").strip()
+    merchant_city = (bakong_in.merchantCity or "Phnom Penh").strip()
+    currency = (bakong_in.currency or org.currency or "USD").strip().upper()
+    enabled = bakong_in.enabled if bakong_in.enabled is not None else True
+
+    # Optionally verify on Bakong network
+    account_verified_name = None
+    if account_clean:
+        try:
+            from app.core.bakong import BakongService
+            verify_res = await BakongService.check_bakong_account(account_clean, token=bakong_in.token)
+            if verify_res.get("valid"):
+                account_verified_name = verify_res.get("accountName")
+        except Exception:
+            pass
+
+    current_settings = dict(DEFAULT_SETTINGS)
+    if org.settings:
+        try:
+            raw = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+            if isinstance(raw, dict):
+                current_settings.update(raw)
+        except Exception:
+            pass
+
+    current_settings["bakong"] = {
+        "accountId": account_clean,
+        "merchantName": merchant_name,
+        "merchantCity": merchant_city,
+        "currency": currency,
+        "enabled": enabled,
+        "accountName": account_verified_name,
+        "token": bakong_in.token.strip() if bakong_in.token else None,
+        "updatedAt": utc_now().isoformat(),
+    }
+
+    org.settings = json.dumps(current_settings)
+    org.updated_at = utc_now()
+
+    await db.commit()
+    await db.refresh(org)
+
+    return BakongConfigDto(
+        accountId=account_clean,
+        merchantName=merchant_name,
+        merchantCity=merchant_city,
+        currency=currency,
+        enabled=enabled,
+        isConfigured=bool(account_clean),
+        accountName=account_verified_name,
+    )
+
 @router.get("/current/channels", response_model=OrganizationChannelsDto)
 async def get_current_organization_channels(
     user: TenantUser = Depends(get_current_user),
@@ -438,6 +545,18 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
     from .models import PaywayConfig
     pw = (await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_id))).scalar_one_or_none()
 
+    bakong_cfg = {}
+    if org.settings:
+        try:
+            s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+            if isinstance(s_data, dict):
+                bakong_cfg = s_data.get("bakong") or {}
+        except Exception:
+            pass
+
+    bakong_account = bakong_cfg.get("accountId")
+    bakong_enabled = bool(bakong_cfg.get("enabled", True) and bakong_account)
+
     import os
     base_domain = os.getenv("APP_DOMAIN", "camtech.cam")
     gw_env = os.getenv("GATEWAY_URL", "")
@@ -463,6 +582,9 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
         checkoutEndpoint=f"{api_base}/sales/checkout",
         telegramBotAuthEndpoint=f"{api_base}/telegram/mini-app/auth",
         paywayConfigured=bool(pw and pw.merchant_id and pw.public_key),
-        paywayMerchantId=pw.merchant_id if pw else None
+        paywayMerchantId=pw.merchant_id if pw else None,
+        bakongConfigured=bool(bakong_account),
+        bakongAccountId=bakong_account,
+        bakongEnabled=bakong_enabled,
     )
 

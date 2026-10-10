@@ -82,6 +82,7 @@ class BakongService:
 
         # Attempt Bakong Open API Deeplink Generation
         deeplink = None
+        auth_token = token or cls.get_token()
         try:
             payload = {
                 "qr": qr_string,
@@ -91,9 +92,13 @@ class BakongService:
                     "appDeepLinkCallback": callback_url,
                 },
             }
+            headers = {
+                "Authorization": f"Bearer {auth_token}",
+                "Content-Type": "application/json",
+            }
             api_url = f"{cls.get_api_url()}/v1/generate_deeplink_by_qr"
             async with httpx.AsyncClient(timeout=8.0) as client:
-                res = await client.post(api_url, json=payload)
+                res = await client.post(api_url, headers=headers, json=payload)
                 if res.status_code == 200:
                     data = res.json().get("data", {})
                     deeplink = data.get("shortLink") or data.get("fullLink")
@@ -117,7 +122,45 @@ class BakongService:
         }
 
     @classmethod
-    async def check_transaction_by_md5(cls, md5_hash: str) -> Dict[str, Any]:
+    async def check_bakong_account(cls, account_id: str, token: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Verify if a Bakong Account ID exists on the NBC Bakong network (/v1/check_bakong_account).
+        """
+        if not account_id:
+            return {"valid": False, "message": "Account ID is required"}
+
+        auth_token = token or cls.get_token()
+        headers = {
+            "Authorization": f"Bearer {auth_token}",
+            "Content-Type": "application/json",
+        }
+        api_url = f"{cls.get_api_url()}/v1/check_bakong_account"
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(api_url, headers=headers, json={"accountId": account_id.strip()})
+                if res.status_code == 200:
+                    body = res.json()
+                    if body.get("responseCode") == 0:
+                        return {
+                            "valid": True,
+                            "data": body.get("data"),
+                            "accountName": body.get("data", {}).get("accountName"),
+                            "message": "Account verified successfully on NBC Bakong network",
+                        }
+                    else:
+                        return {
+                            "valid": False,
+                            "errorCode": body.get("errorCode"),
+                            "message": body.get("responseMessage", "Account not found or inactive on Bakong network"),
+                        }
+                return {"valid": False, "message": f"NBC API returned status {res.status_code}"}
+        except Exception as e:
+            logger.error("Error calling check_bakong_account: %s", e)
+            return {"valid": False, "message": str(e)}
+
+    @classmethod
+    async def check_transaction_by_md5(cls, md5_hash: str, token: Optional[str] = None) -> Dict[str, Any]:
         """
         Verify transaction status using Bakong Open API (/v1/check_transaction_by_md5).
         Returns dict with:
@@ -128,9 +171,9 @@ class BakongService:
         if not md5_hash:
             return {"verified": False, "message": "No MD5 hash provided"}
 
-        token = cls.get_token()
+        auth_token = token or cls.get_token()
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
         }
         api_url = f"{cls.get_api_url()}/v1/check_transaction_by_md5"
