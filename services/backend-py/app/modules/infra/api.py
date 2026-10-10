@@ -103,6 +103,34 @@ def require_infra_operator(user: TenantUser = Depends(get_current_user)) -> Tena
     return user
 
 
+INFRA_ADMIN_ROLES = {"SUPER_ADMIN", "SECURITY_ADMIN", "DEVOPS"}
+
+
+def require_infra_admin(user: TenantUser = Depends(get_current_user)) -> TenantUser:
+    """Strictly restricts mission-critical operations (database migration, failover,
+    reboot, docker lifecycle) to SUPER_ADMIN, SECURITY_ADMIN, or DEVOPS only.
+    Prevents unauthorized access even if lower-tier staff tokens are compromised.
+    """
+    resolved = list(user.roles or [])
+    if not any(r in INFRA_ADMIN_ROLES for r in resolved):
+        logger.warning(
+            "Critical Infra admin operation denied for user %s (roles=%s, required one of=%s)",
+            getattr(user, "id", "unknown"),
+            resolved,
+            sorted(INFRA_ADMIN_ROLES),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "message": "Critical infrastructure operation restricted to SUPER_ADMIN, SECURITY_ADMIN, or DEVOPS only.",
+                "yourRoles": resolved,
+                "requiredAnyOf": sorted(INFRA_ADMIN_ROLES),
+            },
+        )
+    return user
+
+
+
 # ── Operational Overview & Services ──────────────────────────────────────────
 
 @router.get("/overview", response_model=InfraOverviewResponse, summary="Get global infrastructure & security status")
@@ -803,7 +831,7 @@ async def get_active_database_status(
 @router.post("/database/test-connection", response_model=TestDbConnectionResponse, summary="Test connectivity to target database server")
 async def test_database_connection(
     payload: TestDbConnectionRequest,
-    user: TenantUser = Depends(require_infra_operator),
+    user: TenantUser = Depends(require_infra_admin),
 ):
     """Probes latency, server version, write permissions, and existing database existence on target host."""
     return await db_migration_service.test_connection(
@@ -820,7 +848,7 @@ async def test_database_connection(
 @router.post("/database/migrate", response_model=DbMigrationResponse, summary="Execute automated end-to-end database migration")
 async def execute_database_migration(
     payload: DbMigrationRequest,
-    user: TenantUser = Depends(require_infra_operator),
+    user: TenantUser = Depends(require_infra_admin),
 ):
     """
     Automated zero-downtime migration pipeline:
@@ -849,21 +877,30 @@ async def execute_database_migration(
 @router.post("/database/switch", summary="Manually switch active database engine connection pool (Disaster Recovery)")
 async def switch_active_database(
     payload: SwitchActiveDatabaseRequest,
-    user: TenantUser = Depends(require_infra_operator),
+    user: TenantUser = Depends(require_infra_admin),
 ):
-    """Switches the active SQLAlchemy engine and AsyncSession connection string to a new target database."""
-    import os
-    from app.core.config import settings
-    
+    """Switches the active SQLAlchemy engine and AsyncSession connection string to a new target database.
+    Hot-swaps the connection pool in RAM and updates the .env file on disk for persistent failover.
+    """
     target_clean = payload.targetDsn.strip()
     if target_clean.startswith("postgresql://"):
         target_async = target_clean.replace("postgresql://", "postgresql+asyncpg://", 1)
     else:
         target_async = target_clean
 
-    os.environ["DATABASE_URL"] = target_async
-    settings.DATABASE_URL = target_async
+    success = db_migration_service.rebind_engine_and_persist_env(target_async)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to hot-swap database engine connection pool.",
+        )
+
     logger.warning("Active database switched by user %s: reason=%s", user.id, payload.reason)
-    return {"status": "ok", "message": "Active database connection pool updated successfully"}
+    return {
+        "status": "ok",
+        "message": "Active database connection pool hot-swapped and persisted to .env successfully.",
+        "activeDsnMasked": db_migration_service._mask_dsn(target_clean) if hasattr(db_migration_service, "_mask_dsn") else target_clean,
+    }
+
 
 

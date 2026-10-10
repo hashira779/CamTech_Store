@@ -450,10 +450,7 @@ class DbMigrationService:
             active_engine_switched = False
             if auto_switch_engine and checksum_verified:
                 logger.info("Executing zero-downtime failover to target DB: %s", _mask_dsn(target_raw_dsn))
-                # Update runtime environment variable
-                os.environ["DATABASE_URL"] = target_async_url
-                settings.DATABASE_URL = target_async_url
-                active_engine_switched = True
+                active_engine_switched = self.rebind_engine_and_persist_env(target_async_url)
 
             total_duration = round(time.perf_counter() - start_ts, 2)
 
@@ -472,7 +469,7 @@ class DbMigrationService:
                 "message": (
                     f"Migration completed successfully in {total_duration}s. "
                     f"Transferred {total_migrated_rows} rows across {len(table_stats)} tables. "
-                    + ("Active connection pool promoted to target database." if active_engine_switched else "")
+                    + ("Active connection pool promoted to target database and persisted to .env." if active_engine_switched else "")
                 ),
             }
 
@@ -497,5 +494,68 @@ class DbMigrationService:
             await source_conn.close()
             await target_conn.close()
 
+    def rebind_engine_and_persist_env(self, target_async_url: str) -> bool:
+        """Dynamically rebinds active SQLAlchemy engine in RAM and updates .env file on disk."""
+        import app.core.database as core_db
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+        from pathlib import Path
+        import re
+
+        # 1. Update in-memory runtime environment and settings
+        os.environ["DATABASE_URL"] = target_async_url
+        settings.DATABASE_URL = target_async_url
+
+        # 2. Hot-swap active SQLAlchemy engine and sessionmaker in memory (Zero Downtime)
+        try:
+            new_engine = create_async_engine(
+                target_async_url,
+                echo=False,
+                future=True,
+                pool_size=core_db.DB_POOL_SIZE,
+                max_overflow=core_db.DB_MAX_OVERFLOW,
+                pool_timeout=core_db.DB_POOL_TIMEOUT,
+                pool_recycle=core_db.DB_POOL_RECYCLE,
+                pool_pre_ping=True,
+                connect_args=core_db._connect_args,
+            )
+            old_engine = core_db.engine
+            core_db.engine = new_engine
+            core_db.AsyncSessionLocal = async_sessionmaker(
+                bind=new_engine,
+                class_=AsyncSession,
+                expire_on_commit=False,
+                autocommit=False,
+                autoflush=False,
+            )
+            logger.info("Successfully hot-swapped SQLAlchemy connection pool to: %s", _mask_dsn(target_async_url))
+            # Safely dispose old engine connection pool in background
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(old_engine.dispose())
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error("Failed to hot-swap SQLAlchemy engine: %s", e)
+            return False
+
+        # 3. Persist updated DATABASE_URL into services/backend-py/.env on disk
+        try:
+            current_dir = Path(__file__).resolve().parent
+            env_file = current_dir.parent.parent.parent / ".env"
+            if env_file.exists():
+                content = env_file.read_text(encoding="utf-8")
+                new_line = f'DATABASE_URL="{target_async_url}"'
+                if re.search(r'^DATABASE_URL=.*$', content, flags=re.MULTILINE):
+                    updated_content = re.sub(r'^DATABASE_URL=.*$', new_line, content, flags=re.MULTILINE)
+                else:
+                    updated_content = f"{new_line}\n" + content
+                env_file.write_text(updated_content, encoding="utf-8")
+                logger.info("Successfully persisted new DATABASE_URL to %s", env_file)
+        except Exception as e:
+            logger.warning("Could not persist to .env file: %s", e)
+
+        return True
+
 
 db_migration_service = DbMigrationService()
+

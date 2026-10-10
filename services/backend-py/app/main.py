@@ -258,22 +258,36 @@ async def response_envelope_middleware(request: Request, call_next):
         )
 
     # ── Malicious Scanner / Code Injection Interceptor ──────────────
-    # Immediately permanent ban IPs that attempt to scan for sensitive files or inject code
+    # Immediately permanent ban IPs that attempt to scan for sensitive files, databases, or inject code
     malicious_patterns = [
-        ".env", ".git", "wp-login.php", "wp-admin", "wp-content", 
-        "phpinfo.php", ".aws/credentials", "/etc/passwd", 
-        "../", "..\\", "%2e%2e%2f"
+        # Secrets & Environment Files
+        ".env", ".aws/credentials", ".ssh/", "id_rsa", "id_ed25519", "authorized_keys",
+        # Configuration & Settings
+        "config.json", "config.php", "config.yml", "config.yaml", "database.yml", 
+        "settings.py", "settings.json", "web.config",
+        # Backups & Database Dumps
+        "backup.sql", "dump.sql", "backup.tar", "backup.zip", "data.sql", "db.sqlite", "storage.sqlite",
+        # Path Traversal & System Files
+        "/etc/passwd", "/etc/shadow", "/proc/self", "win.ini",
+        "../", "..\\", "%2e%2e%2f", "%2e%2e/", "..%2f", "..%5c",
+        # Source Control & Metadata
+        "/.git", "/.svn", "/.hg", "/.bzr", "/.ds_store",
+        # Admin Honeypots, CMS Scanners & Debug Endpoints
+        "wp-login.php", "wp-admin", "wp-content", "phpinfo.php", "phpmyadmin", "pma", "adminer", 
+        "telescope", "actuator/heapdump", "actuator/env", "debug/vars", "server-status",
+        # Shell & Remote Code Execution probes
+        "/bin/sh", "/bin/bash", "cmd.exe", "powershell", "eval-stdin", "cgi-bin"
     ]
-    path_lower = path.lower()
+    raw_target = (request.url.path + ("?" + request.url.query if request.url.query else "")).lower()
     for pattern in malicious_patterns:
-        if pattern in path_lower:
+        if pattern in raw_target:
             # Found malicious scan -> Ban IP permanently
             await ip_ban_list.ban(
                 client_ip, 
                 duration_seconds=60 * 60 * 24 * 365,  # 1 year ban
                 reason=f"malicious_scanning: {pattern}"
             )
-            logger.error(f"[SECURITY] BANNED {client_ip} for malicious scanning of: {pattern}")
+            logger.error(f"[SECURITY] BANNED {client_ip} for malicious scanning of: {pattern} on {raw_target}")
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content={
