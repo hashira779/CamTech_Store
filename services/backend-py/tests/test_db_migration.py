@@ -38,14 +38,20 @@ async def test_get_active_database_status(mock_infra_admin):
 
 @pytest.mark.asyncio
 async def test_test_database_connection_success(mock_infra_admin):
-    """Verify POST /api/v1/infra/database/test-connection against local database succeeds."""
+    """Verify POST /api/v1/infra/database/test-connection against active database succeeds."""
+    import urllib.parse
+    from app.core.config import settings
+
+    raw_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+    parsed = urllib.parse.urlparse(raw_url)
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         payload = {
-            "host": "localhost",
-            "port": 5432,
-            "database": "camtechStore",
-            "user": "camtech",
-            "password": "camtech123",
+            "host": parsed.hostname or "localhost",
+            "port": parsed.port or 5432,
+            "database": parsed.path.lstrip("/") or "camtechStore",
+            "user": parsed.username or "camtech",
+            "password": parsed.password or "camtech123",
             "sslMode": "disable",
             "environmentType": "LOCAL_NODE",
         }
@@ -58,6 +64,7 @@ async def test_test_database_connection_success(mock_infra_admin):
         assert data["databaseExists"] is True
         assert data["tableCount"] > 0
         assert data["latencyMs"] >= 0
+
 
 @pytest.mark.asyncio
 async def test_test_database_connection_invalid_host(mock_infra_admin):
