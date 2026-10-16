@@ -47,9 +47,9 @@
 
   },
   "devDependencies": {
-    "concurrently": "^10.0.5",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "concurrently": "^10.0.6",
+    "turbo": "^2.11.8",
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "@nestjs/core": ">=11.1.18",
