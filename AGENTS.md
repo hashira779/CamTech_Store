@@ -8,7 +8,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
 > [`docs/architecture/mini-app-ecommerce-multi-store.md`](docs/architecture/mini-app-ecommerce-multi-store.md) ·
 > [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
-> latest change log [`docs/audits/session-2026-10-10.md`](docs/audits/session-2026-10-10.md).
+> latest change log [`docs/audits/session-2026-10-29.md`](docs/audits/session-2026-10-29.md).
 
 ---
 

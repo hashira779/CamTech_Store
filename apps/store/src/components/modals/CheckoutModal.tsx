@@ -30,6 +30,8 @@ interface CheckoutModalProps {
   setCoords: (c: { lat: number; lng: number } | null) => void;
   paymentMethod: 'ABA_PAYWAY' | 'BAKONG' | 'COD';
   setPaymentMethod: (m: 'ABA_PAYWAY' | 'BAKONG' | 'COD') => void;
+  /** Methods this store can accept; QR methods only when the store configured its own merchant. */
+  availableMethods: Array<'ABA_PAYWAY' | 'BAKONG' | 'COD'>;
   cartTotal: number;
   handleCheckout: () => void;
   syncCustomerWithDatabase: (data: any) => void;
@@ -59,7 +61,7 @@ export function CheckoutModal({
   isOpen, onClose, customer, setCustomer, guestName, setGuestName,
   guestPhone, setGuestPhone, setIsAuthModalOpen, handleGoogleSignIn,
   deliveryAddress, setDeliveryAddress, handleCaptureLocation,
-  isLocating, coords, setCoords, paymentMethod, setPaymentMethod,
+  isLocating, coords, setCoords, paymentMethod, setPaymentMethod, availableMethods,
   cartTotal, handleCheckout, syncCustomerWithDatabase, toast
 }: CheckoutModalProps) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
@@ -276,8 +278,9 @@ export function CheckoutModal({
 
           <div>
             <label className="text-xs font-semibold ds-text-dim block mb-2">Select Payment Method</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className={`grid grid-cols-1 gap-2.5 ${['sm:grid-cols-1', 'sm:grid-cols-2', 'sm:grid-cols-3'][availableMethods.length - 1]}`}>
               {/* ABA PayWay */}
+              {availableMethods.includes('ABA_PAYWAY') && (
               <button
                 type="button"
                 onClick={() => setPaymentMethod('ABA_PAYWAY')}
@@ -298,8 +301,10 @@ export function CheckoutModal({
                   <p className="text-[10px] ds-text-dim font-normal mt-0.5">ABA Mobile App</p>
                 </div>
               </button>
+              )}
 
               {/* Bakong KHQR */}
+              {availableMethods.includes('BAKONG') && (
               <button
                 type="button"
                 onClick={() => setPaymentMethod('BAKONG')}
@@ -320,6 +325,7 @@ export function CheckoutModal({
                   <p className="text-[10px] ds-text-dim font-normal mt-0.5">All Cambodian Banks</p>
                 </div>
               </button>
+              )}
 
               {/* Cash on Delivery */}
               <button

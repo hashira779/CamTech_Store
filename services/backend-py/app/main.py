@@ -12,6 +12,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.core.validation_errors import format_validation_errors, validation_error_details
 from app.modules.delivery.api import router as delivery_router
 from app.routers.industry_routes import router as industry_router
 from app.routers.ai_copilot_routes import router as ai_copilot_router
@@ -175,7 +176,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "code": "VALIDATION_ERROR",
-            "message": str(exc.errors()),
+            "message": format_validation_errors(exc.errors()),
+            "details": validation_error_details(exc.errors()),
             "requestId": req_id
         },
         headers={"X-Request-Id": req_id}

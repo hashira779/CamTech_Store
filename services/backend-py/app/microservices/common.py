@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
+from app.core.validation_errors import format_validation_errors, validation_error_details
 
 # Import the full entity graph so EVERY microservice registers all SQLAlchemy
 # models — a service that mounts only a few routers would otherwise have an
@@ -63,7 +64,13 @@ def apply_enterprise_layer(app: FastAPI) -> None:
         req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"success": False, "code": "VALIDATION_ERROR", "message": str(exc.errors()), "requestId": req_id},
+            content={
+                "success": False,
+                "code": "VALIDATION_ERROR",
+                "message": format_validation_errors(exc.errors()),
+                "details": validation_error_details(exc.errors()),
+                "requestId": req_id,
+            },
             headers={"X-Request-Id": req_id},
         )
 

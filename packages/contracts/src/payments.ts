@@ -72,3 +72,34 @@ export interface PaymentVerificationDto {
   reference?: string | null;
   paidAt?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Storefront checkout methods (GET /sales/payment-methods?organizationId=)
+// QR methods appear only when the store configured its own merchant; COD is always offered.
+// ---------------------------------------------------------------------------
+
+export const STOREFRONT_PAYMENT_METHODS = ['ABA_PAYWAY', 'BAKONG', 'COD'] as const;
+export type StorefrontPaymentMethod = (typeof STOREFRONT_PAYMENT_METHODS)[number];
+
+export interface StorePaymentMethodsDto {
+  organizationId: string;
+  methods: { code: StorefrontPaymentMethod; label: string }[];
+}
+
+// ---------------------------------------------------------------------------
+// GET /sales/orders/{id}/payment-status — bank checks follow a server-side backoff
+// (5s, 15s, 45s, 120s, then every 120s). Clients wait `retryAfterSeconds` before polling
+// again and stop for good when `expired` is true.
+// ---------------------------------------------------------------------------
+
+export interface OrderPaymentStatusDto {
+  paid: boolean;
+  status: string;
+  saleId: string;
+  saleNumber: string;
+  amount: number;
+  provider?: string | null;
+  message?: string;
+  retryAfterSeconds?: number;
+  expired?: boolean;
+}

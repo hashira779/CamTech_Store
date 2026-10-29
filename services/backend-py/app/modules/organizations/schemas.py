@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any
 
 class OrganizationSettingsDto(BaseModel):
@@ -58,10 +58,21 @@ class PaywayConfigDto(BaseModel):
 
 class UpdatePaywayConfigInput(BaseModel):
     merchantId: str
-    publicKey: str
+    # The ABA PayWay API key. Send the mask (or blank) back to keep the stored key.
+    publicKey: Optional[str] = None
     rsaPublicKey: Optional[str] = None
     rsaPrivateKey: Optional[str] = None
     isProduction: Optional[bool] = False
+
+    @field_validator("merchantId")
+    @classmethod
+    def validate_payway_merchant_id(cls, v: str) -> str:
+        val = (v or "").strip()
+        if not val:
+            raise ValueError("ABA PayWay Merchant ID is required (from your PayWay merchant portal)")
+        if len(val) > 32 or not re.match(r"^[A-Za-z0-9_\-]+$", val):
+            raise ValueError("ABA PayWay Merchant ID must be letters, numbers, '-' or '_' (max 32)")
+        return val
 
 class CreateOrganizationInput(BaseModel):
     name: str
@@ -111,22 +122,47 @@ class CreateOrganizationInput(BaseModel):
             raise ValueError("Tax rate must be between 0% and 100%")
         return v
 
+BAKONG_ACCOUNT_TYPES = ("INDIVIDUAL", "MERCHANT")
+_PRINTABLE_ASCII = re.compile(r"^[\x20-\x7E]+$")
+
+
 class BakongConfigDto(BaseModel):
     accountId: str
+    accountType: str = "INDIVIDUAL"
     merchantName: str
+    merchantId: Optional[str] = None
+    acquiringBank: Optional[str] = None
     merchantCity: Optional[str] = "Phnom Penh"
     currency: Optional[str] = "USD"
     enabled: bool = True
     isConfigured: bool = True
+    # When the account was last confirmed to exist via Bakong `check_bakong_account`.
+    # (That API returns no owner name — the merchant name is what the store enters from its Bakong app.)
+    accountVerifiedAt: Optional[str] = None
     accountName: Optional[str] = None
+    # Secrets are write-only: GET returns only a mask such as "bk_live_••••••••1a2b".
+    hasToken: bool = False
+    tokenMasked: Optional[str] = None
+    hasWebhookSecret: bool = False
+    webhookSecretMasked: Optional[str] = None
 
 class UpdateBakongConfigInput(BaseModel):
+    """
+    Values exactly as shown in the store's Bakong app. They are written into every KHQR:
+    tag 29 (individual) or 30 (merchant) [00 account ID, 01 merchant ID, 02 acquiring bank],
+    59 merchant name (max 25), 60 city (max 15). Any invalid value fails the save — nothing is stored.
+    """
     accountId: str
-    merchantName: Optional[str] = None
+    accountType: str = "INDIVIDUAL"
+    merchantName: str
+    merchantId: Optional[str] = None
+    acquiringBank: Optional[str] = None
     merchantCity: Optional[str] = "Phnom Penh"
     currency: Optional[str] = "USD"
     enabled: Optional[bool] = True
+    # Omit (or send the mask back) to keep the stored secret; send a new value to replace it.
     token: Optional[str] = None
+    webhookSecret: Optional[str] = None
 
     @field_validator("accountId")
     @classmethod
@@ -134,15 +170,39 @@ class UpdateBakongConfigInput(BaseModel):
         if not v or not v.strip():
             raise ValueError("Bakong Account ID is required")
         val = v.strip().lower()
-        if len(val) < 3 or len(val) > 64:
-            raise ValueError("Bakong Account ID must be between 3 and 64 characters")
-        if " " in val:
-            raise ValueError("Bakong Account ID cannot contain spaces")
-        # Must match either handle@bank (e.g. name@aclb, user@wing) or phone (855xxxxxxxxx) or phone@bank
-        pattern = r'^[a-z0-9_\.\-]+(@[a-z0-9_\.\-]+)?$'
-        if not re.match(pattern, val):
-            raise ValueError("Invalid Bakong Account ID format. Examples: chhoy_ratha@aclb, 85512345678@wing, or phone number")
+        if len(val) < 3 or len(val) > 32:
+            raise ValueError("Bakong Account ID must be between 3 and 32 characters")
+        # KHQR needs the full Bakong ID with its bank suffix, exactly as the Bakong app shows it.
+        if not re.match(r"^[a-z0-9_.\-]+@[a-z0-9_.\-]+$", val):
+            raise ValueError("Bakong Account ID must look like name@bank (e.g. chhoy_ratha@aclb, 85512345678@wing) — copy it from your Bakong app")
         return val
+
+    @field_validator("accountType")
+    @classmethod
+    def validate_account_type(cls, v: str) -> str:
+        val = (v or "INDIVIDUAL").strip().upper()
+        if val not in BAKONG_ACCOUNT_TYPES:
+            raise ValueError("Account type must be INDIVIDUAL or MERCHANT")
+        return val
+
+    @field_validator("merchantId", "acquiringBank")
+    @classmethod
+    def validate_merchant_fields(cls, v: Optional[str], info) -> Optional[str]:
+        if v is None or not v.strip():
+            return None
+        val = v.strip()
+        label = "Merchant ID" if info.field_name == "merchantId" else "Acquiring bank"
+        if len(val) > 32:
+            raise ValueError(f"{label} cannot exceed 32 characters")
+        if not _PRINTABLE_ASCII.match(val):
+            raise ValueError(f"{label} must use English letters, numbers and symbols only")
+        return val
+
+    @model_validator(mode="after")
+    def require_merchant_details(self):
+        if self.accountType == "MERCHANT" and (not self.merchantId or not self.acquiringBank):
+            raise ValueError("A MERCHANT account needs both the Merchant ID and the Acquiring Bank shown in your Bakong app")
+        return self
 
     @field_validator("currency")
     @classmethod
@@ -156,22 +216,26 @@ class UpdateBakongConfigInput(BaseModel):
 
     @field_validator("merchantName")
     @classmethod
-    def validate_merchant_name(cls, v: Optional[str]) -> Optional[str]:
-        if not v:
-            return None
-        val = v.strip()
-        if len(val) > 50:
-            raise ValueError("Merchant name cannot exceed 50 characters (EMVCo Tag 59 limit)")
+    def validate_merchant_name(cls, v: str) -> str:
+        val = (v or "").strip()
+        if not val:
+            raise ValueError("Merchant name is required — enter it exactly as shown in your Bakong app")
+        if len(val) > 25:
+            raise ValueError(f"Merchant name is {len(val)} characters; KHQR allows at most 25")
+        if not _PRINTABLE_ASCII.match(val):
+            raise ValueError("Merchant name must use English letters, numbers and symbols only (KHQR tag 59)")
         return val
 
     @field_validator("merchantCity")
     @classmethod
     def validate_merchant_city(cls, v: Optional[str]) -> Optional[str]:
-        if not v:
+        if not v or not v.strip():
             return "Phnom Penh"
         val = v.strip()
         if len(val) > 15:
-            raise ValueError("Merchant city cannot exceed 15 characters (EMVCo Tag 60 limit)")
+            raise ValueError(f"Merchant city is {len(val)} characters; KHQR allows at most 15")
+        if not _PRINTABLE_ASCII.match(val):
+            raise ValueError("Merchant city must use English letters only (KHQR tag 60)")
         return val
 
 class VerifyBakongAccountInput(BaseModel):
@@ -194,6 +258,8 @@ class VerifyBakongAccountResultDto(BaseModel):
     accountName: Optional[str] = None
     currency: Optional[str] = None
     errorCode: Optional[int] = None
+    # TOKEN | NOT_FOUND | RATE_LIMITED | UNREACHABLE | FAILED (see BakongService._classify_failure)
+    reason: Optional[str] = None
     message: str
 
 class OrganizationChannelsDto(BaseModel):

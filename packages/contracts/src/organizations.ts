@@ -74,23 +74,47 @@ export interface CreateOrganizationInput {
   ownerPassword?: string;
 }
 
+/** INDIVIDUAL → KHQR tag 29; MERCHANT → tag 30 with the merchant ID + acquiring bank from the Bakong app. */
+export type BakongAccountType = 'INDIVIDUAL' | 'MERCHANT';
+
 export interface BakongConfigDto {
   accountId: string;
+  accountType?: BakongAccountType;
   merchantName: string;
+  merchantId?: string | null;
+  acquiringBank?: string | null;
   merchantCity?: string;
   currency?: string;
   enabled: boolean;
   isConfigured: boolean;
+  /** When NBC last confirmed the account exists. NBC returns no owner name. */
+  accountVerifiedAt?: string | null;
+  /** @deprecated NBC check_bakong_account returns no owner name; always null. */
   accountName?: string | null;
+  /** Secrets are write-only; only these masks (e.g. "bk_live_••••••••1a2b") are ever returned. */
+  hasToken?: boolean;
+  tokenMasked?: string | null;
+  hasWebhookSecret?: boolean;
+  webhookSecretMasked?: string | null;
 }
 
 export interface UpdateBakongConfigInput {
+  /** Exactly as shown in the Bakong app, e.g. "coffee_lab@aclb". */
   accountId: string;
-  merchantName?: string;
+  accountType?: BakongAccountType;
+  /** Required; max 25 English characters (KHQR tag 59). */
+  merchantName: string;
+  /** Required for MERCHANT accounts. */
+  merchantId?: string;
+  /** Required for MERCHANT accounts, e.g. "ACLEDA Bank". */
+  acquiringBank?: string;
+  /** Max 15 characters (KHQR tag 60). */
   merchantCity?: string;
   currency?: string;
   enabled?: boolean;
+  /** Omit, or send the mask back, to keep the stored secret; send a new value to replace it. */
   token?: string;
+  webhookSecret?: string;
 }
 
 export interface VerifyBakongAccountInput {
@@ -104,6 +128,7 @@ export interface VerifyBakongAccountResultDto {
   accountName?: string | null;
   currency?: string | null;
   errorCode?: number | null;
+  reason?: 'TOKEN' | 'NOT_FOUND' | 'RATE_LIMITED' | 'UNREACHABLE' | 'FAILED' | null;
   message: string;
 }
 

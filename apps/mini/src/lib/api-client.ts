@@ -1,4 +1,4 @@
-import type { SaleDto, Paginated, ProductDto } from '@mystore/contracts';
+import type { SaleDto, Paginated, ProductDto, StorePaymentMethodsDto, OrderPaymentStatusDto } from '@mystore/contracts';
 
 export const BASE_URL = (() => {
   if (typeof window !== 'undefined') {
@@ -99,6 +99,9 @@ export const api = {
     return request<Paginated<ProductDto>>(`/catalog/products${qs.toString() ? `?${qs.toString()}` : ''}`, { token });
   },
 
+  getStorePaymentMethods: (organizationId: string) =>
+    request<StorePaymentMethodsDto>(`/sales/payment-methods?organizationId=${encodeURIComponent(organizationId)}`),
+
   storeCheckout: (token: string | null, payload: any) =>
     request<SaleDto>('/sales/store-checkout', {
       method: 'POST',
@@ -115,9 +118,7 @@ export const api = {
   },
 
   getOrderPaymentStatus: (saleId: string) =>
-    request<{ paid: boolean; status: string; saleId: string; saleNumber: string; amount: number; provider?: string }>(
-      `/sales/orders/${saleId}/payment-status`
-    ),
+    request<OrderPaymentStatusDto>(`/sales/orders/${saleId}/payment-status`),
 
   authTelegramMiniApp: (payload: any) =>
     request<{

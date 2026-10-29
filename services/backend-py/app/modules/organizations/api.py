@@ -4,7 +4,7 @@ import uuid
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -29,6 +29,45 @@ from .schemas import (
 )
 
 router = APIRouter(tags=["Organizations"])
+
+# Only store admins may replace where a store's money is paid to.
+CREDENTIAL_ADMIN_ROLES = {"SUPER_ADMIN", "ORG_ADMIN"}
+SECRET_MASK = "••••"
+
+
+def require_store_admin(user: TenantUser = Depends(get_current_user)) -> TenantUser:
+    if not CREDENTIAL_ADMIN_ROLES.intersection(user.roles):
+        raise HTTPException(status_code=403, detail="Only store administrators can manage payment credentials.")
+    return user
+
+
+def _is_masked(value: Optional[str]) -> bool:
+    """True when the client echoed back the masked placeholder instead of a new secret."""
+    return bool(value) and SECRET_MASK in value
+
+
+def _seal_or_503(secret: str, org_id: str) -> dict:
+    from app.core import key_vault
+    try:
+        return key_vault.seal(secret, org_id)
+    except key_vault.VaultUnavailable:
+        raise HTTPException(status_code=503, detail="Payment key vault is not configured (PAYMENT_KEK). Secrets cannot be stored.")
+
+
+def _audit_credential_change(db: AsyncSession, user: TenantUser, request: Request, resource_type: str, resource_id: str, fields: List[str]):
+    """Append-only record of who replaced which payment credential, from where (values are never logged)."""
+    from app.models.entities import AuditLog
+    from app.modules.observability.middleware import _client_ip
+    db.add(AuditLog(
+        organization_id=user.organization_id,
+        actor_id=user.id,
+        action="PAYMENT_CREDENTIAL_REPLACED",
+        resource_type=resource_type,
+        resource_id=resource_id,
+        metadata_=json.dumps({"fields": fields, "branchId": user.organization_id, "actorEmail": user.email}),
+        ip=_client_ip(request),
+        result="SUCCESS",
+    ))
 
 DEFAULT_SETTINGS = {
     "currency": "USD",
@@ -323,9 +362,25 @@ async def update_current_organization(
     await db.refresh(org)
     return map_org_to_dto(org)
 
+def _payway_dto(pw_config) -> PaywayConfigDto:
+    from app.core import key_vault
+    from .payment_config import parse_sealed_column
+    sealed = parse_sealed_column(pw_config.public_key)
+    return PaywayConfigDto(
+        id=pw_config.id,
+        merchantId=pw_config.merchant_id,
+        # The API key is never returned; the UI shows a mask and sends a new key only to replace it.
+        publicKey=key_vault.mask(sealed, prefix="pw_live_") if sealed else "",
+        rsaPublicKey=pw_config.rsa_public_key,
+        isProduction=pw_config.is_production,
+        createdAt=pw_config.created_at,
+        updatedAt=pw_config.updated_at
+    )
+
+
 @router.get("/current/payway", response_model=PaywayConfigDto)
 async def get_current_payway_config(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(require_store_admin),
     db: AsyncSession = Depends(get_db)
 ):
     from .models import PaywayConfig
@@ -335,33 +390,39 @@ async def get_current_payway_config(
     pw_config = result.scalar_one_or_none()
     if not pw_config:
         raise HTTPException(status_code=404, detail="Payway config not found")
-        
-    return PaywayConfigDto(
-        id=pw_config.id,
-        merchantId=pw_config.merchant_id,
-        publicKey=pw_config.public_key,
-        rsaPublicKey=pw_config.rsa_public_key,
-        isProduction=pw_config.is_production,
-        createdAt=pw_config.created_at,
-        updatedAt=pw_config.updated_at
-    )
+    return _payway_dto(pw_config)
 
 @router.put("/current/payway", response_model=PaywayConfigDto)
 async def update_current_payway_config(
     pw_in: UpdatePaywayConfigInput,
-    user: TenantUser = Depends(get_current_user),
+    request: Request,
+    user: TenantUser = Depends(require_store_admin),
     db: AsyncSession = Depends(get_db)
 ):
     from .models import PaywayConfig
     from app.core.payway import PaywayService
-    
+    from .payment_config import resolve_store_payment_config
+
+    result = await db.execute(
+        select(PaywayConfig).where(PaywayConfig.organization_id == user.organization_id)
+    )
+    pw_config = result.scalar_one_or_none()
+
+    # A masked key means "keep the stored key" (the form shows the mask, never the secret).
+    api_key = pw_in.publicKey
+    if _is_masked(api_key) or not api_key:
+        current = await resolve_store_payment_config(db, user.organization_id)
+        if not current.payway:
+            raise HTTPException(status_code=400, detail="Update failed — nothing was saved. Enter the ABA PayWay API key.")
+        api_key = current.payway.api_key
+
     # Validation step: check if the credentials sent are valid
     # We do a test generation of QR code with $1. If the credentials are wrong, ABA PayWay will return success=False
     import uuid
     dummy_tran_id = f"TEST-{str(uuid.uuid4())[:8].upper()}"
     test_result = await PaywayService.generate_qr(
         merchant_id=pw_in.merchantId,
-        api_key=pw_in.publicKey,
+        api_key=api_key,
         transaction_id=dummy_tran_id,
         amount=1.00,
         items=[{"name": "Validation Test", "quantity": 1, "price": 1.00}],
@@ -373,119 +434,144 @@ async def update_current_payway_config(
     )
     
     if not test_result.get("success") or test_result.get("source") != "ABA_PAYWAY":
-        raise HTTPException(status_code=400, detail="Invalid ABA PayWay credentials. Verification failed by ABA Bank.")
+        raise HTTPException(
+            status_code=400,
+            detail="Update failed — nothing was saved. ABA PayWay did not accept this Merchant ID / API key "
+                   f"({'production' if pw_in.isProduction else 'sandbox'} environment). Check both values and the environment switch.",
+        )
 
-    # Validated! Now save to DB
-    result = await db.execute(
-        select(PaywayConfig).where(PaywayConfig.organization_id == user.organization_id)
+    # Validated! Seal the secrets (bound to this store) and save.
+    org_id = user.organization_id
+    sealed_key = json.dumps(_seal_or_503(api_key, org_id))
+    sealed_rsa = (
+        json.dumps(_seal_or_503(pw_in.rsaPrivateKey, org_id))
+        if pw_in.rsaPrivateKey and not _is_masked(pw_in.rsaPrivateKey) else None
     )
-    pw_config = result.scalar_one_or_none()
-    
+    changed = ["merchantId", "apiKey"] + (["rsaPrivateKey"] if sealed_rsa else [])
+
     if not pw_config:
         pw_config = PaywayConfig(
-            organization_id=user.organization_id,
+            organization_id=org_id,
             merchant_id=pw_in.merchantId,
-            public_key=pw_in.publicKey,
+            public_key=sealed_key,
             rsa_public_key=pw_in.rsaPublicKey,
-            rsa_private_key=pw_in.rsaPrivateKey,
+            rsa_private_key=sealed_rsa,
             is_production=pw_in.isProduction or False,
         )
         db.add(pw_config)
+        await db.flush()
     else:
         pw_config.merchant_id = pw_in.merchantId
-        pw_config.public_key = pw_in.publicKey
+        pw_config.public_key = sealed_key
         if pw_in.rsaPublicKey is not None:
             pw_config.rsa_public_key = pw_in.rsaPublicKey
-        if pw_in.rsaPrivateKey is not None:
-            pw_config.rsa_private_key = pw_in.rsaPrivateKey
+        if sealed_rsa:
+            pw_config.rsa_private_key = sealed_rsa
         if pw_in.isProduction is not None:
             pw_config.is_production = pw_in.isProduction
         pw_config.updated_at = utc_now()
 
+    _audit_credential_change(db, user, request, "PaywayConfig", pw_config.id, changed)
     await db.commit()
     await db.refresh(pw_config)
-    
-    return PaywayConfigDto(
-        id=pw_config.id,
-        merchantId=pw_config.merchant_id,
-        publicKey=pw_config.public_key,
-        rsaPublicKey=pw_config.rsa_public_key,
-        isProduction=pw_config.is_production,
-        createdAt=pw_config.created_at,
-        updatedAt=pw_config.updated_at
+    return _payway_dto(pw_config)
+
+def _bakong_dto(cfg: dict, org: Organization) -> BakongConfigDto:
+    from app.core import key_vault
+    account_id = cfg.get("accountId") or ""
+    return BakongConfigDto(
+        accountId=account_id,
+        accountType=cfg.get("accountType") or "INDIVIDUAL",
+        merchantName=cfg.get("merchantName") or org.name or "Store",
+        merchantId=cfg.get("merchantId"),
+        acquiringBank=cfg.get("acquiringBank"),
+        merchantCity=cfg.get("merchantCity") or "Phnom Penh",
+        currency=cfg.get("currency") or org.currency or "USD",
+        enabled=cfg.get("enabled", True) if account_id else False,
+        isConfigured=bool(account_id),
+        accountVerifiedAt=cfg.get("accountVerifiedAt"),
+        accountName=None,
+        hasToken=bool(cfg.get("tokenSealed")),
+        tokenMasked=key_vault.mask(cfg.get("tokenSealed"), prefix="bk_live_"),
+        hasWebhookSecret=bool(cfg.get("webhookSecretSealed")),
+        webhookSecretMasked=key_vault.mask(cfg.get("webhookSecretSealed"), prefix="whsec_"),
     )
+
 
 @router.get("/current/bakong", response_model=BakongConfigDto)
 async def get_current_organization_bakong(
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(require_store_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Retrieve Bakong KHQR configuration for current organization."""
+    """Retrieve Bakong KHQR configuration for current organization (secrets masked)."""
+    from .payment_config import read_bakong_settings
     result = await db.execute(select(Organization).where(Organization.id == user.organization_id))
     org = result.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-
-    bakong_cfg = {}
-    if org.settings:
-        try:
-            s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
-            if isinstance(s_data, dict):
-                bakong_cfg = s_data.get("bakong") or {}
-        except Exception:
-            pass
-
-    account_id = bakong_cfg.get("accountId") or ""
-    merchant_name = bakong_cfg.get("merchantName") or org.name or "CamTech Store"
-    merchant_city = bakong_cfg.get("merchantCity") or "Phnom Penh"
-    currency = bakong_cfg.get("currency") or org.currency or "USD"
-    enabled = bakong_cfg.get("enabled", True) if account_id else False
-
-    return BakongConfigDto(
-        accountId=account_id,
-        merchantName=merchant_name,
-        merchantCity=merchant_city,
-        currency=currency,
-        enabled=enabled,
-        isConfigured=bool(account_id),
-        accountName=bakong_cfg.get("accountName"),
-    )
+    return _bakong_dto(read_bakong_settings(org), org)
 
 @router.put("/current/bakong", response_model=BakongConfigDto)
 @router.post("/current/bakong", response_model=BakongConfigDto)
 async def update_current_organization_bakong(
     bakong_in: UpdateBakongConfigInput,
-    user: TenantUser = Depends(get_current_user),
+    request: Request,
+    user: TenantUser = Depends(require_store_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Save or update store-specific NBC Bakong KHQR credentials in PostgreSQL.
-    Enables dynamic, store-by-store Bakong account IDs without code modification.
+    Save or update store-specific NBC Bakong KHQR credentials.
+    The API token and webhook secret are sealed in the key vault (bound to this store) and never returned.
     """
+    from .payment_config import read_bakong_settings, open_store_secret
     result = await db.execute(select(Organization).where(Organization.id == user.organization_id))
     org = result.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
+    from app.core.bakong import BakongService
+    from app.domain.commerce_engines import KhqrGenerator
+
+    previous = read_bakong_settings(org)
     account_clean = bakong_in.accountId.strip()
-    merchant_name = (bakong_in.merchantName or org.name or "CamTech Store").strip()
+    merchant_name = bakong_in.merchantName.strip()
     merchant_city = (bakong_in.merchantCity or "Phnom Penh").strip()
     currency = (bakong_in.currency or org.currency or "USD").strip().upper()
     enabled = bakong_in.enabled if bakong_in.enabled is not None else True
+    is_merchant = bakong_in.accountType == "MERCHANT"
 
-    # Live verification on NBC Bakong network
-    account_verified_name = None
-    if account_clean:
-        from app.core.bakong import BakongService
-        verify_res = await BakongService.check_bakong_account(account_clean, token=bakong_in.token)
-        if not verify_res.get("valid"):
-            err_msg = verify_res.get("message") or "Account not found or inactive on NBC Bakong network"
-            err_code = verify_res.get("errorCode")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Bakong Account Verification Failed: {err_msg} (Error Code {err_code}). Please enter a valid Bakong Account ID registered in the Bakong app."
-            )
-        account_verified_name = verify_res.get("accountName")
+    new_token = None if _is_masked(bakong_in.token) else (bakong_in.token or "").strip() or None
+    new_webhook_secret = None if _is_masked(bakong_in.webhookSecret) else (bakong_in.webhookSecret or "").strip() or None
+    verify_token = new_token or open_store_secret(previous, "token", org.id)
+
+    # 1. The account must exist on Bakong (NBC /v1/check_bakong_account). Any failure aborts the save.
+    verify_res = await BakongService.check_bakong_account(account_clean, token=verify_token)
+    if not verify_res.get("valid"):
+        reason = verify_res.get("reason")
+        code = {"UNREACHABLE": 502, "RATE_LIMITED": 429}.get(reason, status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=code, detail=f"Update failed — nothing was saved. {verify_res.get('message')}")
+
+    # 2. The exact QR customers will scan must build and decode cleanly with these values.
+    try:
+        probe = KhqrGenerator.generate_dynamic_qr(
+            merchant_name=merchant_name, account_id=account_clean, amount=1, currency=currency,
+            merchant_city=merchant_city, bill_number="CONFIG-CHECK",
+            account_type=bakong_in.accountType, merchant_id=bakong_in.merchantId, acquiring_bank=bakong_in.acquiringBank,
+        )
+        tags = KhqrGenerator.parse(probe["qrString"])
+        if tags["30" if is_merchant else "29"]["00"] != account_clean:
+            raise ValueError("account ID did not round-trip")
+    except (ValueError, KeyError) as e:
+        raise HTTPException(status_code=400, detail=f"Update failed — nothing was saved. These details cannot form a valid KHQR: {e}")
+
+    # 3. Secrets: seal now so a vault problem also fails the save before anything is written.
+    token_sealed = _seal_or_503(new_token, org.id) if new_token else previous.get("tokenSealed")
+    webhook_sealed = _seal_or_503(new_webhook_secret, org.id) if new_webhook_secret else previous.get("webhookSecretSealed")
+    if not token_sealed and not BakongService.get_token() and not BakongService.test_accounts_allowed():
+        raise HTTPException(
+            status_code=400,
+            detail="Update failed — nothing was saved. Enter your Bakong API token: without it payments cannot be confirmed.",
+        )
 
     current_settings = dict(DEFAULT_SETTINGS)
     if org.settings:
@@ -496,51 +582,59 @@ async def update_current_organization_bakong(
         except Exception:
             pass
 
-    current_settings["bakong"] = {
+    new_cfg = {
         "accountId": account_clean,
+        "accountType": bakong_in.accountType,
         "merchantName": merchant_name,
+        "merchantId": bakong_in.merchantId if is_merchant else None,
+        "acquiringBank": bakong_in.acquiringBank,
         "merchantCity": merchant_city,
         "currency": currency,
         "enabled": enabled,
-        "accountName": account_verified_name,
-        "token": bakong_in.token.strip() if bakong_in.token else None,
+        "accountVerifiedAt": utc_now().isoformat(),
+        # Unchanged secrets keep their existing envelopes; replaced ones are re-sealed for this store.
+        "tokenSealed": token_sealed,
+        "webhookSecretSealed": webhook_sealed,
         "updatedAt": utc_now().isoformat(),
     }
+    current_settings["bakong"] = new_cfg
+
+    changed = [k for k in ("accountId", "accountType", "merchantName", "merchantId", "acquiringBank", "currency", "enabled")
+               if previous.get(k) != new_cfg[k]]
+    changed += (["token"] if new_token else []) + (["webhookSecret"] if new_webhook_secret else [])
+    if changed:
+        _audit_credential_change(db, user, request, "BakongConfig", org.id, changed)
 
     org.settings = json.dumps(current_settings)
     org.updated_at = utc_now()
 
     await db.commit()
     await db.refresh(org)
-
-    return BakongConfigDto(
-        accountId=account_clean,
-        merchantName=merchant_name,
-        merchantCity=merchant_city,
-        currency=currency,
-        enabled=enabled,
-        isConfigured=bool(account_clean),
-        accountName=account_verified_name,
-    )
+    return _bakong_dto(new_cfg, org)
 
 @router.post("/current/bakong/verify", response_model=VerifyBakongAccountResultDto)
 async def verify_current_organization_bakong_account(
     verify_in: VerifyBakongAccountInput,
-    user: TenantUser = Depends(get_current_user),
+    user: TenantUser = Depends(require_store_admin),
+    db: AsyncSession = Depends(get_db),
 ):
     """
-    Real-time verification of Bakong Account ID on NBC Bakong network.
-    Returns account validity, verified account owner name, and currency.
+    Checks a Bakong Account ID exists (NBC /v1/check_bakong_account), using the typed token or the store's saved one.
+    NBC returns no owner name — only whether the account exists.
     """
     from app.core.bakong import BakongService
-    res = await BakongService.check_bakong_account(verify_in.accountId.strip(), token=verify_in.token)
+    from .payment_config import read_bakong_settings, open_store_secret
+    token = None if _is_masked(verify_in.token) else (verify_in.token or "").strip() or None
+    if not token:
+        org = (await db.execute(select(Organization).where(Organization.id == user.organization_id))).scalar_one_or_none()
+        token = open_store_secret(read_bakong_settings(org), "token", user.organization_id) if org else None
+    res = await BakongService.check_bakong_account(verify_in.accountId.strip(), token=token)
     return VerifyBakongAccountResultDto(
         valid=bool(res.get("valid")),
         accountId=verify_in.accountId.strip(),
-        accountName=res.get("accountName"),
-        currency=res.get("data", {}).get("currency") if isinstance(res.get("data"), dict) else None,
         errorCode=res.get("errorCode"),
-        message=res.get("message") or ("Verified" if res.get("valid") else "Account not found on NBC Bakong network"),
+        reason=res.get("reason"),
+        message=res.get("message") or ("Account ID exists" if res.get("valid") else "Account not found on Bakong"),
     )
 
 @router.get("/current/channels", response_model=OrganizationChannelsDto)
@@ -567,20 +661,9 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    from .models import PaywayConfig
-    pw = (await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_id))).scalar_one_or_none()
-
-    bakong_cfg = {}
-    if org.settings:
-        try:
-            s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
-            if isinstance(s_data, dict):
-                bakong_cfg = s_data.get("bakong") or {}
-        except Exception:
-            pass
-
-    bakong_account = bakong_cfg.get("accountId")
-    bakong_enabled = bool(bakong_cfg.get("enabled", True) and bakong_account)
+    from .payment_config import resolve_store_payment_config, read_bakong_settings
+    pay_cfg = await resolve_store_payment_config(db, target_id)
+    bakong_account = read_bakong_settings(org).get("accountId")
 
     import os
     base_domain = os.getenv("APP_DOMAIN", "camtech.cam")
@@ -611,10 +694,10 @@ async def _resolve_org_channels(target_id: str, db: AsyncSession) -> Organizatio
         publicCatalogEndpoint=f"{api_base}/public/products?organizationId={org.id}",
         checkoutEndpoint=f"{api_base}/sales/checkout",
         telegramBotAuthEndpoint=f"{api_base}/telegram/mini-app/auth",
-        paywayConfigured=bool(pw and pw.merchant_id and pw.public_key),
-        paywayMerchantId=pw.merchant_id if pw else None,
+        paywayConfigured=pay_cfg.payway is not None,
+        paywayMerchantId=pay_cfg.payway.merchant_id if pay_cfg.payway else None,
         bakongConfigured=bool(bakong_account),
         bakongAccountId=bakong_account,
-        bakongEnabled=bakong_enabled,
+        bakongEnabled=pay_cfg.bakong is not None,
     )
 
