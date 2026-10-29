@@ -507,8 +507,12 @@ export function App() {
       });
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      processSession(session);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) {
+        processSession(data.session);
+      }
+    }).catch((err) => {
+      console.warn('Supabase auth session check bypassed:', err?.message || err);
     });
 
     // 1. Supabase Auth Listener
