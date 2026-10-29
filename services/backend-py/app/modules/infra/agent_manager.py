@@ -24,6 +24,12 @@ AGENT_TIMEOUT = 10.0
 AGENT_METRICS_TIMEOUT = 15.0
 
 
+def _fleet_enrolment_key() -> str:
+    """Shared fleet key from the environment (ICP_AGENT_DEFAULT_KEY); empty disables auto-enrolment."""
+    import os
+    return os.getenv("ICP_AGENT_DEFAULT_KEY", "").strip()
+
+
 class AgentManager:
     """Manages communication with ICP agents deployed on managed servers."""
 
@@ -155,12 +161,22 @@ class AgentManager:
         hostname: str,
         metrics: Dict[str, Any],
         client_ip: Optional[str] = None,
+        presented_key: str = "",
     ) -> Dict[str, Any]:
-        """Process a heartbeat from an agent and store latest metrics."""
+        """
+        Process a heartbeat from an agent and store latest metrics.
+        Raises PermissionError unless `presented_key` (the X-ICP-Agent-Key header) matches the
+        registered agent's key hash, or — for a first heartbeat — the fleet enrolment key.
+        """
         from app.modules.infra.models import InfraAgent
         import hashlib
+        import hmac
 
         now = utc_now()
+        presented_key = (presented_key or "").strip()
+        if not presented_key:
+            raise PermissionError("Missing agent key")
+        presented_hash = hashlib.sha256(presented_key.encode()).hexdigest()
 
         # Find by agent_id first, fallback to hostname
         agent = None
@@ -174,8 +190,14 @@ class AgentManager:
             result = await db.execute(stmt)
             agent = result.scalars().first()
 
+        if agent and not hmac.compare_digest(agent.api_key_hash or "", presented_hash):
+            raise PermissionError("Agent key does not match the registered agent")
+
         if not agent:
-            # Auto-register agent on first verified heartbeat
+            # Auto-register only when the caller proves it holds the fleet enrolment key.
+            enrolment_key = _fleet_enrolment_key()
+            if not enrolment_key or not hmac.compare_digest(enrolment_key, presented_key):
+                raise PermissionError("Unknown agent and invalid enrolment key")
             resolved_ip = client_ip or "10.1.0.11"
             if resolved_ip in ("127.0.0.1", "localhost", "::1") or resolved_ip.startswith("172."):
                 resolved_ip = "10.1.0.11"
@@ -184,7 +206,7 @@ class AgentManager:
                 hostname=hostname or agent_id or "ubuntuserver-virtual-machine",
                 ip_address=resolved_ip,
                 agent_port=9100,
-                api_key_hash=hashlib.sha256("camtech-fleet-agent-key-2026".encode()).hexdigest(),
+                api_key_hash=presented_hash,
                 os_type="linux",
                 status="ONLINE",
                 version="1.0.0",
@@ -257,9 +279,8 @@ class AgentManager:
         For now, the key is stored in the control center's environment.
         """
         import os
-        # Use a per-agent key from env, or fall back to a shared key
-        return os.getenv(f"ICP_AGENT_KEY_{agent.hostname.upper().replace('-', '_')}", 
-                         os.getenv("ICP_AGENT_DEFAULT_KEY", "camtech-fleet-agent-key-2026"))
+        # Use a per-agent key from env, or fall back to the fleet key. Never a literal in Git.
+        return os.getenv(f"ICP_AGENT_KEY_{agent.hostname.upper().replace('-', '_')}", _fleet_enrolment_key())
 
     async def get_agent_metrics(self, db: AsyncSession, agent_id: str) -> Dict[str, Any]:
         """Fetch current metrics from an agent."""

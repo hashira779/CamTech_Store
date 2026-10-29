@@ -389,13 +389,18 @@ async def agent_heartbeat(
     db: AsyncSession = Depends(get_db),
 ):
     client_ip = request.client.host if request.client else None
-    return await agent_manager.process_heartbeat(
-        db=db,
-        agent_id=payload.agentId or payload.hostname,
-        hostname=payload.hostname,
-        metrics=payload.metrics,
-        client_ip=client_ip,
-    )
+    try:
+        return await agent_manager.process_heartbeat(
+            db=db,
+            agent_id=payload.agentId or payload.hostname,
+            hostname=payload.hostname,
+            metrics=payload.metrics,
+            client_ip=client_ip,
+            presented_key=request.headers.get("X-ICP-Agent-Key", ""),
+        )
+    except PermissionError as exc:
+        logger.warning("Rejected agent heartbeat from %s: %s", client_ip, exc)
+        raise HTTPException(status_code=401, detail="Invalid agent credentials")
 
 
 @router.delete("/agents/{agent_id}", summary="Deregister an agent")
