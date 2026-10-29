@@ -144,18 +144,19 @@ fi
 
 # ── 5. Build & Deploy Frontend Web Application Containers ─────────────────────
   echo "📦 Packaging frontend web applications (pre-compiled in CI)..."
-  FRONTEND_SERVICES="store-app admin-app pos-app delivery-app hr-app ceo-app infra-app nginx-ingress"
+  FRONTEND_SERVICES="store-app admin-app pos-app delivery-app hr-app ceo-app mini-app infra-app nginx-ingress"
   
   run_cmd docker compose -f "$COMPOSE_FILE" build $FRONTEND_SERVICES || true
   
   echo "🚀 Deploying updated frontend containers..."
-run_cmd docker compose -f "$COMPOSE_FILE" up -d $FRONTEND_SERVICES
+run_cmd docker compose -f "$COMPOSE_FILE" up -d --force-recreate $FRONTEND_SERVICES
 echo "🔄 Recreating Nginx ingress to pick up configuration inode changes..."
 run_cmd docker compose -f "$COMPOSE_FILE" up -d --force-recreate nginx-ingress
 
 # Ensure containers are reachable by external Cloudflare tunnel expecting *-web aliases
 run_cmd docker network connect --alias admin-web camtech_camtech-net mystore-admin-app 2>/dev/null || true
 run_cmd docker network connect --alias infra-web camtech_camtech-net mystore-infra-app 2>/dev/null || true
+run_cmd docker network connect --alias mini-web camtech_camtech-net mystore-mini-app 2>/dev/null || true
 
 # ── 6. Smoke Tests & Health Check Loop ───────────────────────────────────────
 echo "🔍 Waiting 10s for containers to stabilize before health checks..."
@@ -224,6 +225,12 @@ fi
 DELIVERY_PORT="${DELIVERY_PORT_HOST:-5004}"
 if ! check_endpoint "http://127.0.0.1:${DELIVERY_PORT}/" "Courier Delivery App (Port ${DELIVERY_PORT})" 10; then
     echo "   ⚠️ Notice: Courier Delivery app container not responding directly on ${DELIVERY_PORT}"
+fi
+
+# Verify Telegram Mini App
+MINI_PORT="${MINI_PORT_HOST:-5007}"
+if ! check_endpoint "http://127.0.0.1:${MINI_PORT}/" "Telegram Mini App (Port ${MINI_PORT})" 10; then
+    WARN_FAILED=1
 fi
 
 # Verify CEO Dashboard

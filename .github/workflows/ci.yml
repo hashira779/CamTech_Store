@@ -167,6 +167,7 @@ jobs:
             apps/delivery/dist/
             apps/hr/dist/
             apps/ceo/dist/
+            apps/mini/dist/
           retention-days: 1
 
   security-scan:
@@ -339,7 +340,7 @@ jobs:
             # Pull pre-built frontend assets from production-release
             echo "📥 Merging pre-built frontend assets..."
             git fetch origin production-release
-            git checkout origin/production-release -- apps/store/dist/ apps/web/dist/ apps/cashier/dist/ apps/delivery/dist/ apps/hr/dist/ apps/ceo/dist/ 2>/dev/null || true
+            git checkout origin/production-release -- apps/store/dist/ apps/web/dist/ apps/cashier/dist/ apps/delivery/dist/ apps/hr/dist/ apps/ceo/dist/ apps/mini/dist/ 2>/dev/null || true
 
             # Run the full deploy script (build, migrate, health checks, rollback)
             echo "🚀 Running deploy_production.sh..."
