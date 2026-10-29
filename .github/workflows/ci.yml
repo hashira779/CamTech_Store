@@ -280,7 +280,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download Frontend Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: apps/
