@@ -44,7 +44,6 @@
     "ms:platform": "python -m uvicorn app.microservices.platform_service:app --app-dir services/backend-py --port 4007 --reload",
     "ms:bot-builder": "python -m uvicorn app.microservices.bot_builder_service:app --app-dir services/backend-py --port 4008 --reload",
     "ms:infra": "python -m uvicorn app.microservices.infra_service:app --app-dir services/backend-py --port 4009 --reload"
-
   },
   "devDependencies": {
     "concurrently": "^10.0.5",
@@ -65,15 +64,10 @@
     "file-type": ">=21.3.2",
     "webpack": ">=5.104.1",
     "body-parser": ">=1.20.6",
-    "brace-expansion": ">=1.1.21"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "@prisma/engines",
-      "esbuild",
-      "prisma",
-      "unrs-resolver"
-    ]
+    "brace-expansion": ">=1.1.21",
+    "handlebars": ">=4.7.10",
+    "shell-quote": ">=1.12.0",
+    "proxy-addr": ">=2.0.8",
+    "source-map-js": ">=1.2.2"
   }
 }
