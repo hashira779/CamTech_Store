@@ -285,26 +285,65 @@ jobs:
           name: frontend-dist
           path: apps/
 
-      - name: Deploy to Production Branch
+      - name: Push Compiled Assets to Production Branch
         run: |
           echo "========================================================================"
           echo "🚀 Validating release artifacts for commit ${{ github.sha }}..."
           echo "========================================================================"
           ls -la apps/
           echo "✅ All frontend release bundles and contracts successfully verified."
-          
-          echo "📦 Pushing compiled assets to 'production-release' branch for auto-deployment..."
+
+          echo "📦 Pushing compiled assets to 'production-release' branch..."
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B production-release
-          
+
           # Force add dist folders (since they are in .gitignore)
           git add -f apps/*/dist/ || true
-          
+
           git commit -m "Auto-deploy: compiled frontend assets for ${{ github.sha }}" || echo "No changes to commit"
           git push -f origin production-release
-          
-          echo "📡 The Ubuntu server's automated sync service will now pull 'production-release' and deploy instantly."
+
+      - name: Deploy to Ubuntu Server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          password: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+          port: 22
+          command_timeout: 15m
+          script: |
+            set -e
+            echo "========================================================================"
+            echo "🚀 Auto-Deploy triggered by GitHub Actions"
+            echo "   Commit: ${{ github.sha }}"
+            echo "   Branch: ${{ github.ref_name }}"
+            echo "   Actor:  ${{ github.actor }}"
+            echo "========================================================================"
+
+            # Determine app directory
+            if [ -d "/home/ubuntu-server/CamTech_Store" ]; then
+                APP_DIR="/home/ubuntu-server/CamTech_Store"
+            else
+                APP_DIR="$HOME/CamTech_Store"
+            fi
+
+            cd "$APP_DIR"
+
+            # Pull latest code from main
+            echo "📥 Pulling latest code from origin/main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Pull pre-built frontend assets from production-release
+            echo "📥 Merging pre-built frontend assets..."
+            git fetch origin production-release
+            git checkout origin/production-release -- apps/store/dist/ apps/web/dist/ apps/cashier/dist/ apps/delivery/dist/ apps/hr/dist/ apps/ceo/dist/ 2>/dev/null || true
+
+            # Run the full deploy script (build, migrate, health checks, rollback)
+            echo "🚀 Running deploy_production.sh..."
+            bash scripts/deploy_production.sh
 
       - name: Notify Telegram on Deployment Ready
         if: success()
