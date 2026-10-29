@@ -269,7 +269,7 @@ jobs:
 
   deploy-production:
     name: Safe Production Deploy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
     needs: [python-backend, typescript-monorepo]
@@ -305,46 +305,17 @@ jobs:
           git commit -m "Auto-deploy: compiled frontend assets for ${{ github.sha }}" || echo "No changes to commit"
           git push -f origin production-release
 
-      - name: Deploy to Ubuntu Server via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          password: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-          port: 22
-          command_timeout: 15m
-          script: |
-            set -e
-            echo "========================================================================"
-            echo "🚀 Auto-Deploy triggered by GitHub Actions"
-            echo "   Commit: ${{ github.sha }}"
-            echo "   Branch: ${{ github.ref_name }}"
-            echo "   Actor:  ${{ github.actor }}"
-            echo "========================================================================"
-
-            # Determine app directory
-            if [ -d "/home/ubuntu-server/CamTech_Store" ]; then
-                APP_DIR="/home/ubuntu-server/CamTech_Store"
-            else
-                APP_DIR="$HOME/CamTech_Store"
-            fi
-
-            cd "$APP_DIR"
-
-            # Pull latest code from main
-            echo "📥 Pulling latest code from origin/main..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            # Pull pre-built frontend assets from production-release
-            echo "📥 Merging pre-built frontend assets..."
-            git fetch origin production-release
-            git checkout origin/production-release -- apps/store/dist/ apps/web/dist/ apps/cashier/dist/ apps/delivery/dist/ apps/hr/dist/ apps/ceo/dist/ apps/mini/dist/ 2>/dev/null || true
-
-            # Run the full deploy script (build, migrate, health checks, rollback)
-            echo "🚀 Running deploy_production.sh..."
-            bash scripts/deploy_production.sh
+      - name: Execute Zero-Downtime Deployment
+        run: |
+          echo "========================================================================"
+          echo "🚀 Starting Automated Zero-Downtime Production Deployment..."
+          echo "   Target Server: 10.1.0.11 (Self-Hosted Runner)"
+          echo "   Commit:        ${{ github.sha }}"
+          echo "   Branch:        ${{ github.ref_name }}"
+          echo "   Actor:         ${{ github.actor }}"
+          echo "========================================================================"
+          chmod +x ./scripts/*.sh ./scripts/*.py 2>/dev/null || true
+          bash ./scripts/deploy_production.sh
 
       - name: Notify Telegram on Deployment Ready
         if: success()
