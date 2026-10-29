@@ -63,19 +63,32 @@ async def test_icp_full_suite():
         agent_id = agent_data["id"]
 
         # Heartbeat
+        hb_body = {
+            "agentId": agent_id,
+            "hostname": "vps-test-node-01",
+            "metrics": {
+                "cpu": {"percent": 15.4, "count": 4},
+                "memory": {"percent": 42.1, "usedMb": 3400, "totalMb": 8192},
+                "disk": {"percent": 28.0, "usedGb": 22, "totalGb": 80},
+            },
+        }
         hb_res = await client.post(
             "/api/v1/infra/agents/heartbeat",
-            json={
-                "agentId": agent_id,
-                "hostname": "vps-test-node-01",
-                "metrics": {
-                    "cpu": {"percent": 15.4, "count": 4},
-                    "memory": {"percent": 42.1, "usedMb": 3400, "totalMb": 8192},
-                    "disk": {"percent": 28.0, "usedGb": 22, "totalGb": 80},
-                },
-            },
+            json=hb_body,
+            headers={"X-ICP-Agent-Key": "super-secret-agent-key-12345"},
         )
         assert hb_res.status_code == 200
+
+        # Forged heartbeats are rejected: no key, wrong key, and unknown agent without the enrolment key
+        assert (await client.post("/api/v1/infra/agents/heartbeat", json=hb_body)).status_code == 401
+        assert (await client.post(
+            "/api/v1/infra/agents/heartbeat", json=hb_body, headers={"X-ICP-Agent-Key": "wrong"}
+        )).status_code == 401
+        assert (await client.post(
+            "/api/v1/infra/agents/heartbeat",
+            json={**hb_body, "agentId": None, "hostname": f"rogue-{uuid.uuid4().hex[:6]}"},
+            headers={"X-ICP-Agent-Key": "guess"},
+        )).status_code == 401
 
         # List Agents
         list_agents_res = await client.get("/api/v1/infra/agents")
