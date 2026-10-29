@@ -1,5 +1,4 @@
 import os
-import io
 import json
 import hmac
 import hashlib
@@ -7,13 +6,7 @@ import base64
 import httpx
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-try:
-    import qrcode
-except ImportError:
-    qrcode = None
 import logging
-
-from app.domain.commerce_engines import KhqrGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -81,10 +74,8 @@ class PaywayService:
     ) -> dict:
         """
         Generate scannable QR code:
-        1. Attempts official ABA PayWay API endpoint (/generate-qr).
-        2. If merchant credentials are unconfigured or rejected by ABA,
-           seamlessly generates a verified EMVCo NBC Bakong KHQR code
-           that any Cambodian banking app (including ABA Mobile) can scan.
+        Calls the official ABA PayWay API endpoint (/generate-qr).
+        Returns success=False when credentials are missing, rejected by ABA, or the gateway is unreachable.
         """
         req_time = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         amount_val = round(float(amount), 2)
@@ -195,35 +186,12 @@ class PaywayService:
                     "ABA PayWay gateway unreachable (%s). Generating verified Bakong KHQR.", e
                 )
 
-        # 2. Seamless Verified Fallback: NBC Bakong KHQR (EMVCo Standard)
-        # Any Cambodian Mobile Banking app (including ABA Mobile) scans Bakong KHQR!
-        bakong_account = f"{merchant_id}@aba" if merchant_id and not merchant_id.startswith("ec") else "camtech@dev"
-        khqr_data = KhqrGenerator.generate_dynamic_qr(
-            merchant_name="CamTech Store",
-            account_id=bakong_account,
-            amount=amount_val,
-            currency=currency,
-        )
-        qr_string = khqr_data.get("qrString", "")
-
-        # Generate PNG QR image in base64 if qrcode library available
-        qr_b64 = ""
-        if qrcode is not None and qr_string:
-            qr_img = qrcode.make(qr_string)
-            buf = io.BytesIO()
-            qr_img.save(buf, format="PNG")
-            qr_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-
-        deeplink = f"https://link.payway.com.kh/khqr?tran_id={transaction_id}&amount={amount_str}"
-
+        # No fabricated fallback QR: a KHQR to a guessed account would take money ABA can never confirm.
         return {
-            "success": True,
-            "source": "BAKONG_KHQR",
-            "qr_string": qr_string,
-            "qr_image": qr_b64,
-            "abapay_deeplink": deeplink,
-            "status": "PENDING",
-            "account_id": bakong_account,
+            "success": False,
+            "source": None,
+            "status": "FAILED",
+            "error": "ABA PayWay did not issue a QR for this transaction (credentials missing, rejected, or gateway unreachable).",
         }
 
     @classmethod

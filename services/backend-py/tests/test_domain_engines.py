@@ -16,10 +16,13 @@ from app.domain.enterprise_engines import (
 )
 
 def test_khqr_crc16_generation():
+    import hashlib
     qr = KhqrGenerator.generate_dynamic_qr("Central Cafe", "sokha@dev", 25.50, "USD")
-    assert "qrString" in qr
-    assert "840" in qr["qrString"]  # USD
-    assert len(qr["md5"]) == 4
+    s = qr["qrString"]
+    assert "5303840" in s  # tag 53 = USD
+    assert s[-8:-4] == "6304" and s[-4:] == KhqrGenerator._crc16_ccitt(s[:-4])  # tag 63 CRC16-CCITT
+    # `md5` is the full 32-hex MD5 of the QR string — what Bakong check_transaction_by_md5 expects
+    assert qr["md5"] == hashlib.md5(s.encode("utf-8")).hexdigest()
 
 def test_tax_calculator():
     # Inclusive 10% on $110 -> Base $100, Tax $10

@@ -72,10 +72,10 @@ def test_aba_hash_calculation():
     assert computed_hash == expected_hash
 
 @pytest.mark.asyncio
-async def test_payway_fallback_to_bakong_khqr():
+async def test_payway_unconfigured_issues_no_qr():
     """
-    Verifies that when ABA credentials are unconfigured or ABA API fails,
-    PaywayService generates a verified EMVCo Bakong KHQR code with scannable QR image.
+    Without real ABA credentials no QR may be issued: a fabricated KHQR to a guessed
+    account would collect money that ABA can never confirm for the store.
     """
     res = await PaywayService.generate_qr(
         merchant_id="unconfigured",
@@ -85,11 +85,9 @@ async def test_payway_fallback_to_bakong_khqr():
         currency="USD",
     )
 
-    assert res["success"] is True
-    assert res["source"] == "BAKONG_KHQR"
-    assert "qr_string" in res and res["qr_string"].startswith("000201")
-    assert "qr_image" in res and len(res["qr_image"]) > 100
-    assert res["status"] == "PENDING"
+    assert res["success"] is False
+    assert res["source"] is None
+    assert "qr_string" not in res and "qr_image" not in res
 
 @pytest.mark.asyncio
 async def test_payway_api_success_handling():

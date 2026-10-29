@@ -20,6 +20,8 @@ class Settings(BaseSettings):
         "ENCRYPTION_KEY",
         "mystore-default-32-byte-secret-key-ok!"
     )
+    # Master key (KEK) for merchant payment secrets: base64 of 32 random bytes. No default by design.
+    PAYMENT_KEK: str = os.getenv("PAYMENT_KEK", "")
     PORT: int = int(os.getenv("PORT", 4000))
     DEFAULT_ORG_ID: str = os.getenv("DEFAULT_ORG_ID", "cmtk8h18o0000vkd0etmdacgw")
     CORS_ORIGINS: List[str] = [

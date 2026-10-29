@@ -1,11 +1,16 @@
+import hashlib
+import hmac
 import json
+import time
 import uuid
 import secrets
+from datetime import timezone
 from decimal import Decimal
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, BackgroundTasks, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -15,34 +20,113 @@ from app.core.config import settings
 from app.core.payway import PaywayService
 from app.core.bakong import BakongService
 
-import os
 from ..models import Sale, SaleLineItem, SalePayment
 from ..schemas import SaleDto, StoreCheckoutInput, SaleLineItemDto, SalePaymentDto
 from ..services.checkout_orchestrator import CheckoutOrchestrator
-from app.modules.organizations.models import PaywayConfig, Organization
+from app.modules.organizations.payment_config import resolve_store_payment_config
 
 router = APIRouter(tags=["Storefront Checkout"])
 
-DEFAULT_PAYWAY_MERCHANT_ID = os.getenv("PAYWAY_MERCHANT_ID", "ec479308")
-DEFAULT_PAYWAY_API_KEY = os.getenv("PAYWAY_API_KEY", "E844DCD28210869E112E8A4AB674C296E2238C98")
+QR_LIFETIME_SECONDS = 15 * 60
+QR_SETTLEMENT_GRACE_SECONDS = 60
+BANK_CHECK_OFFSETS_SECONDS = (5, 15, 45, 120)
+WEBHOOK_MAX_SKEW_SECONDS = 300
 
-def _resolve_payway_credentials(pw_config: Optional[PaywayConfig]):
-    merchant_id = (
-        (pw_config.merchant_id if pw_config and pw_config.merchant_id else None)
-        or DEFAULT_PAYWAY_MERCHANT_ID
+_METHOD_LABELS = {"ABA_PAYWAY": "ABA PayWay", "BAKONG": "NBC Bakong KHQR", "COD": "Cash on Delivery"}
+
+
+def _requested_qr_method(payment_method: str) -> Optional[str]:
+    """Maps a checkout paymentMethod to the online QR provider it needs, or None for cash."""
+    pm = (payment_method or "").upper()
+    if "BAKONG" in pm:
+        return "BAKONG"
+    if "QR" in pm or "PAYWAY" in pm:
+        return "ABA_PAYWAY"
+    return None
+
+
+@router.get("/sales/payment-methods")
+async def get_store_payment_methods(
+    organization_id: str = Query(..., alias="organizationId"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public: the payment methods this store can accept (id or slug). QR methods appear only when the store configured its own merchant."""
+    org_id = await CheckoutOrchestrator.resolve_target_org(db, organization_id, None, [])
+    cfg = await resolve_store_payment_config(db, org_id)
+    return {
+        "organizationId": org_id,
+        "methods": [{"code": m, "label": _METHOD_LABELS[m]} for m in cfg.methods],
+    }
+
+
+async def _replay_checkout(db: AsyncSession, target_org: str, idempotency_key: str) -> Optional[SaleDto]:
+    """Returns the order already placed with this Idempotency-Key, so a retried checkout never creates a second order."""
+    existing = (
+        await db.execute(
+            select(Sale)
+            .where(Sale.organization_id == target_org, Sale.idempotency_key == idempotency_key)
+            .options(selectinload(Sale.line_items), selectinload(Sale.payments))
+        )
+    ).scalar_one_or_none()
+    if not existing:
+        return None
+    notes = {}
+    try:
+        notes = json.loads(existing.notes) if existing.notes else {}
+    except Exception:
+        pass
+    payment = existing.payments[0] if existing.payments else None
+    return SaleDto(
+        id=existing.id,
+        idempotencyKey=existing.idempotency_key,
+        saleNumber=existing.sale_number,
+        channel=existing.channel,
+        status=existing.status,
+        subtotal=float(existing.subtotal),
+        taxTotal=float(existing.tax_total),
+        discountTotal=float(existing.discount_total),
+        grandTotal=float(existing.grand_total),
+        currency=existing.currency,
+        itemCount=len(existing.line_items),
+        customerName=notes.get("customerName"),
+        paymentStatus=payment.status if payment else "PENDING",
+        paymentDeeplink=payment.external_id if payment else None,
+        createdAt=existing.created_at.isoformat(),
+        lineItems=[
+            SaleLineItemDto(
+                id=li.id,
+                variantId=li.product_variant_id,
+                sku=li.sku,
+                name=li.product_name,
+                quantity=float(li.quantity),
+                unitPrice=float(li.unit_price),
+                taxRatePct=float(li.tax_rate_pct),
+                lineTotal=float(li.line_total),
+            )
+            for li in existing.line_items
+        ],
+        payments=[
+            SalePaymentDto(
+                id=p.id,
+                amount=float(p.amount),
+                method=p.method,
+                status=p.status,
+                reference=p.reference,
+                provider=p.provider,
+                qrString=p.qr_string,
+                paidAt=p.paid_at.isoformat() if p.paid_at else None,
+            )
+            for p in existing.payments
+        ],
+        deliveryAddress=notes.get("deliveryAddress"),
     )
-    api_key = (
-        (pw_config.public_key if pw_config and pw_config.public_key else None)
-        or DEFAULT_PAYWAY_API_KEY
-    )
-    is_prod = pw_config.is_production if pw_config else (os.getenv("PAYWAY_ENV", "").lower() == "production")
-    return merchant_id, api_key, is_prod
 
 
 @router.post("/sales/store-checkout", response_model=SaleDto)
 @router.post("/sales/public-checkout", response_model=SaleDto)
 async def store_checkout(
     payload: StoreCheckoutInput,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     user: Optional[TenantUser] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -50,6 +134,7 @@ async def store_checkout(
     Storefront Online Customer Checkout Endpoint.
     Records a completed Sale, Line Items, and Payment directly in PostgreSQL,
     linked to the customer account, and resets active shopping cart.
+    Send an `Idempotency-Key` header to make retries safe: the same key returns the original order.
     """
     if not payload.items:
         raise HTTPException(
@@ -61,6 +146,22 @@ async def store_checkout(
     target_org = await CheckoutOrchestrator.resolve_target_org(
         db, payload.organizationId, user.organization_id if user else None, payload.items
     )
+
+    idempotency_key = (idempotency_key or "").strip() or None
+    if idempotency_key:
+        replay = await _replay_checkout(db, target_org, idempotency_key)
+        if replay:
+            return replay
+
+    # Online QR payment needs the store's own merchant account; there is no platform fallback.
+    qr_method = _requested_qr_method(payload.paymentMethod)
+    pay_cfg = await resolve_store_payment_config(db, target_org)
+    if qr_method and qr_method not in pay_cfg.methods:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{_METHOD_LABELS[qr_method]} is not set up for this store. Available: "
+            + ", ".join(_METHOD_LABELS[m] for m in pay_cfg.methods) + ".",
+        )
 
     # 2. Provision Customer
     customer, email_clean, phone_clean, name_clean = await CheckoutOrchestrator.provision_customer(
@@ -90,12 +191,13 @@ async def store_checkout(
     }
     
     # The sale remains pending while the warehouse prepares its delivery.
-    pay_method = "QR" if any(x in payload.paymentMethod.upper() for x in ["QR", "PAYWAY", "BAKONG"]) else "CASH"
+    pay_method = "QR" if qr_method else "CASH"
     sale_initial_status = "DRAFT" if pay_method == "QR" else "COMPLETED"
     payment_initial_status = "PENDING" if pay_method == "QR" else "COMPLETED"
 
     sale = Sale(
         id=sale_id,
+        idempotency_key=idempotency_key,
         organization_id=target_org,
         location_id=None,
         customer_id=customer.id,
@@ -136,7 +238,15 @@ async def store_checkout(
         paid_at=utc_now() if payment_initial_status == "COMPLETED" else None,
     )
     db.add(payment)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # A concurrent request with the same Idempotency-Key won the insert: hand back its order.
+        await db.rollback()
+        replay = await _replay_checkout(db, target_org, idempotency_key) if idempotency_key else None
+        if replay:
+            return replay
+        raise HTTPException(status_code=409, detail="This Idempotency-Key is already in use.")
 
     # 7. Reset Customer Cart in PostgreSQL
     cust_notes = {}
@@ -172,57 +282,38 @@ async def store_checkout(
     payment_qr_code = None
     payment_deeplink = None
     if pay_method == "QR":
-        if "BAKONG" in payload.paymentMethod.upper():
-            org_stmt = select(Organization).where(Organization.id == target_org)
-            org_res = await db.execute(org_stmt)
-            org = org_res.scalar_one_or_none()
-
-            bakong_cfg = {}
-            if org and org.settings:
-                try:
-                    s_data = json.loads(org.settings) if isinstance(org.settings, str) else org.settings
-                    if isinstance(s_data, dict):
-                        bakong_cfg = s_data.get("bakong") or {}
-                        if not bakong_cfg and s_data.get("bakongAccountId"):
-                            bakong_cfg = {"accountId": s_data["bakongAccountId"]}
-                except Exception:
-                    pass
-
-            bakong_account = bakong_cfg.get("accountId") or "camtech@devb"
-            merchant_name = bakong_cfg.get("merchantName") or (org.name if org else "CamTech Store")
-            currency = bakong_cfg.get("currency") or sale.currency or "USD"
-            bakong_token = bakong_cfg.get("token")
-
-            bakong_res = await BakongService.generate_khqr(
-                merchant_name=merchant_name,
-                account_id=bakong_account,
+        if qr_method == "BAKONG":
+            bk = pay_cfg.bakong
+            # Local EMVCo generation (no Bakong API call). The QR is always issued in the SALE's currency:
+            # there is no exchange-rate source, and pairing a USD total with KHR would under-charge ~4000x.
+            bakong_res = BakongService.generate_khqr(
+                merchant_name=bk.merchant_name,
+                account_id=bk.account_id,
                 amount=float(grand_total),
-                currency=currency,
-                app_name="CamTech Store",
-                token=bakong_token,
+                currency=sale.currency or "USD",
+                merchant_city=bk.merchant_city,
+                bill_number=sale.sale_number,
+                expires_in_seconds=QR_LIFETIME_SECONDS,
+                account_type=bk.account_type,
+                merchant_id=bk.merchant_id,
+                acquiring_bank=bk.acquiring_bank,
             )
-            if bakong_res.get("success"):
-                payment_qr_code = bakong_res.get("qr_image")
-                payment_deeplink = bakong_res.get("deeplink")
-                payment.reference = f"MD5:{bakong_res['md5']}"
-                payment.provider = "NBC Bakong"
-                payment.qr_string = bakong_res.get("qr_string")
-                payment.external_id = bakong_res.get("deeplink")
-                notes_dict["bakong_md5"] = bakong_res["md5"]
-                notes_dict["bakong_qr_string"] = bakong_res.get("qr_string")
-                sale.notes = json.dumps(notes_dict)
-                db.add(sale)
-                db.add(payment)
+            if not bakong_res.get("success"):
+                raise HTTPException(status_code=502, detail=f"Could not generate the Bakong KHQR code: {bakong_res.get('message')}")
+            payment_qr_code = bakong_res.get("qr_image")
+            payment.reference = f"MD5:{bakong_res['md5']}"
+            payment.provider = "NBC Bakong"
+            payment.qr_string = bakong_res.get("qr_string")
+            notes_dict["bakong_md5"] = bakong_res["md5"]
+            notes_dict["qrExpiresAtMs"] = bakong_res["expires_at_ms"]
+            sale.notes = json.dumps(notes_dict)
+            db.add(sale)
+            db.add(payment)
         else:
-            # Fetch dynamic PayWay config for this organization
-            pw_config = (
-                await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == target_org))
-            ).scalar_one_or_none()
-            merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
-
+            pw = pay_cfg.payway
             qr_result = await PaywayService.generate_qr(
-                merchant_id=merchant_id,
-                api_key=api_key,
+                merchant_id=pw.merchant_id,
+                api_key=pw.api_key,
                 transaction_id=sale.sale_number,
                 amount=float(grand_total),
                 items=[
@@ -238,20 +329,21 @@ async def store_checkout(
                 email=email_clean or "customer@camtech.cam",
                 phone=phone_clean or "012345678",
                 currency=sale.currency or "USD",
-                is_production=is_prod,
+                is_production=pw.is_production,
             )
-
-            if qr_result.get("success"):
-                payment_qr_code = qr_result.get("qr_image")
-                payment_deeplink = qr_result.get("abapay_deeplink")
-                payment.reference = sale.sale_number
-                payment.provider = "ABA PayWay"
-                payment.qr_string = qr_result.get("qr_string")
-                payment.external_id = qr_result.get("abapay_deeplink")
-                notes_dict["abapay_deeplink"] = payment_deeplink
-                sale.notes = json.dumps(notes_dict)
-                db.add(sale)
-                db.add(payment)
+            if not qr_result.get("success"):
+                raise HTTPException(status_code=502, detail="ABA PayWay could not create the payment QR. Please try again or choose another method.")
+            payment_qr_code = qr_result.get("qr_image")
+            payment_deeplink = qr_result.get("abapay_deeplink")
+            payment.reference = sale.sale_number
+            payment.provider = "ABA PayWay"
+            payment.qr_string = qr_result.get("qr_string")
+            payment.external_id = qr_result.get("abapay_deeplink")
+            notes_dict["abapay_deeplink"] = payment_deeplink
+            notes_dict["qrExpiresAtMs"] = int(time.time() * 1000) + QR_LIFETIME_SECONDS * 1000
+            sale.notes = json.dumps(notes_dict)
+            db.add(sale)
+            db.add(payment)
 
     # CRITICAL DATA INTEGRITY: Persist order, line items, and payment record permanently in PostgreSQL
     await db.commit()
@@ -329,89 +421,121 @@ async def get_order_payment_status(
     pay_res = await db.execute(pay_stmt)
     payment = pay_res.scalar_one_or_none()
 
-    # If already completed in DB
+    base = {"saleId": sale.id, "saleNumber": sale.sale_number, "amount": float(sale.grand_total)}
     if sale.status == "COMPLETED":
-        return {
-            "paid": True,
-            "status": "COMPLETED",
-            "saleId": sale.id,
-            "saleNumber": sale.sale_number,
-            "amount": float(sale.grand_total),
-            "provider": payment.provider if payment else "UNKNOWN",
-        }
+        return {**base, "paid": True, "status": "COMPLETED", "provider": payment.provider if payment else "UNKNOWN"}
+    if sale.status == "VOIDED":
+        return {**base, "paid": False, "status": "VOIDED", "expired": True, "provider": payment.provider if payment else None,
+                "message": "This payment QR has expired."}
 
-    # Check if this order is NBC Bakong KHQR
-    is_bakong = False
-    bakong_md5 = None
-    if payment and (payment.provider == "NBC Bakong" or (payment.reference and payment.reference.startswith("MD5:"))):
-        is_bakong = True
-        if payment.reference and payment.reference.startswith("MD5:"):
-            bakong_md5 = payment.reference.replace("MD5:", "").strip()
+    # Rate-limit resilience: the bank is asked only on the backoff schedule, however often clients poll.
+    notes = _sale_notes(sale)
+    now_ms = int(time.time() * 1000)
+    checks = int(notes.get("bankChecks", 0))
+    expires_ms = int(notes.get("qrExpiresAtMs") or 0)
+    expired = bool(expires_ms) and now_ms > expires_ms + QR_SETTLEMENT_GRACE_SECONDS * 1000
+    next_ms = int(notes.get("nextBankCheckAtMs") or _next_check_ms(sale, 0))
+    throttled = {**base, "paid": False, "status": sale.status, "provider": payment.provider if payment else None,
+                 "message": "Awaiting customer payment"}
+    if now_ms < next_ms and not expired:
+        return {**throttled, "retryAfterSeconds": max(1, (next_ms - now_ms + 999) // 1000)}
 
-    if not bakong_md5 and sale.notes:
-        try:
-            n_data = json.loads(sale.notes)
-            if isinstance(n_data, dict) and n_data.get("bakong_md5"):
-                bakong_md5 = n_data["bakong_md5"]
-                is_bakong = True
-        except Exception:
-            pass
+    # Claim this check slot atomically (compare-and-swap on the row) so concurrent pollers in the
+    # same slot make exactly one bank call between them.
+    old_notes = sale.notes
+    notes["bankChecks"] = checks + 1
+    notes["nextBankCheckAtMs"] = _next_check_ms(sale, checks + 1)
+    claimed = await db.execute(
+        update(Sale)
+        .where(Sale.id == sale.id, Sale.notes == old_notes if old_notes is not None else Sale.notes.is_(None))
+        .values(notes=json.dumps(notes))
+        .execution_options(synchronize_session=False)
+    )
+    await db.commit()
+    if claimed.rowcount == 0:
+        return {**throttled, "retryAfterSeconds": 1}
+    sale.notes = json.dumps(notes)
 
-    if is_bakong and bakong_md5:
-        # Check transaction status via official NBC Bakong Open API
-        bakong_status = await BakongService.check_transaction_by_md5(bakong_md5)
-        if bakong_status.get("verified"):
-            await _finalize_paid_sale(db, sale, payment)
-            return {
-                "paid": True,
-                "status": "COMPLETED",
-                "saleId": sale.id,
-                "saleNumber": sale.sale_number,
-                "amount": float(sale.grand_total),
-                "provider": "NBC Bakong",
-            }
-        return {
-            "paid": False,
-            "status": sale.status,
-            "saleId": sale.id,
-            "saleNumber": sale.sale_number,
-            "amount": float(sale.grand_total),
-            "provider": "NBC Bakong",
-            "message": bakong_status.get("message", "Awaiting customer payment"),
-        }
+    verified, provider, message = await _verify_with_bank(db, sale, payment)
+    if verified:
+        await _finalize_paid_sale(db, sale, payment)
+        return {**base, "paid": True, "status": "COMPLETED", "provider": provider}
 
-    # If pending ABA PayWay, attempt proactive check with ABA PayWay server
-    pw_config = (
-        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
-    ).scalar_one_or_none()
-
-    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
-    if merchant_id and api_key:
-        is_verified = await PaywayService.verify_transaction(
-            merchant_id=merchant_id,
-            api_key=api_key,
-            tran_id=sale.sale_number,
-            is_production=is_prod,
+    if expired:
+        # Final check done and unpaid: stop polling for good. A late verified webhook can still complete it.
+        await db.execute(
+            update(Sale).where(Sale.id == sale.id, Sale.status == "DRAFT").values(status="VOIDED")
         )
-        if is_verified:
-            await _finalize_paid_sale(db, sale, payment)
-            return {
-                "paid": True,
-                "status": "COMPLETED",
-                "saleId": sale.id,
-                "saleNumber": sale.sale_number,
-                "amount": float(sale.grand_total),
-                "provider": "ABA PayWay",
-            }
+        if payment and payment.status == "PENDING":
+            payment.status = "FAILED"
+        await db.commit()
+        return {**base, "paid": False, "status": "VOIDED", "expired": True, "provider": provider,
+                "message": "This payment QR has expired."}
 
-    return {
-        "paid": False,
-        "status": sale.status,
-        "saleId": sale.id,
-        "saleNumber": sale.sale_number,
-        "amount": float(sale.grand_total),
-        "provider": "ABA PayWay",
-    }
+    return {**base, "paid": False, "status": sale.status, "provider": provider, "message": message,
+            "retryAfterSeconds": max(1, (notes["nextBankCheckAtMs"] - now_ms + 999) // 1000)}
+
+
+def _sale_notes(sale: Sale) -> dict:
+    try:
+        n = json.loads(sale.notes) if sale.notes else {}
+        return n if isinstance(n, dict) else {}
+    except Exception:
+        return {}
+
+
+def _next_check_ms(sale: Sale, checks_done: int) -> int:
+    """Bank-check schedule, as offsets from order creation: 5s, 15s, 45s, 120s, then every 120s."""
+    created_ms = int(sale.created_at.replace(tzinfo=timezone.utc).timestamp() * 1000) if sale.created_at else int(time.time() * 1000)
+    if checks_done < len(BANK_CHECK_OFFSETS_SECONDS):
+        offset = BANK_CHECK_OFFSETS_SECONDS[checks_done]
+    else:
+        offset = BANK_CHECK_OFFSETS_SECONDS[-1] + (checks_done - len(BANK_CHECK_OFFSETS_SECONDS) + 1) * BANK_CHECK_OFFSETS_SECONDS[-1]
+    return created_ms + offset * 1000
+
+
+def _bakong_md5_of(sale: Sale, payment: Optional[SalePayment]) -> Optional[str]:
+    """The KHQR MD5 recorded at checkout for a Bakong order, or None for a PayWay order."""
+    if payment and payment.reference and payment.reference.startswith("MD5:"):
+        return payment.reference[4:].strip()
+    try:
+        n_data = json.loads(sale.notes) if sale.notes else {}
+        return n_data.get("bakong_md5") if isinstance(n_data, dict) else None
+    except Exception:
+        return None
+
+
+async def _verify_with_bank(db: AsyncSession, sale: Sale, payment: Optional[SalePayment]):
+    """
+    Asks the store's own payment provider whether this order was paid.
+    Returns (verified, provider_label, message). Never verifies against platform credentials.
+    """
+    cfg = await resolve_store_payment_config(db, sale.organization_id)
+    md5 = _bakong_md5_of(sale, payment)
+    if md5 or (payment and payment.provider == "NBC Bakong"):
+        if not md5:
+            return False, "NBC Bakong", "No KHQR reference recorded for this order."
+        res = await BakongService.check_transaction_by_md5(md5, token=cfg.bakong.token if cfg.bakong else None)
+        if not res.get("verified"):
+            return False, "NBC Bakong", res.get("message") or "Awaiting customer payment"
+        # The MD5 already binds payee, amount and bill number. `toAccountId` is NOT compared: per the NBC
+        # Open API sample it can be an intermediary ("bridge_account@devb"), so matching it would reject real payments.
+        data = res.get("data") or {}
+        if data.get("amount") is not None and abs(float(data["amount"]) - float(sale.grand_total)) > 0.005:
+            return False, "NBC Bakong", "Paid amount does not match the order total."
+        if data.get("currency") and sale.currency and data["currency"].upper() != sale.currency.upper():
+            return False, "NBC Bakong", "Paid currency does not match the order."
+        return True, "NBC Bakong", "Payment confirmed"
+
+    if not cfg.payway:
+        return False, "ABA PayWay", "ABA PayWay is not configured for this store."
+    ok = await PaywayService.verify_transaction(
+        merchant_id=cfg.payway.merchant_id,
+        api_key=cfg.payway.api_key,
+        tran_id=sale.sale_number,
+        is_production=cfg.payway.is_production,
+    )
+    return ok, "ABA PayWay", "Payment confirmed" if ok else "Funds have not been received in merchant account."
 
 @router.post("/sales/orders/{sale_id}/confirm-payment")
 async def confirm_order_payment(
@@ -419,89 +543,22 @@ async def confirm_order_payment(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Direct payment confirmation handler (called upon successful client verification,
-    webhook callback, or manual customer acknowledgement).
-    Finalizes the Sale, deducts inventory, and dispatches the delivery fleet.
+    Customer "I have paid" button. Goes through the same throttled, bank-verified path as polling,
+    so repeated clicks can never exceed the bank-check schedule or complete an unpaid order.
     """
-    stmt = (
-        select(Sale)
-        .options(selectinload(Sale.line_items))
-        .where((Sale.id == sale_id) | (Sale.sale_number == sale_id))
-    )
-    result = await db.execute(stmt)
-    sale = result.scalar_one_or_none()
-
-    if not sale:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    pay_stmt = select(SalePayment).where(SalePayment.sale_id == sale.id)
-    pay_res = await db.execute(pay_stmt)
-    payment = pay_res.scalar_one_or_none()
-
-    if sale.status == "COMPLETED":
-        return {
-            "success": True,
-            "status": "COMPLETED",
-            "saleId": sale.id,
-            "saleNumber": sale.sale_number,
-            "message": "Payment already confirmed and order completed.",
-        }
-
-    # CRITICAL E-COMMERCE INTEGRITY RULE:
-    # Online QR / ABA PayWay / Bakong payments MUST NOT be marked COMPLETED without
-    # positive verification from the banking gateway.
-    is_bakong = False
-    bakong_md5 = None
-    if payment and (payment.provider == "NBC Bakong" or (payment.reference and payment.reference.startswith("MD5:"))):
-        is_bakong = True
-        if payment.reference and payment.reference.startswith("MD5:"):
-            bakong_md5 = payment.reference.replace("MD5:", "").strip()
-
-    if not bakong_md5 and sale.notes:
-        try:
-            n_data = json.loads(sale.notes)
-            if isinstance(n_data, dict) and n_data.get("bakong_md5"):
-                bakong_md5 = n_data["bakong_md5"]
-                is_bakong = True
-        except Exception:
-            pass
-
-    is_verified = False
-    if is_bakong and bakong_md5:
-        bakong_status = await BakongService.check_transaction_by_md5(bakong_md5)
-        is_verified = bakong_status.get("verified", False)
-        if not is_verified:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Transaction not yet verified by NBC Bakong Open API. {bakong_status.get('message', 'Funds have not been received in merchant account.')}",
-            )
-    else:
-        pw_config = (
-            await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
-        ).scalar_one_or_none()
-
-        merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
-        if merchant_id and api_key and merchant_id != "unconfigured":
-            is_verified = await PaywayService.verify_transaction(
-                merchant_id=merchant_id,
-                api_key=api_key,
-                tran_id=sale.sale_number,
-                is_production=is_prod,
-            )
-
-        if not is_verified:
-            raise HTTPException(
-                status_code=400,
-                detail="Transaction not yet verified by ABA PayWay banking gateway. Funds have not been received in merchant account.",
-            )
-
-    await _finalize_paid_sale(db, sale, payment)
-
+    st = await get_order_payment_status(sale_id, db)
+    if not st.get("paid"):
+        retry = st.get("retryAfterSeconds")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transaction not yet verified by {st.get('provider') or 'the bank'}. {st.get('message', '')}"
+            + (f" Checking again in {retry}s." if retry else ""),
+        )
     return {
         "success": True,
         "status": "COMPLETED",
-        "saleId": sale.id,
-        "saleNumber": sale.sale_number,
+        "saleId": st["saleId"],
+        "saleNumber": st["saleNumber"],
         "message": "Payment confirmed and order dispatched to delivery fleet.",
     }
 
@@ -514,6 +571,17 @@ async def _finalize_paid_sale(db: AsyncSession, sale: Sale, payment: Optional[Sa
     4. Dispatches delivery fleet
     """
     now = utc_now()
+    # Atomic claim: the status poll, the webhook and the confirm call can race on the same sale.
+    # Only the caller whose conditional UPDATE flips the row may deduct stock and dispatch delivery.
+    claimed = await db.execute(
+        update(Sale)
+        .where(Sale.id == sale.id, Sale.status != "COMPLETED")
+        .values(status="COMPLETED", completed_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    if claimed.rowcount == 0:
+        await db.rollback()
+        return False
     sale.status = "COMPLETED"
     sale.completed_at = now
 
@@ -570,6 +638,7 @@ async def _finalize_paid_sale(db: AsyncSession, sale: Sale, payment: Optional[Sa
     )
 
     await db.commit()
+    return True
 
 @router.post("/sales/payway-webhook")
 async def payway_webhook(
@@ -609,22 +678,70 @@ async def payway_webhook(
     if sale.status == "COMPLETED":
         return {"status": "ok", "message": "Already completed"}
 
-    pw_config = (
-        await db.execute(select(PaywayConfig).where(PaywayConfig.organization_id == sale.organization_id))
-    ).scalar_one_or_none()
-
-    merchant_id, api_key, is_prod = _resolve_payway_credentials(pw_config)
-
-    if merchant_id and api_key:
-        is_verified = await PaywayService.verify_transaction(
-            merchant_id=merchant_id, api_key=api_key, tran_id=tran_id, is_production=is_prod
-        )
-        if not is_verified:
-            raise HTTPException(status_code=400, detail="Transaction verification failed on ABA server.")
-
     pay_stmt = select(SalePayment).where(SalePayment.sale_id == sale.id)
     pay_res = await db.execute(pay_stmt)
     payment = pay_res.scalar_one_or_none()
 
+    # A webhook is only a hint: never finalize without positive verification from the store's own provider.
+    is_verified, _, _ = await _verify_with_bank(db, sale, payment)
+    if not is_verified:
+        raise HTTPException(status_code=400, detail="Transaction verification failed on ABA server.")
+
     await _finalize_paid_sale(db, sale, payment)
     return {"status": "success", "message": "Payment confirmed"}
+
+
+def bakong_webhook_signature(secret: str, timestamp: str, raw_body: bytes) -> str:
+    """HMAC-SHA256 over "<timestamp>.<raw body>", hex — the scheme bank partners sign push notifications with."""
+    return hmac.new(secret.encode("utf-8"), timestamp.encode("utf-8") + b"." + raw_body, hashlib.sha256).hexdigest()
+
+
+@router.post("/sales/bakong-webhook")
+async def bakong_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Push notification of a settled KHQR payment (primary path; polling is only the fallback).
+
+    Headers: `X-Webhook-Timestamp` (unix seconds) and `X-Webhook-Signature` (hex HMAC-SHA256, see
+    `bakong_webhook_signature`) keyed with the store's sealed webhook secret.
+    Body: {"md5": "<khqr md5>", "amount": <number>, "currency": "USD|KHR", "toAccountId": "<account>"}.
+    Idempotent: duplicate deliveries of a completed order return 200 without side effects.
+    """
+    raw = await request.body()
+    ts = request.headers.get("x-webhook-timestamp", "")
+    sig = request.headers.get("x-webhook-signature", "")
+    try:
+        body = json.loads(raw or b"{}")
+        md5 = str(body.get("md5") or "").strip().lower()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not md5 or not ts or not sig:
+        raise HTTPException(status_code=401, detail="Missing signature, timestamp or md5")
+
+    payment = (await db.execute(select(SalePayment).where(SalePayment.reference == f"MD5:{md5}"))).scalar_one_or_none()
+    sale = None
+    if payment:
+        sale = (await db.execute(
+            select(Sale).options(selectinload(Sale.line_items)).where(Sale.id == payment.sale_id)
+        )).scalar_one_or_none()
+    if not sale:
+        # Same answer as a bad signature: do not reveal which MD5s exist.
+        raise HTTPException(status_code=401, detail="Signature verification failed")
+
+    cfg = await resolve_store_payment_config(db, sale.organization_id)
+    secret = cfg.bakong.webhook_secret if cfg.bakong else None
+    try:
+        fresh = abs(time.time() - int(ts)) <= WEBHOOK_MAX_SKEW_SECONDS
+    except ValueError:
+        fresh = False
+    if not secret or not fresh or not hmac.compare_digest(bakong_webhook_signature(secret, ts, raw), sig.lower()):
+        raise HTTPException(status_code=401, detail="Signature verification failed")
+
+    if sale.status == "COMPLETED":
+        return {"status": "ok", "message": "Already completed"}
+    if body.get("amount") is not None and abs(float(body["amount"]) - float(sale.grand_total)) > 0.005:
+        raise HTTPException(status_code=400, detail="Amount does not match the order total")
+    if body.get("currency") and sale.currency and str(body["currency"]).upper() != sale.currency.upper():
+        raise HTTPException(status_code=400, detail="Currency does not match the order")
+
+    claimed = await _finalize_paid_sale(db, sale, payment)
+    return {"status": "success" if claimed else "ok", "message": "Payment confirmed" if claimed else "Already completed"}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,11 +31,15 @@ export function BakongSettings() {
 
   const [formData, setFormData] = useState<UpdateBakongConfigInput>({
     accountId: '',
+    accountType: 'INDIVIDUAL',
     merchantName: '',
+    merchantId: '',
+    acquiringBank: '',
     merchantCity: 'Phnom Penh',
     currency: 'USD',
     enabled: true,
     token: '',
+    webhookSecret: '',
   });
 
   const canWrite = hasPermission('organizations.write');
@@ -50,23 +55,23 @@ export function BakongSettings() {
     if (bakongData) {
       setFormData({
         accountId: bakongData.accountId || '',
+        accountType: bakongData.accountType || 'INDIVIDUAL',
         merchantName: bakongData.merchantName || '',
+        merchantId: bakongData.merchantId || '',
+        acquiringBank: bakongData.acquiringBank || '',
         merchantCity: bakongData.merchantCity || 'Phnom Penh',
         currency: bakongData.currency || 'USD',
         enabled: bakongData.enabled ?? true,
-        token: '', // Never display bearer tokens in UI
+        token: '', // Secrets are write-only: the API returns only a mask
+        webhookSecret: '',
       });
-      if (bakongData.accountName) {
-        setVerificationResult({
-          valid: true,
-          accountId: bakongData.accountId || '',
-          accountName: bakongData.accountName,
-          currency: bakongData.currency,
-          message: 'Account verified on NBC Bakong network',
-        });
-      }
     }
   }, [bakongData]);
+
+  const failSave = (msg: string) => {
+    setError(msg);
+    toast.error('Update failed', { description: msg });
+  };
 
   // Verification Mutation
   const verifyMutation = useMutation({
@@ -76,11 +81,10 @@ export function BakongSettings() {
       setVerificationResult(res);
       if (res.valid) {
         setError(null);
-        if (res.accountName && !formData.merchantName) {
-          setFormData((prev) => ({ ...prev, merchantName: res.accountName || prev.merchantName }));
-        }
+        toast.success('Account ID exists on Bakong');
       } else {
-        setError(`NBC Validation Error: ${res.message} (Code: ${res.errorCode ?? 'N/A'})`);
+        setError(res.message);
+        toast.error('Bakong check failed', { description: res.message });
       }
     },
     onError: (err: any) => {
@@ -102,20 +106,13 @@ export function BakongSettings() {
       queryClient.invalidateQueries({ queryKey: ['org-channels'] });
       setSavedSuccess(true);
       setError(null);
-      setFormData((prev) => ({ ...prev, token: '' }));
-      if (updated.accountName) {
-        setVerificationResult({
-          valid: true,
-          accountId: updated.accountId,
-          accountName: updated.accountName,
-          currency: updated.currency,
-          message: 'Account verified & saved successfully',
-        });
-      }
+      setFormData((prev) => ({ ...prev, token: '', webhookSecret: '' }));
+      setVerificationResult({ valid: true, accountId: updated.accountId, message: 'Account ID exists on Bakong' });
+      toast.success('Bakong settings updated', { description: `QR payments now go to ${updated.accountId}` });
       setTimeout(() => setSavedSuccess(false), 3000);
     },
     onError: (err: any) => {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to save Bakong KHQR settings');
+      failSave(err instanceof ApiClientError ? err.message : 'Update failed — could not reach the server. Nothing was saved.');
     },
   });
 
@@ -133,11 +130,31 @@ export function BakongSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.accountId.trim()) {
-      setError('Bakong Account ID is required (e.g. your_account@bank or phone number).');
+    const name = formData.merchantName?.trim() || '';
+    const asciiOnly = /^[\x20-\x7E]+$/;
+    // Same rules the server enforces (KHQR limits) — caught here so the alert is instant.
+    const problems = [
+      !/^[a-z0-9_.\-]+@[a-z0-9_.\-]+$/i.test(formData.accountId.trim()) && 'Bakong Account ID must look like name@bank — copy it from your Bakong app.',
+      !name && 'Merchant name is required — enter it exactly as shown in your Bakong app.',
+      name.length > 25 && `Merchant name is ${name.length} characters; KHQR allows at most 25.`,
+      name && !asciiOnly.test(name) && 'Merchant name must use English letters, numbers and symbols only.',
+      (formData.merchantCity?.trim().length || 0) > 15 && 'Merchant city allows at most 15 characters.',
+      formData.accountType === 'MERCHANT' && !formData.merchantId?.trim() && 'Merchant ID is required for a merchant account (see your Bakong app).',
+      formData.accountType === 'MERCHANT' && !formData.acquiringBank?.trim() && 'Acquiring bank is required for a merchant account.',
+    ].filter(Boolean) as string[];
+    if (problems.length) {
+      failSave(problems.join(' '));
       return;
     }
-    mutation.mutate(formData);
+    // Blank secret fields mean "keep the stored secret".
+    mutation.mutate({
+      ...formData,
+      merchantName: name,
+      merchantId: formData.accountType === 'MERCHANT' ? formData.merchantId?.trim() : undefined,
+      acquiringBank: formData.acquiringBank?.trim() || undefined,
+      token: formData.token?.trim() || undefined,
+      webhookSecret: formData.webhookSecret?.trim() || undefined,
+    });
   };
 
   if (isLoading) {
@@ -179,10 +196,10 @@ export function BakongSettings() {
           </div>
         </div>
 
-        {verificationResult?.valid && verificationResult.accountName && (
+        {bakongData?.accountVerifiedAt && (
           <div className="text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 flex items-center gap-2 self-start sm:self-auto font-medium">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>NBC Verified Owner: <strong className="font-mono text-foreground font-bold">{verificationResult.accountName}</strong></span>
+            <span>Account confirmed on Bakong {new Date(bakongData.accountVerifiedAt).toLocaleDateString()}</span>
           </div>
         )}
       </div>
@@ -193,7 +210,7 @@ export function BakongSettings() {
           <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2.5 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Validation & Verification Failed</p>
+              <p className="font-semibold">Update failed — nothing was saved</p>
               <p className="text-[11px] text-red-400/90 mt-0.5">{error}</p>
             </div>
           </div>
@@ -205,7 +222,7 @@ export function BakongSettings() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>
-                Account verified on National Bank of Cambodia network: <strong>{verificationResult.accountName || verificationResult.accountId}</strong>
+                Bakong confirms this account exists: <strong className="font-mono">{verificationResult.accountId}</strong>
               </span>
             </div>
             <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-mono font-bold">
@@ -247,13 +264,13 @@ export function BakongSettings() {
               required
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Must match your registered Bakong handle (e.g. <code>user@bank</code>) or phone number with bank domain.
+              Bakong app → Profile → your Bakong ID, including <code>@bank</code>.
             </p>
           </div>
 
           <div>
             <label className="block font-medium text-foreground text-xs mb-1">
-              Merchant Display Name *
+              Merchant Name * <span className="text-muted-foreground font-normal">({(formData.merchantName || '').length}/25)</span>
             </label>
             <input
               type="text"
@@ -261,12 +278,56 @@ export function BakongSettings() {
               value={formData.merchantName}
               onChange={(e) => setFormData({ ...formData, merchantName: e.target.value })}
               className="input w-full text-xs"
-              placeholder="e.g. CamTech Coffee Store"
+              placeholder="Exactly as shown in your Bakong app"
+              maxLength={25}
               required
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Shown to the customer when scanning the dynamic KHQR code (EMVCo Tag 59).
+              Bakong does not return the owner name, so type it as your Bakong app shows it. English, max 25 (KHQR tag 59).
             </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block font-medium text-foreground text-xs mb-1">Account Type *</label>
+            <select
+              disabled={!canWrite}
+              value={formData.accountType}
+              onChange={(e) => setFormData({ ...formData, accountType: e.target.value as 'INDIVIDUAL' | 'MERCHANT' })}
+              className="input w-full text-xs"
+            >
+              <option value="INDIVIDUAL">Individual (personal Bakong account)</option>
+              <option value="MERCHANT">Merchant (has a Merchant ID)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium text-foreground text-xs mb-1">
+              Merchant ID {formData.accountType === 'MERCHANT' ? '*' : <span className="text-muted-foreground font-normal">(merchant accounts)</span>}
+            </label>
+            <input
+              type="text"
+              disabled={!canWrite || formData.accountType !== 'MERCHANT'}
+              value={formData.merchantId || ''}
+              onChange={(e) => setFormData({ ...formData, merchantId: e.target.value })}
+              className="input w-full text-xs font-mono"
+              placeholder="From your Bakong merchant profile"
+              maxLength={32}
+            />
+          </div>
+          <div>
+            <label className="block font-medium text-foreground text-xs mb-1">
+              Acquiring Bank {formData.accountType === 'MERCHANT' ? '*' : <span className="text-muted-foreground font-normal">(optional)</span>}
+            </label>
+            <input
+              type="text"
+              disabled={!canWrite}
+              value={formData.acquiringBank || ''}
+              onChange={(e) => setFormData({ ...formData, acquiringBank: e.target.value })}
+              className="input w-full text-xs"
+              placeholder="e.g. ACLEDA Bank"
+              maxLength={32}
+            />
           </div>
         </div>
 
@@ -282,6 +343,7 @@ export function BakongSettings() {
               onChange={(e) => setFormData({ ...formData, merchantCity: e.target.value })}
               className="input w-full text-xs"
               placeholder="Phnom Penh"
+              maxLength={15}
             />
           </div>
 
@@ -322,7 +384,7 @@ export function BakongSettings() {
         {/* Optional partner token for high-volume stores */}
         <div className="pt-2">
           <label className="block font-medium text-foreground text-xs mb-1">
-            Custom Bakong OpenAPI Partner Token <span className="text-muted-foreground font-normal">(Optional)</span>
+            Bakong Open API Token {bakongData?.hasToken ? <span className="text-muted-foreground font-normal">(saved)</span> : '*'}
           </label>
           <input
             type="password"
@@ -330,10 +392,28 @@ export function BakongSettings() {
             value={formData.token}
             onChange={(e) => setFormData({ ...formData, token: e.target.value })}
             className="input w-full text-xs font-mono"
-            placeholder={isConfigured ? '•••••••• Leave blank to keep existing store token ••••••••' : 'Paste custom Bearer token if issued directly to your organization'}
+            placeholder={bakongData?.tokenMasked ? `${bakongData.tokenMasked} — leave blank to keep` : 'Paste the Bearer token issued to your organization'}
           />
           <p className="text-[10px] text-muted-foreground mt-1">
-            If left blank, the system automatically uses the central platform gateway token for NBC verification.
+            From NBC Open API (register → verify email → token; renew when it expires). Needed to check the account and confirm payments.
+            Stored encrypted (AES-256-GCM) and never shown again.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <label className="block font-medium text-foreground text-xs mb-1">
+            Payment Webhook Signing Secret <span className="text-muted-foreground font-normal">(Optional)</span>
+          </label>
+          <input
+            type="password"
+            disabled={!canWrite}
+            value={formData.webhookSecret}
+            onChange={(e) => setFormData({ ...formData, webhookSecret: e.target.value })}
+            className="input w-full text-xs font-mono"
+            placeholder={bakongData?.webhookSecretMasked ? `${bakongData.webhookSecretMasked} — leave blank to keep` : 'Shared secret from your bank partner for signed payment callbacks'}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Enables instant confirmation via <span className="font-mono">POST /api/v1/sales/bakong-webhook</span> (HMAC-SHA256). Without it, payments are confirmed by polling.
           </p>
         </div>
 

@@ -138,6 +138,21 @@ export function App() {
   const [isSearchingTracking, setIsSearchingTracking] = useState(false);
   const [copiedInvoiceId, setCopiedInvoiceId] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'BAKONG' | 'COD'>('ABA_PAYWAY');
+  // QR methods are offered only when this store set up its own merchant account (COD always works).
+  const [availableMethods, setAvailableMethods] = useState<Array<'ABA_PAYWAY' | 'BAKONG' | 'COD'>>(['ABA_PAYWAY', 'BAKONG', 'COD']);
+  useEffect(() => {
+    if (!orgParam) return;
+    fetch(`${API_BASE_URL}/api/v1/sales/payment-methods?organizationId=${encodeURIComponent(orgParam)}`)
+      .then(res => res.json())
+      .then(body => {
+        const codes = (body?.data?.methods || []).map((m: { code: 'ABA_PAYWAY' | 'BAKONG' | 'COD' }) => m.code);
+        if (codes.length) setAvailableMethods(codes);
+      })
+      .catch(() => {});
+  }, [orgParam]);
+  useEffect(() => {
+    if (!availableMethods.includes(paymentMethod)) setPaymentMethod(availableMethods[0]);
+  }, [availableMethods, paymentMethod]);
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
@@ -225,31 +240,46 @@ export function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
-  // Active real-time polling for unpaid ABA / Bakong orders
+  // Poll unpaid ABA / Bakong orders with backoff: wait the server's `retryAfterSeconds`
+  // (bank checks run at 5s, 15s, 45s, 120s…) and stop once the QR is paid or expired.
   useEffect(() => {
     if (!confirmedOrder || confirmedOrder.status !== 'DRAFT') return;
     const orderId = confirmedOrder.id || confirmedOrder.orderNumber;
     if (!orderId) return;
 
     let isMounted = true;
-    const interval = setInterval(async () => {
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      let nextDelayMs = 5000;
       try {
         const res = await fetch(`${API_BASE_URL}/api/v1/sales/orders/${encodeURIComponent(orderId)}/payment-status`);
         if (res.ok) {
           const json = await res.json();
           const data = json.data || json;
-          if (data && data.paid && isMounted) {
+          if (!isMounted) return;
+          if (data?.paid) {
             toast.success('🎉 Payment confirmed! Order dispatched to delivery fleet.');
             setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'COMPLETED' } : null);
             refetchHistory();
+            return;
           }
+          if (data?.expired) {
+            toast.error('This payment QR has expired. Please place your order again.');
+            setConfirmedOrder((prev: any) => prev ? { ...prev, status: 'VOIDED' } : null);
+            return;
+          }
+          if (data?.retryAfterSeconds) nextDelayMs = data.retryAfterSeconds * 1000;
         }
-      } catch {}
-    }, 2500);
+      } catch {
+        nextDelayMs = 15000;
+      }
+      if (isMounted) timer = setTimeout(poll, nextDelayMs);
+    };
+    timer = setTimeout(poll, 5000);
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      clearTimeout(timer);
     };
   }, [confirmedOrder?.id, confirmedOrder?.status]);
 
@@ -1764,6 +1794,7 @@ export function App() {
         setCoords={setCoords}
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
+        availableMethods={availableMethods}
         cartTotal={cartTotal}
         handleCheckout={handleCheckout}
         syncCustomerWithDatabase={syncCustomerWithDatabase}

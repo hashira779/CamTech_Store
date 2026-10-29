@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { useQuery } from '@tanstack/react-query';
 import { api, BASE_URL } from '@/lib/api-client';
-import type { SaleDto } from '@mystore/contracts';
+import type { SaleDto, StorefrontPaymentMethod } from '@mystore/contracts';
 import {
   Coffee,
   ShoppingBag,
@@ -225,6 +225,17 @@ export default function TelegramMiniAppPage() {
   // Tenant / Organization state
   const orgParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('org') || undefined) : undefined;
   const [token, setToken] = useState<string | null>(null);
+  // QR methods are offered only when this store set up its own merchant account (COD always works).
+  const [availableMethods, setAvailableMethods] = useState<StorefrontPaymentMethod[]>(['ABA_PAYWAY', 'BAKONG', 'COD']);
+  useEffect(() => {
+    if (!orgParam) return;
+    api.getStorePaymentMethods(orgParam)
+      .then(res => { if (res.methods.length) setAvailableMethods(res.methods.map(m => m.code)); })
+      .catch(() => {});
+  }, [orgParam]);
+  useEffect(() => {
+    if (!availableMethods.includes(paymentMethod)) setPaymentMethod(availableMethods[0]);
+  }, [availableMethods, paymentMethod]);
   const [shopName, setShopName] = useState<string>('CamTech Specialty Café');
   const [customer, setCustomer] = useState<{
     id?: string;
@@ -597,22 +608,22 @@ export default function TelegramMiniAppPage() {
     }
   };
 
-  // Real-time payment verification polling
+  // Payment verification polling with backoff: the server says when the next bank check is due
+  // (5s, 15s, 45s, 120s…), so we never hammer it, and we stop for good once the QR expires.
   const startPaymentPolling = (saleId: string) => {
     if (paymentPollIntervalRef.current) {
-      clearInterval(paymentPollIntervalRef.current);
+      clearTimeout(paymentPollIntervalRef.current);
     }
 
     setIsVerifyingPayment(true);
-    let attempts = 0;
-    const maxAttempts = 60; // 2.5 minutes timeout
+    const startedAt = Date.now();
+    const maxPollMs = 17 * 60 * 1000; // QR lifetime (15 min) + settlement grace
 
-    paymentPollIntervalRef.current = setInterval(async () => {
-      attempts += 1;
+    const poll = async () => {
+      let nextDelayMs = 5000;
       try {
         const resp = await api.getOrderPaymentStatus(saleId);
         if (resp && resp.paid) {
-          clearInterval(paymentPollIntervalRef.current);
           setIsVerifyingPayment(false);
           triggerHaptic('success');
           toast.success("🎉 Payment Confirmed! Preparing your drinks...");
@@ -630,22 +641,35 @@ export default function TelegramMiniAppPage() {
           setTimeout(() => {
             setActiveTab('orders');
           }, 2000);
+          return;
         }
+        if (resp?.expired) {
+          setIsVerifyingPayment(false);
+          setPastOrders(prev => prev.map(o => o.id === saleId ? { ...o, status: 'CANCELLED', paymentStatus: 'FAILED' } : o));
+          setActivePaymentSale((prev: any) => prev ? { ...prev, status: 'VOIDED', paymentStatus: 'FAILED' } : null);
+          toast.error("This payment QR has expired. Please place your order again.");
+          return;
+        }
+        if (resp?.retryAfterSeconds) nextDelayMs = resp.retryAfterSeconds * 1000;
       } catch (e) {
         console.warn('Poll error:', e);
+        nextDelayMs = 15000;
       }
 
-      if (attempts >= maxAttempts) {
-        clearInterval(paymentPollIntervalRef.current);
+      if (Date.now() - startedAt > maxPollMs) {
         setIsVerifyingPayment(false);
+        return;
       }
-    }, 2500);
+      paymentPollIntervalRef.current = setTimeout(poll, nextDelayMs);
+    };
+
+    paymentPollIntervalRef.current = setTimeout(poll, 5000);
   };
 
   useEffect(() => {
     return () => {
       if (paymentPollIntervalRef.current) {
-        clearInterval(paymentPollIntervalRef.current);
+        clearTimeout(paymentPollIntervalRef.current);
       }
     };
   }, []);
@@ -931,8 +955,9 @@ export default function TelegramMiniAppPage() {
                 {/* Payment Method Selector */}
                 <div className="space-y-2">
                   <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider">Select Payment Method</h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className={`grid gap-2 ${['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][availableMethods.length - 1]}`}>
                     {/* ABA PayWay */}
+                    {availableMethods.includes('ABA_PAYWAY') && (
                     <button
                       type="button"
                       onClick={() => { triggerHaptic('selection'); setPaymentMethod('ABA_PAYWAY'); }}
@@ -948,8 +973,10 @@ export default function TelegramMiniAppPage() {
                         <span className="text-[9px] text-white/40 block">ABA Mobile</span>
                       </div>
                     </button>
+                    )}
 
                     {/* Bakong KHQR */}
+                    {availableMethods.includes('BAKONG') && (
                     <button
                       type="button"
                       onClick={() => { triggerHaptic('selection'); setPaymentMethod('BAKONG'); }}
@@ -965,6 +992,7 @@ export default function TelegramMiniAppPage() {
                         <span className="text-[9px] text-white/40 block">All Banks</span>
                       </div>
                     </button>
+                    )}
 
                     {/* Cash on Delivery */}
                     <button

@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   Search,
   ShoppingCart,
-  QrCode,
   Truck,
   CheckCircle2,
   X,
@@ -57,7 +56,7 @@ export default function CustomerShopPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'ABA_PAYWAY' | 'KHQR' | 'COD'>('ABA_PAYWAY');
+  const [paymentMethod, setPaymentMethod] = useState<'COD'>('COD');
   const [customerName, setCustomerName] = useState(user?.name || '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -206,7 +205,7 @@ export default function CustomerShopPage() {
           customerEmail: user?.email || undefined,
           customerPhone: customerPhone.trim(),
           deliveryAddress: deliveryAddress.trim(),
-          paymentMethod: paymentMethod === 'KHQR' ? 'KHQR' : 'CASH',
+          paymentMethod,
           items: cart.map((i) => ({
             id: i.variantId || i.productId,
             name: i.name,
@@ -217,42 +216,14 @@ export default function CustomerShopPage() {
         }),
       });
 
-      if (checkoutRes.ok) {
-        const json = await checkoutRes.json();
-        serverOrder = json.data || json;
-        orderNum = serverOrder.saleNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`;
-        trackNum = serverOrder.trackingNumber || `TRK-${serverOrder.id?.slice(-8) || '2026'}`;
-      } else {
-        // Fallback directly to public delivery task endpoint
-        const delivRes = await fetch(`${BASE_URL}/api/v1/delivery/orders/public`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            customerName: customerName.trim(),
-            recipientName: customerName.trim(),
-            customerPhone: customerPhone.trim(),
-            recipientPhone: customerPhone.trim(),
-            deliveryAddress: deliveryAddress.trim(),
-            paymentMethod: paymentMethod === 'KHQR' ? 'PAID_KHQR' : 'CASH_ON_DELIVERY',
-            codAmount: paymentMethod === 'COD' ? cartTotal : 0.0,
-            notes: `Storefront order (${cartItemCount} items)`,
-            items: cart.map((i) => ({
-              productVariantId: i.variantId || i.productId,
-              quantity: i.quantity,
-              unitPrice: i.price,
-            })),
-          }),
-        });
-
-        if (!delivRes.ok) throw new Error('Order placement failed');
-        const json = await delivRes.json();
-        serverOrder = json.data || json;
-        orderNum = serverOrder.trackingNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`;
-        trackNum = serverOrder.trackingNumber || `TRK-${serverOrder.id?.slice(-8) || '2026'}`;
+      const json = await checkoutRes.json().catch(() => ({}));
+      if (!checkoutRes.ok || json.success === false) {
+        // No fallback: a delivery without a recorded sale would ship goods nobody paid for.
+        throw new Error(json?.error?.message || json?.message || 'Order placement failed');
       }
+      serverOrder = json.data || json;
+      orderNum = serverOrder.saleNumber || `#ORD-${serverOrder.id?.slice(-6) || '2026'}`;
+      trackNum = serverOrder.trackingNumber || `TRK-${serverOrder.id?.slice(-8) || '2026'}`;
 
       const orderData = {
         id: serverOrder?.id || `ord_${Date.now()}`,
@@ -262,7 +233,7 @@ export default function CustomerShopPage() {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         deliveryAddress: deliveryAddress.trim(),
-        paymentMethod: paymentMethod === 'KHQR' ? 'Bakong KHQR (Paid)' : paymentMethod === 'ABA_PAYWAY' ? 'ABA PayWay' : 'Cash On Delivery',
+        paymentMethod: 'Cash On Delivery',
         itemCount: cartItemCount,
         items: cart.map((c) => `${c.quantity}x ${c.name}`),
         createdAt: new Date().toISOString(),
@@ -581,31 +552,8 @@ export default function CustomerShopPage() {
             {/* Payment Method Selector */}
             <div>
               <label className="text-[11px] font-medium text-slate-300 block mb-1.5">Select Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('ABA_PAYWAY')}
-                  className={`p-2.5 rounded-lg border text-center transition-all ${
-                    paymentMethod === 'ABA_PAYWAY'
-                      ? 'bg-blue-500/15 border-blue-500/50 text-blue-300 font-bold shadow-sm'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4 mx-auto mb-1 text-blue-400" />
-                  <span className="block text-[11px]">ABA PayWay</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('KHQR')}
-                  className={`p-2.5 rounded-lg border text-center transition-all ${
-                    paymentMethod === 'KHQR'
-                      ? 'bg-rose-500/15 border-rose-500/50 text-rose-300 font-bold shadow-sm'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <QrCode className="w-4 h-4 mx-auto mb-1 text-rose-400" />
-                  <span className="block text-[11px]">Bakong KHQR</span>
-                </button>
+              {/* This page has no QR payment screen yet, so it only offers what it can complete: COD. */}
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('COD')}
@@ -622,30 +570,6 @@ export default function CustomerShopPage() {
             </div>
 
             {/* Payment Notice Preview */}
-            {paymentMethod === 'ABA_PAYWAY' && (
-              <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-800/40 text-center space-y-1.5">
-                <span className="text-[10px] text-blue-300 font-bold uppercase tracking-wider block">
-                  ABA PayWay Direct Payment
-                </span>
-                <p className="text-[11px] text-slate-300">
-                  Scan with ABA Mobile app or tap deep link to pay immediately.
-                </p>
-                <span className="text-xs font-bold text-blue-200 block">${cartTotal.toFixed(2)} USD</span>
-              </div>
-            )}
-
-            {paymentMethod === 'KHQR' && (
-              <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/40 text-center space-y-1.5">
-                <span className="text-[10px] text-rose-300 font-bold uppercase tracking-wider block">
-                  NBC Bakong KHQR National Network
-                </span>
-                <p className="text-[11px] text-slate-300">
-                  Scannable with all Cambodian banking apps (Bakong, ACLEDA, Wing, Canadia, Sathapana, etc.).
-                </p>
-                <span className="text-xs font-bold text-rose-200 block">${cartTotal.toFixed(2)} USD</span>
-              </div>
-            )}
-
             {paymentMethod === 'COD' && (
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center space-y-1.5">
                 <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">

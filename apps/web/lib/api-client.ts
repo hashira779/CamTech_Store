@@ -183,6 +183,8 @@ import type {
   CreateBotCommandInput,
   UpdateBotCommandInput,
   BotExecutionDto,
+  StorePaymentMethodsDto,
+  OrderPaymentStatusDto,
 } from '@mystore/contracts';
 
 
@@ -681,6 +683,9 @@ export const api = {
     });
   },
 
+  getStorePaymentMethods: (organizationId: string) =>
+    request<StorePaymentMethodsDto>(`/sales/payment-methods?organizationId=${encodeURIComponent(organizationId)}`),
+
   storeCheckout: (token: string | null, input: any) =>
     request<SaleDto>('/sales/store-checkout', {
       method: 'POST',
@@ -697,9 +702,7 @@ export const api = {
   },
 
   getOrderPaymentStatus: (saleId: string) =>
-    request<{ paid: boolean; status: string; saleId: string; saleNumber: string; amount: number }>(
-      `/sales/orders/${saleId}/payment-status`
-    ),
+    request<OrderPaymentStatusDto>(`/sales/orders/${saleId}/payment-status`),
 
   syncSalesBatch: (token: string, input: SyncBatchRequest) =>
     request<SyncBatchResponseDto>('/sales/sync-batch', {

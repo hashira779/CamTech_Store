@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api, ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,16 +52,26 @@ export function PaywaySettings() {
       setError(null);
       // Clear private key field after save
       setFormData(prev => ({ ...prev, rsaPrivateKey: '' }));
+      toast.success('ABA PayWay settings updated');
       setTimeout(() => setSavedSuccess(false), 3000);
     },
     onError: (err: any) => {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to save PayWay settings');
+      const msg = err instanceof ApiClientError ? err.message : 'Update failed — could not reach the server. Nothing was saved.';
+      setError(msg);
+      toast.error('Update failed', { description: msg });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    if (!formData.merchantId.trim()) {
+      const msg = 'ABA PayWay Merchant ID is required.';
+      setError(msg);
+      toast.error('Update failed', { description: msg });
+      return;
+    }
+    // The API key field shows a mask once saved; sending the mask back keeps the stored key.
+    mutation.mutate({ ...formData, merchantId: formData.merchantId.trim() });
   };
 
   if (isLoading) {

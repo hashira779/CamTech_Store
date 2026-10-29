@@ -1,3 +1,8 @@
+import os
+
+# `*@test` Bakong accounts skip the live NBC check only inside the test suite (never in production).
+os.environ.setdefault("BAKONG_ALLOW_TEST_ACCOUNTS", "1")
+
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
