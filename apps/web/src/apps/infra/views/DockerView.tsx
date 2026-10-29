@@ -599,7 +599,7 @@ export function DockerView() {
       {/* ── Toast Notification Banner ── */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-sm transition duration-panel animate-in fade-in slide-in-from-bottom-4 ${
             toast.type === 'success'
               ? 'bg-zinc-900/95 border-emerald-500/50 text-emerald-300 shadow-emerald-500/10'
               : 'bg-zinc-900/95 border-rose-500/50 text-rose-300 shadow-rose-500/10'

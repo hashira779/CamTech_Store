@@ -99,7 +99,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <button
               type="button"
               onClick={this.reset}
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-white px-6 py-3 font-medium text-black transition duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-white px-6 py-3 font-medium text-black transition duration-base hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Retry Connection
@@ -108,7 +108,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 py-3 font-medium text-white transition duration-300 hover:bg-white/10 hover:border-white/20 active:scale-95"
+              className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-6 py-3 font-medium text-white transition duration-base hover:bg-white/10 hover:border-white/20 active:scale-95"
             >
               Reload Application
             </button>

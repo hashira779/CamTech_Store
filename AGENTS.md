@@ -108,6 +108,9 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
    which is exactly the bug that sent `/customers` to the customer portal).
 3. Call the backend only through `apps/web/lib/api-client.ts`.
 4. Wrap risky subtrees in `<ErrorBoundary>` if they can crash independently.
+5. Follow [`docs/architecture/ui-ux-performance-guidelines.md`](docs/architecture/ui-ux-performance-guidelines.md):
+   semantic tokens only (no hex literals), `success/warning/info/destructive` for status only, motion ≤ 200ms on
+   transform/opacity, server pagination or virtualization above 50 rows, `.figure` for money/dates/IDs.
 
 ### Flow D — Verify end-to-end (the loop that catches real bugs)
 1. Log in via `POST /api/v1/auth/login` → get token.

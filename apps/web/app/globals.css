@@ -171,29 +171,30 @@
     border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
   }
 
-  /* Aurora blob background element (kept for backward compat) */
+  /* Aurora blob background element (kept for backward compat; static — no continuous background motion) */
   .lw-blob {
     @apply absolute rounded-full pointer-events-none;
     filter: blur(90px);
-    animation: lw-blob 20s ease-in-out infinite;
   }
 
-  /* Motion utilities */
+  /* Motion utilities: entrances stay under 200ms and only touch transform/opacity */
   .animate-float {
-    animation: lw-float 6s ease-in-out infinite;
+    animation: none;
   }
   .animate-fade-up {
-    animation: lw-fade-up 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: lw-fade-up 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .animate-fade-in {
-    animation: lw-fade-in 0.3s ease both;
+    animation: lw-fade-in 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Monetary figures, dates and transaction IDs: monospace with aligned digits */
+  .figure {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
   }
 }
 
-@keyframes lw-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
 @keyframes lw-fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -202,15 +203,12 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes lw-blob {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(28px, -22px) scale(1.12); }
-  66% { transform: translate(-24px, 18px) scale(0.94); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .animate-float, .animate-fade-up, .animate-fade-in, .lw-blob {
-    animation: none !important;
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
