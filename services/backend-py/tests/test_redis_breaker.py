@@ -69,3 +69,17 @@ async def test_ban_list_hits_down_redis_once_then_falls_back():
 
     assert down.calls == 1
     assert redis_breaker.is_open is True
+
+
+async def test_ban_list_never_bans_internal_proxy_ips():
+    # cloudflared/nginx traffic arrives from the Docker bridge; banning it blocks every visitor.
+    bans = IPBanList()
+    down = _DownRedis()
+    bans._redis = down
+
+    for ip in ("172.21.0.1", "10.1.0.11", "127.0.0.1"):
+        result = await bans.ban(ip, reason="malicious_scanning: .env")
+        assert result.get("skipped") == "internal_ip"
+        assert await bans.is_banned(ip) is False
+
+    assert down.calls == 0

@@ -10,6 +10,7 @@ Two components:
 """
 import time
 import os
+import ipaddress
 import logging
 from typing import Dict, List, Optional
 from fastapi import Request, HTTPException, status
@@ -25,6 +26,21 @@ BAN_THRESHOLD = int(os.getenv("BAN_THRESHOLD", "5"))           # violations befo
 AUTO_BAN_WINDOW_SECONDS = int(os.getenv("AUTO_BAN_WINDOW", "60"))   # track violations within this window
 AUTO_BAN_DURATION_SECONDS = int(os.getenv("AUTO_BAN_DURATION", "3600"))  # 1-hour default ban
 PERM_BAN_DURATION_SECONDS = int(os.getenv("PERM_BAN_DURATION", str(60 * 60 * 24 * 365)))  # 1 year = permanent
+
+
+_INTERNAL_NETWORKS = tuple(ipaddress.ip_network(n) for n in (
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "::1/128", "fc00::/7",
+))
+
+
+def _is_internal_ip(ip: str) -> bool:
+    """Loopback/RFC 1918 addresses belong to our own proxies (nginx, cloudflared,
+    Docker bridge). Banning one blocks every visitor routed through it."""
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in net for net in _INTERNAL_NETWORKS if addr.version == net.version)
 
 
 # ==============================================================================
@@ -59,6 +75,8 @@ class IPBanList:
         """Returns True if the IP is currently banned."""
         if ip in ("testclient", "unknown") and os.getenv("PYTEST_CURRENT_TEST"):
             return False
+        if _is_internal_ip(ip):
+            return False
         if ip in self._local_bans:
             return True
         if self._redis and redis_breaker.allow():
@@ -81,6 +99,9 @@ class IPBanList:
         """
         if ip in ("testclient", "unknown") and os.getenv("PYTEST_CURRENT_TEST"):
             return {"ip": ip, "reason": reason}
+        if _is_internal_ip(ip):
+            logger.warning(f"[SECURITY] Refused to ban internal proxy IP {ip} | reason={reason}")
+            return {"ip": ip, "reason": reason, "skipped": "internal_ip"}
         key = f"{self.BAN_KEY_PREFIX}{ip}"
         metadata = {
             "ip": ip,

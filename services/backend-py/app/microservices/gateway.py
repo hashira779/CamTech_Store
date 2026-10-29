@@ -309,7 +309,9 @@ async def route_gateway(request: Request, path: str):
             )
             
             resp_headers = dict(proxy_resp.headers)
-            for hop in ("transfer-encoding", "content-encoding", "connection", "keep-alive"):
+            # httpx already decompressed the body, so the upstream content-length is
+            # stale; Response() recomputes it from the decoded content.
+            for hop in ("transfer-encoding", "content-encoding", "content-length", "connection", "keep-alive"):
                 resp_headers.pop(hop, None)
 
             _record_gateway_traffic(request, full_path, proxy_resp.status_code, start_time, target_service_name)
