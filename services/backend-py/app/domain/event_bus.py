@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import redis.asyncio as aioredis
+from app.core.redis_breaker import redis_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +45,15 @@ class RealtimeEventBus:
             except Exception:
                 return None
 
+        if not redis_breaker.allow():
+            return None
         try:
             pubsub = self.redis_client.pubsub()
             await pubsub.subscribe(f"mystore:events:{org_id}")
+            redis_breaker.record_success()
             return pubsub
         except Exception as e:
+            redis_breaker.record_failure(e)
             logger.warning(f"Redis PubSub subscription failed for org {org_id}: {e}")
             return None
 
@@ -70,9 +75,13 @@ class RealtimeEventBus:
             except Exception:
                 return
 
+        if not redis_breaker.allow():
+            return
         try:
             await self.redis_client.publish(channel_name, raw)
+            redis_breaker.record_success()
         except Exception as e:
+            redis_breaker.record_failure(e)
             logger.warning(f"Failed to publish event {event_type} to Redis: {e}")
 
 # Global singleton event bus

@@ -19,6 +19,8 @@ from typing import Any, Dict, Optional
 
 import redis.asyncio as aioredis
 
+from app.core.redis_breaker import redis_breaker
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Long enough for a user to find their device and complete a biometric prompt,
@@ -45,29 +47,31 @@ class PasskeyChallengeStore:
 
     async def put(self, handle: str, payload: Dict[str, Any]) -> None:
         raw = json.dumps(payload)
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 await self._redis.setex(f"{_KEY_PREFIX}{handle}", CHALLENGE_TTL_SECONDS, raw)
+                redis_breaker.record_success()
                 return
-            except Exception:
-                pass
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
         self._prune()
         self._memory[handle] = (time.time() + CHALLENGE_TTL_SECONDS, raw)
 
     async def take(self, handle: str) -> Optional[Dict[str, Any]]:
         """Fetch and delete in one step. Consuming the challenge is what makes
         it single-use, so this never exposes a peek-without-delete path."""
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 key = f"{_KEY_PREFIX}{handle}"
                 pipe = self._redis.pipeline()
                 pipe.get(key)
                 pipe.delete(key)
                 raw, _ = await pipe.execute()
+                redis_breaker.record_success()
                 if raw:
                     return json.loads(raw)
-            except Exception:
-                pass
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
 
         self._prune()
         entry = self._memory.pop(handle, None)

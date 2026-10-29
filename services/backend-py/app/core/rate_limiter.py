@@ -14,6 +14,7 @@ import logging
 from typing import Dict, List, Optional
 from fastapi import Request, HTTPException, status
 import redis.asyncio as aioredis
+from app.core.redis_breaker import redis_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,13 @@ class IPBanList:
             return False
         if ip in self._local_bans:
             return True
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
-                return bool(await self._redis.exists(f"{self.BAN_KEY_PREFIX}{ip}"))
-            except Exception:
-                pass
+                banned = bool(await self._redis.exists(f"{self.BAN_KEY_PREFIX}{ip}"))
+                redis_breaker.record_success()
+                return banned
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
         return False
 
     # ── Ban ────────────────────────────────────────────────────────────────
@@ -88,15 +91,17 @@ class IPBanList:
             "duration_seconds": duration_seconds,
         }
 
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 import json
                 await self._redis.setex(key, duration_seconds, json.dumps(metadata))
+                redis_breaker.record_success()
                 logger.warning(
                     f"[SECURITY] IP banned: {ip} | reason={reason} | "
                     f"duration={duration_seconds}s | admin={admin_id or 'system'}"
                 )
-            except Exception:
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
                 self._local_bans.add(ip)
         else:
             self._local_bans.add(ip)
@@ -108,30 +113,32 @@ class IPBanList:
         if ip in self._local_bans:
             self._local_bans.discard(ip)
             existed = True
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 deleted = await self._redis.delete(f"{self.BAN_KEY_PREFIX}{ip}")
                 existed = existed or bool(deleted)
                 # also clear any accumulated violations
                 await self._redis.delete(f"{self.VIOLATION_KEY_PREFIX}{ip}")
+                redis_breaker.record_success()
                 logger.info(f"[SECURITY] IP unbanned: {ip} | admin={admin_id or 'system'}")
-            except Exception:
-                pass
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
         return existed
 
     async def get_ban_info(self, ip: str) -> Optional[dict]:
         """Return ban metadata dict or None if not banned."""
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 import json
                 raw = await self._redis.get(f"{self.BAN_KEY_PREFIX}{ip}")
+                redis_breaker.record_success()
                 if raw:
                     data = json.loads(raw)
                     ttl = await self._redis.ttl(f"{self.BAN_KEY_PREFIX}{ip}")
                     data["ttl_remaining_seconds"] = ttl
                     return data
-            except Exception:
-                pass
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
         if ip in self._local_bans:
             return {"ip": ip, "reason": "in-memory ban (Redis unavailable)", "ttl_remaining_seconds": -1}
         return None
@@ -139,10 +146,11 @@ class IPBanList:
     async def list_bans(self) -> List[dict]:
         """Return all currently active bans."""
         bans = []
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 import json
                 keys = await self._redis.keys(f"{self.BAN_KEY_PREFIX}*")
+                redis_breaker.record_success()
                 for key in keys:
                     raw = await self._redis.get(key)
                     if raw:
@@ -150,8 +158,8 @@ class IPBanList:
                         ttl = await self._redis.ttl(key)
                         data["ttl_remaining_seconds"] = ttl
                         bans.append(data)
-            except Exception:
-                pass
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
         for ip in self._local_bans:
             bans.append({"ip": ip, "reason": "in-memory ban", "ttl_remaining_seconds": -1})
         return bans
@@ -169,14 +177,16 @@ class IPBanList:
         vkey = f"{self.VIOLATION_KEY_PREFIX}{ip}"
 
         count = 1
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 pipe = self._redis.pipeline()
                 pipe.incr(vkey)
                 pipe.expire(vkey, AUTO_BAN_WINDOW_SECONDS)
                 results = await pipe.execute()
+                redis_breaker.record_success()
                 count = results[0]
-            except Exception:
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
                 count = 1
 
         if count >= BAN_THRESHOLD:
@@ -197,15 +207,16 @@ class IPBanList:
     async def reset(self):
         """Clears all bans (memory and redis). Used for testing."""
         self._local_bans.clear()
-        if self._redis:
+        if self._redis and redis_breaker.allow():
             try:
                 keys = await self._redis.keys(f"{self.BAN_KEY_PREFIX}*")
                 vkeys = await self._redis.keys(f"{self.VIOLATION_KEY_PREFIX}*")
                 all_keys = keys + vkeys
                 if all_keys:
                     await self._redis.delete(*all_keys)
-            except Exception:
-                pass
+                redis_breaker.record_success()
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
 
 # RATE LIMITER
 # ==============================================================================
@@ -249,7 +260,7 @@ class RateLimiter:
         valid_window_start = now - self.window_seconds
 
 
-        if self.redis_client:
+        if self.redis_client and redis_breaker.allow():
             try:
                 async with self.redis_client.pipeline(transaction=True) as pipe:
                     pipe.zremrangebyscore(key, "-inf", valid_window_start)
@@ -257,6 +268,7 @@ class RateLimiter:
                     pipe.zadd(key, {str(now): now})
                     pipe.expire(key, self.window_seconds)
                     results = await pipe.execute()
+                    redis_breaker.record_success()
                     request_count = results[1]
 
                     if request_count >= self.max_requests:
@@ -278,8 +290,8 @@ class RateLimiter:
                     return
             except HTTPException:
                 raise
-            except Exception:
-                pass  # Redis outage → fall through to in-memory
+            except Exception as exc:
+                redis_breaker.record_failure(exc)  # Redis outage → fall through to in-memory
 
         # In-memory sliding-window fallback
         timestamps = self._requests.get(key, [])
@@ -300,13 +312,14 @@ class RateLimiter:
     async def reset(self):
         """Clears in-memory cache and all Redis rate limit keys."""
         self._requests.clear()
-        if self.redis_client:
+        if self.redis_client and redis_breaker.allow():
             try:
                 keys = await self.redis_client.keys("rate_limit:*")
                 if keys:
                     await self.redis_client.delete(*keys)
-            except Exception:
-                pass
+                redis_breaker.record_success()
+            except Exception as exc:
+                redis_breaker.record_failure(exc)
 
 
 # ==============================================================================
