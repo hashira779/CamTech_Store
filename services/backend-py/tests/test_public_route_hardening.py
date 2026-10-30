@@ -28,6 +28,7 @@ ANONYMOUS_ALLOWLIST = {
     "/delivery/auth/register/init",
     "/delivery/auth/register/verify",
     "/infra/agents/heartbeat",
+    "/public/auth-config",
     "/public/categories/tree",
     "/public/products",
     "/sales/bakong-webhook",

@@ -224,6 +224,16 @@ class InfraCloudflareConfig(Base):
     created_at = Column("createdAt", DateTime, default=utc_now, nullable=False)
 
 
+class InfraPlatformSetting(Base):
+    """Console-managed platform configuration. Secrets hold a sealed vault envelope."""
+    __tablename__ = "infra_platform_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=False)
+    updated_by = Column("updatedBy", String, nullable=True)
+    updated_at = Column("updatedAt", DateTime, default=utc_now, nullable=False)
+
+
 class InfraAlertRule(Base):
     """Threshold-based alert rules for automated monitoring."""
     __tablename__ = "infra_alert_rules"

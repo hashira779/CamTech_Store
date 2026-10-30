@@ -50,7 +50,7 @@ import {
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
-import { signInWithFirebaseGoogle, signOutFromFirebase, firebaseAuth, isFirebaseSignInCancelled } from './firebase';
+import { signInWithFirebaseGoogle, signOutFromFirebase, getFirebaseAuth, isFirebaseSignInCancelled } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { CheckoutModal } from './components/modals/CheckoutModal';
 import { OrderHistoryModal } from './components/modals/OrderHistoryModal';
@@ -549,15 +549,20 @@ export function App() {
     };
 
     // 1. Firebase Auth Listener (Primary)
-    const unsubscribeFirebase = onAuthStateChanged(firebaseAuth, (user) => {
-      if (user?.email) {
-        processSignIn('firebase', () => user.getIdToken(), {
-          email: user.email,
-          name: user.displayName || user.email.split('@')[0],
-          phone: user.phoneNumber,
-          avatarUrl: user.photoURL || undefined,
-        });
-      }
+    let unsubscribeFirebase = () => {};
+    let unmounted = false;
+    getFirebaseAuth(API_BASE_URL).then((auth) => {
+      if (!auth || unmounted) return;
+      unsubscribeFirebase = onAuthStateChanged(auth, (user) => {
+        if (user?.email) {
+          processSignIn('firebase', () => user.getIdToken(), {
+            email: user.email,
+            name: user.displayName || user.email.split('@')[0],
+            phone: user.phoneNumber,
+            avatarUrl: user.photoURL || undefined,
+          });
+        }
+      });
     });
 
     // 2. Supabase Auth Listener (Fallback)
@@ -571,6 +576,7 @@ export function App() {
     });
 
     return () => {
+      unmounted = true;
       subscription.unsubscribe();
       unsubscribeFirebase();
     };
@@ -579,7 +585,7 @@ export function App() {
   const handleGoogleSignIn = async () => {
     try {
       toast.loading('Signing in...');
-      await signInWithFirebaseGoogle();
+      await signInWithFirebaseGoogle(API_BASE_URL);
       toast.dismiss();
     } catch (err: any) {
       toast.dismiss();
@@ -602,7 +608,7 @@ export function App() {
       await supabaseSignOut();
     } catch {}
     try {
-      await signOutFromFirebase();
+      await signOutFromFirebase(API_BASE_URL);
     } catch {}
     lastProcessedEmailRef.current = '';
     customerTokenRef.current = '';

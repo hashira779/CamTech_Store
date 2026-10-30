@@ -25,6 +25,17 @@ _JWKS_TIMEOUT_SECONDS = 5
 _jwks_clients: dict[str, PyJWKClient] = {}
 
 
+@dataclass(frozen=True)
+class IdentityConfig:
+    firebase_project_id: str = ""
+    supabase_url: str = ""
+    supabase_jwt_secret: str = ""
+
+
+def _config_from_environment() -> IdentityConfig:
+    return IdentityConfig(settings.FIREBASE_PROJECT_ID, settings.SUPABASE_URL, settings.SUPABASE_JWT_SECRET)
+
+
 class ExternalIdentityError(Exception):
     """The token could not be verified. The message is safe to log, not to return."""
 
@@ -50,8 +61,8 @@ def _identity(provider: str, email: Optional[str], name: Optional[str]) -> Verif
     return VerifiedIdentity(provider=provider, email=email.strip().lower(), name=name)
 
 
-def _verify_firebase(token: str) -> VerifiedIdentity:
-    project_id = settings.FIREBASE_PROJECT_ID
+def _verify_firebase(token: str, config: IdentityConfig) -> VerifiedIdentity:
+    project_id = config.firebase_project_id
     if not project_id:
         raise ExternalIdentityError("firebase is not configured")
 
@@ -68,17 +79,17 @@ def _verify_firebase(token: str) -> VerifiedIdentity:
     return _identity("firebase", claims.get("email"), claims.get("name"))
 
 
-def _verify_supabase(token: str) -> VerifiedIdentity:
-    base_url = settings.SUPABASE_URL.rstrip("/")
+def _verify_supabase(token: str, config: IdentityConfig) -> VerifiedIdentity:
+    base_url = config.supabase_url.rstrip("/")
     if not base_url:
         raise ExternalIdentityError("supabase is not configured")
 
     # The algorithm is chosen from what is configured, then pinned, so a token can't
     # select HS256 and be checked against a public key.
     if jwt.get_unverified_header(token).get("alg") == "HS256":
-        if not settings.SUPABASE_JWT_SECRET:
+        if not config.supabase_jwt_secret:
             raise ExternalIdentityError("supabase HS256 secret is not configured")
-        key, algorithms = settings.SUPABASE_JWT_SECRET, ["HS256"]
+        key, algorithms = config.supabase_jwt_secret, ["HS256"]
     else:
         key = _signing_key(f"{base_url}/auth/v1/.well-known/jwks.json", token)
         algorithms = _ASYMMETRIC_SUPABASE_ALGORITHMS
@@ -100,12 +111,12 @@ def _verify_supabase(token: str) -> VerifiedIdentity:
 _VERIFIERS = {"firebase": _verify_firebase, "supabase": _verify_supabase}
 
 
-async def verify_external_token(provider: str, token: str) -> VerifiedIdentity:
+async def verify_external_token(provider: str, token: str, config: Optional[IdentityConfig] = None) -> VerifiedIdentity:
     verifier = _VERIFIERS.get(provider)
     if verifier is None:
         raise ExternalIdentityError(f"unknown provider {provider}")
     try:
         # Fetching signing keys is blocking network I/O.
-        return await asyncio.to_thread(verifier, token)
+        return await asyncio.to_thread(verifier, token, config or _config_from_environment())
     except jwt.PyJWTError as exc:
         raise ExternalIdentityError(f"{provider} token rejected: {type(exc).__name__}") from exc
