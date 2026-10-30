@@ -19,11 +19,11 @@ export function ExecutiveShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-primary-500/30">
+    <div className="min-h-screen bg-card text-foreground font-sans selection:bg-primary-500/30">
       <Toaster position="top-right" theme="dark" richColors />
       
       {/* Executive Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-slate-900/90 border-b border-slate-800 shadow-md backdrop-blur-md">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-card/90 border-b border-border shadow-md backdrop-blur-md">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="bg-primary-500/20 p-2.5 rounded-lg text-primary-400 border border-primary-500/30 shadow-inner">
@@ -31,16 +31,16 @@ export function ExecutiveShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight text-white">Executive Command Center</h1>
+                <h1 className="text-lg font-bold tracking-tight text-foreground">Executive Command Center</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
                   CEO / Decision Support
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Enterprise Health • Real-time Telemetry</p>
+              <p className="text-xs text-muted-foreground font-medium">Enterprise Health • Real-time Telemetry</p>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-lg border border-slate-800">
+          <nav className="hidden md:flex items-center gap-1.5 bg-card/80 p-1.5 rounded-lg border border-border">
             {tabs.map((tab) => {
               const active = location.pathname === tab.path;
               const Icon = tab.icon;
@@ -50,8 +50,8 @@ export function ExecutiveShell({ children }: { children: React.ReactNode }) {
                   to={tab.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold transition-all ${
                     active 
-                      ? 'bg-primary-600 text-white shadow-md shadow-primary-600/30' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      ? 'bg-primary-600 text-foreground shadow-md shadow-primary-600/30' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -63,14 +63,14 @@ export function ExecutiveShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-xs text-slate-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-md bg-card border border-border text-xs text-foreground">
+            <Sparkles className="w-3.5 h-3.5 text-warning" />
             <span className="font-semibold">{user.name}</span>
           </div>
 
           <button 
             onClick={() => { clear(); navigate('/login'); }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-md transition-colors text-xs font-bold border border-slate-700 shadow-xs"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted text-foreground hover:text-foreground rounded-md transition-colors text-xs font-bold border border-border shadow-xs"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

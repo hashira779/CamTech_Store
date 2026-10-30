@@ -19,23 +19,23 @@ export function FinanceLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-muted text-foreground font-sans selection:bg-success/30">
       <Toaster position="top-right" richColors />
       
       {/* Finance Top Navigation */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white border-b border-border shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-500/10 p-2 rounded-md text-emerald-600 border border-emerald-500/20">
+            <div className="bg-success/10 p-2 rounded-md text-success border border-success/20">
               <Landmark className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">CamTech Finance</h1>
-              <p className="text-xs text-slate-500 font-medium">{user.name}</p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">CamTech Finance</h1>
+              <p className="text-xs text-muted-foreground font-medium">{user.name}</p>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1 ml-4 bg-slate-100/50 p-1 rounded-md border border-slate-200">
+          <nav className="hidden md:flex items-center gap-1 ml-4 bg-muted/50 p-1 rounded-md border border-border">
             {tabs.map((tab) => {
               const active = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
               const Icon = tab.icon;
@@ -45,8 +45,8 @@ export function FinanceLayout({ children }: { children: React.ReactNode }) {
                   to={tab.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                     active 
-                      ? 'bg-white text-emerald-600 shadow-sm border border-slate-200' 
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      ? 'bg-white text-success shadow-sm border border-border' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -60,7 +60,7 @@ export function FinanceLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => { clear(); navigate('/login'); }}
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 rounded-lg transition-colors text-sm font-semibold border border-slate-200 shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-muted text-foreground hover:text-foreground rounded-lg transition-colors text-sm font-semibold border border-border shadow-sm"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

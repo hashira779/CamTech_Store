@@ -174,18 +174,18 @@ export function BakongSettings() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 font-black text-xs tracking-wider">
+          <div className="w-9 h-9 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive font-bold text-xs tracking-wider">
             KHQR
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-foreground text-sm">Bakong KHQR Payment Dynamic Integration</h2>
               {isConfigured ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-success/10 text-success border border-success/20 px-2 py-0.5 rounded-full">
                   <CheckCircle2 className="w-3 h-3" /> Active & Bound
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-full">
                   <AlertCircle className="w-3 h-3" /> Not Configured
                 </span>
               )}
@@ -197,8 +197,8 @@ export function BakongSettings() {
         </div>
 
         {bakongData?.accountVerifiedAt && (
-          <div className="text-[11px] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 flex items-center gap-2 self-start sm:self-auto font-medium">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="text-[11px] bg-success/10 border border-success/20 px-3 py-1.5 rounded-lg text-success flex items-center gap-2 self-start sm:self-auto font-medium">
+            <ShieldCheck className="w-4 h-4 text-success" />
             <span>Account confirmed on Bakong {new Date(bakongData.accountVerifiedAt).toLocaleDateString()}</span>
           </div>
         )}
@@ -207,25 +207,25 @@ export function BakongSettings() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Error Alert */}
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2.5 animate-in fade-in">
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2.5 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Update failed — nothing was saved</p>
-              <p className="text-[11px] text-red-400/90 mt-0.5">{error}</p>
+              <p className="text-[11px] text-destructive/90 mt-0.5">{error}</p>
             </div>
           </div>
         )}
 
         {/* Verification Success Alert */}
         {verificationResult?.valid && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-success text-xs flex items-center justify-between gap-2 animate-in fade-in">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>
                 Bakong confirms this account exists: <strong className="font-mono">{verificationResult.accountId}</strong>
               </span>
             </div>
-            <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-mono font-bold">
+            <span className="text-[10px] bg-success/20 px-2 py-0.5 rounded font-mono font-bold">
               VERIFIED
             </span>
           </div>
@@ -425,7 +425,7 @@ export function BakongSettings() {
             </div>
             <div className="flex items-center gap-3">
               {savedSuccess && (
-                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold animate-in fade-in">
+                <div className="flex items-center gap-1.5 text-success text-xs font-semibold animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4" />
                   Verified & Saved
                 </div>

@@ -1,109 +1,31 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Store } from 'lucide-react';
+import React, { Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { Toaster } from 'sonner';
 import { useRealtimeStream } from '@/lib/use-realtime-stream';
 import { useInactivityTimeout } from '@/lib/use-inactivity-timeout';
 import { DomainBar } from '@/components/domain-bar';
 import { ErrorBoundary } from '@/components/error-boundary';
-
-// Micro-Frontend Apps: Fully Code-Split via React.lazy() for fast initial page load
-const AdminApp = lazy(() => import('./apps/admin/AdminApp'));
-const PosApp = lazy(() => import('./apps/pos/PosApp'));
-const HrApp = lazy(() => import('./apps/hr/HrApp'));
-const DeliveryApp = lazy(() => import('./apps/delivery/DeliveryApp'));
-const WarehouseApp = lazy(() => import('./apps/warehouse/WarehouseApp'));
-const FinanceApp = lazy(() => import('./apps/finance/FinanceApp'));
-const CustomerApp = lazy(() => import('./apps/customer/CustomerApp'));
-const CeoApp = lazy(() => import('./apps/ceo/CeoApp'));
-const SupportApp = lazy(() => import('./apps/support/SupportApp'));
-const PartnerApp = lazy(() => import('./apps/partner/PartnerApp'));
-const InfraControlApp = lazy(() => import('./apps/infra/InfraControlApp'));
-const MiniApp = lazy(() => import('./apps/mini/MiniApp'));
-
 import { AppShellSkeleton } from '@/components/page-skeleton';
-
-function RouteLoading() {
-  return <AppShellSkeleton />;
-}
+import { isPathUnder, resolveExperience } from './experiences';
 
 export function App() {
   useRealtimeStream();
   useInactivityTimeout();
 
   const location = useLocation();
-  const hostname = window.location.hostname.toLowerCase();
-  let CurrentApp = AdminApp; // Default fallback
-  let isInfraApp = false;
-
-  // 1. Subdomain matching (production multi-subdomain routing §228)
-  if (hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.')) {
-    CurrentApp = InfraControlApp;
-    isInfraApp = true;
-  } else if (hostname.startsWith('pos.') || hostname.startsWith('cashier.')) {
-    CurrentApp = PosApp;
-  } else if (hostname.startsWith('hr.') || hostname.startsWith('hrms.')) {
-    CurrentApp = HrApp;
-  } else if (hostname.startsWith('delivery.')) {
-    CurrentApp = DeliveryApp;
-  } else if (hostname.startsWith('wms.') || hostname.startsWith('warehouse.')) {
-    CurrentApp = WarehouseApp;
-  } else if (hostname.startsWith('finance.') || hostname.startsWith('accounting.')) {
-    CurrentApp = FinanceApp;
-  } else if (hostname.startsWith('shop.') || hostname.startsWith('store.')) {
-    CurrentApp = CustomerApp;
-  } else if (hostname.startsWith('ceo.') || hostname.startsWith('business.')) {
-    CurrentApp = CeoApp;
-  } else if (hostname.startsWith('support.') || hostname.startsWith('desk.')) {
-    CurrentApp = SupportApp;
-  } else if (hostname.startsWith('partner.') || hostname.startsWith('developer.') || hostname.startsWith('dev.')) {
-    CurrentApp = PartnerApp;
-  } else if (hostname.startsWith('admin.') || hostname.startsWith('adminconsol.')) {
-    CurrentApp = AdminApp;
-  } else if (hostname.startsWith('mini.') || hostname.startsWith('tma.') || hostname.startsWith('bot.')) {
-    CurrentApp = MiniApp;
-  } else {
-    // 2. Dynamic route-based simulation for local development & DomainBar switcher
-    // Dedicated standalone mini-frontends are kept to their specific entrypoints;
-    // all admin management routes (/delivery, /transfers, /hr, /finance, /taxes, etc.)
-    // stay cleanly inside AdminApp with full enterprise sidebar.
-    const p = location.pathname;
-    const isPath = (prefix: string) => p === prefix || p.startsWith(`${prefix}/`);
-
-    if (isPath('/infra') || isPath('/soc') || isPath('/noc')) {
-      CurrentApp = InfraControlApp;
-      isInfraApp = true;
-    } else if (isPath('/pos')) {
-      CurrentApp = PosApp;
-    } else if (isPath('/wms')) {
-      CurrentApp = WarehouseApp;
-    } else if (isPath('/shop') || isPath('/customer')) {
-      // isPath('/customer') matches '/customer' or '/customer/...' exactly,
-      // preventing admin CRM route '/customers' from being swallowed.
-      CurrentApp = CustomerApp;
-    } else if (isPath('/driver')) {
-      CurrentApp = DeliveryApp;
-    } else if (isPath('/ceo')) {
-      CurrentApp = CeoApp;
-    } else if (isPath('/mini')) {
-      CurrentApp = MiniApp;
-    } else {
-      CurrentApp = AdminApp;
-    }
-  }
-
-  const isMiniApp = CurrentApp === MiniApp || location.pathname.startsWith('/mini');
+  const { app: CurrentApp, hideDomainBar } = resolveExperience(window.location.hostname, location.pathname);
+  const showDomainBar = !hideDomainBar && !isPathUnder(location.pathname, '/mini');
 
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
-      {!isInfraApp && !isMiniApp && <DomainBar />}
+      {showDomainBar && <DomainBar />}
       {/* DomainBar stays outside the boundary, so if the active experience
           crashes the user can still navigate to another one. resetKeys clears
           the error automatically on route change. */}
       <ErrorBoundary resetKeys={[location.pathname]}>
-        <Suspense fallback={<RouteLoading />}>
+        <Suspense fallback={<AppShellSkeleton />}>
           <CurrentApp />
         </Suspense>
       </ErrorBoundary>

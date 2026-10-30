@@ -153,8 +153,8 @@ export function CreateProductForm({
         </div>
       </div>
 
-      {serverError && <p className="text-sm text-red-500">{serverError}</p>}
-      {ok && <p className="text-sm text-green-600">{ok}</p>}
+      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+      {ok && <p className="text-sm text-success">{ok}</p>}
 
       <div className="flex justify-end pt-4 border-t border-border mt-4">
         <button className="btn" type="submit" disabled={isSubmitting}>
@@ -178,7 +178,7 @@ function Field({
     <label className="flex flex-col gap-1 text-sm">
       <span className="font-medium">{label}</span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </label>
   );
 }

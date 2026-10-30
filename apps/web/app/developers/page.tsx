@@ -311,7 +311,7 @@ export default function DevelopersPage() {
                         </td>
                         <td className="p-3 font-mono text-muted-foreground">{key.rateLimit} req/min</td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${isRevoked ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${isRevoked ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
                             {isRevoked ? 'REVOKED' : 'ACTIVE'}
                           </span>
                         </td>
@@ -374,7 +374,7 @@ export default function DevelopersPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-foreground text-sm">{sub.url}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-success/10 text-success border border-success/20">
                           {sub.isActive ? 'LISTENING' : 'DISABLED'}
                         </span>
                       </div>
@@ -432,12 +432,12 @@ export default function DevelopersPage() {
         {/* MODAL: SECRET KEY REVEAL (ONCE) */}
         {newlyCreatedKey && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-            <div className="card w-full max-w-lg p-6 border-emerald-500/50 shadow-md bg-card space-y-4">
-              <div className="flex items-center gap-2 text-emerald-400">
+            <div className="card w-full max-w-lg p-6 border-success/50 shadow-md bg-card space-y-4">
+              <div className="flex items-center gap-2 text-success">
                 <Key className="w-5 h-5" />
                 <h3 className="text-base font-bold text-foreground">API Key Generated Successfully</h3>
               </div>
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+              <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 text-warning text-xs flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>
                   Please copy and store your secret key now. For your security, this key <strong>will never be shown again</strong>.

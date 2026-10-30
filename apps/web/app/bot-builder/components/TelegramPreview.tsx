@@ -171,7 +171,7 @@ export function TelegramPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[]
             width: 32, height: 32, borderRadius: '50%',
             background: 'var(--brand-gradient)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
+            boxShadow: '0 2px 8px color-mix(in srgb, var(--primary) 40%, transparent)',
           }}>
             <Bot size={17} color="#fff" />
           </div>

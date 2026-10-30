@@ -22,33 +22,33 @@ import { TelegramPreview } from './TelegramPreview';
 
 const NODE_COLORS: Record<string, string> = {
   // Triggers
-  start: '#22c55e', command_received: '#22c55e', message_received: '#22c55e',
-  callback_query: '#22c55e', webhook_received: '#22c55e',
-  order_created_trigger: '#22c55e', payment_received_trigger: '#22c55e', delivery_update_trigger: '#22c55e',
+  start: 'var(--success)', command_received: 'var(--success)', message_received: 'var(--success)',
+  callback_query: 'var(--success)', webhook_received: 'var(--success)',
+  order_created_trigger: 'var(--success)', payment_received_trigger: 'var(--success)', delivery_update_trigger: 'var(--success)',
   // Telegram UX
-  send_message: '#3b82f6', edit_message: '#3b82f6', delete_message: '#3b82f6',
+  send_message: 'var(--info)', edit_message: 'var(--info)', delete_message: 'var(--info)',
   show_inline_keyboard: '#8b5cf6', show_reply_keyboard: '#8b5cf6',
   remove_keyboard: '#8b5cf6', answer_callback: '#8b5cf6',
   send_photo: '#0ea5e9', send_document: '#0ea5e9', send_location: '#0ea5e9',
-  chat_action: '#38bdf8', pin_message: '#38bdf8', request_contact: '#38bdf8',
+  chat_action: 'var(--info)', pin_message: 'var(--info)', request_contact: 'var(--info)',
   // Store & Catalog
-  search_products: '#06b6d4', get_product: '#06b6d4', list_categories: '#06b6d4',
-  check_stock: '#06b6d4', get_promotions: '#06b6d4',
+  search_products: 'var(--info)', get_product: 'var(--info)', list_categories: 'var(--info)',
+  check_stock: 'var(--info)', get_promotions: 'var(--info)',
   // Orders & Checkout
-  get_order_status: '#f59e0b', list_recent_orders: '#f59e0b', create_order: '#f59e0b',
-  cancel_order: '#f59e0b', generate_invoice: '#f59e0b',
+  get_order_status: 'var(--warning)', list_recent_orders: 'var(--warning)', create_order: 'var(--warning)',
+  cancel_order: 'var(--warning)', generate_invoice: 'var(--warning)',
   // Payments & KHQR
-  generate_khqr: '#10b981', check_payment: '#10b981', confirm_cod: '#10b981', request_refund: '#10b981',
+  generate_khqr: 'var(--success)', check_payment: 'var(--success)', confirm_cod: 'var(--success)', request_refund: 'var(--success)',
   // Delivery & Courier
   track_delivery: '#a855f7', estimate_delivery: '#a855f7', dispatch_courier: '#a855f7', confirm_delivery: '#a855f7',
   // CRM & Customers
   lookup_customer: '#ec4899', register_customer: '#ec4899', update_loyalty_points: '#ec4899', add_customer_note: '#ec4899',
   // Support & Team
-  alert_admin: '#ef4444', agent_handoff: '#ef4444', create_support_ticket: '#ef4444',
+  alert_admin: 'var(--destructive)', agent_handoff: 'var(--destructive)', create_support_ticket: 'var(--destructive)',
   // Input
-  wait_input: '#eab308', wait_choice: '#eab308',
+  wait_input: 'var(--warning)', wait_choice: 'var(--warning)',
   // Logic
-  condition: '#6366f1', switch: '#6366f1', business_hours: '#6366f1', random_split: '#6366f1', delay: '#818cf8',
+  condition: 'var(--primary)', switch: 'var(--primary)', business_hours: 'var(--primary)', random_split: 'var(--primary)', delay: 'var(--primary)',
   // Data & APIs
   set_variable: '#14b8a6', api_call: '#14b8a6', format_currency: '#14b8a6',
 };
@@ -76,7 +76,7 @@ const NODE_ICONS: Record<string, string> = {
 };
 
 function BotNode({ data, selected }: { data: any; selected: boolean }) {
-  const color = NODE_COLORS[data.nodeType] || '#818cf8';
+  const color = NODE_COLORS[data.nodeType] || 'var(--primary)';
   const icon = NODE_ICONS[data.nodeType] || '⚡';
   const isCondition = data.nodeType === 'condition';
   const isInlineKeyboard = data.nodeType === 'show_inline_keyboard';
@@ -84,8 +84,8 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
 
   return (
     <div style={{
-      background: '#1e293b',
-      border: `2px solid ${selected ? color : 'rgba(148,163,184,0.18)'}`,
+      background: 'var(--card)',
+      border: `2px solid ${selected ? color : 'var(--border)'}`,
       borderRadius: 12, minWidth: 200, overflow: 'visible', position: 'relative',
       boxShadow: selected ? `0 0 22px ${color}50` : '0 4px 14px rgba(0,0,0,0.35)',
       transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
@@ -96,13 +96,13 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
         position={Position.Top}
         title="Input: Connect previous step here"
         style={{
-          background: '#818cf8',
+          background: 'var(--primary)',
           width: 14,
           height: 14,
-          border: '2px solid #0f172a',
+          border: '2px solid var(--background)',
           cursor: 'crosshair',
           zIndex: 10,
-          boxShadow: '0 0 8px rgba(129, 140, 248, 0.7)',
+          boxShadow: '0 0 8px color-mix(in srgb, var(--primary) 70%, transparent)',
         }}
       />
 
@@ -119,24 +119,24 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
       </div>
 
       <div style={{ padding: '10px 12px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#f8fafc' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>
           {data.label || 'Untitled'}
         </div>
         {data.config?.message && (
           <div style={{
-            fontSize: 11, color: '#94a3b8', marginTop: 4,
+            fontSize: 11, color: 'var(--muted-foreground)', marginTop: 4,
             maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {data.config.message.substring(0, 45)}
           </div>
         )}
         {data.config?.command && (
-          <div style={{ fontSize: 11, color: '#818cf8', marginTop: 4, fontFamily: 'monospace' }}>
+          <div style={{ fontSize: 11, color: 'var(--primary)', marginTop: 4, fontFamily: 'monospace' }}>
             {data.config.command}
           </div>
         )}
         {isInlineKeyboard && buttons.length === 0 && (
-          <div style={{ fontSize: 10, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>
+          <div style={{ fontSize: 10, color: 'var(--muted-foreground)', marginTop: 4, fontStyle: 'italic' }}>
             No buttons configured yet. Click to configure.
           </div>
         )}
@@ -149,13 +149,13 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          borderTop: '1px solid rgba(148,163,184,0.12)',
-          background: 'rgba(15,23,42,0.4)',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--muted)',
         }}>
           <div style={{
             fontSize: 9,
             fontWeight: 800,
-            color: '#94a3b8',
+            color: 'var(--muted-foreground)',
             textTransform: 'uppercase',
             letterSpacing: 0.6,
             marginBottom: 2,
@@ -165,7 +165,7 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
           {buttons.map((btn: any, idx: number) => {
             const btnKey = btn.callbackData || btn.text || `btn_${idx}`;
             const isBack = (btn.text || '').toLowerCase().includes('back') || btnKey === 'back';
-            const btnColor = isBack ? '#94a3b8' : '#818cf8';
+            const btnColor = isBack ? 'var(--muted-foreground)' : 'var(--primary)';
             return (
               <div
                 key={idx}
@@ -175,15 +175,15 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
                   justifyContent: 'space-between',
                   padding: '5px 10px',
                   borderRadius: 8,
-                  background: isBack ? 'rgba(148,163,184,0.08)' : 'rgba(129,140,248,0.12)',
-                  border: `1px solid ${isBack ? 'rgba(148,163,184,0.2)' : 'rgba(129,140,248,0.25)'}`,
+                  background: isBack ? 'var(--border)' : 'color-mix(in srgb, var(--primary) 12%, transparent)',
+                  border: `1px solid ${isBack ? 'var(--border)' : 'color-mix(in srgb, var(--primary) 25%, transparent)'}`,
                   position: 'relative',
                 }}
               >
                 <span style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: isBack ? '#cbd5e1' : '#c7d2fe',
+                  color: isBack ? 'var(--foreground)' : 'var(--foreground)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -204,7 +204,7 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
                     background: btnColor,
                     width: 14,
                     height: 14,
-                    border: '2px solid #0f172a',
+                    border: '2px solid var(--background)',
                     cursor: 'crosshair',
                     zIndex: 10,
                     boxShadow: `0 0 8px ${btnColor}90`,
@@ -216,7 +216,7 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
         </div>
       ) : isCondition ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 14px 8px', fontSize: 10, fontWeight: 700 }}>
-          <span style={{ color: '#22c55e', position: 'relative' }}>
+          <span style={{ color: 'var(--success)', position: 'relative' }}>
             TRUE
             <Handle
               type="source"
@@ -225,17 +225,17 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
               title="True branch (drag to connect)"
               style={{
                 left: 14,
-                background: '#22c55e',
+                background: 'var(--success)',
                 width: 14,
                 height: 14,
-                border: '2px solid #0f172a',
+                border: '2px solid var(--background)',
                 cursor: 'crosshair',
                 zIndex: 10,
-                boxShadow: '0 0 8px rgba(34, 197, 94, 0.7)',
+                boxShadow: '0 0 8px color-mix(in srgb, var(--success) 70%, transparent)',
               }}
             />
           </span>
-          <span style={{ color: '#ef4444', position: 'relative' }}>
+          <span style={{ color: 'var(--destructive)', position: 'relative' }}>
             FALSE
             <Handle
               type="source"
@@ -244,13 +244,13 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
               title="False branch (drag to connect)"
               style={{
                 left: 14,
-                background: '#ef4444',
+                background: 'var(--destructive)',
                 width: 14,
                 height: 14,
-                border: '2px solid #0f172a',
+                border: '2px solid var(--background)',
                 cursor: 'crosshair',
                 zIndex: 10,
-                boxShadow: '0 0 8px rgba(239, 68, 68, 0.7)',
+                boxShadow: '0 0 8px color-mix(in srgb, var(--destructive) 70%, transparent)',
               }}
             />
           </span>
@@ -264,7 +264,7 @@ function BotNode({ data, selected }: { data: any; selected: boolean }) {
             background: color,
             width: 14,
             height: 14,
-            border: '2px solid #0f172a',
+            border: '2px solid var(--background)',
             cursor: 'crosshair',
             zIndex: 10,
             boxShadow: `0 0 8px ${color}80`,
@@ -301,10 +301,10 @@ function toFlowEdges(stored: any[]): Edge[] {
     targetHandle: e.targetHandle || undefined,
     label: e.label || undefined,
     animated: true,
-    style: { stroke: '#818cf8', strokeWidth: 2 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
-    labelStyle: { fill: '#c7d2fe', fontWeight: 600, fontSize: 10 },
-    labelBgStyle: { fill: '#1e293b', fillOpacity: 0.9, rx: 6, ry: 6 },
+    style: { stroke: 'var(--primary)', strokeWidth: 2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
+    labelStyle: { fill: 'var(--foreground)', fontWeight: 600, fontSize: 10 },
+    labelBgStyle: { fill: 'var(--card)', fillOpacity: 0.9, rx: 6, ry: 6 },
     labelBgPadding: [6, 4] as [number, number],
   }));
 }
@@ -369,10 +369,10 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
       ...connection,
       label: edgeLabel,
       animated: true,
-      style: { stroke: '#818cf8', strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
-      labelStyle: { fill: '#c7d2fe', fontWeight: 600, fontSize: 10 },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.9, rx: 6, ry: 6 },
+      style: { stroke: 'var(--primary)', strokeWidth: 2 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
+      labelStyle: { fill: 'var(--foreground)', fontWeight: 600, fontSize: 10 },
+      labelBgStyle: { fill: 'var(--card)', fillOpacity: 0.9, rx: 6, ry: 6 },
       labelBgPadding: [6, 4] as [number, number],
     }, eds));
   }, [nodes, setEdges]);
@@ -632,22 +632,22 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           snapToGrid
           snapGrid={[15, 15]}
           deleteKeyCode={['Backspace', 'Delete']}
-          connectionLineStyle={{ stroke: '#818cf8', strokeWidth: 2 }}
+          connectionLineStyle={{ stroke: 'var(--primary)', strokeWidth: 2 }}
           style={{ background: '#0a0f1d' }}
           defaultEdgeOptions={{
             animated: true,
-            style: { stroke: '#818cf8', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+            style: { stroke: 'var(--primary)', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
           }}
         >
-          <Background color="#1e293b" gap={22} size={1} />
+          <Background color="var(--card)" gap={22} size={1} />
           <Controls
-            style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 10 }}
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10 }}
           />
           <MiniMap
-            nodeColor="#818cf8"
+            nodeColor="var(--primary)"
             maskColor="rgba(10,15,29,0.85)"
-            style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 10 }}
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10 }}
           />
 
           {/* Empty Canvas Guide */}
@@ -657,18 +657,18 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 marginTop: 90,
                 textAlign: 'center',
                 padding: '28px 36px',
-                background: 'rgba(30,41,59,0.95)',
+                background: 'var(--card)',
                 borderRadius: 20,
-                border: '1px dashed rgba(129,140,248,0.5)',
+                border: '1px dashed color-mix(in srgb, var(--primary) 50%, transparent)',
                 backdropFilter: 'blur(16px)',
                 maxWidth: 480,
                 boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
               }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🚀</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#f8fafc', marginBottom: 8 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--foreground)', marginBottom: 8 }}>
                   Your Flowchart is Ready
                 </div>
-                <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.6, marginBottom: 16 }}>
                   Start by clicking <strong>+ Add</strong> on any node from the left library, or load one of our ready-to-use business templates below!
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -677,8 +677,8 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                     onClick={() => handleAddNode('command_received', '/start')}
                     style={{
                       padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                      background: 'rgba(99,102,241,0.15)',
-                      border: '1px solid rgba(129,140,248,0.3)', color: '#818cf8', cursor: 'pointer',
+                      background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', color: 'var(--primary)', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                     }}
                   >
@@ -689,10 +689,10 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                     onClick={() => setShowTemplates(true)}
                     style={{
                       padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                      background: 'linear-gradient(135deg, #818cf8, #6366f1)',
-                      border: 'none', color: '#fff', cursor: 'pointer',
+                      background: 'linear-gradient(135deg, var(--primary), var(--primary))',
+                      border: 'none', color: 'var(--primary-foreground)', cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 6,
-                      boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                      boxShadow: '0 4px 14px color-mix(in srgb, var(--primary) 40%, transparent)',
                     }}
                   >
                     <Sparkles size={15} /> Load a Business Template
@@ -706,14 +706,14 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           <Panel position="bottom-center">
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              background: 'rgba(15,23,42,0.95)', padding: '7px 18px', borderRadius: 24,
-              border: '1px solid rgba(129,140,248,0.3)', backdropFilter: 'blur(12px)',
-              fontSize: 12, color: '#cbd5e1', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              background: 'var(--muted)', padding: '7px 18px', borderRadius: 24,
+              border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', backdropFilter: 'blur(12px)',
+              fontSize: 12, color: 'var(--foreground)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               pointerEvents: 'none', userSelect: 'none',
             }}>
               <span style={{ fontSize: 14 }}>💡</span>
               <span>
-                <strong>How to Connect:</strong> Drag from bottom dot (<span style={{ color: '#22c55e', fontWeight: 700 }}>● Output</span>) to top dot (<span style={{ color: '#818cf8', fontWeight: 700 }}>● Input</span>)
+                <strong>How to Connect:</strong> Drag from bottom dot (<span style={{ color: 'var(--success)', fontWeight: 700 }}>● Output</span>) to top dot (<span style={{ color: 'var(--primary)', fontWeight: 700 }}>● Input</span>)
               </span>
             </div>
           </Panel>
@@ -721,9 +721,9 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           {/* Top-Right Super Action Toolbar */}
           <Panel position="top-right">
             <div style={{
-              display: 'flex', gap: 6, background: 'rgba(30,41,59,0.95)',
+              display: 'flex', gap: 6, background: 'var(--card)',
               padding: '6px 10px', borderRadius: 12,
-              border: '1px solid rgba(148,163,184,0.18)',
+              border: '1px solid var(--border)',
               backdropFilter: 'blur(12px)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}>
@@ -733,7 +733,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 title="Choose a ready-to-use business template"
                 style={toolbarBtn(false)}
               >
-                <BookOpen size={14} color="#818cf8" /> Templates
+                <BookOpen size={14} color="var(--primary)" /> Templates
               </button>
 
               {/* Auto Organize */}
@@ -742,7 +742,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 title="Automatically organize nodes into a clean flowchart"
                 style={toolbarBtn(false)}
               >
-                <Wand2 size={14} color="#10b981" /> Tidy Flow
+                <Wand2 size={14} color="var(--success)" /> Tidy Flow
               </button>
 
               {/* Clear Canvas */}
@@ -752,11 +752,11 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                   title="Clear all nodes and start fresh"
                   style={toolbarBtn(false)}
                 >
-                  <Trash2 size={14} color="#ef4444" /> Clear
+                  <Trash2 size={14} color="var(--destructive)" /> Clear
                 </button>
               )}
 
-              <div style={{ width: 1, height: 24, background: 'rgba(148,163,184,0.15)', alignSelf: 'center', margin: '0 2px' }} />
+              <div style={{ width: 1, height: 24, background: 'var(--border)', alignSelf: 'center', margin: '0 2px' }} />
 
               {/* Toggle Telegram Live Preview */}
               <button
@@ -783,11 +783,11 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 disabled={publishing || nodes.length === 0}
                 style={{
                   ...toolbarBtn(false),
-                  background: nodes.length === 0 ? 'rgba(148, 163, 184, 0.15)' : 'linear-gradient(135deg, #818cf8, #6366f1)',
-                  color: nodes.length === 0 ? '#64748b' : '#fff',
+                  background: nodes.length === 0 ? 'var(--border)' : 'linear-gradient(135deg, var(--primary), var(--primary))',
+                  color: nodes.length === 0 ? 'var(--muted-foreground)' : '#fff',
                   cursor: nodes.length === 0 ? 'not-allowed' : 'pointer',
                   fontWeight: 600,
-                  boxShadow: nodes.length === 0 ? 'none' : '0 2px 10px rgba(99,102,241,0.4)',
+                  boxShadow: nodes.length === 0 ? 'none' : '0 2px 10px color-mix(in srgb, var(--primary) 40%, transparent)',
                 }}
                 title={nodes.length === 0 ? 'Cannot publish an empty workflow — add at least one node or load a template' : 'Publish workflow to live Telegram bot'}
               >
@@ -812,8 +812,8 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
         width: selectedNode ? 330 : (showPreview ? 310 : 0),
         transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'hidden',
-        borderLeft: '1px solid rgba(148,163,184,0.1)',
-        background: 'rgba(15,23,42,0.95)',
+        borderLeft: '1px solid var(--border)',
+        background: 'var(--muted)',
       }}>
         {selectedNode ? (
           <NodeConfigPanel
@@ -835,28 +835,28 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
         }}>
           <div style={{
-            background: '#0f172a', border: '1px solid rgba(129,140,248,0.3)',
+            background: 'var(--background)', border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
             borderRadius: 16, width: '100%', maxWidth: 700, maxHeight: '85vh',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '18px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+              padding: '18px 24px', borderBottom: '1px solid var(--border)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={18} color="#818cf8" />
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sparkles size={18} color="var(--primary)" />
                   Enterprise Starter Templates
                 </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
                   1-Click load ready-made business workflows built for e-commerce, tracking, and payments.
                 </div>
               </div>
               <button
                 onClick={() => setShowTemplates(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -868,28 +868,28 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 <div
                   key={tpl.id}
                   style={{
-                    background: 'rgba(30,41,59,0.7)', border: '1px solid rgba(148,163,184,0.14)',
+                    background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column',
                     justifyContent: 'space-between', transition: 'border-color 0.15s, transform 0.15s',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = '#818cf8';
+                    e.currentTarget.style.borderColor = 'var(--primary)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.14)';
+                    e.currentTarget.style.borderColor = 'var(--border)';
                     e.currentTarget.style.transform = 'none';
                   }}
                 >
                   <div>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>{tpl.icon}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#f8fafc', marginBottom: 6 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', marginBottom: 6 }}>
                       {tpl.name}
                     </div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5, marginBottom: 12 }}>
                       {tpl.description}
                     </div>
-                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#64748b' }}>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--muted-foreground)' }}>
                       <span>📊 {tpl.nodes.length} Nodes</span>
                       <span>🔗 {tpl.edges.length} Connections</span>
                     </div>
@@ -900,8 +900,8 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                     onClick={() => handleLoadTemplate(tpl)}
                     style={{
                       marginTop: 14, padding: '8px 14px', borderRadius: 8,
-                      background: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.3)',
-                      color: '#c7d2fe', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      background: 'color-mix(in srgb, var(--primary) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                      color: 'var(--foreground)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}
                   >
@@ -922,15 +922,15 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
         }}>
           <div style={{
-            background: '#0f172a', border: '1px solid rgba(239,68,68,0.3)',
+            background: 'var(--background)', border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)',
             borderRadius: 14, width: '100%', maxWidth: 420, padding: 24,
             boxShadow: '0 20px 40px rgba(0,0,0,0.6)', textAlign: 'center',
           }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>⚠️</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc', marginBottom: 8 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', marginBottom: 8 }}>
               Clear Canvas?
             </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: 'var(--muted-foreground)', lineHeight: 1.5, marginBottom: 20 }}>
               Are you sure you want to remove all {nodes.length} nodes and connections? This draft will start completely empty.
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -939,8 +939,8 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 onClick={() => setShowClearConfirm(false)}
                 style={{
                   padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  background: 'rgba(30,41,59,0.8)', border: '1px solid rgba(148,163,184,0.2)',
-                  color: '#94a3b8', cursor: 'pointer',
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  color: 'var(--muted-foreground)', cursor: 'pointer',
                 }}
               >
                 Cancel
@@ -950,7 +950,7 @@ function BuilderInner({ workflow, onUpdate }: { workflow: BotWorkflowDto; onUpda
                 onClick={handleClearCanvas}
                 style={{
                   padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                  background: '#ef4444', border: 'none', color: '#fff', cursor: 'pointer',
+                  background: 'var(--destructive)', border: 'none', color: 'var(--primary-foreground)', cursor: 'pointer',
                 }}
               >
                 Yes, Clear All
@@ -968,8 +968,8 @@ function toolbarBtn(active: boolean): React.CSSProperties {
     padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
     border: 'none', cursor: 'pointer',
     display: 'flex', alignItems: 'center', gap: 6,
-    background: active ? 'rgba(129,140,248,0.2)' : 'transparent',
-    color: active ? '#c7d2fe' : '#94a3b8',
+    background: active ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'transparent',
+    color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
     transition: 'background 0.15s, color 0.15s',
   };
 }

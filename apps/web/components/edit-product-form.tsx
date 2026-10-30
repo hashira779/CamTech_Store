@@ -194,8 +194,8 @@ export function EditProductForm({
         ))}
       </div>
 
-      {serverError && <p className="text-xs text-rose-500 font-medium">{serverError}</p>}
-      {ok && <p className="text-xs text-emerald-500 font-medium">{ok}</p>}
+      {serverError && <p className="text-xs text-destructive font-medium">{serverError}</p>}
+      {ok && <p className="text-xs text-success font-medium">{ok}</p>}
 
       <div className="flex justify-end gap-2 pt-3 border-t border-border mt-2">
         {onCancel && (
@@ -224,7 +224,7 @@ function Field({
     <label className="flex flex-col gap-1 text-xs">
       <span className="font-medium text-foreground">{label}</span>
       {children}
-      {error && <span className="text-[11px] text-rose-500">{error}</span>}
+      {error && <span className="text-[11px] text-destructive">{error}</span>}
     </label>
   );
 }

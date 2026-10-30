@@ -57,33 +57,33 @@ export function IncidentsView({
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'SEV1':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+        return 'bg-destructive/20 text-destructive border-destructive/30';
       case 'SEV2':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        return 'bg-warning/20 text-warning border-warning/30';
       case 'SEV3':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        return 'bg-info/20 text-info border-info/30';
       default:
-        return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
   return (
     <div className="space-y-4">
       {/* ── Top Bar ── */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
+      <div className="flex items-center justify-between p-4 rounded-xl bg-card/60 border border-border/80">
         <div>
-          <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <h2 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-warning" />
             Incident Commander & Triage Board
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Structured operational incident management, chronological timelines, and evidence preservation.
           </p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold transition shadow-md shadow-[#F38020]/20 cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition shadow-md shadow-primary/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Declare Incident</span>
@@ -93,9 +93,9 @@ export function IncidentsView({
       {/* ── Master-Detail Layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Incidents List */}
-        <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 space-y-2 max-h-[680px] overflow-y-auto">
+        <div className="rounded-xl bg-card/60 border border-border/80 p-3 space-y-2 max-h-[680px] overflow-y-auto">
           {incidents.length === 0 ? (
-            <div className="py-12 text-center text-xs text-zinc-500">
+            <div className="py-12 text-center text-xs text-muted-foreground">
               No operational incidents on file.
             </div>
           ) : (
@@ -107,24 +107,24 @@ export function IncidentsView({
                   onClick={() => setSelectedIncident(inc)}
                   className={`p-3 rounded-lg border transition-colors cursor-pointer space-y-2 ${
                     isSelected
-                      ? 'bg-zinc-800/90 border-[#F38020]/80 shadow-md'
-                      : 'bg-zinc-950/60 border-zinc-800 hover:bg-zinc-800/40'
+                      ? 'bg-muted/90 border-primary/80 shadow-md'
+                      : 'bg-card/60 border-border hover:bg-muted/40'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getSeverityBadge(inc.severity)}`}>
                       {inc.severity}
                     </span>
-                    <span className="text-[10px] font-mono text-zinc-500">
+                    <span className="text-[10px] font-mono text-muted-foreground">
                       {inc.incidentNumber}
                     </span>
                   </div>
 
-                  <div className="text-xs font-bold text-white truncate">{inc.title}</div>
-                  <div className="text-[11px] text-zinc-400 line-clamp-2">{inc.description}</div>
+                  <div className="text-xs font-bold text-foreground truncate">{inc.title}</div>
+                  <div className="text-[11px] text-muted-foreground line-clamp-2">{inc.description}</div>
 
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono pt-1 border-t border-zinc-800/60">
-                    <span className="text-[#F38020] font-semibold">{inc.status}</span>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono pt-1 border-t border-border/60">
+                    <span className="text-primary font-semibold">{inc.status}</span>
                     <span>{new Date(inc.firstSeenAt).toLocaleTimeString()}</span>
                   </div>
                 </div>
@@ -134,24 +134,24 @@ export function IncidentsView({
         </div>
 
         {/* Incident Detail & Timeline */}
-        <div className="lg:col-span-2 rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-5 space-y-6">
+        <div className="lg:col-span-2 rounded-xl bg-card/60 border border-border/80 p-5 space-y-6">
           {selectedIncident ? (
             <>
-              <div className="space-y-2 border-b border-zinc-800 pb-4">
+              <div className="space-y-2 border-b border-border pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`px-2.5 py-0.5 rounded text-xs font-bold border ${getSeverityBadge(selectedIncident.severity)}`}>
                       {selectedIncident.severity}
                     </span>
-                    <span className="text-xs font-mono text-zinc-400">{selectedIncident.incidentNumber}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{selectedIncident.incidentNumber}</span>
                   </div>
-                  <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold">
+                  <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-muted text-foreground font-bold">
                     {selectedIncident.status}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-white">{selectedIncident.title}</h3>
+                  <h3 className="text-base font-bold text-foreground">{selectedIncident.title}</h3>
                   <button
                     onClick={async () => {
                       if (confirm('Are you sure you want to permanently delete this incident?')) {
@@ -159,17 +159,17 @@ export function IncidentsView({
                         setSelectedIncident(null);
                       }
                     }}
-                    className="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition"
+                    className="px-2 py-1 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-bold transition"
                   >
                     Delete (Admin)
                   </button>
                 </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">{selectedIncident.description}</p>
+                <p className="text-xs text-foreground leading-relaxed">{selectedIncident.description}</p>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="text-[11px] text-zinc-500 mr-1 self-center">Affected:</span>
+                  <span className="text-[11px] text-muted-foreground mr-1 self-center">Affected:</span>
                   {selectedIncident.affectedServices.map((svc) => (
-                    <span key={svc} className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-[10px] font-mono text-[#F38020]">
+                    <span key={svc} className="px-2 py-0.5 rounded bg-card border border-border text-[10px] font-mono text-primary">
                       {svc}
                     </span>
                   ))}
@@ -178,25 +178,25 @@ export function IncidentsView({
 
               {/* Chronological Timeline */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider font-mono">
-                  <Clock className="w-4 h-4 text-[#F38020]" />
+                <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider font-mono">
+                  <Clock className="w-4 h-4 text-primary" />
                   <span>Incident Chronological Timeline</span>
                 </div>
 
-                <div className="space-y-4 pl-3 border-l-2 border-zinc-800 ml-2">
+                <div className="space-y-4 pl-3 border-l-2 border-border ml-2">
                   {selectedIncident.timeline.length === 0 ? (
-                    <div className="text-xs text-zinc-500 italic">No timeline entries yet.</div>
+                    <div className="text-xs text-muted-foreground italic">No timeline entries yet.</div>
                   ) : (
                     selectedIncident.timeline.map((item) => (
                       <div key={item.id} className="relative space-y-1">
-                        <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-[#F38020] border-2 border-zinc-900" />
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
-                          <span className="text-zinc-300 font-bold">{new Date(item.timestamp).toLocaleTimeString()}</span>
+                        <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-primary border-2 border-border" />
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                          <span className="text-foreground font-bold">{new Date(item.timestamp).toLocaleTimeString()}</span>
                           <span>•</span>
-                          <span className="text-[#F38020] font-semibold">{item.actionType}</span>
+                          <span className="text-primary font-semibold">{item.actionType}</span>
                           <span>by {item.actor}</span>
                         </div>
-                        <p className="text-xs text-zinc-300">{item.description}</p>
+                        <p className="text-xs text-foreground">{item.description}</p>
                       </div>
                     ))
                   )}
@@ -204,7 +204,7 @@ export function IncidentsView({
               </div>
             </>
           ) : (
-            <div className="py-20 text-center text-xs text-zinc-500">
+            <div className="py-20 text-center text-xs text-muted-foreground">
               Select an incident from the list to view timeline and evidence.
             </div>
           )}
@@ -216,17 +216,17 @@ export function IncidentsView({
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form
             onSubmit={handleCreate}
-            className="w-full max-w-md rounded-xl bg-[#111827] border border-zinc-800 shadow-2xl p-5 space-y-4"
+            className="w-full max-w-md rounded-xl bg-card border border-border shadow-2xl p-5 space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2 text-[#F38020] font-bold text-sm">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                <AlertTriangle className="w-4 h-4 text-warning" />
                 <span>Declare Operational Incident</span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-zinc-500 hover:text-white text-sm cursor-pointer"
+                className="text-muted-foreground hover:text-foreground text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -234,23 +234,23 @@ export function IncidentsView({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-400 mb-1 font-mono">Incident Title</label>
+                <label className="block text-muted-foreground mb-1 font-mono">Incident Title</label>
                 <input
                   type="text"
                   placeholder="e.g. Elevated 504 Timeouts in Catalog Microservice"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   required
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-white focus:outline-none focus:border-[#F38020]"
+                  className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 mb-1 font-mono">Severity Level</label>
+                <label className="block text-muted-foreground mb-1 font-mono">Severity Level</label>
                 <select
                   value={newSeverity}
                   onChange={(e) => setNewSeverity(e.target.value as IncidentSeverity)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-white font-mono focus:outline-none focus:border-[#F38020]"
+                  className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground font-mono focus:outline-none focus:border-primary"
                 >
                   <option value="SEV1">SEV1 — Critical Production Outage</option>
                   <option value="SEV2">SEV2 — Major Feature Degradation</option>
@@ -260,40 +260,40 @@ export function IncidentsView({
               </div>
 
               <div>
-                <label className="block text-zinc-400 mb-1 font-mono">Affected Microservices (comma-separated)</label>
+                <label className="block text-muted-foreground mb-1 font-mono">Affected Microservices (comma-separated)</label>
                 <input
                   type="text"
                   value={newServices}
                   onChange={(e) => setNewServices(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-white font-mono focus:outline-none focus:border-[#F38020]"
+                  className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground font-mono focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 mb-1 font-mono">Description &amp; Initial Symptoms</label>
+                <label className="block text-muted-foreground mb-1 font-mono">Description &amp; Initial Symptoms</label>
                 <textarea
                   rows={3}
                   placeholder="Describe initial symptoms, affected routes, and observed error rates..."
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   required
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-white focus:outline-none focus:border-[#F38020]"
+                  className="w-full px-3 py-2 rounded-lg bg-card border border-border text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-muted hover:bg-muted text-foreground text-xs font-bold transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-md shadow-[#F38020]/20"
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-md shadow-primary/20"
               >
                 {isSubmitting ? 'Submitting...' : 'Declare Incident'}
               </button>

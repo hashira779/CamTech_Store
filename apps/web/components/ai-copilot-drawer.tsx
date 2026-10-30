@@ -133,38 +133,37 @@ export function AiCopilotDrawer() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-14 right-4 z-40 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-white/20 group"
-          title="Open AI Copilot (Cmd+J)"
+          className="fixed bottom-14 right-4 z-40 flex h-9 w-9 items-center justify-center rounded-md bg-card text-muted-foreground shadow-md hover:text-foreground hover:bg-accent transition-colors border border-border"
+          title="Open AI Copilot (Ctrl/Cmd+J)"
+          aria-label="Open AI Copilot"
         >
-          <Sparkles className="w-3.5 h-3.5 animate-spin-slow group-hover:rotate-12 transition-transform" />
-          <span className="text-xs font-semibold tracking-wide">AI Copilot</span>
-          <kbd className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-md font-mono">⌘J</kbd>
+          <Sparkles className="w-4 h-4" />
         </button>
       )}
 
       {/* ─── Slide-Over Copilot Panel ─── */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-4rem)] rounded-lg bg-slate-950/95  border border-sky-500/30 shadow-md flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6">
+        <div className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-4rem)] rounded-lg bg-card border border-border shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-6">
           {/* Top Bar */}
-          <div className="p-4 bg-slate-900/80 border-b border-border/40 flex items-center justify-between">
+          <div className="p-4 bg-card/80 border-b border-border/40 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
+              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                   Enterprise AI Copilot
-                  <Badge variant="outline" className="text-[9px] bg-sky-500/10 text-sky-400 border-sky-500/30">
+                  <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/30">
                     AI Assistant
                   </Badge>
                 </h3>
-                <p className="text-[10px] text-slate-400">Contextual telemetry & analytics assistant</p>
+                <p className="text-[10px] text-muted-foreground">Contextual telemetry & analytics assistant</p>
               </div>
             </div>
             <Button
               size="icon"
               variant="ghost"
-              className="w-7 h-7 text-slate-400 hover:text-white"
+              className="w-7 h-7 text-muted-foreground hover:text-foreground"
               onClick={() => setIsOpen(false)}
             >
               <X className="w-4 h-4" />
@@ -179,7 +178,7 @@ export function AiCopilotDrawer() {
                 className={`flex gap-2.5 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.sender === 'assistant' && (
-                  <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-info/20 border border-info/30 flex items-center justify-center text-info shrink-0 mt-0.5">
                     <Bot className="w-3.5 h-3.5" />
                   </div>
                 )}
@@ -187,8 +186,8 @@ export function AiCopilotDrawer() {
                 <div
                   className={`max-w-[82%] rounded-lg p-3 shadow-md ${
                     m.sender === 'user'
-                      ? 'bg-sky-600 text-white rounded-br-xs'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-xs'
+                      ? 'bg-info text-info-foreground rounded-br-xs'
+                      : 'bg-card border border-border text-foreground rounded-bl-xs'
                   }`}
                 >
                   <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
@@ -198,7 +197,7 @@ export function AiCopilotDrawer() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-2.5 h-7 text-[11px] gap-1 bg-sky-500/10 text-sky-300 border-sky-500/30 hover:bg-sky-500/20"
+                      className="mt-2.5 h-7 text-[11px] gap-1 bg-info/10 text-info border-info/30 hover:bg-info/20"
                       onClick={() => {
                         setIsOpen(false);
                         navigate(m.actionLink!);
@@ -211,16 +210,16 @@ export function AiCopilotDrawer() {
 
                   {/* Suggestion Pills */}
                   {m.suggestions && m.suggestions.length > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 space-y-1.5">
-                      <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                        <Lightbulb className="w-2.5 h-2.5 text-amber-400" /> Suggested queries:
+                    <div className="mt-3 pt-2.5 border-t border-border/80 space-y-1.5">
+                      <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                        <Lightbulb className="w-2.5 h-2.5 text-warning" /> Suggested queries:
                       </span>
                       <div className="flex flex-col gap-1">
                         {m.suggestions.map((s, idx) => (
                           <button
                             key={idx}
                             onClick={() => handleSend(s)}
-                            className="text-left text-[10px] text-sky-300 hover:text-sky-200 hover:bg-sky-950/40 px-2 py-1 rounded-md transition-colors border border-sky-900/40"
+                            className="text-left text-[10px] text-info hover:text-info hover:bg-info/40 px-2 py-1 rounded-md transition-colors border border-info/40"
                           >
                             • {s}
                           </button>
@@ -229,13 +228,13 @@ export function AiCopilotDrawer() {
                     </div>
                   )}
 
-                  <span className="text-[9px] text-slate-500 block text-right mt-1.5">
+                  <span className="text-[9px] text-muted-foreground block text-right mt-1.5">
                     {m.timestamp}
                   </span>
                 </div>
 
                 {m.sender === 'user' && (
-                  <div className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300 shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0 mt-0.5">
                     <User className="w-3.5 h-3.5" />
                   </div>
                 )}
@@ -243,8 +242,8 @@ export function AiCopilotDrawer() {
             ))}
 
             {chatMutation.isPending && (
-              <div className="flex gap-2.5 items-center text-slate-400 text-xs italic">
-                <div className="w-6 h-6 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400 animate-spin">
+              <div className="flex gap-2.5 items-center text-muted-foreground text-xs italic">
+                <div className="w-6 h-6 rounded-lg bg-info/20 flex items-center justify-center text-info animate-spin">
                   <Sparkles className="w-3 h-3" />
                 </div>
                 <span>Analyzing telemetry & domain models...</span>
@@ -254,7 +253,7 @@ export function AiCopilotDrawer() {
           </div>
 
           {/* Input Bar */}
-          <div className="p-3 bg-slate-900/90 border-t border-border/40">
+          <div className="p-3 bg-card/90 border-t border-border/40">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -264,7 +263,7 @@ export function AiCopilotDrawer() {
             >
               <Input
                 placeholder="Ask about sales, stock, drivers, approvals..."
-                className="h-9 text-xs bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-sky-500"
+                className="h-9 text-xs bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-info"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 disabled={chatMutation.isPending}
@@ -272,7 +271,7 @@ export function AiCopilotDrawer() {
               <Button
                 type="submit"
                 size="sm"
-                className="h-9 px-3 bg-sky-600 hover:bg-sky-500 text-white"
+                className="h-9 px-3 bg-info hover:bg-info text-info-foreground"
                 disabled={!inputMessage.trim() || chatMutation.isPending}
               >
                 <Send className="w-3.5 h-3.5" />

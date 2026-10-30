@@ -51,7 +51,7 @@ export function BroadcastModal({ isOpen, onClose, bots, initialSelectedBot = '' 
       <div className="card w-full max-w-md p-6 rounded-lg border border-border shadow-md bg-card">
         <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/60">
           <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-rose-400" />
+            <Radio className="w-4 h-4 text-destructive" />
             <h3 className="text-base font-bold text-foreground">Dispatch Telegram Broadcast</h3>
           </div>
           <button onClick={onClose}>
@@ -148,7 +148,7 @@ export function BroadcastModal({ isOpen, onClose, bots, initialSelectedBot = '' 
             <button
               type="submit"
               disabled={broadcastMutation.isPending}
-              className="px-4 py-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-semibold shadow-sm transition-all"
+              className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold shadow-sm transition-all"
             >
               {broadcastMutation.isPending ? 'Broadcasting...' : 'Send Broadcast'}
             </button>

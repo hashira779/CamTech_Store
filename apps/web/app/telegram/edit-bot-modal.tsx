@@ -142,15 +142,15 @@ export function EditBotModal({ bot, onClose }: EditBotModalProps) {
             </div>
 
             {testResult && (
-              <div className={`mt-2 p-3 rounded-lg text-xs border ` + (testResult.success ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/10 text-rose-300 border-rose-500/30')}>
+              <div className={`mt-2 p-3 rounded-lg text-xs border ` + (testResult.success ? 'bg-success/10 text-success border-success/30' : 'bg-destructive/10 text-destructive border-destructive/30')}>
                 {testResult.success ? (
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                  <div className="flex items-center gap-1.5 font-bold text-success">
                     <CheckCircle2 className="w-4 h-4" /> Verified: @{testResult.botUsername}
                   </div>
                 ) : (
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400" />
-                    <div className="font-bold text-rose-400">{testResult.botName}</div>
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                    <div className="font-bold text-destructive">{testResult.botName}</div>
                   </div>
                 )}
               </div>
@@ -185,7 +185,7 @@ export function EditBotModal({ bot, onClose }: EditBotModalProps) {
                 onChange={(e) => setEditIsActive(e.target.checked)}
                 className="rounded border-border text-primary"
               />
-              <label className="text-xs font-medium text-emerald-500">Active Status</label>
+              <label className="text-xs font-medium text-success">Active Status</label>
             </div>
           </div>
 

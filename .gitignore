@@ -57,8 +57,12 @@ htmlcov/
 backups/
 *.sql.gz
 
-# Scratch scripts
+# Scratch scripts and one-off output
 patch.py
+/scratch/
+/*.tar.gz
+/jobs*.json
+/temp_compiled.css
 
 # Playwright
 playwright-report/

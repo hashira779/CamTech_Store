@@ -842,7 +842,7 @@ export function App() {
                 </div>
 
                 {/* Demo Logins */}
-                <div className="pt-2 border-t border-slate-800">
+                {import.meta.env.DEV && <div className="pt-2 border-t border-slate-800">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center font-mono">
                     Quick Demo Accounts
                   </div>
@@ -862,7 +862,7 @@ export function App() {
                       <div className="text-[10px] text-slate-500 font-mono">cashier@demo.test</div>
                     </button>
                   </div>
-                </div>
+                </div>}
 
                 <div className="text-center pt-1">
                   <button

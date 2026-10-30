@@ -231,7 +231,7 @@ export default function ReportsPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Net Sales Revenue
               </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2 rounded-lg bg-success/10 text-success">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
@@ -274,7 +274,7 @@ export default function ReportsPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Orders & Basket Value
               </span>
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+              <div className="p-2 rounded-lg bg-info/10 text-info">
                 <ShoppingBag className="w-4 h-4" />
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function ReportsPage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Inventory Asset Value
               </span>
-              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
+              <div className="p-2 rounded-lg bg-warning/10 text-warning">
                 <Boxes className="w-4 h-4" />
               </div>
             </div>
@@ -308,7 +308,7 @@ export default function ReportsPage() {
                   Retail: ${inventory?.totalPotentialRetailValue.toFixed(2) ?? '0.00'}
                 </span>
                 {inventory && inventory.lowStockItemCount > 0 && (
-                  <span className="text-amber-400 font-semibold flex items-center gap-0.5">
+                  <span className="text-warning font-semibold flex items-center gap-0.5">
                     <AlertTriangle className="w-3 h-3 inline" /> {inventory.lowStockItemCount} low
                   </span>
                 )}
@@ -430,11 +430,11 @@ export default function ReportsPage() {
                 <div className="space-y-4 my-auto">
                   {payments.map((p) => {
                     const badgeStyles: Record<string, string> = {
-                      CASH: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                      BAKONG_KHQR: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                      KHQR: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                      CARD: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                      STORE_CREDIT: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+                      CASH: 'bg-success/10 text-success border-success/20',
+                      BAKONG_KHQR: 'bg-destructive/10 text-destructive border-destructive/20',
+                      KHQR: 'bg-destructive/10 text-destructive border-destructive/20',
+                      CARD: 'bg-info/10 text-info border-info/20',
+                      STORE_CREDIT: 'bg-warning/10 text-warning border-warning/20',
                     };
                     return (
                       <div key={p.method} className="space-y-1.5">
@@ -520,17 +520,17 @@ export default function ReportsPage() {
                         <td className="p-3 text-right font-mono text-muted-foreground">
                           ${prod.cogs.toFixed(2)}
                         </td>
-                        <td className="p-3 text-right font-mono font-bold text-emerald-400">
+                        <td className="p-3 text-right font-mono font-bold text-success">
                           ${prod.margin.toFixed(2)}
                         </td>
                         <td className="p-3 text-right">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                               prod.marginPct >= 40
-                                ? 'bg-emerald-500/10 text-emerald-400'
+                                ? 'bg-success/10 text-success'
                                 : prod.marginPct >= 20
-                                ? 'bg-amber-500/10 text-amber-400'
-                                : 'bg-red-500/10 text-red-400'
+                                ? 'bg-warning/10 text-warning'
+                                : 'bg-destructive/10 text-destructive'
                             }`}
                           >
                             {prod.marginPct.toFixed(1)}%
@@ -573,7 +573,7 @@ export default function ReportsPage() {
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Potential Retail Value
                 </span>
-                <div className="text-2xl font-bold text-emerald-400 font-mono mt-2">
+                <div className="text-2xl font-bold text-success font-mono mt-2">
                   ${inventory?.totalPotentialRetailValue.toFixed(2) ?? '0.00'}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
@@ -585,7 +585,7 @@ export default function ReportsPage() {
             {/* Inventory Alerts Card */}
             <div className="card p-6 border-border shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400">
+                <div className="p-3 rounded-lg bg-warning/10 text-warning">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>

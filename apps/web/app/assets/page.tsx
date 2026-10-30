@@ -102,12 +102,12 @@ export default function AssetsPage() {
           </div>
           <div className="card p-5 border-border shadow-sm">
             <span className="text-xs font-semibold text-muted-foreground uppercase">Current Net Book Value</span>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-2">${totalBookValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold font-mono text-success mt-2">${totalBookValue.toFixed(2)}</div>
             <p className="text-[11px] text-muted-foreground mt-1">Carried on Balance Sheet</p>
           </div>
           <div className="card p-5 border-border shadow-sm">
             <span className="text-xs font-semibold text-muted-foreground uppercase">Accumulated Depreciation</span>
-            <div className="text-2xl font-bold font-mono text-rose-400 mt-2">-${totalAccumulated.toFixed(2)}</div>
+            <div className="text-2xl font-bold font-mono text-destructive mt-2">-${totalAccumulated.toFixed(2)}</div>
             <p className="text-[11px] text-muted-foreground mt-1">Total Amortized Expense</p>
           </div>
         </div>
@@ -137,8 +137,8 @@ export default function AssetsPage() {
                     </td>
                     <td className="p-3 font-mono text-primary">{a.category}</td>
                     <td className="p-3 text-right font-mono font-bold text-foreground">${(a.purchaseCost ?? 0).toFixed(2)}</td>
-                    <td className="p-3 text-right font-mono text-rose-400">-${((a.accumulatedDeprec ?? (a as any).accumulatedDepreciation ?? 0)).toFixed(2)}</td>
-                    <td className="p-3 text-right font-mono font-bold text-emerald-400">${((a.currentBookValue ?? (a as any).bookValue ?? 0)).toFixed(2)}</td>
+                    <td className="p-3 text-right font-mono text-destructive">-${((a.accumulatedDeprec ?? (a as any).accumulatedDepreciation ?? 0)).toFixed(2)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-success">${((a.currentBookValue ?? (a as any).bookValue ?? 0)).toFixed(2)}</td>
                     <td className="p-3 text-right">
                       <button
                         onClick={() => depreciateMutation.mutate(a.id)}

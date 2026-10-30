@@ -113,14 +113,14 @@ export function DeliveryMiniMap({
         className="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-white text-slate-900 shadow-md font-bold text-[11px] flex items-center gap-1.5 border border-slate-200 transition hover:scale-105 active:scale-95 cursor-pointer z-10 backdrop-blur-sm"
         title="Open destination in Google Maps"
       >
-        <Navigation className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+        <Navigation className="w-3.5 h-3.5 text-info fill-info" />
         <span>Open Maps</span>
         <ExternalLink className="w-3 h-3 text-slate-400" />
       </button>
 
       <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-700 shadow-sm border border-slate-100 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-1 truncate">
-          <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+          <MapPin className="w-3.5 h-3.5 text-destructive shrink-0" />
           <span className="truncate">{address}</span>
         </div>
         <span className="font-mono text-slate-400 shrink-0 ml-1">
@@ -422,12 +422,12 @@ export function DriverMiniAppPage() {
   const totalEarnedToday = completedOrders.reduce((sum, o) => sum + (Number(o.deliveryFee) || 2.5), 0);
 
   return (
-    <div className="min-h-screen bg-[#0b0f17] text-slate-100 flex flex-col items-center relative font-sans antialiased selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="min-h-screen bg-[#0b0f17] text-slate-100 flex flex-col items-center relative font-sans antialiased selection:bg-warning/30 selection:text-warning">
       {!token || authState !== 'ACTIVE' ? (
         <div className="flex-1 flex items-center justify-center p-4 w-full max-w-md my-auto">
           <div className="w-full bg-slate-900/90 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl border border-slate-800 space-y-6">
             <div className="space-y-2 text-center">
-              <div className="w-16 h-16 rounded-3xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/10">
+              <div className="w-16 h-16 rounded-3xl bg-warning/15 border border-warning/30 text-warning flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/10">
                 <Truck className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-black tracking-tight text-white">CamTech Delivery</h2>
@@ -442,25 +442,25 @@ export function DriverMiniAppPage() {
                 placeholder="driver@demo.test"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-amber-500 font-mono"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-warning font-mono"
               />
               <input
                 type="password"
                 placeholder="••••••••"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-amber-500 font-mono"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white outline-none focus:border-warning font-mono"
               />
               <button
                 onClick={() => handlePasswordLogin()}
                 disabled={isAuthProcessing}
-                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer shadow-md"
+                className="w-full py-2.5 bg-warning hover:bg-warning text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer shadow-md"
               >
                 {isAuthProcessing ? 'Signing In...' : 'Sign In as Driver'}
               </button>
             </div>
 
-            <div className="pt-2 border-t border-slate-800">
+            {import.meta.env.DEV && <div className="pt-2 border-t border-slate-800">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center font-mono">
                 Quick Demo Courier
               </div>
@@ -472,9 +472,9 @@ export function DriverMiniAppPage() {
                   <div className="font-bold text-white">Fleet Courier</div>
                   <div className="text-[10px] text-slate-500 font-mono">cashier@demo.test</div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-amber-400" />
+                <ArrowRight className="w-4 h-4 text-warning" />
               </button>
-            </div>
+            </div>}
           </div>
         </div>
       ) : (
@@ -484,15 +484,15 @@ export function DriverMiniAppPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-warning to-warning flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
                     <User className="w-6 h-6 text-slate-950" />
                   </div>
                   <span
                     className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#0b0f17] ${
                       shiftStatus === 'ONLINE'
-                        ? 'bg-emerald-500'
+                        ? 'bg-success'
                         : shiftStatus === 'BREAK'
-                        ? 'bg-amber-500'
+                        ? 'bg-warning'
                         : 'bg-zinc-600'
                     }`}
                   />
@@ -500,13 +500,13 @@ export function DriverMiniAppPage() {
                 <div>
                   <h1 className="text-base font-black text-white tracking-tight capitalize flex items-center gap-1.5">
                     {user?.name || 'Active Courier'}
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
                       PRO
                     </span>
                   </h1>
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-mono">
                     <span className="flex items-center gap-1">
-                      <Crosshair className="w-3 h-3 text-emerald-400" />
+                      <Crosshair className="w-3 h-3 text-success" />
                       {driverGps ? `GPS ±${driverGps.accuracy}m` : 'GPS Active'}
                     </span>
                   </div>
@@ -517,7 +517,7 @@ export function DriverMiniAppPage() {
                 <select
                   value={shiftStatus}
                   onChange={(e) => setShiftStatus(e.target.value as any)}
-                  className="px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono text-slate-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono text-slate-300 focus:outline-none focus:border-warning cursor-pointer"
                 >
                   <option value="ONLINE">🟢 Online</option>
                   <option value="BREAK">🟡 Break</option>
@@ -532,7 +532,7 @@ export function DriverMiniAppPage() {
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="p-2 bg-slate-900 hover:bg-rose-950/40 rounded-xl border border-slate-800 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                  className="p-2 bg-slate-900 hover:bg-destructive/40 rounded-xl border border-slate-800 text-slate-400 hover:text-destructive transition cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -546,12 +546,12 @@ export function DriverMiniAppPage() {
                 <div className="text-xl font-black text-white font-mono">{activeOrders.length}</div>
               </div>
               <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80">
-                <div className="text-[10px] text-amber-400 font-mono mb-1">COD to Collect</div>
-                <div className="text-xl font-black text-amber-400 font-mono">${totalCodToCollect.toFixed(2)}</div>
+                <div className="text-[10px] text-warning font-mono mb-1">COD to Collect</div>
+                <div className="text-xl font-black text-warning font-mono">${totalCodToCollect.toFixed(2)}</div>
               </div>
               <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80">
-                <div className="text-[10px] text-emerald-400 font-mono mb-1">Earned Today</div>
-                <div className="text-xl font-black text-emerald-400 font-mono">${totalEarnedToday.toFixed(2)}</div>
+                <div className="text-[10px] text-success font-mono mb-1">Earned Today</div>
+                <div className="text-xl font-black text-success font-mono">${totalEarnedToday.toFixed(2)}</div>
               </div>
             </div>
 
@@ -563,7 +563,7 @@ export function DriverMiniAppPage() {
                 placeholder="Search recipient, tracking #, address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900/70 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-amber-500 font-mono transition"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900/70 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-warning font-mono transition"
               />
             </div>
           </header>
@@ -593,7 +593,7 @@ export function DriverMiniAppPage() {
 
             {isLoading ? (
               <div className="text-center py-16 text-xs text-slate-500 font-mono flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                <RefreshCw className="w-4 h-4 animate-spin text-warning" />
                 Syncing live delivery telemetry...
               </div>
             ) : orderTab === 'AVAILABLE' ? (
@@ -617,22 +617,22 @@ export function DriverMiniAppPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-amber-400">#{order.trackingNumber}</span>
+                            <span className="text-xs font-mono font-bold text-warning">#{order.trackingNumber}</span>
                             {distKm !== null && (
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-info/10 text-info border border-info/20">
                                 📍 ~{distKm} km away
                               </span>
                             )}
                           </div>
                           <h4 className="text-base font-bold text-white mt-0.5">{order.recipientName}</h4>
                         </div>
-                        <span className="text-[10px] font-bold font-mono uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full">
+                        <span className="text-[10px] font-bold font-mono uppercase bg-warning/15 text-warning border border-warning/30 px-2.5 py-1 rounded-full">
                           Pending
                         </span>
                       </div>
 
                       <div className="flex items-start gap-2 text-xs text-slate-300">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                        <MapPin className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
                         <p className="leading-snug">{order.deliveryAddress}</p>
                       </div>
 
@@ -645,7 +645,7 @@ export function DriverMiniAppPage() {
 
                       <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono">
                         <span className="text-slate-400">Payment:</span>
-                        <span className="text-amber-400 font-bold">
+                        <span className="text-warning font-bold">
                           {Number(order.codAmount) > 0 ? `COD $${Number(order.codAmount).toFixed(2)}` : 'Prepaid (KHQR)'}
                         </span>
                       </div>
@@ -657,7 +657,7 @@ export function DriverMiniAppPage() {
                           className="h-10 px-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                           title="View Order Details"
                         >
-                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <Eye className="w-3.5 h-3.5 text-warning" />
                           <span>Details</span>
                         </button>
 
@@ -666,13 +666,13 @@ export function DriverMiniAppPage() {
                           onClick={() => openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng)}
                           className="h-10 px-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                         >
-                          <Navigation className="w-3.5 h-3.5 text-blue-400 fill-blue-400" />
+                          <Navigation className="w-3.5 h-3.5 text-info fill-info" />
                           <span>Maps</span>
                         </button>
                         <button
                           onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'DISPATCHED' })}
                           disabled={updateStatusMutation.isPending}
-                          className="flex-1 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="flex-1 h-10 rounded-full bg-warning hover:bg-warning text-slate-950 font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Truck className="w-3.5 h-3.5" />
                           <span>Accept &amp; Claim Task</span>
@@ -701,8 +701,8 @@ export function DriverMiniAppPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-amber-400">#{order.trackingNumber}</span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            <span className="text-xs font-mono font-bold text-warning">#{order.trackingNumber}</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-info/10 text-info border border-info/20">
                               {order.status === 'IN_TRANSIT' ? '⚡ En Route' : '📦 Dispatched'}
                             </span>
                           </div>
@@ -710,7 +710,7 @@ export function DriverMiniAppPage() {
                         </div>
                         {distKm !== null && (
                           <div className="text-right font-mono">
-                            <div className="text-sm font-black text-emerald-400">~{distKm} km</div>
+                            <div className="text-sm font-black text-success">~{distKm} km</div>
                             <div className="text-[10px] text-slate-400">~{estimatedMinutes} mins</div>
                           </div>
                         )}
@@ -718,13 +718,13 @@ export function DriverMiniAppPage() {
 
                       {/* Stepper */}
                       <div className="grid grid-cols-3 gap-1.5 py-1 text-center font-mono text-[10px]">
-                        <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                        <div className="p-1.5 rounded-xl bg-success/10 text-success border border-success/20 font-bold">
                           ✓ Accepted
                         </div>
                         <div
                           className={`p-1.5 rounded-xl font-bold ${
                             order.status === 'IN_TRANSIT'
-                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 animate-pulse'
+                              ? 'bg-info/20 text-info border border-info/40 animate-pulse'
                               : 'bg-slate-800 text-slate-400'
                           }`}
                         >
@@ -734,7 +734,7 @@ export function DriverMiniAppPage() {
                       </div>
 
                       <div className="flex items-start gap-2 text-xs text-slate-300">
-                        <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        <MapPin className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                         <p className="leading-snug">{order.deliveryAddress}</p>
                       </div>
 
@@ -746,15 +746,15 @@ export function DriverMiniAppPage() {
                       />
 
                       {Number(order.codAmount) > 0 && (
-                        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
+                        <div className="p-3 rounded-2xl bg-warning/10 border border-warning/25 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <DollarSign className="w-5 h-5 text-amber-400" />
+                            <DollarSign className="w-5 h-5 text-warning" />
                             <div>
-                              <div className="text-[10px] font-bold uppercase text-amber-400 font-mono">Collect COD</div>
+                              <div className="text-[10px] font-bold uppercase text-warning font-mono">Collect COD</div>
                               <div className="text-xs text-slate-300">Cash on Delivery</div>
                             </div>
                           </div>
-                          <div className="text-lg font-black text-amber-300 font-mono">
+                          <div className="text-lg font-black text-warning font-mono">
                             ${Number(order.codAmount).toFixed(2)}
                           </div>
                         </div>
@@ -767,7 +767,7 @@ export function DriverMiniAppPage() {
                           className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white shrink-0 transition cursor-pointer"
                           title="View Full Details"
                         >
-                          <Eye className="w-4 h-4 text-amber-400" />
+                          <Eye className="w-4 h-4 text-warning" />
                         </button>
 
                         {order.recipientPhone && (
@@ -775,16 +775,16 @@ export function DriverMiniAppPage() {
                             href={`tel:${order.recipientPhone}`}
                             className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-200 shrink-0 transition"
                           >
-                            <Phone className="w-4 h-4 text-emerald-400" />
+                            <Phone className="w-4 h-4 text-success" />
                           </a>
                         )}
 
                         <button
                           type="button"
                           onClick={() => openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng)}
-                          className="h-10 px-3 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 font-bold text-xs border border-blue-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
+                          className="h-10 px-3 rounded-full bg-info/15 hover:bg-info/25 text-info font-bold text-xs border border-info/30 flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
                         >
-                          <Navigation className="w-3.5 h-3.5 fill-blue-400" />
+                          <Navigation className="w-3.5 h-3.5 fill-info" />
                           <span>Maps</span>
                         </button>
 
@@ -794,7 +794,7 @@ export function DriverMiniAppPage() {
                               updateStatusMutation.mutate({ id: order.id, status: 'IN_TRANSIT' });
                               openInGoogleMaps(order.deliveryAddress, order.destLat, order.destLng);
                             }}
-                            className="flex-1 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="flex-1 h-10 rounded-full bg-info hover:bg-info text-white font-bold text-xs transition shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Compass className="w-4 h-4" />
                             <span>Start Navigation</span>
@@ -805,7 +805,7 @@ export function DriverMiniAppPage() {
                               setSelectedOrder(order);
                               setIsPodOpen(true);
                             }}
-                            className="flex-1 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="flex-1 h-10 rounded-full bg-success hover:bg-success text-slate-950 font-bold text-xs transition shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <FileSignature className="w-4 h-4" />
                             <span>Complete &amp; Sign</span>
@@ -831,16 +831,16 @@ export function DriverMiniAppPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-bold text-slate-400 font-mono">#{order.trackingNumber}</span>
-                        <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
+                        <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-warning group-hover:translate-x-0.5 transition" />
                       </div>
                       <h4 className="text-sm font-bold text-white mt-0.5">{order.recipientName}</h4>
                       <p className="text-[11px] text-slate-400 truncate max-w-[200px]">{order.deliveryAddress}</p>
                     </div>
                     <div className="text-right flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-bold font-mono uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] font-bold font-mono uppercase bg-success/15 text-success border border-success/30 px-2.5 py-1 rounded-full flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Delivered
                       </span>
-                      <span className="text-[10px] font-mono text-slate-500 group-hover:text-amber-400 transition">
+                      <span className="text-[10px] font-mono text-slate-500 group-hover:text-warning transition">
                         Tap for details →
                       </span>
                     </div>
@@ -852,7 +852,7 @@ export function DriverMiniAppPage() {
               <div className="space-y-4 font-mono text-xs">
                 <div className="bg-slate-900 rounded-3xl border border-slate-800 p-5 space-y-3">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-400" />
+                    <Zap className="w-4 h-4 text-warning" />
                     Today's Dispatch Summary
                   </h4>
                   <div className="space-y-2 text-slate-400">
@@ -862,15 +862,15 @@ export function DriverMiniAppPage() {
                     </div>
                     <div className="flex justify-between">
                       <span>Delivered &amp; Completed:</span>
-                      <strong className="text-emerald-400">{completedOrders.length}</strong>
+                      <strong className="text-success">{completedOrders.length}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Total COD Cash Collected:</span>
-                      <strong className="text-amber-400">${totalCodToCollect.toFixed(2)}</strong>
+                      <strong className="text-warning">${totalCodToCollect.toFixed(2)}</strong>
                     </div>
                     <div className="flex justify-between border-t border-slate-800 pt-2">
                       <span>Courier Earnings:</span>
-                      <strong className="text-emerald-400 text-sm">${totalEarnedToday.toFixed(2)}</strong>
+                      <strong className="text-success text-sm">${totalEarnedToday.toFixed(2)}</strong>
                     </div>
                   </div>
                 </div>
@@ -883,29 +883,29 @@ export function DriverMiniAppPage() {
             <button
               onClick={() => setOrderTab('AVAILABLE')}
               className={`flex items-center justify-center w-11 h-11 rounded-full transition-all relative cursor-pointer ${
-                orderTab === 'AVAILABLE' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                orderTab === 'AVAILABLE' ? 'bg-warning text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Package className="w-5 h-5" />
               {pendingOrders.length > 0 && orderTab !== 'AVAILABLE' && (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-slate-950 animate-pulse"></span>
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-slate-950 animate-pulse"></span>
               )}
             </button>
             <button
               onClick={() => setOrderTab('ACTIVE')}
               className={`flex items-center justify-center w-11 h-11 rounded-full transition-all relative cursor-pointer ${
-                orderTab === 'ACTIVE' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                orderTab === 'ACTIVE' ? 'bg-warning text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               <MapIcon className="w-5 h-5" />
               {activeOrders.length > 0 && orderTab !== 'ACTIVE' && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full border-2 border-slate-950"></span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-info rounded-full border-2 border-slate-950"></span>
               )}
             </button>
             <button
               onClick={() => setOrderTab('COMPLETED')}
               className={`flex items-center justify-center w-11 h-11 rounded-full transition-all cursor-pointer ${
-                orderTab === 'COMPLETED' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                orderTab === 'COMPLETED' ? 'bg-warning text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               <CheckCircle2 className="w-5 h-5" />
@@ -913,7 +913,7 @@ export function DriverMiniAppPage() {
             <button
               onClick={() => setOrderTab('STATS')}
               className={`flex items-center justify-center w-11 h-11 rounded-full transition-all cursor-pointer ${
-                orderTab === 'STATS' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                orderTab === 'STATS' ? 'bg-warning text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Zap className="w-5 h-5" />
@@ -940,10 +940,10 @@ export function DriverMiniAppPage() {
             </div>
 
             {Number(selectedOrder.codAmount) > 0 && (
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 font-mono">
+              <div className="p-3.5 bg-warning/10 border border-warning/30 rounded-2xl space-y-2 font-mono">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-amber-400 uppercase">Amount to Collect</span>
-                  <span className="text-lg font-black text-amber-300">${Number(selectedOrder.codAmount).toFixed(2)}</span>
+                  <span className="font-bold text-warning uppercase">Amount to Collect</span>
+                  <span className="text-lg font-black text-warning">${Number(selectedOrder.codAmount).toFixed(2)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
@@ -951,7 +951,7 @@ export function DriverMiniAppPage() {
                     onClick={() => setPodPaymentMode('CASH')}
                     className={`py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       podPaymentMode === 'CASH'
-                        ? 'bg-amber-500 text-slate-950 border-amber-500'
+                        ? 'bg-warning text-slate-950 border-warning'
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
@@ -962,7 +962,7 @@ export function DriverMiniAppPage() {
                     onClick={() => setPodPaymentMode('KHQR')}
                     className={`py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       podPaymentMode === 'KHQR'
-                        ? 'bg-amber-500 text-slate-950 border-amber-500'
+                        ? 'bg-warning text-slate-950 border-warning'
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
@@ -979,23 +979,23 @@ export function DriverMiniAppPage() {
                       placeholder={`e.g. ${Number(selectedOrder.codAmount).toFixed(2)}`}
                       value={cashReceived}
                       onChange={(e) => setCashReceived(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-warning"
                     />
                     {parseFloat(cashReceived) > Number(selectedOrder.codAmount) && (
-                      <div className="text-[11px] text-emerald-400 mt-1">
+                      <div className="text-[11px] text-success mt-1">
                         Change to return: ${(parseFloat(cashReceived) - Number(selectedOrder.codAmount)).toFixed(2)}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-center p-3 bg-white rounded-xl space-y-1.5 my-1 border-2 border-blue-100">
-                    <div className="text-[11px] font-bold text-blue-900 font-mono flex items-center justify-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  <div className="text-center p-3 bg-white rounded-xl space-y-1.5 my-1 border-2 border-info/30">
+                    <div className="text-[11px] font-bold text-info font-mono flex items-center justify-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-info animate-pulse"></span>
                       <span>ABA PayWay Collection</span>
                     </div>
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mx-auto w-fit flex flex-col items-center">
-                      <QrCode className="w-24 h-24 text-blue-400 mb-2" />
-                      <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-1 rounded-full">Driver Dynamic QR</span>
+                    <div className="p-4 bg-info/10 border border-info/30 rounded-xl mx-auto w-fit flex flex-col items-center">
+                      <QrCode className="w-24 h-24 text-info mb-2" />
+                      <span className="text-[10px] font-bold text-info bg-info/10 px-2 py-1 rounded-full">Driver Dynamic QR</span>
                     </div>
                     <div className="text-[10px] text-slate-600 font-mono">
                       Pay <strong className="text-slate-900">${Number(selectedOrder.codAmount).toFixed(2)}</strong> via ABA Mobile
@@ -1009,13 +1009,13 @@ export function DriverMiniAppPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                  <FileSignature className="w-3.5 h-3.5 text-amber-400" />
+                  <FileSignature className="w-3.5 h-3.5 text-warning" />
                   Customer Signature (Sign Below)
                 </label>
                 <button
                   type="button"
                   onClick={clearSignature}
-                  className="text-[10px] text-slate-500 hover:text-amber-400 font-mono cursor-pointer"
+                  className="text-[10px] text-slate-500 hover:text-warning font-mono cursor-pointer"
                 >
                   Clear Pad
                 </button>
@@ -1044,7 +1044,7 @@ export function DriverMiniAppPage() {
                 placeholder="e.g. Handed directly to customer"
                 value={podNotes}
                 onChange={(e) => setPodNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-amber-500 font-mono"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-warning font-mono"
               />
             </div>
 
@@ -1058,7 +1058,7 @@ export function DriverMiniAppPage() {
                 })
               }
               disabled={updateStatusMutation.isPending}
-              className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-full font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
+              className="w-full h-12 bg-success hover:bg-success text-slate-950 rounded-full font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
             >
               {updateStatusMutation.isPending ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1082,7 +1082,7 @@ export function DriverMiniAppPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-amber-400">
+                  <span className="text-xs font-mono font-bold text-warning">
                     #{viewingDetailOrder.trackingNumber}
                   </span>
                   <button
@@ -1095,7 +1095,7 @@ export function DriverMiniAppPage() {
                     className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"
                     title="Copy tracking number"
                   >
-                    {copiedTracking ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedTracking ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <h3 className="text-lg font-bold text-white mt-0.5">Order Details</h3>
@@ -1104,11 +1104,11 @@ export function DriverMiniAppPage() {
                 <span
                   className={`text-[10px] font-bold font-mono uppercase px-2.5 py-1 rounded-full border ${
                     viewingDetailOrder.status === 'DELIVERED'
-                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      ? 'bg-success/15 text-success border-success/30'
                       : viewingDetailOrder.status === 'IN_TRANSIT'
-                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                      ? 'bg-info/15 text-info border-info/30'
                       : viewingDetailOrder.status === 'DISPATCHED'
-                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      ? 'bg-warning/15 text-warning border-warning/30'
                       : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
                   }`}
                 >
@@ -1135,7 +1135,7 @@ export function DriverMiniAppPage() {
                   <div className="flex items-center gap-2">
                     <a
                       href={`tel:${viewingDetailOrder.recipientPhone}`}
-                      className="w-9 h-9 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition cursor-pointer"
+                      className="w-9 h-9 rounded-full bg-success/20 hover:bg-success/30 text-success border border-success/30 flex items-center justify-center transition cursor-pointer"
                       title="Call customer"
                     >
                       <Phone className="w-4 h-4" />
@@ -1144,7 +1144,7 @@ export function DriverMiniAppPage() {
                       href={`https://t.me/+855${viewingDetailOrder.recipientPhone.replace(/^0/, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-9 h-9 rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 flex items-center justify-center transition cursor-pointer"
+                      className="w-9 h-9 rounded-full bg-info/20 hover:bg-info/30 text-info border border-info/30 flex items-center justify-center transition cursor-pointer"
                       title="Telegram customer"
                     >
                       <MessageCircle className="w-4 h-4" />
@@ -1157,7 +1157,7 @@ export function DriverMiniAppPage() {
               <div className="pt-2 border-t border-slate-800/80">
                 <div className="text-[10px] font-bold uppercase text-slate-500 font-mono mb-1">Destination Address</div>
                 <div className="flex items-start gap-2 text-xs text-slate-200">
-                  <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{viewingDetailOrder.deliveryAddress}</span>
                 </div>
               </div>
@@ -1182,13 +1182,13 @@ export function DriverMiniAppPage() {
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Amount to Collect:</span>
-                <span className="text-amber-400 font-bold">
+                <span className="text-warning font-bold">
                   ${Number(viewingDetailOrder.codAmount || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Courier Delivery Fee:</span>
-                <span className="text-emerald-400 font-bold">
+                <span className="text-success font-bold">
                   ${Number(viewingDetailOrder.deliveryFee || 2.5).toFixed(2)}
                 </span>
               </div>
@@ -1196,8 +1196,8 @@ export function DriverMiniAppPage() {
 
             {/* Proof of Delivery / Signature if DELIVERED */}
             {viewingDetailOrder.status === 'DELIVERED' && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+              <div className="p-4 rounded-2xl bg-success/10 border border-success/25 space-y-2">
+                <div className="flex items-center gap-2 text-success font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Proof of Delivery (Verified)</span>
                 </div>
@@ -1239,9 +1239,9 @@ export function DriverMiniAppPage() {
                     viewingDetailOrder.destLng
                   )
                 }
-                className="w-full h-11 rounded-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 font-bold text-xs border border-blue-500/30 flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full h-11 rounded-full bg-info/20 hover:bg-info/30 text-info font-bold text-xs border border-info/30 flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Navigation className="w-4 h-4 fill-blue-400" />
+                <Navigation className="w-4 h-4 fill-info" />
                 <span>Navigate in Google Maps</span>
               </button>
 
@@ -1252,7 +1252,7 @@ export function DriverMiniAppPage() {
                     setViewingDetailOrder(null);
                   }}
                   disabled={updateStatusMutation.isPending}
-                  className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-11 rounded-full bg-warning hover:bg-warning text-slate-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Truck className="w-4 h-4" />
                   <span>Accept &amp; Claim Task</span>
@@ -1267,7 +1267,7 @@ export function DriverMiniAppPage() {
                     setViewingDetailOrder(null);
                   }}
                   disabled={updateStatusMutation.isPending}
-                  className="w-full h-11 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-11 rounded-full bg-info hover:bg-info text-white font-bold text-xs shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <Compass className="w-4 h-4" />
                   <span>Start Navigation (In Transit)</span>
@@ -1281,7 +1281,7 @@ export function DriverMiniAppPage() {
                     setIsPodOpen(true);
                     setViewingDetailOrder(null);
                   }}
-                  className="w-full h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full h-11 rounded-full bg-success hover:bg-success text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <FileSignature className="w-4 h-4" />
                   <span>Complete &amp; Sign (POD)</span>

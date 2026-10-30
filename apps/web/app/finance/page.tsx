@@ -267,7 +267,7 @@ export default function FinancePage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Total Assets
               </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2 rounded-lg bg-success/10 text-success">
                 <Building className="w-4 h-4" />
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function FinancePage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Total Liabilities
               </span>
-              <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
+              <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
                 <CreditCard className="w-4 h-4" />
               </div>
             </div>
@@ -308,7 +308,7 @@ export default function FinancePage() {
               </div>
             </div>
             <div className="mt-3">
-              <div className={`text-2xl font-bold font-mono ${(summary?.netIncome ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div className={`text-2xl font-bold font-mono ${(summary?.netIncome ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                 ${summary?.netIncome.toFixed(2) ?? '0.00'}
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">Revenue minus Expenses (P&L)</p>
@@ -321,7 +321,7 @@ export default function FinancePage() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Ledger Balance Integrity
               </span>
-              <div className={`p-2 rounded-lg ${summary?.isLedgerBalanced ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+              <div className={`p-2 rounded-lg ${summary?.isLedgerBalanced ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
                 <Scale className="w-4 h-4" />
               </div>
             </div>
@@ -329,12 +329,12 @@ export default function FinancePage() {
               <div className="flex items-center gap-1.5 text-base font-bold text-foreground">
                 {summary?.isLedgerBalanced ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                     <span>Balanced (Double-Entry OK)</span>
                   </>
                 ) : (
                   <>
-                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                    <AlertTriangle className="w-5 h-5 text-warning" />
                     <span>Reconciliation Pending</span>
                   </>
                 )}
@@ -418,11 +418,11 @@ export default function FinancePage() {
                 <tbody className="divide-y divide-border">
                   {accounts.map((acc) => {
                     const typeBadge: Record<AccountType, string> = {
-                      ASSET: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                      LIABILITY: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                      EQUITY: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-                      REVENUE: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                      EXPENSE: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                      ASSET: 'bg-success/10 text-success border-success/20',
+                      LIABILITY: 'bg-destructive/10 text-destructive border-destructive/20',
+                      EQUITY: 'bg-warning/10 text-warning border-warning/20',
+                      REVENUE: 'bg-info/10 text-info border-info/20',
+                      EXPENSE: 'bg-warning/10 text-warning border-warning/20',
                     };
                     return (
                       <tr key={acc.id} className="hover:bg-accent/30 transition-colors">
@@ -490,10 +490,10 @@ export default function FinancePage() {
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
                             j.status === 'POSTED'
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              ? 'bg-success/10 text-success border border-success/20'
                               : j.status === 'DRAFT'
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-zinc-500/10 text-zinc-400'
+                              ? 'bg-warning/10 text-warning border border-warning/20'
+                              : 'bg-accent/10 text-muted-foreground'
                           }`}
                         >
                           {j.status}
@@ -583,7 +583,7 @@ export default function FinancePage() {
                 <p className="text-xs text-muted-foreground">Verification of total debits equal total credits</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 ${trialBalance?.isBalanced ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                <span className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 ${trialBalance?.isBalanced ? 'bg-success/10 text-success border border-success/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
                   {trialBalance?.isBalanced ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
                   {trialBalance?.isBalanced ? 'Ledger Balanced' : 'Unbalanced!'}
                 </span>
@@ -710,7 +710,7 @@ export default function FinancePage() {
                 {/* Gross Profit */}
                 <div className="flex justify-between text-sm font-bold p-3 rounded-lg bg-accent/40">
                   <span>Gross Profit:</span>
-                  <span className="font-mono text-emerald-400">${incomeStatement.grossProfit.toFixed(2)}</span>
+                  <span className="font-mono text-success">${incomeStatement.grossProfit.toFixed(2)}</span>
                 </div>
 
                 {/* Operating Expenses */}
@@ -736,7 +736,7 @@ export default function FinancePage() {
                 {/* Net Income */}
                 <div className="flex justify-between text-base font-bold p-4 rounded-lg bg-primary/10 border border-primary/20">
                   <span>Net Income / (Loss):</span>
-                  <span className={`font-mono ${incomeStatement.netIncome >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <span className={`font-mono ${incomeStatement.netIncome >= 0 ? 'text-success' : 'text-destructive'}`}>
                     ${incomeStatement.netIncome.toFixed(2)}
                   </span>
                 </div>
@@ -752,7 +752,7 @@ export default function FinancePage() {
 
                 {/* Assets */}
                 <div className="space-y-2">
-                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-emerald-400">
+                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-success">
                     <span>Assets</span>
                     <span>Amount</span>
                   </div>
@@ -772,7 +772,7 @@ export default function FinancePage() {
 
                 {/* Liabilities */}
                 <div className="space-y-2">
-                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-rose-400">
+                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-destructive">
                     <span>Liabilities</span>
                     <span>Amount</span>
                   </div>
@@ -792,7 +792,7 @@ export default function FinancePage() {
 
                 {/* Equity */}
                 <div className="space-y-2">
-                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-orange-500">
+                  <div className="flex justify-between font-bold text-xs uppercase tracking-wider text-warning">
                     <span>Equity & Retained Earnings</span>
                     <span>Amount</span>
                   </div>
@@ -1017,7 +1017,7 @@ export default function FinancePage() {
                 </div>
 
                 {/* Real-time Double-Entry Balancer */}
-                <div className={`p-4 rounded-lg border flex items-center justify-between text-xs font-mono ${isModalBalanced ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                <div className={`p-4 rounded-lg border flex items-center justify-between text-xs font-mono ${isModalBalanced ? 'bg-success/10 border-success/30 text-success' : 'bg-destructive/10 border-destructive/30 text-destructive'}`}>
                   <div className="flex items-center gap-2">
                     {isModalBalanced ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                     <span>

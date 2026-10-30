@@ -7,15 +7,16 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 > Orientation first: [`README.md`](README.md) · [`docs/architecture/current-state.md`](docs/architecture/current-state.md) ·
 > [`docs/architecture/microservices-and-docker-guide.md`](docs/architecture/microservices-and-docker-guide.md) ·
 > [`docs/architecture/mini-app-ecommerce-multi-store.md`](docs/architecture/mini-app-ecommerce-multi-store.md) ·
+> [`docs/architecture/folder-structure.md`](docs/architecture/folder-structure.md) ·
 > [`docs/architecture/90-engineering-principles.md`](docs/architecture/90-engineering-principles.md) ·
-> latest change log [`docs/audits/session-2026-10-29.md`](docs/audits/session-2026-10-29.md).
+> latest change log [`docs/audits/session-2026-10-30.md`](docs/audits/session-2026-10-30.md).
 
 ---
 
 ## 0. The shape of the system (30 seconds)
 
 - **Backend** = `services/backend-py` (FastAPI + SQLAlchemy 2.0 async + asyncpg). It is a **modular monolith**
-  (`app/modules/<domain>/`) that ALSO runs as **7 microservices** (`app/microservices/`) behind a gateway on `:4000`.
+  (`app/modules/<domain>/`) that ALSO runs as **9 microservices** (`app/microservices/`) behind a gateway on `:4000`.
   Same code, two deployment shapes. `services/backend` (NestJS) is **legacy — do not develop it**.
 - **Frontend** = `apps/web` is the canonical multi-experience SPA (Vite 6 + React 19). `apps/{store,cashier,delivery,hr,ceo}`
   are standalone build targets. All frontends call `http://localhost:4000/api/v1`.
@@ -29,10 +30,12 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 1. **Enum columns MUST bind to the native Postgres type.** Never `Column(String)` for an enum column — use
    `Column(pg_enum("TypeName"))` from [`app/core/db_enums.py`](services/backend-py/app/core/db_enums.py). A bare
    varchar makes asyncpg 500 with `DatatypeMismatchError` on insert. New enum type? Add its labels to `ENUM_LABELS`.
-2. **Every JSON response is auto-wrapped** as `{ success, data, requestId }` by middleware (monolith: `app/main.py`;
-   microservices: `app/microservices/common.py`). The frontend api-client does `if (!body.success) throw; return body.data`.
-   If you add a new FastAPI app, it MUST apply that same envelope, or the frontend breaks on every call.
-3. **Tenant scoping is not optional.** Every query filters `where organization_id == user.organization_id`, taken from the
+2. **Every JSON response is auto-wrapped** as `{ success, data, requestId }` by [`app/core/http_edge.py`](services/backend-py/app/core/http_edge.py),
+   shared by the monolith and every microservice. The frontend api-client does `if (!body.success) throw; return body.data`.
+   A new FastAPI app MUST call `install_edge` then `add_gzip`, in that order, or large responses lose the envelope.
+3. **Role access is declared centrally.** A new API area that isn't for every staff member needs a rule in
+   [`app/core/access_policy.py`](services/backend-py/app/core/access_policy.py); `get_current_user` enforces it.
+   **Tenant scoping is not optional.** Every query filters `where organization_id == user.organization_id`, taken from the
    JWT (`get_current_user`) — **never** from the request body/query. New endpoints follow this.
 4. **No hardcoded/mock data.** Compute responses from the database. (The reporting module was hardcoded and was replaced —
    don't reintroduce that pattern.)
@@ -61,7 +64,7 @@ long-term scaling path. Read it before changing code. Keep it up to date when a 
 ```bash
 # Backend — pick ONE:
 pnpm py:dev          # single-process monolith on :4000
-pnpm ms:all          # gateway + 7 services on :4000–:4007
+pnpm ms:all          # gateway + 9 services on :4000–:4009
 
 # Frontend (each its own port; all call :4000):
 pnpm admin:dev       # :5002   (also store:dev/cashier:dev/delivery:dev/hr:dev/ceo:dev)
@@ -96,16 +99,16 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
    [`platform_service.py`](services/backend-py/app/microservices/platform_service.py)).
 2. If it needs its own service, copy an existing `*_service.py`, pick a new port, add `ms:<name>` to `package.json`,
    include it in `ms:all`, and add a container to `docker-compose.yml`.
-3. Add its URL prefix(es) to `ROUTING_MAP` in [`gateway.py`](services/backend-py/app/microservices/gateway.py)
-   (or rely on the platform catch-all).
+3. Declare the service and its URL prefix(es) in [`registry.py`](services/backend-py/app/microservices/registry.py)
+   (or rely on the platform catch-all). `test_gateway_routing.py` fails if any route lands on a service that doesn't mount it.
 4. Verify through the gateway: `curl :4000/api/v1/<route>` returns an **enveloped** `200`.
 
 ### Flow C — Add a new frontend route/experience
 1. Add the page under `apps/web/app/<route>/page.tsx` and a `<Route>` in the owning shell
    (`apps/web/src/apps/<shell>/*App.tsx`).
-2. If it's a new top-level experience, add a branch in [`apps/web/src/App.tsx`](apps/web/src/App.tsx) — use a
-   **path-boundary match** (`p === '/x' || p.startsWith('/x/')`), never a bare `startsWith('/x')` (that swallows siblings,
-   which is exactly the bug that sent `/customers` to the customer portal).
+2. If it's a new top-level experience, add an entry to [`apps/web/src/experiences.ts`](apps/web/src/experiences.ts). Elsewhere, use
+   `isPathUnder` rather than a bare `startsWith('/x')` (that swallows siblings, which is exactly the bug that sent
+   `/customers` to the customer portal).
 3. Call the backend only through `apps/web/lib/api-client.ts`.
 4. Wrap risky subtrees in `<ErrorBoundary>` if they can crash independently.
 5. Follow [`docs/architecture/ui-ux-performance-guidelines.md`](docs/architecture/ui-ux-performance-guidelines.md):
@@ -127,11 +130,11 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
 ## 4. Long-term scaling roadmap (Status & Execution State)
 
 1. **CI gates (cheapest, highest value):** [✅ DELIVERED]
-   - Unified `"audit:check"` gate in `package.json` (`schema_audit.py`, `py:test`, `typecheck`).
+   - Unified `"audit:check"` gate in `package.json` (`schema_audit.py`, `py:test`, `typecheck`, `ui:check`).
    - Installed `.git/hooks/pre-push` actively blocking drift, test breaks, or type errors locally before push.
-2. **Remove the two real single points of failure:** [✅ DELIVERED]
-   - **PostgreSQL HA & Connection Resilience:** Added `pgbouncer` container (`edoburu/pgbouncer:latest`, port 6432, 2,000 clients). Added `postgres-replica` container (port 5434). Implemented `get_read_db` in [`app/core/database.py`](services/backend-py/app/core/database.py) routing BI reporting reads to the replica.
-   - **Multi-Replica Gateway:** Gateway runs with `--workers 4` in production and scales horizontally via K8s HPA.
+2. **Remove the two real single points of failure:** [⚠️ PARTIAL — see `docs/architecture/load-balancing.md`]
+   - **PostgreSQL:** `pgbouncer` and `postgres-replica` containers exist, but services connect directly to Postgres and the replica has no replication configured, so there is no database failover yet.
+   - **Gateway:** one container with 4 workers on one server. `infra/k8s/` is not used in production.
 3. **Observability:** [✅ DELIVERED]
    - Implemented [`app/core/telemetry.py`](services/backend-py/app/core/telemetry.py) extracting/minting W3C `traceparent` headers (`00-{traceId}-{spanId}-01`).
    - Structured JSON logging with `requestId`, `traceId`, and `spanId`. Configured `otel-collector` (ports 4317/4318) and Jaeger UI (port 16686) in Docker Compose. Verified via `test_telemetry.py`.
@@ -160,11 +163,14 @@ DB: `postgresql://camtech:camtech123@localhost:5432/camtechStore`.
 | Enum bindings | `services/backend-py/app/core/db_enums.py` |
 | DB session / Base | `services/backend-py/app/core/database.py` |
 | Auth / tenant dependency | `services/backend-py/app/core/dependencies.py` |
-| Monolith app + envelope | `services/backend-py/app/main.py` |
+| Which roles may use which API area | `services/backend-py/app/core/access_policy.py` |
+| Envelope, errors, security headers | `services/backend-py/app/core/http_edge.py` |
+| Monolith app | `services/backend-py/app/main.py` |
+| Service registry (ports, URL ownership) | `services/backend-py/app/microservices/registry.py` |
 | Microservices + gateway | `services/backend-py/app/microservices/` |
 | Model registry aggregator | `services/backend-py/app/models/entities.py` |
 | Frontend API client | `apps/web/lib/api-client.ts` |
-| Frontend shell routing | `apps/web/src/App.tsx` |
+| Frontend experience selection | `apps/web/src/experiences.ts` |
 | Shared DTOs/enums | `packages/contracts/src/` |
 | Run scripts | root `package.json` (`py:dev`, `ms:all`, `*:dev`) |
 

@@ -24,23 +24,23 @@ export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--background)' }}>
       {/* Header */}
       <div style={{
-        padding: '14px 16px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+        padding: '14px 16px', borderBottom: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(30,41,59,0.5)',
+        background: 'var(--card)',
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Configure Node</div>
-          <div style={{ fontSize: 10, color: '#818cf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>Configure Node</div>
+          <div style={{ fontSize: 10, color: 'var(--primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 2 }}>
             {nodeType.replace(/_/g, ' ')}
           </div>
         </div>
         <button
           onClick={onClose}
           style={{
-            background: 'transparent', border: 'none', color: '#94a3b8',
+            background: 'transparent', border: 'none', color: 'var(--muted-foreground)',
             cursor: 'pointer', padding: 4, borderRadius: 6,
           }}
           title="Close panel"
@@ -115,9 +115,9 @@ export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
                     onClick={() => update('columns', col)}
                     style={{
                       flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                      border: config.columns === col || (!config.columns && col === 1) ? '1px solid #818cf8' : '1px solid rgba(148,163,184,0.15)',
-                      background: config.columns === col || (!config.columns && col === 1) ? 'rgba(129,140,248,0.2)' : 'rgba(30,41,59,0.4)',
-                      color: config.columns === col || (!config.columns && col === 1) ? '#c7d2fe' : '#94a3b8',
+                      border: config.columns === col || (!config.columns && col === 1) ? '1px solid var(--primary)' : '1px solid var(--border)',
+                      background: config.columns === col || (!config.columns && col === 1) ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--card)',
+                      color: config.columns === col || (!config.columns && col === 1) ? 'var(--foreground)' : 'var(--muted-foreground)',
                       cursor: 'pointer',
                     }}
                   >
@@ -470,11 +470,11 @@ export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
 
       {/* Footer / Delete */}
       <div style={{
-        padding: '12px 16px', borderTop: '1px solid rgba(148,163,184,0.1)',
+        padding: '12px 16px', borderTop: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(30,41,59,0.3)',
+        background: 'var(--card)',
       }}>
-        <span style={{ fontSize: 10, color: '#64748b', fontFamily: 'monospace' }}>
+        <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>
           {node.id}
         </span>
         {onDelete && (
@@ -483,12 +483,12 @@ export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '6px 12px', borderRadius: 6,
-              background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-              color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+              color: 'var(--destructive)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.25)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.12)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--destructive) 25%, transparent)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--destructive) 12%, transparent)')}
           >
             <Trash2 size={12} /> Delete Node
           </button>
@@ -503,7 +503,7 @@ export function NodeConfigPanel({ node, onChange, onClose, onDelete }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 6, display: 'block' }}>
+      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: 6, display: 'block' }}>
         {label}
       </label>
       {children}
@@ -512,13 +512,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>{children}</div>;
+  return <div style={{ fontSize: 10, color: 'var(--muted-foreground)', marginTop: 4 }}>{children}</div>;
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 12px', background: 'rgba(30,41,59,0.8)',
-  border: '1px solid rgba(148,163,184,0.16)', borderRadius: 8,
-  color: '#f8fafc', fontSize: 12, outline: 'none', boxSizing: 'border-box',
+  width: '100%', padding: '8px 12px', background: 'var(--card)',
+  border: '1px solid var(--border)', borderRadius: 8,
+  color: 'var(--foreground)', fontSize: 12, outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 0.15s',
 };
 
@@ -550,10 +550,10 @@ function ButtonsEditor({
   const quickPresets = BUTTON_QUICK_PRESETS;
 
   return (
-    <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 10, padding: 12 }}>
+    <div style={{ background: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 10, padding: 12 }}>
       {/* Action bar with Clear All */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#cbd5e1' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--foreground)' }}>
           {buttons.length} {buttons.length === 1 ? 'Button' : 'Buttons'} Configured
         </span>
         {buttons.length > 0 && (
@@ -561,7 +561,7 @@ function ButtonsEditor({
             type="button"
             onClick={clearAllButtons}
             style={{
-              background: 'transparent', border: 'none', color: '#ef4444',
+              background: 'transparent', border: 'none', color: 'var(--destructive)',
               cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4,
               padding: '2px 6px', borderRadius: 4,
             }}
@@ -575,11 +575,11 @@ function ButtonsEditor({
       {/* Column Headers */}
       {buttons.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 6, padding: '0 2px' }}>
-          <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Button Text (Customer Sees)
           </div>
           {isInline && (
-            <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Callback ID / Action Key
             </div>
           )}
@@ -608,8 +608,8 @@ function ButtonsEditor({
             type="button"
             onClick={() => removeButton(i)}
             style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-              color: '#ef4444', cursor: 'pointer', padding: 6, borderRadius: 6,
+              background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)',
+              color: 'var(--destructive)', cursor: 'pointer', padding: 6, borderRadius: 6,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             title="Remove button"
@@ -626,8 +626,8 @@ function ButtonsEditor({
           onClick={() => addButton('New Button', `btn_${Date.now()}`)}
           style={{
             flex: 1, padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-            border: '1px dashed rgba(129,140,248,0.4)', background: 'rgba(129,140,248,0.08)',
-            color: '#a5b4fc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            border: '1px dashed color-mix(in srgb, var(--primary) 40%, transparent)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+            color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
             justifyContent: 'center',
           }}
         >
@@ -636,9 +636,9 @@ function ButtonsEditor({
       </div>
 
       {/* Quick Presets Chips */}
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(148,163,184,0.1)' }}>
-        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Sparkles size={11} color="#818cf8" /> Quick Add Presets:
+      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+        <div style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Sparkles size={11} color="var(--primary)" /> Quick Add Presets:
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {quickPresets.map(preset => (
@@ -648,8 +648,8 @@ function ButtonsEditor({
               onClick={() => addButton(preset.label, preset.data)}
               style={{
                 fontSize: 10, padding: '3px 8px', borderRadius: 6,
-                background: 'rgba(30,41,59,0.8)', border: '1px solid rgba(148,163,184,0.15)',
-                color: '#cbd5e1', cursor: 'pointer',
+                background: 'var(--card)', border: '1px solid var(--border)',
+                color: 'var(--foreground)', cursor: 'pointer',
               }}
             >
               + {preset.label}

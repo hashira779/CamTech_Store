@@ -128,7 +128,7 @@ export function PasskeyManager() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground text-xs truncate">{pk.name}</span>
                   {pk.backedUp && (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold">
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-semibold">
                       <ShieldCheck className="w-2.5 h-2.5" />
                       Synced
                     </span>

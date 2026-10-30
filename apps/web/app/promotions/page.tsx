@@ -34,30 +34,30 @@ const PROMO_TYPE_BADGES: Record<
 > = {
   PERCENTAGE: {
     label: '% Off',
-    bg: 'bg-blue-500/10',
-    text: 'text-blue-400',
-    border: 'border-blue-500/20',
+    bg: 'bg-info/10',
+    text: 'text-info',
+    border: 'border-info/20',
     icon: Percent,
   },
   FIXED_AMOUNT: {
     label: '$ Fixed Off',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-400',
-    border: 'border-emerald-500/20',
+    bg: 'bg-success/10',
+    text: 'text-success',
+    border: 'border-success/20',
     icon: DollarSign,
   },
   BUY_X_GET_Y: {
     label: 'Buy X Get Y',
-    bg: 'bg-orange-500/10',
-    text: 'text-orange-500',
-    border: 'border-orange-500/20',
+    bg: 'bg-warning/10',
+    text: 'text-warning',
+    border: 'border-warning/20',
     icon: Gift,
   },
   ORDER_THRESHOLD: {
     label: 'Order Tier',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-400',
-    border: 'border-amber-500/20',
+    bg: 'bg-warning/10',
+    text: 'text-warning',
+    border: 'border-warning/20',
     icon: TrendingDown,
   },
 };
@@ -193,9 +193,9 @@ export default function PromotionsPage() {
           <div className="card p-4 border-border flex items-center justify-between">
             <div>
               <div className="text-xs text-muted-foreground font-medium">Active Deals</div>
-              <div className="text-2xl font-bold text-emerald-400 mt-1">{activeCount}</div>
+              <div className="text-2xl font-bold text-success mt-1">{activeCount}</div>
             </div>
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="p-2.5 rounded-lg bg-success/10 text-success">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
@@ -203,9 +203,9 @@ export default function PromotionsPage() {
           <div className="card p-4 border-border flex items-center justify-between">
             <div>
               <div className="text-xs text-muted-foreground font-medium">Total Redemptions</div>
-              <div className="text-2xl font-bold text-blue-400 mt-1">{totalRedemptions}</div>
+              <div className="text-2xl font-bold text-info mt-1">{totalRedemptions}</div>
             </div>
-            <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
+            <div className="p-2.5 rounded-lg bg-info/10 text-info">
               <TrendingDown className="w-5 h-5" />
             </div>
           </div>
@@ -362,8 +362,8 @@ export default function PromotionsPage() {
                             }
                             className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
                               promo.isActive
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20 hover:bg-slate-500/20'
+                                ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
+                                : 'bg-accent/10 text-muted-foreground border-border/20 hover:bg-accent/20'
                             }`}
                           >
                             {promo.isActive ? 'Active' : 'Paused'}
@@ -372,8 +372,8 @@ export default function PromotionsPage() {
                           <span
                             className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
                               promo.isActive
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                ? 'bg-success/10 text-success border-success/20'
+                                : 'bg-accent/10 text-muted-foreground border-border/20'
                             }`}
                           >
                             {promo.isActive ? 'Active' : 'Paused'}
@@ -401,7 +401,7 @@ export default function PromotionsPage() {
               </p>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}
@@ -498,7 +498,7 @@ export default function PromotionsPage() {
                 </div>
 
                 {promoForm.type === 'BUY_X_GET_Y' && (
-                  <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                  <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
                     <div>
                       <label className="block font-medium text-foreground mb-1">Buy Quantity</label>
                       <input

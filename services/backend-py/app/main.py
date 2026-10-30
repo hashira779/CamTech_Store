@@ -1,31 +1,21 @@
 import time
-import uuid
-import json
-import secrets
 from fastapi import FastAPI, Request, Response, status
 
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.core.validation_errors import format_validation_errors, validation_error_details
+from app.core.http_edge import EdgePolicy, add_cors, add_gzip, install_edge
 from app.modules.delivery.api import router as delivery_router
-from app.routers.industry_routes import router as industry_router
-from app.routers.ai_copilot_routes import router as ai_copilot_router
-from app.routers.data_exchange_routes import router as data_exchange_router
-from app.routers.event_routes import router as event_router
-from app.routers.app_registry_routes import router as app_registry_router
-from app.routers.outbox_routes import router as outbox_router
-from app.routers.security_routes import router as security_router
+from app.modules.industry.api import router as industry_router
+from app.modules.ai_copilot.api import router as ai_copilot_router
+from app.modules.data_exchange.api import router as data_exchange_router
+from app.modules.events.api import router as event_router
+from app.modules.app_registry.api import router as app_registry_router
+from app.modules.outbox.api import router as outbox_router
+from app.modules.security.api import router as security_router
 from app.core.database import engine
-from app.core.telemetry import (
-    setup_structured_logging, current_trace_id, current_span_id,
-    current_request_id, get_logger
-)
+from app.core.telemetry import setup_structured_logging, get_logger
 
 setup_structured_logging()
 logger = get_logger("mystore.api")
@@ -119,270 +109,19 @@ async def custom_openapi_endpoint(request: Request, token: Optional[str] = None)
         )
     return JSONResponse(app.openapi())
 
-# CORS configuration (Supports all multi-experience subdomains §228-§258)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam|camtech\.local|10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+)(:[0-9]+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ==============================================================================
-# GLOBAL EXCEPTION HANDLERS (MATCHES CONTRACTS ERROR ENVELOPE)
-# ==============================================================================
-
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-    code = "UNAUTHORIZED" if exc.status_code == 401 else (
-        "FORBIDDEN" if exc.status_code == 403 else (
-            "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
-        )
-    )
-    resp_headers = {"X-Request-Id": req_id}
-    if exc.headers:
-        resp_headers.update(exc.headers)
-
-    # A handler may raise a structured detail (a dict) when the plain message is
-    # not enough to act on — the Control Center's authorization denial reports
-    # which roles the caller holds versus which are required. str() on that
-    # produced a Python repr in the response body, so the useful fields arrived
-    # as an unparseable string. Keep the structure, and keep `message` a string
-    # so existing clients that read it still work.
-    body = {
-        "success": False,
-        "code": code,
-        "requestId": req_id,
-    }
-    if isinstance(exc.detail, dict):
-        body["message"] = str(exc.detail.get("message") or "Request failed")
-        body["details"] = exc.detail
-    else:
-        body["message"] = str(exc.detail)
-
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=body,
-        headers=resp_headers
-    )
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            "success": False,
-            "code": "VALIDATION_ERROR",
-            "message": format_validation_errors(exc.errors()),
-            "details": validation_error_details(exc.errors()),
-            "requestId": req_id
-        },
-        headers={"X-Request-Id": req_id}
-    )
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-    logger.error(f"Internal server error handling {request.method} {request.url.path}: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "success": False,
-            "code": "INTERNAL_SERVER_ERROR",
-            "message": "An internal server error occurred. Please contact system support.",
-            "requestId": req_id
-        },
-        headers={"X-Request-Id": req_id}
-    )
-
-# ==============================================================================
-# RESPONSE ENVELOPE & PERFORMANCE TIMING MIDDLEWARE
-# ==============================================================================
-
-@app.middleware("http")
-async def response_envelope_middleware(request: Request, call_next):
-    start_time = time.time()
-    req_id = str(uuid.uuid4())
-    request.state.request_id = req_id
-
-    # Distributed Tracing & W3C Traceparent Header (§70)
-    incoming_traceparent = request.headers.get("traceparent")
-    if incoming_traceparent and len(incoming_traceparent.split("-")) == 4:
-        parts = incoming_traceparent.split("-")
-        trace_id = parts[1]
-        parent_span_id = parts[2]
-    else:
-        trace_id = secrets.token_hex(16)  # 32 hex chars (128-bit)
-        parent_span_id = secrets.token_hex(8)
-    span_id = secrets.token_hex(8)         # 16 hex chars (64-bit child span)
-    traceparent = f"00-{trace_id}-{span_id}-01"
-
-    request.state.trace_id = trace_id
-    request.state.span_id = span_id
-    current_trace_id.set(trace_id)
-    current_span_id.set(span_id)
-    current_request_id.set(req_id)
-
-    # Raw pass-through for Swagger docs, openapi.json, and internal ops health
-    path = request.url.path
-    if path in ["/docs", "/redoc", "/openapi.json", "/health", "/ready", "/metrics"]:
-        response = await call_next(request)
-        process_time = (time.time() - start_time) * 1000
-        response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
-        response.headers["X-Request-Id"] = req_id
-        response.headers["X-Trace-Id"] = trace_id
-        response.headers["traceparent"] = traceparent
-        return response
-
-    # ── IP Ban Check (highest priority — checked before anything else) ─────────
-    # We will use this block to also check for malicious scanning
-    from app.core.rate_limiter import ip_ban_list
-    client_ip = (
-        request.headers.get("X-Real-IP")
-        or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
-        or (request.client.host if request.client else "unknown")
-    ).strip()
-    
-    if await ip_ban_list.is_banned(client_ip):
-        logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={
-                "success": False,
-                "code": "IP_BANNED",
-                "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
-                "requestId": req_id,
-            },
-            headers={"X-Request-Id": req_id},
-        )
-
-    # ── Malicious Scanner / Code Injection Interceptor ──────────────
-    # Immediately permanent ban IPs that attempt to scan for sensitive files, databases, or inject code
-    malicious_patterns = [
-        # Secrets & Environment Files
-        ".env", ".aws/credentials", ".ssh/", "id_rsa", "id_ed25519", "authorized_keys",
-        # Configuration & Settings
-        "config.json", "config.php", "config.yml", "config.yaml", "database.yml", 
-        "settings.py", "settings.json", "web.config",
-        # Backups & Database Dumps
-        "backup.sql", "dump.sql", "backup.tar", "backup.zip", "data.sql", "db.sqlite", "storage.sqlite",
-        # Path Traversal & System Files
-        "/etc/passwd", "/etc/shadow", "/proc/self", "win.ini",
-        "../", "..\\", "%2e%2e%2f", "%2e%2e/", "..%2f", "..%5c",
-        # Source Control & Metadata
-        "/.git", "/.svn", "/.hg", "/.bzr", "/.ds_store",
-        # Admin Honeypots, CMS Scanners & Debug Endpoints
-        "wp-login.php", "wp-admin", "wp-content", "phpinfo.php", "phpmyadmin", "pma", "adminer", 
-        "telescope", "actuator/heapdump", "actuator/env", "debug/vars", "server-status",
-        # Shell & Remote Code Execution probes
-        "/bin/sh", "/bin/bash", "cmd.exe", "powershell", "eval-stdin", "cgi-bin"
-    ]
-    raw_target = (request.url.path + ("?" + request.url.query if request.url.query else "")).lower()
-    for pattern in malicious_patterns:
-        if pattern in raw_target:
-            # Found malicious scan -> Ban IP permanently
-            await ip_ban_list.ban(
-                client_ip, 
-                duration_seconds=60 * 60 * 24 * 365,  # 1 year ban
-                reason=f"malicious_scanning: {pattern}"
-            )
-            logger.error(f"[SECURITY] BANNED {client_ip} for malicious scanning of: {pattern} on {raw_target}")
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content={
-                    "success": False,
-                    "code": "SECURITY_VIOLATION",
-                    "message": "Security violation detected. Your IP has been permanently banned.",
-                    "requestId": req_id,
-                },
-                headers={"X-Request-Id": req_id},
-            )
-
-    # ── Global IP-based rate limiting on all /api/v1/ endpoints ──────────────
-    # Python-layer backstop behind nginx; protects direct-container access too.
-    if path.startswith("/api/v1/"):
-        from app.core.rate_limiter import api_rate_limiter
-        try:
-            await api_rate_limiter.check(request)
-        except Exception as rate_exc:
-            # Re-raise HTTP exceptions (429), absorb non-HTTP errors gracefully
-            from fastapi import HTTPException as FastAPIHTTPException
-            if isinstance(rate_exc, FastAPIHTTPException):
-                raise
-
-    response = await call_next(request)
-    process_time = (time.time() - start_time) * 1000
-    response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
-    response.headers["X-Request-Id"] = req_id
-    response.headers["X-Trace-Id"] = trace_id
-    response.headers["traceparent"] = traceparent
-
-    # ── Security Response Headers (applied to every API response) ─────────────
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        # cdn.tailwindcss.com is intentionally absent: the server-rendered pages
-        # now load compiled CSS from 'self' instead of the Tailwind Play CDN.
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' https://cloudflareinsights.com; "
-        "frame-ancestors 'none';"
-    )
-    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
-    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
-    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-    # Companion to COEP: require-corp makes browsers demand this on no-cors
-    # subresources (favicons included). CORS-mode fetch/XHR is unaffected.
-    response.headers["Cross-Origin-Resource-Policy"] = "same-site"
-
-    if path not in ["/favicon.ico"]:
-        logger.info(
-            f"{request.method} {path} {response.status_code} ({process_time:.2f}ms)",
-            extra={"durationMs": round(process_time, 2), "statusCode": response.status_code}
-        )
-
-
-    # Automatically wrap 2xx JSON responses in { success: True, data: ..., requestId: ... }
-    content_type = response.headers.get("content-type", "")
-    if response.status_code < 400 and "application/json" in content_type:
-        body = [chunk async for chunk in response.body_iterator]
-        raw_body = b"".join(body)
-        try:
-            parsed = json.loads(raw_body.decode("utf-8"))
-            if isinstance(parsed, dict) and "success" in parsed and "data" in parsed:
-                enveloped = parsed
-            else:
-                enveloped = {
-                    "success": True,
-                    "data": parsed,
-                    "requestId": req_id
-                }
-            new_content = json.dumps(enveloped).encode("utf-8")
-            headers = dict(response.headers)
-            headers["content-length"] = str(len(new_content))
-            return Response(
-                content=new_content,
-                status_code=response.status_code,
-                headers=headers,
-                media_type="application/json"
-            )
-        except Exception:
-            return Response(content=raw_body, status_code=response.status_code, headers=dict(response.headers))
-
-    return response
+# Multi-experience subdomains (§228-§258), then the shared envelope, error and
+# security layer. Only the monolith runs the scanner guard and rate limiter itself.
+add_cors(app)
+install_edge(app, EdgePolicy(
+    logger=logger,
+    ban_check_api_only=False,
+    scanner_guard=True,
+    rate_limit=True,
+    browser_policy_headers=True,
+))
 
 # High-concurrency GZip compression applied outermost (compresses enveloped responses >= 1KB)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+add_gzip(app)
 
 # ==============================================================================
 # OBSERVABILITY TELEMETRY CAPTURE
@@ -540,10 +279,9 @@ async def readiness_check():
 @app.get("/metrics")
 async def metrics():
     return {
-        "activeConnections": 1,
-        "throughputReqPerSec": 25000,
+        "uptimeSeconds": round(time.time() - SERVER_START_TIME, 2),
         "engine": "python-fastapi-asyncpg",
-        "architecture": "Modular Monolith 2026-2030 Standard"
+        "architecture": "Modular Monolith",
     }
 
 

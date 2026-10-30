@@ -44,20 +44,20 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }} onClick={onClose}>
       <div style={{
-        background: '#1e293b', borderRadius: 20, width: 520, maxHeight: '80vh',
-        border: '1px solid rgba(148,163,184,0.12)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+        background: 'var(--card)', borderRadius: 20, width: 520, maxHeight: '80vh',
+        border: '1px solid var(--border)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
         overflow: 'hidden',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
-          padding: '20px 24px', borderBottom: '1px solid rgba(148,163,184,0.08)',
+          padding: '20px 24px', borderBottom: '1px solid var(--border)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>
             Create Bot Workflow
           </h2>
           <button onClick={onClose} style={{
-            background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer',
+            background: 'transparent', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer',
           }}>
             <X size={20} />
           </button>
@@ -66,7 +66,7 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
         {/* Steps Indicator */}
         <div style={{
           display: 'flex', gap: 8, padding: '16px 24px',
-          borderBottom: '1px solid rgba(148,163,184,0.05)',
+          borderBottom: '1px solid var(--border)',
         }}>
           {['Select Bot', 'Name & Description'].map((label, i) => (
             <div key={i} style={{
@@ -76,14 +76,14 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
                 width: 28, height: 28, borderRadius: 8,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, fontWeight: 700,
-                background: step > i + 1 ? '#22c55e' : step === i + 1 ? '#818cf8' : '#334155',
-                color: '#fff',
+                background: step > i + 1 ? 'var(--success)' : step === i + 1 ? 'var(--primary)' : 'var(--border)',
+                color: 'var(--primary-foreground)',
               }}>
                 {step > i + 1 ? '✓' : i + 1}
               </div>
               <span style={{
                 fontSize: 12, fontWeight: 500,
-                color: step === i + 1 ? '#e2e8f0' : '#64748b',
+                color: step === i + 1 ? 'var(--foreground)' : 'var(--muted-foreground)',
               }}>
                 {label}
               </span>
@@ -95,7 +95,7 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
         <div style={{ padding: '24px' }}>
           {step === 1 && (
             <div>
-              <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: 13, marginBottom: 16 }}>
                 Select the Telegram bot this workflow will control:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -104,8 +104,8 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
                     onClick={() => { setBotId(bot.id); setStep(2); }}
                     style={{
                       padding: '14px 16px', borderRadius: 12,
-                      background: botId === bot.id ? 'rgba(129,140,248,0.12)' : 'rgba(15,23,42,0.5)',
-                      border: `1px solid ${botId === bot.id ? 'rgba(129,140,248,0.3)' : 'rgba(148,163,184,0.08)'}`,
+                      background: botId === bot.id ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'var(--muted)',
+                      border: `1px solid ${botId === bot.id ? 'color-mix(in srgb, var(--primary) 30%, transparent)' : 'var(--border)'}`,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       transition: 'border-color 0.15s',
                     }}
@@ -113,17 +113,17 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{
                         width: 38, height: 38, borderRadius: 10,
-                        background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+                        background: 'linear-gradient(135deg, var(--primary), var(--primary))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         <Bot size={18} color="#fff" />
                       </div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0' }}>{bot.name}</div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>@{bot.botUsername || 'unknown'}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>{bot.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>@{bot.botUsername || 'unknown'}</div>
                       </div>
                     </div>
-                    <ChevronRight size={16} style={{ color: '#64748b' }} />
+                    <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
                   </div>
                 ))}
               </div>
@@ -135,14 +135,14 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
               {selectedBot && (
                 <div style={{
                   padding: '10px 14px', borderRadius: 10, marginBottom: 20,
-                  background: 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.15)',
-                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#a5b4fc',
+                  background: 'color-mix(in srgb, var(--primary) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 15%, transparent)',
+                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--primary)',
                 }}>
                   <Bot size={16} /> Connected to: <strong>{selectedBot.name}</strong>
                 </div>
               )}
 
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 6, display: 'block' }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginBottom: 6, display: 'block' }}>
                 Workflow Name *
               </label>
               <input
@@ -150,14 +150,14 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
                 placeholder="e.g. Customer Support Flow"
                 autoFocus
                 style={{
-                  width: '100%', padding: '12px 14px', background: 'rgba(15,23,42,0.6)',
-                  border: '1px solid rgba(148,163,184,0.15)', borderRadius: 10,
-                  color: '#e2e8f0', fontSize: 14, outline: 'none', marginBottom: 16,
+                  width: '100%', padding: '12px 14px', background: 'var(--muted)',
+                  border: '1px solid var(--border)', borderRadius: 10,
+                  color: 'var(--foreground)', fontSize: 14, outline: 'none', marginBottom: 16,
                   boxSizing: 'border-box',
                 }}
               />
 
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 6, display: 'block' }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginBottom: 6, display: 'block' }}>
                 Description
               </label>
               <textarea
@@ -165,9 +165,9 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
                 placeholder="What does this workflow do?"
                 rows={3}
                 style={{
-                  width: '100%', padding: '12px 14px', background: 'rgba(15,23,42,0.6)',
-                  border: '1px solid rgba(148,163,184,0.15)', borderRadius: 10,
-                  color: '#e2e8f0', fontSize: 14, outline: 'none', resize: 'vertical',
+                  width: '100%', padding: '12px 14px', background: 'var(--muted)',
+                  border: '1px solid var(--border)', borderRadius: 10,
+                  color: 'var(--foreground)', fontSize: 14, outline: 'none', resize: 'vertical',
                   boxSizing: 'border-box',
                 }}
               />
@@ -177,14 +177,14 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
 
         {/* Footer */}
         <div style={{
-          padding: '16px 24px', borderTop: '1px solid rgba(148,163,184,0.08)',
+          padding: '16px 24px', borderTop: '1px solid var(--border)',
           display: 'flex', justifyContent: 'space-between',
         }}>
           {step > 1 && !preselectedBotId ? (
             <button onClick={() => setStep(s => s - 1)} style={{
               padding: '10px 20px', background: 'transparent',
-              border: '1px solid rgba(148,163,184,0.15)', borderRadius: 10,
-              color: '#94a3b8', fontSize: 13, cursor: 'pointer',
+              border: '1px solid var(--border)', borderRadius: 10,
+              color: 'var(--muted-foreground)', fontSize: 13, cursor: 'pointer',
             }}>
               Back
             </button>
@@ -195,9 +195,9 @@ export function CreateWorkflowWizard({ bots, preselectedBotId, onClose, onCreate
               style={{
                 padding: '10px 24px', borderRadius: 10, border: 'none', fontSize: 14, fontWeight: 600,
                 cursor: name.trim() && !creating ? 'pointer' : 'not-allowed',
-                background: name.trim() ? 'linear-gradient(135deg, #818cf8, #6366f1)' : '#334155',
-                color: name.trim() ? '#fff' : '#64748b',
-                boxShadow: name.trim() ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
+                background: name.trim() ? 'linear-gradient(135deg, var(--primary), var(--primary))' : 'var(--border)',
+                color: name.trim() ? '#fff' : 'var(--muted-foreground)',
+                boxShadow: name.trim() ? '0 4px 15px color-mix(in srgb, var(--primary) 30%, transparent)' : 'none',
               }}
             >
               {creating ? 'Creating...' : 'Create Workflow'}

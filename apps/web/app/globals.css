@@ -6,78 +6,78 @@
   :root,
   .dark {
     color-scheme: dark;
-    /* Cloudflare-inspired dark theme */
-    --background: #1a1a1a;
-    --foreground: #e5e5e5;
-    --card: #252525;
-    --card-foreground: #e5e5e5;
-    --popover: #252525;
-    --popover-foreground: #e5e5e5;
+    --background: #0e1116;
+    --foreground: #e8ecf1;
+    --card: #151a21;
+    --card-foreground: #e8ecf1;
+    --popover: #1a2028;
+    --popover-foreground: #e8ecf1;
+    /* Dark text on the brand color: white on this orange fails WCAG AA. */
     --primary: #f6821f;
-    --primary-foreground: #ffffff;
-    --secondary: #2a2a2a;
-    --secondary-foreground: #e5e5e5;
-    --muted: #2a2a2a;
-    --muted-foreground: #a3a3a3;
-    --accent: #333333;
-    --accent-foreground: #e5e5e5;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --success: #22c55e;
-    --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #ffffff;
-    --info: #3b82f6;
-    --info-foreground: #ffffff;
-    --border: #333333;
-    --input: #2a2a2a;
+    --primary-foreground: #1c1206;
+    --secondary: #1c222b;
+    --secondary-foreground: #e8ecf1;
+    --muted: #1c222b;
+    --muted-foreground: #98a2b0;
+    --accent: #232a34;
+    --accent-foreground: #e8ecf1;
+    --destructive: #f0625f;
+    --destructive-foreground: #200605;
+    --success: #2fb574;
+    --success-foreground: #04150d;
+    --warning: #e9a23b;
+    --warning-foreground: #1f1503;
+    --info: #5b9cf5;
+    --info-foreground: #06121f;
+    --border: #2a323d;
+    --input: #2a323d;
     --ring: #f6821f;
     --radius: 0.5rem;
 
     /* Brand */
     --brand-from: #f6821f;
     --brand-via: #f6821f;
-    --brand-to: #fb923c;
-    --brand-gradient: linear-gradient(135deg, #f6821f 0%, #fb923c 100%);
-    --glow-primary: rgba(246, 130, 31, 0.12);
+    --brand-to: #f6821f;
+    --brand-gradient: linear-gradient(135deg, #f6821f 0%, #f6821f 100%);
+    --glow-primary: rgba(246, 130, 31, 0.1);
   }
 
   .light {
     color-scheme: light;
-    /* Cloudflare-inspired light theme */
-    --background: #ffffff;
-    --foreground: #1a1a1a;
+    --background: #f5f6f8;
+    --foreground: #12161c;
     --card: #ffffff;
-    --card-foreground: #1a1a1a;
+    --card-foreground: #12161c;
     --popover: #ffffff;
-    --popover-foreground: #1a1a1a;
-    --primary: #f6821f;
+    --popover-foreground: #12161c;
+    /* Deepened from the brand orange so white text and small labels pass AA. */
+    --primary: #c2540a;
     --primary-foreground: #ffffff;
-    --secondary: #f4f4f5;
-    --secondary-foreground: #1a1a1a;
-    --muted: #f4f4f5;
-    --muted-foreground: #737373;
-    --accent: #f4f4f5;
-    --accent-foreground: #1a1a1a;
-    --destructive: #dc2626;
+    --secondary: #eef0f3;
+    --secondary-foreground: #12161c;
+    --muted: #eef0f3;
+    --muted-foreground: #5a6472;
+    --accent: #e9ecf0;
+    --accent-foreground: #12161c;
+    --destructive: #c4281c;
     --destructive-foreground: #ffffff;
-    --success: #16a34a;
+    --success: #0f7a48;
     --success-foreground: #ffffff;
-    --warning: #d97706;
+    --warning: #a35f00;
     --warning-foreground: #ffffff;
-    --info: #2563eb;
+    --info: #1d5fc4;
     --info-foreground: #ffffff;
-    --border: #e5e5e5;
-    --input: #e5e5e5;
-    --ring: #f6821f;
+    --border: #dfe3e8;
+    --input: #d3d8df;
+    --ring: #c2540a;
     --radius: 0.5rem;
 
     /* Brand */
-    --brand-from: #f6821f;
-    --brand-via: #f6821f;
-    --brand-to: #fb923c;
-    --brand-gradient: linear-gradient(135deg, #f6821f 0%, #fb923c 100%);
-    --glow-primary: rgba(246, 130, 31, 0.08);
+    --brand-from: #c2540a;
+    --brand-via: #c2540a;
+    --brand-to: #c2540a;
+    --brand-gradient: linear-gradient(135deg, #c2540a 0%, #c2540a 100%);
+    --glow-primary: rgba(194, 84, 10, 0.08);
   }
 
   /* Smooth dark/light mode animation transformation */
@@ -98,8 +98,8 @@
     @apply border-border;
   }
 
-  html {
-    scroll-behavior: smooth;
+  h1, h2, h3 {
+    letter-spacing: -0.015em;
   }
 
   body {

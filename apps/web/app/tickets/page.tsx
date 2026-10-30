@@ -144,10 +144,10 @@ export default function TicketsPage() {
           <div className="space-y-4">
             {tickets.map((t) => {
               const priorityColors: Record<TicketPriority, string> = {
-                CRITICAL: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-                HIGH: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                MEDIUM: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-                LOW: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+                CRITICAL: 'bg-destructive/10 text-destructive border-destructive/20',
+                HIGH: 'bg-warning/10 text-warning border-warning/20',
+                MEDIUM: 'bg-info/10 text-info border-info/20',
+                LOW: 'bg-accent/10 text-muted-foreground border-border/20',
               };
 
               return (
@@ -176,7 +176,7 @@ export default function TicketsPage() {
                       {t.status === 'IN_PROGRESS' && (
                         <button
                           onClick={() => updateStatusMutation.mutate({ id: t.id, status: 'RESOLVED', resolution: 'Hardware restored' })}
-                          className="btn text-xs py-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white"
+                          className="btn text-xs py-1 px-2.5 bg-success hover:bg-success text-success-foreground"
                         >
                           Mark Resolved
                         </button>

@@ -300,7 +300,7 @@ export function ProductsPage() {
           return (
             <span className="inline-flex items-center gap-1.5 text-xs">
               <span
-                className={`w-2 h-2 rounded-full ${active ? 'bg-emerald-500' : 'bg-muted-foreground'}`}
+                className={`w-2 h-2 rounded-full ${active ? 'bg-success' : 'bg-muted-foreground'}`}
               />
               <span className={active ? 'text-foreground' : 'text-muted-foreground'}>
                 {active ? 'Active' : 'Inactive'}
@@ -345,7 +345,7 @@ export function ProductsPage() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setDeletingProduct(item.rawProduct)}
-                      className="text-rose-500 focus:text-rose-400"
+                      className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Product
@@ -549,7 +549,7 @@ export function ProductsPage() {
                   </div>
                   <div className="p-3 rounded-lg border border-border bg-card">
                     <p className="text-xs text-muted-foreground">Gross Profit Margin</p>
-                    <p className="text-xl font-bold font-mono text-emerald-500 mt-1">
+                    <p className="text-xl font-bold font-mono text-success mt-1">
                       {selectedRow.marginPct}%
                     </p>
                   </div>
@@ -580,7 +580,7 @@ export function ProductsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                      className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => {
                         const raw = selectedRow.rawProduct;
                         setDeletingProduct(raw);
@@ -629,7 +629,7 @@ export function ProductsPage() {
         <Dialog open={Boolean(deletingProduct)} onOpenChange={(open) => !open && setDeletingProduct(null)}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-rose-500">
+              <DialogTitle className="flex items-center gap-2 text-destructive">
                 <Trash2 className="w-5 h-5" />
                 Delete Product
               </DialogTitle>

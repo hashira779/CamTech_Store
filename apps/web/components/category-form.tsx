@@ -198,7 +198,7 @@ export function CategoryForm({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1"
+              className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
               onClick={onDelete}
             >
               <Trash2 className="w-3 h-3" />
@@ -248,7 +248,7 @@ export function CategoryForm({
               className="text-[10px] flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
             >
               {isSlugManual ? (
-                <><Lock className="w-2.5 h-2.5 text-amber-500" /> Custom</>
+                <><Lock className="w-2.5 h-2.5 text-warning" /> Custom</>
               ) : (
                 <><Unlock className="w-2.5 h-2.5 text-primary" /> Auto-sync</>
               )}
@@ -272,7 +272,7 @@ export function CategoryForm({
           {smartIconSuggestions.length > 0 && (
             <div className="flex items-center gap-1.5 mt-1.5 animate-in fade-in duration-200">
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <Sparkles className="w-2.5 h-2.5 text-amber-500" /> Suggested:
+                <Sparkles className="w-2.5 h-2.5 text-warning" /> Suggested:
               </span>
               {smartIconSuggestions.map((ic) => (
                 <button
@@ -358,7 +358,7 @@ export function CategoryForm({
       <div className="pt-2 border-t border-border space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-amber-500" /> SEO & Discovery Metadata
+            <Sparkles className="w-3 h-3 text-warning" /> SEO & Discovery Metadata
           </h4>
           <Button
             type="button"
@@ -368,7 +368,7 @@ export function CategoryForm({
             disabled={!formName.trim()}
             className="h-6 text-[10px] gap-1 text-primary border-primary/30 hover:bg-primary/5"
           >
-            <Sparkles className="w-2.5 h-2.5 text-amber-500" /> Auto-generate SEO
+            <Sparkles className="w-2.5 h-2.5 text-warning" /> Auto-generate SEO
           </Button>
         </div>
         <div className="grid grid-cols-1 gap-3">

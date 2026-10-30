@@ -220,8 +220,8 @@ export function InfraShell() {
   const navCls = ({ isActive }: { isActive: boolean }) =>
     `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
       isActive
-        ? 'bg-[#F38020]/15 text-[#F38020] border-l-2 border-[#F38020] font-semibold pl-2.5 shadow-[inset_0_0_12px_rgba(243,128,32,0.1)]'
-        : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40'
+        ? 'bg-primary/15 text-primary border-l-2 border-primary font-semibold pl-2.5 shadow-[inset_0_0_12px_rgba(243,128,32,0.1)]'
+        : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
     }`;
 
   // Shared by the static sidebar and the mobile drawer so the two can never
@@ -231,7 +231,7 @@ export function InfraShell() {
       <nav className="space-y-4">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="space-y-0.5">
-            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
+            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
               {section.label}
             </p>
             {section.items.map(({ to, icon: Icon, label }) => (
@@ -244,23 +244,23 @@ export function InfraShell() {
         ))}
       </nav>
 
-      <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3 space-y-1.5 text-[11px] shadow-sm">
+      <div className="rounded-xl border border-border/80 bg-card/70 p-3 space-y-1.5 text-[11px] shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-zinc-400 flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-[#F38020] fill-current" viewBox="0 0 24 24">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-primary fill-current" viewBox="0 0 24 24">
               <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
             </svg>
             Cloudflare Ray
           </span>
-          <span className="font-mono text-zinc-300">8e91240c1e8a</span>
+          <span className="font-mono text-foreground">8e91240c1e8a</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-zinc-400">Edge PoP</span>
-          <span className="font-mono text-[#F38020] font-semibold">PNH / SIN Mesh</span>
+          <span className="text-muted-foreground">Edge PoP</span>
+          <span className="font-mono text-primary font-semibold">PNH / SIN Mesh</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-zinc-400">Edge Security</span>
-          <span className="font-mono text-emerald-400 inline-flex items-center gap-1 font-medium">
+          <span className="text-muted-foreground">Edge Security</span>
+          <span className="font-mono text-success inline-flex items-center gap-1 font-medium">
             <CheckCircle2 className="w-3 h-3" /> TLS 1.3 Strict
           </span>
         </div>
@@ -312,21 +312,21 @@ export function InfraShell() {
         </button>
 
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-[#F38020]/15 border border-[#F38020]/30 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(243,128,32,0.2)]">
-            <svg className="w-5 h-5 text-[#F38020] fill-current" viewBox="0 0 24 24">
+          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(243,128,32,0.2)]">
+            <svg className="w-5 h-5 text-primary fill-current" viewBox="0 0 24 24">
               <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
             </svg>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-white tracking-tight">Cloudflare</span>
-              <span className="text-zinc-500 text-xs">/</span>
-              <span className="text-xs font-semibold text-zinc-200 truncate">camtech.cam</span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active
+              <span className="text-xs font-bold text-foreground tracking-tight">Cloudflare</span>
+              <span className="text-muted-foreground text-xs">/</span>
+              <span className="text-xs font-semibold text-foreground truncate">camtech.cam</span>
+              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-success/10 text-success border border-success/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Active
               </span>
             </div>
-            <p className="hidden sm:block text-[11px] text-zinc-400 font-mono leading-tight">
+            <p className="hidden sm:block text-[11px] text-muted-foreground font-mono leading-tight">
               Enterprise Edge Mesh · HTTP/3 Active
             </p>
           </div>
@@ -344,12 +344,12 @@ export function InfraShell() {
         {/* Live/degraded state must survive to phone width: it tells the
             operator whether what they are reading is current. */}
         {sseConnected ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-500 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-success/10 text-success shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
             <span className="hidden sm:inline">Live</span>
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-500 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-warning/10 text-warning shrink-0">
             <WifiOff className="w-3 h-3" />
             <span className="hidden sm:inline">Reconnecting</span>
           </span>
@@ -438,24 +438,24 @@ export function InfraShell() {
           aria-modal="true"
           aria-labelledby="bg-modal-title"
         >
-          <div className="bg-slate-950 border-2 border-rose-600 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl shadow-rose-950/60">
-            <div className="flex items-center gap-3 border-b border-rose-900/60 pb-4">
-              <div className="p-2.5 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/40">
+          <div className="bg-card border-2 border-destructive rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl shadow-rose-950/60">
+            <div className="flex items-center gap-3 border-b border-destructive/60 pb-4">
+              <div className="p-2.5 bg-destructive/20 text-destructive rounded-xl border border-destructive/40">
                 <Flame className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h2 id="bg-modal-title" className="text-lg font-black text-white uppercase tracking-wider">
+                <h2 id="bg-modal-title" className="text-lg font-bold text-foreground uppercase tracking-wider">
                   Emergency Break-Glass Protocol
                 </h2>
-                <p className="text-xs text-rose-300 font-medium">
+                <p className="text-xs text-destructive font-medium">
                   20-Minute Elevated System Access (§248 Defensive Compliance)
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 bg-rose-950/40 border border-rose-700/50 rounded-xl text-xs text-rose-200 space-y-2">
-              <p className="font-bold text-rose-100 flex items-center gap-1.5">
-                <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0" />
+            <div className="p-3.5 bg-destructive/40 border border-destructive/50 rounded-xl text-xs text-destructive space-y-2">
+              <p className="font-bold text-destructive flex items-center gap-1.5">
+                <AlertOctagon className="w-4 h-4 text-destructive shrink-0" />
                 CRITICAL WARNING: UNRESTRICTED ACCESS
               </p>
               <p>
@@ -463,22 +463,22 @@ export function InfraShell() {
                 for <strong>20 minutes</strong>. Every request, query, and configuration modification
                 will be recorded into the immutable SHA-256 audit ledger.
               </p>
-              <p className="text-slate-400">
+              <p className="text-muted-foreground">
                 Security administrators and engineering leads will receive instant incident notices.
               </p>
             </div>
 
             <form onSubmit={handleBreakGlass} className="space-y-4">
               {bgError && (
-                <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 rounded-lg text-xs font-semibold text-rose-300">
+                <div className="p-2.5 bg-destructive/20 border border-destructive/40 rounded-lg text-xs font-semibold text-destructive">
                   {bgError}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 block" htmlFor="bg-reason">
+                <label className="text-xs font-semibold text-foreground block" htmlFor="bg-reason">
                   Incident Justification / Operational Reason{' '}
-                  <span className="text-rose-400">*</span>
+                  <span className="text-destructive">*</span>
                 </label>
                 <textarea
                   id="bg-reason"
@@ -487,17 +487,17 @@ export function InfraShell() {
                   value={bgReason}
                   onChange={(e) => setBgReason(e.target.value)}
                   placeholder="e.g. Sev-1 outage on Gateway reverse proxy requiring live hot-patching..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors resize-none"
+                  className="w-full px-3 py-2 bg-card border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-destructive transition-colors resize-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 block" htmlFor="bg-confirm">
+                <label className="text-xs font-semibold text-foreground block" htmlFor="bg-confirm">
                   Confirmation Phrase
                 </label>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-muted-foreground">
                   Type{' '}
-                  <span className="font-mono text-rose-400 font-bold">I CONFIRM BREAK GLASS</span>{' '}
+                  <span className="font-mono text-destructive font-bold">I CONFIRM BREAK GLASS</span>{' '}
                   below to proceed:
                 </p>
                 <input
@@ -507,7 +507,7 @@ export function InfraShell() {
                   value={bgConfirm}
                   onChange={(e) => setBgConfirm(e.target.value)}
                   placeholder="I CONFIRM BREAK GLASS"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-rose-500 transition-colors"
+                  className="w-full px-3 py-2 bg-card border border-border rounded-lg text-xs font-mono text-foreground placeholder-muted-foreground focus:outline-none focus:border-destructive transition-colors"
                 />
               </div>
 
@@ -516,14 +516,14 @@ export function InfraShell() {
                   type="button"
                   onClick={() => { setBgOpen(false); setBgError(''); setBgReason(''); setBgConfirm(''); }}
                   disabled={bgLoading}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium rounded-lg transition-colors border border-slate-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-card hover:bg-muted text-foreground text-xs font-medium rounded-lg transition-colors border border-border disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={bgLoading || bgConfirm !== 'I CONFIRM BREAK GLASS'}
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-rose-950/80"
+                  className="px-5 py-2 bg-destructive hover:bg-destructive disabled:bg-muted disabled:text-muted-foreground text-destructive-foreground text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-rose-950/80"
                 >
                   {bgLoading ? 'Activating Protocol…' : 'Authorize Break-Glass'}
                 </button>

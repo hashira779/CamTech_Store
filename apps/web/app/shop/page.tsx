@@ -264,13 +264,13 @@ export default function CustomerShopPage() {
       <header className="sticky top-0 z-40 bg-slate-900/90  border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-info to-indigo-600 flex items-center justify-center text-white shadow-lg">
               <Store className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-base tracking-tight text-white">CamTech Online</span>
-                <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-400 border-sky-500/30">
+                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
                   Official Store
                 </Badge>
               </div>
@@ -295,7 +295,7 @@ export default function CustomerShopPage() {
               variant="outline"
               className="relative h-9 px-3.5 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white gap-2 text-xs"
             >
-              <MapPin className="w-4 h-4 text-emerald-400" />
+              <MapPin className="w-4 h-4 text-success" />
               <span>Track Order</span>
             </Button>
 
@@ -305,10 +305,10 @@ export default function CustomerShopPage() {
               variant="outline"
               className="relative h-9 px-3.5 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white gap-2 text-xs"
             >
-              <ShoppingCart className="w-4 h-4 text-sky-400" />
+              <ShoppingCart className="w-4 h-4 text-info" />
               <span>Cart</span>
               {cartItemCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-sky-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-info text-white text-[10px] font-bold flex items-center justify-center">
                   {cartItemCount}
                 </span>
               )}
@@ -329,9 +329,9 @@ export default function CustomerShopPage() {
       </header>
 
       {/* ─── Hero Banner ─── */}
-      <section className="bg-gradient-to-r from-sky-950/60 via-indigo-950/40 to-slate-950 border-b border-slate-800 py-10 px-4">
+      <section className="bg-gradient-to-r from-info/60 via-indigo-950/40 to-slate-950 border-b border-slate-800 py-10 px-4">
         <div className="max-w-5xl mx-auto text-center space-y-3">
-          <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-xs px-3 py-1">
+          <Badge className="bg-info/20 text-info border-info/30 text-xs px-3 py-1">
             <Sparkles className="w-3.5 h-3.5 mr-1" /> Next-Gen Enterprise E-Commerce
           </Badge>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
@@ -353,7 +353,7 @@ export default function CustomerShopPage() {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 selectedCategory === cat.id
-                  ? 'bg-sky-500 text-white shadow-md'
+                  ? 'bg-info text-white shadow-md'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
             >
@@ -377,13 +377,13 @@ export default function CustomerShopPage() {
               return (
                 <div
                   key={p.id}
-                  className="rounded-lg bg-slate-900/80 border border-slate-800/90 p-4 flex flex-col justify-between hover:border-sky-500/40 transition-all shadow-md group"
+                  className="rounded-lg bg-slate-900/80 border border-slate-800/90 p-4 flex flex-col justify-between hover:border-info/40 transition-all shadow-md group"
                 >
                   <div className="space-y-2">
                     {(() => {
                       const img = p.thumbnailUrl || p.imageUrl || p.images?.find((i) => i.isPrimary)?.thumbnailUrl || p.images?.find((i) => i.isPrimary)?.url || p.images?.[0]?.url;
                       return (
-                        <div className="w-full h-36 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-center text-slate-600 group-hover:text-sky-400 transition-colors relative overflow-hidden">
+                        <div className="w-full h-36 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-center text-slate-600 group-hover:text-info transition-colors relative overflow-hidden">
                           {img ? (
                             <img
                               src={img}
@@ -415,12 +415,12 @@ export default function CustomerShopPage() {
                   <div className="pt-4 mt-2 border-t border-slate-800 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] text-slate-500 font-medium">Price</span>
-                      <div className="text-base font-extrabold text-sky-400">${price.toFixed(2)}</div>
+                      <div className="text-base font-extrabold text-info">${price.toFixed(2)}</div>
                     </div>
                     <Button
                       size="sm"
                       onClick={() => addToCart(p)}
-                      className="h-8 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm"
+                      className="h-8 px-3 rounded-lg bg-info hover:bg-info text-white text-xs font-semibold shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5 mr-1" /> Add
                     </Button>
@@ -437,7 +437,7 @@ export default function CustomerShopPage() {
         <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-sky-400" />
+              <ShoppingCart className="w-4 h-4 text-info" />
               Your Shopping Cart ({cartItemCount})
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
@@ -464,7 +464,7 @@ export default function CustomerShopPage() {
                     </div>
                     <div className="flex-1 pr-2">
                       <h4 className="font-bold text-slate-200 line-clamp-1">{item.name}</h4>
-                      <span className="text-[11px] text-sky-400 font-semibold">${item.price.toFixed(2)} each</span>
+                      <span className="text-[11px] text-info font-semibold">${item.price.toFixed(2)} each</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -488,7 +488,7 @@ export default function CustomerShopPage() {
 
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
                 <span className="font-semibold text-slate-400">Subtotal:</span>
-                <span className="text-lg font-black text-sky-400">${cartTotal.toFixed(2)}</span>
+                <span className="text-lg font-black text-info">${cartTotal.toFixed(2)}</span>
               </div>
 
               <Button
@@ -496,7 +496,7 @@ export default function CustomerShopPage() {
                   setIsCartOpen(false);
                   setIsCheckoutOpen(true);
                 }}
-                className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold h-10 rounded-lg text-xs"
+                className="w-full bg-info hover:bg-info text-white font-bold h-10 rounded-lg text-xs"
               >
                 Proceed to Checkout (${cartTotal.toFixed(2)})
               </Button>
@@ -510,7 +510,7 @@ export default function CustomerShopPage() {
         <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-sky-400" />
+              <CreditCard className="w-4 h-4 text-info" />
               Complete Your Order
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
@@ -559,11 +559,11 @@ export default function CustomerShopPage() {
                   onClick={() => setPaymentMethod('COD')}
                   className={`p-2.5 rounded-lg border text-center transition-all ${
                     paymentMethod === 'COD'
-                      ? 'bg-amber-500/15 border-amber-500/50 text-amber-300 font-bold shadow-sm'
+                      ? 'bg-warning/15 border-warning/50 text-warning font-bold shadow-sm'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
-                  <Truck className="w-4 h-4 mx-auto mb-1 text-amber-400" />
+                  <Truck className="w-4 h-4 mx-auto mb-1 text-warning" />
                   <span className="block text-[11px]">Cash on Delivery</span>
                 </button>
               </div>
@@ -572,7 +572,7 @@ export default function CustomerShopPage() {
             {/* Payment Notice Preview */}
             {paymentMethod === 'COD' && (
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center space-y-1.5">
-                <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                <span className="text-[10px] text-warning font-bold uppercase tracking-wider block">
                   Pay Driver Upon Arrival
                 </span>
                 <p className="text-[11px] text-slate-400">
@@ -584,7 +584,7 @@ export default function CustomerShopPage() {
 
             <Button
               onClick={handleCheckoutSubmit}
-              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold h-10 rounded-lg text-xs"
+              className="w-full bg-info hover:bg-info text-white font-bold h-10 rounded-lg text-xs"
             >
               Place Order Now (${cartTotal.toFixed(2)})
             </Button>
@@ -596,7 +596,7 @@ export default function CustomerShopPage() {
       <Dialog open={!!confirmedOrder} onOpenChange={() => setConfirmedOrder(null)}>
         <DialogContent className="max-w-sm bg-slate-900 border-slate-800 text-slate-100 text-center">
           <div className="py-4 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-success/20 text-success flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-white">Order Confirmed!</h3>
@@ -607,7 +607,7 @@ export default function CustomerShopPage() {
             <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-left space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">Tracking Code:</span>
-                <span className="font-mono font-bold text-sky-400">{confirmedOrder?.trackingNumber}</span>
+                <span className="font-mono font-bold text-info">{confirmedOrder?.trackingNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Paid/Due:</span>
@@ -634,7 +634,7 @@ export default function CustomerShopPage() {
         <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-sky-400" />
+              <MapPin className="w-4 h-4 text-info" />
               Track Delivery Order
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
@@ -650,7 +650,7 @@ export default function CustomerShopPage() {
                 onChange={(e) => setTrackingInput(e.target.value)}
                 className="bg-slate-950 border-slate-800 text-sm"
               />
-              <Button onClick={() => trackOrder()} disabled={!trackingInput || isTracking} className="bg-sky-600 hover:bg-sky-500 text-white">
+              <Button onClick={() => trackOrder()} disabled={!trackingInput || isTracking} className="bg-info hover:bg-info text-white">
                 Track
               </Button>
             </div>
@@ -660,8 +660,8 @@ export default function CustomerShopPage() {
             {trackResult && (
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span className="font-bold text-sm text-sky-400">{trackResult.trackingNumber}</span>
-                  <Badge variant="outline" className="text-xs border-sky-500/30 text-sky-400">{trackResult.status}</Badge>
+                  <span className="font-bold text-sm text-info">{trackResult.trackingNumber}</span>
+                  <Badge variant="outline" className="text-xs border-info/30 text-info">{trackResult.status}</Badge>
                 </div>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
@@ -677,7 +677,7 @@ export default function CustomerShopPage() {
                   {trackResult.etaMinutes && (
                     <div className="flex justify-between">
                       <span className="text-slate-500">ETA:</span>
-                      <span className="font-mono text-emerald-400">{trackResult.etaMinutes} mins</span>
+                      <span className="font-mono text-success">{trackResult.etaMinutes} mins</span>
                     </div>
                   )}
                 </div>

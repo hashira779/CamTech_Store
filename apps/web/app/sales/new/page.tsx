@@ -472,7 +472,7 @@ export default function NewSalePOSPage() {
           {/* Connection Status & Offline Queue Pill */}
           <div className="flex items-center gap-2">
             {isSyncing ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-info/10 text-info border border-info/20">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 Syncing Queue...
               </span>
@@ -481,7 +481,7 @@ export default function NewSalePOSPage() {
                 <button
                   type="button"
                   onClick={() => setQueueModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20 transition-colors"
                 >
                   <WifiOff className="w-3.5 h-3.5" />
                   {!isOnline ? 'Offline Mode' : 'Pending Upload'} ({pendingOfflineSales.length})
@@ -498,7 +498,7 @@ export default function NewSalePOSPage() {
                 )}
               </div>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
                 <Wifi className="w-3.5 h-3.5" />
                 POS Online
               </span>
@@ -507,7 +507,7 @@ export default function NewSalePOSPage() {
         </div>
 
         {syncMessage && (
-          <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+          <div className="p-2.5 rounded-lg bg-success/10 border border-success/20 text-success text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{syncMessage}</span>
           </div>
@@ -519,11 +519,11 @@ export default function NewSalePOSPage() {
             <div className="w-full max-w-md bg-card border border-border shadow-md rounded-lg p-6 text-center space-y-4">
               {completedSale.isOffline ? (
                 <>
-                  <div className="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 bg-warning/10 text-warning rounded-full flex items-center justify-center mx-auto">
                     <CloudOff className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold text-foreground">Order Saved Locally (Offline)</h3>
-                  <p className="font-mono text-sm text-amber-400 font-semibold">
+                  <p className="font-mono text-sm text-warning font-semibold">
                     Receipt #{completedSale.saleNumber}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
@@ -532,7 +532,7 @@ export default function NewSalePOSPage() {
                 </>
               ) : (
                 <>
-                  <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold text-foreground">Order Received — Preparing!</h3>
@@ -553,7 +553,7 @@ export default function NewSalePOSPage() {
                   </span>
                 </div>
                 {completedSale.change > 0 && (
-                  <div className="flex justify-between text-emerald-400 font-semibold pt-2 border-t border-border">
+                  <div className="flex justify-between text-success font-semibold pt-2 border-t border-border">
                     <span>Change Due</span>
                     <span>${completedSale.change.toFixed(2)}</span>
                   </div>
@@ -654,7 +654,7 @@ export default function NewSalePOSPage() {
                       {cart.reduce((s, i) => s + i.quantity, 0)} items
                     </span>
                     {resolvedPricing?.priceListApplied && (
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      <span className="text-[10px] font-semibold text-success bg-success/10 px-1.5 py-0.5 rounded border border-success/20">
                         {resolvedPricing.priceListApplied.name}
                       </span>
                     )}
@@ -699,13 +699,13 @@ export default function NewSalePOSPage() {
                             {item.sku} ·{' '}
                             {hasTierSavings ? (
                               <>
-                                <span className="line-through text-slate-500">
+                                <span className="line-through text-muted-foreground">
                                   ${item.unitPrice.toFixed(2)}
                                 </span>{' '}
-                                <span className="text-emerald-400 font-bold">
+                                <span className="text-success font-bold">
                                   ${effPrice.toFixed(2)}
                                 </span>
-                                <span className="ml-1 px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-semibold">
+                                <span className="ml-1 px-1 py-0.2 rounded bg-success/10 text-success text-[9px] font-semibold">
                                   {priceInfo.priceSource === 'VOLUME_TIER'
                                     ? `Tier ≥${priceInfo.tierMinQty}`
                                     : 'Wholesale'}
@@ -738,7 +738,7 @@ export default function NewSalePOSPage() {
                           </span>
                           <button
                             onClick={() => removeItem(item.productVariantId)}
-                            className="p-1 text-muted-foreground hover:text-red-400"
+                            className="p-1 text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -764,7 +764,7 @@ export default function NewSalePOSPage() {
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   {appliedPromo && appliedPromo.discountTotal > 0 && (
-                    <div className="flex justify-between text-emerald-400 font-semibold">
+                    <div className="flex justify-between text-success font-semibold">
                       <span>Promo Discount ({appliedPromo.promotion?.code})</span>
                       <span>-${appliedPromo.discountTotal.toFixed(2)}</span>
                     </div>
@@ -790,7 +790,7 @@ export default function NewSalePOSPage() {
                       <button
                         type="button"
                         onClick={handleRemovePromo}
-                        className="text-[11px] text-red-400 hover:underline flex items-center gap-0.5"
+                        className="text-[11px] text-destructive hover:underline flex items-center gap-0.5"
                       >
                         <X className="w-3 h-3" /> Remove
                       </button>
@@ -817,7 +817,7 @@ export default function NewSalePOSPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex justify-between items-center">
+                    <div className="p-2 rounded bg-success/10 border border-success/20 text-success text-xs flex justify-between items-center">
                       <div>
                         <strong>{appliedPromo.promotion?.code}</strong> applied!
                       </div>
@@ -826,7 +826,7 @@ export default function NewSalePOSPage() {
                   )}
 
                   {promoError && (
-                    <div className="text-[11px] text-red-400 font-medium">
+                    <div className="text-[11px] text-destructive font-medium">
                       {promoError}
                     </div>
                   )}
@@ -866,7 +866,7 @@ export default function NewSalePOSPage() {
                         Tendered Cash ($)
                       </span>
                       {change > 0 && (
-                        <span className="text-emerald-400 font-bold">
+                        <span className="text-success font-bold">
                           Change: ${change.toFixed(2)}
                         </span>
                       )}
@@ -900,7 +900,7 @@ export default function NewSalePOSPage() {
                   </div>
                 )}
 
-                {serverError && <p className="text-xs text-red-400">{serverError}</p>}
+                {serverError && <p className="text-xs text-destructive">{serverError}</p>}
 
                 {/* Submit / QR Action */}
                 {paymentMethod === 'QR' ? (
@@ -908,7 +908,7 @@ export default function NewSalePOSPage() {
                     type="button"
                     onClick={handleOpenKhqr}
                     disabled={cart.length === 0 || isGeneratingKhqr || isSubmitting}
-                    className="btn w-full h-11 text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border-none text-white"
+                    className="btn w-full h-11 text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 bg-gradient-to-r from-destructive to-destructive hover:from-destructive hover:to-destructive border-none text-white"
                   >
                     <QrCode className="w-5 h-5" />
                     {isGeneratingKhqr ? 'Generating KHQR...' : `Generate KHQR ($${grandTotal.toFixed(2)})`}
@@ -935,7 +935,7 @@ export default function NewSalePOSPage() {
             <div className="card max-w-lg w-full p-6 border-border shadow-sm">
               <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
                 <div className="flex items-center gap-2">
-                  <Inbox className="w-5 h-5 text-amber-400" />
+                  <Inbox className="w-5 h-5 text-warning" />
                   <h3 className="text-lg font-bold text-foreground">Offline Sales Queue</h3>
                 </div>
                 <button
@@ -966,7 +966,7 @@ export default function NewSalePOSPage() {
                         {new Date(item.clientCreatedAt).toLocaleTimeString()} · {item.lineItems?.length} items
                       </div>
                     </div>
-                    <span className="font-bold text-amber-400">
+                    <span className="font-bold text-warning">
                       ${item.payments?.reduce((s: number, p: any) => s + (p.amount || 0), 0).toFixed(2)}
                     </span>
                   </div>
@@ -1009,7 +1009,7 @@ export default function NewSalePOSPage() {
           <div className="fixed inset-0 z-50 bg-black/70  flex items-center justify-center p-4">
             <div className="card max-w-sm w-full p-6 border-border shadow-md bg-card flex flex-col items-center text-center">
               {/* Official KHQR Branded Header */}
-              <div className="w-full bg-red-600 text-white rounded-t-xl py-2 px-4 mb-4 flex items-center justify-between">
+              <div className="w-full bg-destructive text-destructive-foreground rounded-t-xl py-2 px-4 mb-4 flex items-center justify-between">
                 <span className="font-extrabold tracking-widest text-sm flex items-center gap-1.5">
                   <QrCode className="w-4 h-4" />
                   KHQR
@@ -1020,7 +1020,7 @@ export default function NewSalePOSPage() {
               <h3 className="font-bold text-base text-foreground mb-0.5">
                 {khqrIntent.reference ? `Bill #${khqrIntent.reference}` : 'CAMTECH STORE'}
               </h3>
-              <div className="text-2xl font-black text-foreground font-mono mt-1">
+              <div className="text-2xl font-bold text-foreground font-mono mt-1">
                 ${khqrIntent.amount.toFixed(2)} USD
               </div>
               <div className="text-xs font-mono text-muted-foreground mb-4">
@@ -1029,15 +1029,15 @@ export default function NewSalePOSPage() {
 
               {/* Dynamic QR Graphic */}
               <div className="p-4 bg-white rounded-lg border border-border shadow-inner mb-4 flex flex-col items-center justify-center w-52 h-52 relative group">
-                <div className="w-44 h-44 grid grid-cols-6 grid-rows-6 gap-1 p-2 bg-slate-900 rounded-lg relative">
+                <div className="w-44 h-44 grid grid-cols-6 grid-rows-6 gap-1 p-2 bg-card rounded-lg relative">
                   <div className="col-span-2 row-span-2 bg-white rounded-xs p-1">
-                    <div className="w-full h-full bg-slate-900 rounded-xs" />
+                    <div className="w-full h-full bg-card rounded-xs" />
                   </div>
                   <div className="col-start-5 col-span-2 row-span-2 bg-white rounded-xs p-1">
-                    <div className="w-full h-full bg-slate-900 rounded-xs" />
+                    <div className="w-full h-full bg-card rounded-xs" />
                   </div>
                   <div className="row-start-5 col-span-2 row-span-2 bg-white rounded-xs p-1">
-                    <div className="w-full h-full bg-slate-900 rounded-xs" />
+                    <div className="w-full h-full bg-card rounded-xs" />
                   </div>
                   <div className="col-start-3 row-start-2 bg-white rounded-xs" />
                   <div className="col-start-4 row-start-2 bg-white rounded-xs" />
@@ -1046,7 +1046,7 @@ export default function NewSalePOSPage() {
                   <div className="col-start-5 row-start-4 bg-white rounded-xs" />
                   <div className="col-start-6 row-start-3 bg-white rounded-xs" />
 
-                  <div className="absolute inset-0 m-auto w-10 h-10 bg-red-600 rounded-full flex items-center justify-center border-2 border-white text-white font-black text-xs">
+                  <div className="absolute inset-0 m-auto w-10 h-10 bg-destructive rounded-full flex items-center justify-center border-2 border-white text-destructive-foreground font-bold text-xs">
                     KH
                   </div>
                 </div>
@@ -1054,7 +1054,7 @@ export default function NewSalePOSPage() {
 
               {/* Status Polling Indicator */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-success animate-ping" />
                 <span>Waiting for customer scan... (Polling)</span>
               </div>
 
@@ -1064,7 +1064,7 @@ export default function NewSalePOSPage() {
                   type="button"
                   disabled={isSimulatingScan}
                   onClick={handleSimulateScan}
-                  className="btn w-full text-xs py-2 bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5"
+                  className="btn w-full text-xs py-2 bg-success hover:bg-success text-success-foreground flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   {isSimulatingScan ? 'Verifying...' : 'Simulate Customer Scan (Webhook)'}

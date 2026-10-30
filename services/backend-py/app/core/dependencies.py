@@ -1,10 +1,11 @@
 import json
 from typing import Optional, List, Dict, Any
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, Request, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from app.core.access_policy import enforce_access
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.modules.identity.models import User, Role
@@ -97,8 +98,18 @@ def get_permissions(user: User) -> List[str]:
 
 
 async def get_current_user(
+    request: Request,
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db),
+) -> TenantUser:
+    user = await _authenticate(auth, db)
+    enforce_access(request, user)
+    return user
+
+
+async def _authenticate(
+    auth: Optional[HTTPAuthorizationCredentials],
+    db: AsyncSession,
 ) -> TenantUser:
     if not auth or not auth.credentials:
         raise HTTPException(

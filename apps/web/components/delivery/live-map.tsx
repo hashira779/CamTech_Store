@@ -90,9 +90,9 @@ export function LiveMap({
                   <div
                     className={`px-2 py-0.5 rounded-md text-[10px] font-mono tracking-tight font-medium shadow-md transition-colors whitespace-nowrap mb-1 ${
                       isSelected
-                        ? 'bg-sky-500 text-white shadow-sky-500/50'
+                        ? 'bg-info text-white shadow-sky-500/50'
                         : isDelivered
-                        ? 'bg-emerald-600/80 text-white'
+                        ? 'bg-success/80 text-white'
                         : 'bg-slate-900/90 text-slate-200 border border-slate-700'
                     }`}
                   >
@@ -104,15 +104,15 @@ export function LiveMap({
                     <div
                       className={`w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-transform ${
                         isSelected
-                          ? 'bg-sky-500 text-white scale-110 ring-4 ring-sky-500/30'
+                          ? 'bg-info text-white scale-110 ring-4 ring-info/30'
                           : isDelivered
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-amber-500 text-slate-950'
+                          ? 'bg-success text-white'
+                          : 'bg-warning text-slate-950'
                       }`}
                     >
                       <MapPin className="w-4 h-4 fill-current" />
                     </div>
-                    <div className="w-1.5 h-1.5 bg-sky-400 rounded-full mx-auto -mt-0.5 shadow-sm" />
+                    <div className="w-1.5 h-1.5 bg-info rounded-full mx-auto -mt-0.5 shadow-sm" />
                   </div>
                 </div>
               </div>
@@ -136,19 +136,19 @@ export function LiveMap({
               >
                 {/* Pulsing Live Radar Ring */}
                 {isMoving && (
-                  <div className="absolute -inset-4 rounded-full bg-cyan-500/25 animate-ping pointer-events-none" />
+                  <div className="absolute -inset-4 rounded-full bg-info/25 animate-ping pointer-events-none" />
                 )}
                 {isSelected && (
-                  <div className="absolute -inset-6 rounded-full border border-sky-400/60 animate-spin pointer-events-none" />
+                  <div className="absolute -inset-6 rounded-full border border-info/60 animate-spin pointer-events-none" />
                 )}
 
                 {/* Vehicle Icon Circle */}
                 <div
                   className={`relative w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all ${
                     isSelected
-                      ? 'bg-gradient-to-tr from-sky-600 to-cyan-400 text-white ring-4 ring-sky-400/40 scale-110'
+                      ? 'bg-gradient-to-tr from-info to-info text-white ring-4 ring-info/40 scale-110'
                       : isMoving
-                      ? 'bg-gradient-to-tr from-blue-600 to-indigo-500 text-white'
+                      ? 'bg-gradient-to-tr from-info to-indigo-500 text-white'
                       : 'bg-slate-800 text-slate-400 border border-slate-700'
                   }`}
                   style={{ transform: `rotate(${drv.heading ?? 0}deg)` }}
@@ -167,7 +167,7 @@ export function LiveMap({
                 <div className="absolute top-10 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-200 font-medium whitespace-nowrap shadow-lg flex items-center gap-1">
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                      isMoving ? 'bg-success animate-pulse' : 'bg-warning'
                     }`}
                   />
                   {drv.name.split(' ')[0]}
@@ -184,17 +184,17 @@ export function LiveMap({
       <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
         <div className="flex items-center gap-2 bg-slate-900/80  px-3 py-1.5 rounded-lg border border-slate-700/50 shadow-lg pointer-events-auto">
           <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
           </div>
           <span className="text-xs font-semibold tracking-wide text-slate-100 uppercase">
             Live GPS Telemetry
           </span>
-          <Badge variant="outline" className="text-[10px] bg-slate-800/80 border-slate-700 text-sky-400">
+          <Badge variant="outline" className="text-[10px] bg-slate-800/80 border-slate-700 text-info">
             {drivers.filter((d) => d.status === 'EN_ROUTE').length} Active Units
           </Badge>
           {isSimulating && (
-            <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] animate-pulse">
+            <Badge className="bg-warning/20 text-warning border border-warning/30 text-[10px] animate-pulse">
               Simulating Movement
             </Badge>
           )}
@@ -234,10 +234,10 @@ export function LiveMap({
 
       {/* Bottom Floating Telemetry Panel (When Driver is Selected) */}
       {activeDriver && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-sky-500/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
+        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-info/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+              <div className="w-10 h-10 rounded-lg bg-info/10 border border-info/20 flex items-center justify-center text-info">
                 {activeDriver.vehicleType === 'VAN' ? (
                   <Truck className="w-5 h-5" />
                 ) : (
@@ -247,7 +247,7 @@ export function LiveMap({
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-semibold text-slate-100 text-sm">{activeDriver.name}</h4>
-                  <Badge variant="outline" className="text-[10px] text-sky-300 border-sky-500/30">
+                  <Badge variant="outline" className="text-[10px] text-info border-info/30">
                     {activeDriver.licensePlate}
                   </Badge>
                 </div>
@@ -259,21 +259,21 @@ export function LiveMap({
             <div className="flex items-center gap-4 text-xs font-mono">
               <div className="text-right">
                 <span className="text-slate-400 text-[10px] uppercase block">Speed</span>
-                <span className="text-emerald-400 font-bold flex items-center justify-end gap-1">
+                <span className="text-success font-bold flex items-center justify-end gap-1">
                   <Gauge className="w-3.5 h-3.5" />
                   {activeDriver.status === 'EN_ROUTE' ? '34 km/h' : '0 km/h'}
                 </span>
               </div>
               <div className="text-right border-l border-slate-700/60 pl-3">
                 <span className="text-slate-400 text-[10px] uppercase block">Battery</span>
-                <span className="text-sky-300 font-bold flex items-center justify-end gap-1">
+                <span className="text-info font-bold flex items-center justify-end gap-1">
                   <Battery className="w-3.5 h-3.5" />
                   {activeDriver.batteryLevel ?? 95}%
                 </span>
               </div>
               <div className="text-right border-l border-slate-700/60 pl-3">
                 <span className="text-slate-400 text-[10px] uppercase block">Assigned</span>
-                <span className="text-amber-300 font-bold">
+                <span className="text-warning font-bold">
                   {activeDriver.activeOrdersCount ?? 0} Orders
                 </span>
               </div>
@@ -284,16 +284,16 @@ export function LiveMap({
 
       {/* Bottom Floating Order Destination Panel (When Order is Selected) */}
       {activeOrder && !activeDriver && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-sky-500/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
+        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-xl mx-auto bg-slate-900/90 -lg border border-info/30 rounded-lg p-4 shadow-md transition-all animate-in fade-in slide-in-from-bottom-4 pointer-events-auto">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center text-warning">
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-semibold text-slate-100 text-sm">{activeOrder.recipientName}</h4>
-                  <Badge variant="outline" className="text-[10px] text-amber-300 border-amber-500/30">
+                  <Badge variant="outline" className="text-[10px] text-warning border-warning/30">
                     {activeOrder.trackingNumber}
                   </Badge>
                 </div>
@@ -305,7 +305,7 @@ export function LiveMap({
               href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrder.destLat || 11.5564},${activeOrder.destLng || 104.9282}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-10 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition shrink-0 active:scale-95"
+              className="h-10 px-3.5 rounded-lg bg-info hover:bg-info text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition shrink-0 active:scale-95"
             >
               <Navigation className="w-4 h-4 fill-white" />
               <span>Google Maps</span>

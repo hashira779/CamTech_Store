@@ -162,10 +162,10 @@ export default function ApprovalsPage() {
                       <span
                         className={`px-2.5 py-1 rounded text-xs font-semibold uppercase flex items-center gap-1.5 ${
                           item.status === 'APPROVED'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            ? 'bg-success/10 text-success border border-success/20'
                             : item.status === 'REJECTED'
-                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                            : 'bg-warning/10 text-warning border border-warning/20'
                         }`}
                       >
                         {item.status === 'APPROVED' && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -191,9 +191,9 @@ export default function ApprovalsPage() {
                         key={step.id}
                         className={`p-3 rounded-lg border text-xs flex flex-col gap-1 ${
                           step.status === 'APPROVED'
-                            ? 'border-emerald-500/30 bg-emerald-500/5'
+                            ? 'border-success/30 bg-success/5'
                             : step.status === 'REJECTED'
-                            ? 'border-rose-500/30 bg-rose-500/5'
+                            ? 'border-destructive/30 bg-destructive/5'
                             : 'border-border bg-accent/20'
                         }`}
                       >
@@ -204,10 +204,10 @@ export default function ApprovalsPage() {
                           <span
                             className={`font-mono text-[10px] ${
                               step.status === 'APPROVED'
-                                ? 'text-emerald-400'
+                                ? 'text-success'
                                 : step.status === 'REJECTED'
-                                ? 'text-rose-400'
-                                : 'text-amber-400'
+                                ? 'text-destructive'
+                                : 'text-warning'
                             }`}
                           >
                             {step.status}
@@ -241,7 +241,7 @@ export default function ApprovalsPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleReview(item.id, currentPendingStep.id, 'APPROVE')}
-                          className="btn text-xs py-1.5 px-3 flex items-center gap-1 shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white"
+                          className="btn text-xs py-1.5 px-3 flex items-center gap-1 shadow-sm bg-success hover:bg-success text-success-foreground"
                         >
                           <Check className="w-3.5 h-3.5" /> Approve Step
                         </button>

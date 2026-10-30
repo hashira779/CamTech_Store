@@ -171,7 +171,7 @@ export function CustomersPage() {
         cell: ({ row }) => {
           const credit = row.original.storeCredit ?? 0;
           return (
-            <span className={`font-mono text-xs font-semibold ${credit > 0 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+            <span className={`font-mono text-xs font-semibold ${credit > 0 ? 'text-success' : 'text-muted-foreground'}`}>
               ${credit.toFixed(2)}
             </span>
           );
@@ -277,28 +277,28 @@ export function CustomersPage() {
             title="Total Registered Accounts"
             value={totalAccounts}
             icon={Users}
-            iconColor="text-blue-500"
+            iconColor="text-info"
             isLoading={isLoading}
           />
           <KpiCard
             title="Corporate / Wholesale"
             value={corporateAccounts}
             icon={Building}
-            iconColor="text-orange-500"
+            iconColor="text-warning"
             isLoading={isLoading}
           />
           <KpiCard
             title="Loyalty Club Members"
             value={loyaltyMembers}
             icon={Award}
-            iconColor="text-amber-500"
+            iconColor="text-warning"
             isLoading={isLoading}
           />
           <KpiCard
             title="Total Store Credit Balance"
             value={`$${totalStoreCredit.toFixed(2)}`}
             icon={CreditCard}
-            iconColor="text-emerald-500"
+            iconColor="text-success"
             isLoading={isLoading}
           />
         </div>
@@ -404,7 +404,7 @@ export function CustomersPage() {
                   </div>
                   <div className="p-3 rounded-lg border border-border bg-card">
                     <p className="text-xs text-muted-foreground">Store Credit</p>
-                    <p className="text-sm font-bold font-mono text-emerald-500 mt-1">
+                    <p className="text-sm font-bold font-mono text-success mt-1">
                       ${(selectedCustomer.storeCredit ?? 0).toFixed(2)}
                     </p>
                   </div>

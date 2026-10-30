@@ -21,43 +21,43 @@ const defaultNodes: Node[] = [
     id: 'nginx',
     position: { x: 420, y: 20 },
     data: { label: 'Edge Reverse Proxy', type: 'PROXY', port: 80, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #3f3f46', borderRadius: 10, padding: 12, minWidth: 170 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #3f3f46', borderRadius: 10, padding: 12, minWidth: 170 },
   },
   {
     id: 'api-gateway',
     position: { x: 420, y: 120 },
     data: { label: 'API Gateway (:4000)', type: 'GATEWAY', port: 4000, status: 'HEALTHY' },
-    style: { background: '#1e1b4b', color: '#c7d2fe', border: '1px solid #6366f1', borderRadius: 10, padding: 12, minWidth: 170, boxShadow: '0 0 15px rgba(99,102,241,0.2)' },
+    style: { background: '#1e1b4b', color: 'var(--foreground)', border: '1px solid var(--primary)', borderRadius: 10, padding: 12, minWidth: 170, boxShadow: '0 0 15px color-mix(in srgb, var(--primary) 20%, transparent)' },
   },
   {
     id: 'auth-service',
     position: { x: 40, y: 240 },
     data: { label: 'Auth & Passkey (:4001)', type: 'MICROSERVICE', port: 4001, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
   },
   {
     id: 'catalog-service',
     position: { x: 230, y: 240 },
     data: { label: 'Catalog & Stock (:4002)', type: 'MICROSERVICE', port: 4002, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
   },
   {
     id: 'sales-service',
     position: { x: 420, y: 240 },
     data: { label: 'Sales & Orders (:4003)', type: 'MICROSERVICE', port: 4003, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
   },
   {
     id: 'delivery-service',
     position: { x: 610, y: 240 },
     data: { label: 'Delivery & GPS (:4004)', type: 'MICROSERVICE', port: 4004, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
   },
   {
     id: 'platform-service',
     position: { x: 800, y: 240 },
     data: { label: 'Workflows & Desk (:4007)', type: 'MICROSERVICE', port: 4007, status: 'HEALTHY' },
-    style: { background: '#18181b', color: '#fff', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
+    style: { background: '#18181b', color: 'var(--primary-foreground)', border: '1px solid #27272a', borderRadius: 10, padding: 10, minWidth: 160 },
   },
   {
     id: 'postgres',
@@ -74,12 +74,12 @@ const defaultNodes: Node[] = [
 ];
 
 const defaultEdges: Edge[] = [
-  { id: 'e1', source: 'nginx', target: 'api-gateway', animated: true, style: { stroke: '#6366f1', strokeWidth: 2 } },
-  { id: 'e2', source: 'api-gateway', target: 'auth-service', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e3', source: 'api-gateway', target: 'catalog-service', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e4', source: 'api-gateway', target: 'sales-service', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e5', source: 'api-gateway', target: 'delivery-service', animated: true, style: { stroke: '#10b981' } },
-  { id: 'e6', source: 'api-gateway', target: 'platform-service', animated: true, style: { stroke: '#10b981' } },
+  { id: 'e1', source: 'nginx', target: 'api-gateway', animated: true, style: { stroke: 'var(--primary)', strokeWidth: 2 } },
+  { id: 'e2', source: 'api-gateway', target: 'auth-service', animated: true, style: { stroke: 'var(--success)' } },
+  { id: 'e3', source: 'api-gateway', target: 'catalog-service', animated: true, style: { stroke: 'var(--success)' } },
+  { id: 'e4', source: 'api-gateway', target: 'sales-service', animated: true, style: { stroke: 'var(--success)' } },
+  { id: 'e5', source: 'api-gateway', target: 'delivery-service', animated: true, style: { stroke: 'var(--success)' } },
+  { id: 'e6', source: 'api-gateway', target: 'platform-service', animated: true, style: { stroke: 'var(--success)' } },
   { id: 'e7', source: 'auth-service', target: 'postgres', animated: true, style: { stroke: '#0284c7' } },
   { id: 'e8', source: 'catalog-service', target: 'postgres', animated: true, style: { stroke: '#0284c7' } },
   { id: 'e9', source: 'sales-service', target: 'postgres', animated: true, style: { stroke: '#0284c7' } },
@@ -96,7 +96,7 @@ export function TopologyGraph({ data, onSelectNode }: TopologyGraphProps) {
         data: { label: `${n.data.label}` },
         style: {
           background: n.data.type === 'GATEWAY' ? '#1e1b4b' : (n.data.type === 'DATABASE' ? '#082f49' : (n.data.type === 'CACHE' ? '#450a0a' : '#18181b')),
-          color: '#ffffff',
+          color: 'var(--primary-foreground)',
           border: '1px solid #3f3f46',
           borderRadius: 8,
           padding: 10,
@@ -112,18 +112,18 @@ export function TopologyGraph({ data, onSelectNode }: TopologyGraphProps) {
         source: e.source,
         target: e.target,
         animated: true,
-        style: { stroke: '#6366f1', strokeWidth: 1.5 },
+        style: { stroke: 'var(--primary)', strokeWidth: 1.5 },
       }))
     : defaultEdges;
 
   return (
-    <div className="w-full h-[460px] bg-zinc-950/80 rounded-xl border border-zinc-800/80 overflow-hidden relative">
+    <div className="w-full h-[460px] bg-card/80 rounded-xl border border-border/80 overflow-hidden relative">
       <div className="absolute top-3 left-4 z-10 flex items-center gap-3">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-900/90 border border-zinc-700/80 text-[11px] font-mono text-zinc-300">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-card/90 border border-border/80 text-[11px] font-mono text-foreground">
+          <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
           <span>Mesh Topology (Live)</span>
         </div>
-        <div className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+        <div className="text-[11px] text-muted-foreground font-mono hidden sm:inline">
           Click any node to inspect telemetry & logs
         </div>
       </div>
@@ -136,7 +136,7 @@ export function TopologyGraph({ data, onSelectNode }: TopologyGraphProps) {
         attributionPosition="bottom-right"
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#27272a" />
-        <Controls className="bg-zinc-900 border-zinc-700 fill-zinc-300" />
+        <Controls className="bg-card border-border fill-zinc-300" />
       </ReactFlow>
     </div>
   );

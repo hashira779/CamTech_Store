@@ -231,13 +231,13 @@ export default function AutomationsPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
           <div>
             <div className="flex items-center gap-2">
-              <div className="p-2.5 rounded-lg bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+              <div className="p-2.5 rounded-lg bg-gradient-to-tr from-success/20 to-success/20 text-success border border-success/30">
                 <Workflow className="w-6 h-6" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
                   Flow Automation Engine
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-success/10 text-success border border-success/20 font-mono">
                     n8n v2.4
                   </span>
                 </h1>
@@ -282,11 +282,11 @@ export default function AutomationsPage() {
           <div className="card p-4 border-border shadow-sm flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold uppercase text-muted-foreground">Active Automations</span>
-              <p className="text-2xl font-bold text-emerald-400 mt-1">
+              <p className="text-2xl font-bold text-success mt-1">
                 {flows.filter((f) => f.isActive).length}
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="p-3 rounded-lg bg-success/10 text-success">
               <Zap className="w-5 h-5" />
             </div>
           </div>
@@ -295,14 +295,14 @@ export default function AutomationsPage() {
               <span className="text-[11px] font-bold uppercase text-muted-foreground">Recorded Executions</span>
               <p className="text-2xl font-bold text-foreground mt-1">{executions.length}</p>
             </div>
-            <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
+            <div className="p-3 rounded-lg bg-warning/10 text-warning">
               <Clock className="w-5 h-5" />
             </div>
           </div>
           <div className="card p-4 border-border shadow-sm flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold uppercase text-muted-foreground">Security Guard</span>
-              <div className="flex items-center gap-1.5 mt-1 text-emerald-400 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 mt-1 text-success text-xs font-semibold">
                 <ShieldCheck className="w-4 h-4" />
                 <span>SSRF & Timeout Protected</span>
               </div>
@@ -343,8 +343,8 @@ export default function AutomationsPage() {
                       <span
                         className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
                           flow.isActive
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-zinc-500/10 text-zinc-400'
+                            ? 'bg-success/10 text-success border border-success/20'
+                            : 'bg-accent/10 text-muted-foreground'
                         }`}
                       >
                         {flow.isActive ? 'Active' : 'Muted'}
@@ -421,13 +421,13 @@ export default function AutomationsPage() {
                       let NodeIcon = Workflow;
 
                       if (node.type === 'TRIGGER') {
-                        nodeBadgeBg = 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+                        nodeBadgeBg = 'bg-info/10 text-info border-info/20';
                         NodeIcon = Play;
                       } else if (node.type === 'CONDITION') {
-                        nodeBadgeBg = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+                        nodeBadgeBg = 'bg-warning/10 text-warning border-warning/20';
                         NodeIcon = Split;
                       } else if (node.type === 'ACTION') {
-                        nodeBadgeBg = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                        nodeBadgeBg = 'bg-success/10 text-success border-success/20';
                         if (node.subtype === 'send_telegram') NodeIcon = Send;
                         else if (node.subtype === 'create_ticket') NodeIcon = LifeBuoy;
                         else if (node.subtype === 'http_request') NodeIcon = Globe;
@@ -456,7 +456,7 @@ export default function AutomationsPage() {
                             {/* Parameter Snippet */}
                             <div className="mt-3 pt-2 border-t border-border/60 text-[10px] text-muted-foreground font-mono truncate">
                               {node.type === 'CONDITION' && (
-                                <span className="text-amber-400">
+                                <span className="text-warning">
                                   {node.parameters.field} {node.parameters.operator} {node.parameters.value}
                                 </span>
                               )}
@@ -495,7 +495,7 @@ export default function AutomationsPage() {
                     onClick={() => copyWebhookUrl(activeFlow.id)}
                     className="btn btn-secondary py-1 px-2.5 text-xs flex items-center gap-1 shrink-0"
                   >
-                    {copiedWebhook ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedWebhook ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
                     {copiedWebhook ? 'Copied' : 'Copy Webhook'}
                   </button>
                 </div>
@@ -539,8 +539,8 @@ export default function AutomationsPage() {
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                   isSuccess
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                    ? 'bg-success/10 text-success border border-success/20'
+                                    : 'bg-destructive/10 text-destructive border border-destructive/20'
                                 }`}
                               >
                                 {exec.status}
@@ -578,7 +578,7 @@ export default function AutomationsPage() {
                                         <div className="flex items-center gap-2">
                                           <span
                                             className={`w-2 h-2 rounded-full ${
-                                              step.status === 'SUCCESS' ? 'bg-emerald-400' : 'bg-rose-400'
+                                              step.status === 'SUCCESS' ? 'bg-success' : 'bg-destructive'
                                             }`}
                                           />
                                           <span className="font-bold text-foreground">{step.nodeName}</span>
@@ -596,13 +596,13 @@ export default function AutomationsPage() {
                                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/60">
                                           <div>
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Input Data</span>
-                                            <pre className="p-2.5 rounded bg-black/40 border border-border font-mono text-[10px] text-zinc-300 max-h-36 overflow-auto">
+                                            <pre className="p-2.5 rounded bg-black/40 border border-border font-mono text-[10px] text-foreground max-h-36 overflow-auto">
                                               {JSON.stringify(step.inputData, null, 2)}
                                             </pre>
                                           </div>
                                           <div>
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Output Data</span>
-                                            <pre className="p-2.5 rounded bg-black/40 border border-border font-mono text-[10px] text-emerald-300 max-h-36 overflow-auto">
+                                            <pre className="p-2.5 rounded bg-black/40 border border-border font-mono text-[10px] text-success max-h-36 overflow-auto">
                                               {JSON.stringify(step.outputData || { error: step.errorMessage }, null, 2)}
                                             </pre>
                                           </div>

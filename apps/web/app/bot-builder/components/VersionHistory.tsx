@@ -62,23 +62,23 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: '#0f172a', color: '#e2e8f0' }}>
+    <div style={{ display: 'flex', height: '100%', background: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Left List of Versions */}
       <div style={{
-        width: 380, borderRight: '1px solid rgba(148,163,184,0.1)',
+        width: 380, borderRight: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column',
       }}>
         <div style={{
-          padding: '16px 20px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+          padding: '16px 20px', borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <History size={18} style={{ color: '#818cf8' }} />
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>
+          <History size={18} style={{ color: 'var(--primary)' }} />
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>
             Release History
           </h3>
           <span style={{
-            marginLeft: 'auto', fontSize: 12, background: 'rgba(129,140,248,0.15)',
-            color: '#818cf8', padding: '2px 8px', borderRadius: 12, fontWeight: 600,
+            marginLeft: 'auto', fontSize: 12, background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+            color: 'var(--primary)', padding: '2px 8px', borderRadius: 12, fontWeight: 600,
           }}>
             {versions.length} versions
           </span>
@@ -86,8 +86,8 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
 
         {error && (
           <div style={{
-            margin: 12, padding: 10, background: 'rgba(239,68,68,0.15)',
-            color: '#ef4444', borderRadius: 8, fontSize: 12, display: 'flex', gap: 8,
+            margin: 12, padding: 10, background: 'color-mix(in srgb, var(--destructive) 15%, transparent)',
+            color: 'var(--destructive)', borderRadius: 8, fontSize: 12, display: 'flex', gap: 8,
           }}>
             <AlertCircle size={16} />
             <span>{error}</span>
@@ -96,12 +96,12 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted-foreground)', fontSize: 13 }}>
               Loading versions...
             </div>
           ) : versions.length === 0 ? (
             <div style={{
-              textAlign: 'center', padding: '40px 16px', color: '#64748b', fontSize: 13,
+              textAlign: 'center', padding: '40px 16px', color: 'var(--muted-foreground)', fontSize: 13,
             }}>
               No published versions yet. Click &quot;Publish&quot; in the builder to create v1.
             </div>
@@ -117,9 +117,9 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     padding: '14px 16px', borderRadius: 10, marginBottom: 8,
                     cursor: 'pointer',
                     background: isSelected
-                      ? 'rgba(129,140,248,0.12)'
-                      : 'rgba(30,41,59,0.4)',
-                    border: `1px solid ${isSelected ? 'rgba(129,140,248,0.3)' : 'rgba(148,163,184,0.08)'}`,
+                      ? 'color-mix(in srgb, var(--primary) 12%, transparent)'
+                      : 'var(--card)',
+                    border: `1px solid ${isSelected ? 'color-mix(in srgb, var(--primary) 30%, transparent)' : 'var(--border)'}`,
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -127,13 +127,13 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{
                         fontSize: 14, fontWeight: 700,
-                        color: isCurrent ? '#22c55e' : '#f1f5f9',
+                        color: isCurrent ? 'var(--success)' : 'var(--foreground)',
                       }}>
                         v{v.versionNumber}
                       </span>
                       {isCurrent && (
                         <span style={{
-                          background: 'rgba(34,197,94,0.15)', color: '#22c55e',
+                          background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)',
                           padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                           display: 'flex', alignItems: 'center', gap: 4,
                         }}>
@@ -141,14 +141,14 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                         </span>
                       )}
                     </div>
-                    <ChevronRight size={14} style={{ color: isSelected ? '#818cf8' : '#64748b' }} />
+                    <ChevronRight size={14} style={{ color: isSelected ? 'var(--primary)' : 'var(--muted-foreground)' }} />
                   </div>
 
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 6 }}>
                     {v.notes ? v.notes : 'No release notes'}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: '#64748b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--muted-foreground)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Calendar size={12} />
                       {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString() : 'N/A'}
@@ -172,16 +172,16 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
             {/* Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-              paddingBottom: 20, borderBottom: '1px solid rgba(148,163,184,0.1)',
+              paddingBottom: 20, borderBottom: '1px solid var(--border)',
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f1f5f9' }}>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--foreground)' }}>
                     Version {selectedVersion.versionNumber}
                   </h2>
                   {selectedVersion.versionNumber === currentVersion ? (
                     <span style={{
-                      background: 'rgba(34,197,94,0.15)', color: '#22c55e',
+                      background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)',
                       padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600,
                     }}>
                       Current Active Release
@@ -191,8 +191,8 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                       onClick={() => setConfirmVersion(selectedVersion.versionNumber)}
                       disabled={rollingBack !== null}
                       style={{
-                        background: 'rgba(234,179,8,0.15)', color: '#eab308',
-                        border: '1px solid rgba(234,179,8,0.3)', borderRadius: 8,
+                        background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)',
+                        border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)', borderRadius: 8,
                         padding: '6px 14px', fontSize: 12, fontWeight: 600,
                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                         transition: 'background 0.15s',
@@ -202,7 +202,7 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     </button>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: 13, color: '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: 13, color: 'var(--muted-foreground)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Calendar size={14} />
                     Published: {selectedVersion.publishedAt ? new Date(selectedVersion.publishedAt).toLocaleString() : 'N/A'}
@@ -219,14 +219,14 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
             {confirmVersion === selectedVersion.versionNumber && (
               <div style={{
                 marginTop: 20, padding: 16, borderRadius: 10,
-                background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)',
+                background: 'color-mix(in srgb, var(--warning) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <div>
                   <div style={{ fontWeight: 600, color: '#fef08a', fontSize: 14 }}>
                     Confirm Rollback to v{selectedVersion.versionNumber}?
                   </div>
-                  <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: 'var(--foreground)', marginTop: 4 }}>
                     The live Telegram bot will immediately start running this snapshot. Your current draft canvas remains untouched.
                   </div>
                 </div>
@@ -235,8 +235,8 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     onClick={() => setConfirmVersion(null)}
                     style={{
                       padding: '8px 14px', borderRadius: 8, fontSize: 12,
-                      background: 'rgba(148,163,184,0.1)', border: 'none',
-                      color: '#cbd5e1', cursor: 'pointer',
+                      background: 'var(--border)', border: 'none',
+                      color: 'var(--foreground)', cursor: 'pointer',
                     }}
                   >
                     Cancel
@@ -246,7 +246,7 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     disabled={rollingBack !== null}
                     style={{
                       padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                      background: '#eab308', border: 'none', color: '#0f172a',
+                      background: 'var(--warning)', border: 'none', color: 'var(--background)',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                     }}
                   >
@@ -258,12 +258,12 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
 
             {/* Release Notes */}
             <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: 8 }}>
                 Release Notes
               </div>
               <div style={{
-                background: 'rgba(30,41,59,0.5)', padding: 16, borderRadius: 10,
-                border: '1px solid rgba(148,163,184,0.1)', fontSize: 14, color: '#e2e8f0',
+                background: 'var(--card)', padding: 16, borderRadius: 10,
+                border: '1px solid var(--border)', fontSize: 14, color: 'var(--foreground)',
                 lineHeight: 1.5,
               }}>
                 {selectedVersion.notes || 'No notes provided for this version.'}
@@ -273,29 +273,29 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
             {/* Architecture Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 20 }}>
               <div style={{
-                background: 'rgba(30,41,59,0.5)', padding: 16, borderRadius: 10,
-                border: '1px solid rgba(148,163,184,0.1)',
+                background: 'var(--card)', padding: 16, borderRadius: 10,
+                border: '1px solid var(--border)',
               }}>
-                <div style={{ fontSize: 12, color: '#94a3b8' }}>Total Nodes</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#818cf8', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Total Nodes</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)', marginTop: 4 }}>
                   {selectedVersion.nodes?.length || 0}
                 </div>
               </div>
               <div style={{
-                background: 'rgba(30,41,59,0.5)', padding: 16, borderRadius: 10,
-                border: '1px solid rgba(148,163,184,0.1)',
+                background: 'var(--card)', padding: 16, borderRadius: 10,
+                border: '1px solid var(--border)',
               }}>
-                <div style={{ fontSize: 12, color: '#94a3b8' }}>Total Edges</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#818cf8', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Total Edges</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)', marginTop: 4 }}>
                   {selectedVersion.edges?.length || 0}
                 </div>
               </div>
               <div style={{
-                background: 'rgba(30,41,59,0.5)', padding: 16, borderRadius: 10,
-                border: '1px solid rgba(148,163,184,0.1)',
+                background: 'var(--card)', padding: 16, borderRadius: 10,
+                border: '1px solid var(--border)',
               }}>
-                <div style={{ fontSize: 12, color: '#94a3b8' }}>Active Commands</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#818cf8', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Active Commands</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)', marginTop: 4 }}>
                   {selectedVersion.commands?.length || 0}
                 </div>
               </div>
@@ -303,12 +303,12 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
 
             {/* Nodes Breakdown in Snapshot */}
             <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: 8 }}>
                 Workflow Topology ({selectedVersion.nodes?.length || 0} Nodes)
               </div>
               <div style={{
-                background: 'rgba(30,41,59,0.5)', borderRadius: 10,
-                border: '1px solid rgba(148,163,184,0.1)', overflow: 'hidden',
+                background: 'var(--card)', borderRadius: 10,
+                border: '1px solid var(--border)', overflow: 'hidden',
               }}>
                 {(selectedVersion.nodes || []).map((node, i) => (
                   <div
@@ -316,23 +316,23 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 16px',
-                      borderBottom: i < (selectedVersion.nodes?.length || 0) - 1 ? '1px solid rgba(148,163,184,0.06)' : 'none',
+                      borderBottom: i < (selectedVersion.nodes?.length || 0) - 1 ? '1px solid var(--border)' : 'none',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{
-                        fontSize: 11, background: 'rgba(129,140,248,0.15)', color: '#818cf8',
+                        fontSize: 11, background: 'color-mix(in srgb, var(--primary) 15%, transparent)', color: 'var(--primary)',
                         padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace',
                       }}>
                         {node.type}
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
                         {node.data?.label || node.id}
                       </span>
                     </div>
                     {node.data?.config?.message && (
                       <span style={{
-                        fontSize: 12, color: '#94a3b8', maxWidth: 260,
+                        fontSize: 12, color: 'var(--muted-foreground)', maxWidth: 260,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {node.data.config.message}
@@ -346,7 +346,7 @@ export function VersionHistory({ workflowId, currentVersion, onRollback }: Props
         ) : (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flex: 1, color: '#64748b', fontSize: 14,
+            flex: 1, color: 'var(--muted-foreground)', fontSize: 14,
           }}>
             Select a version on the left to inspect its snapshot details.
           </div>

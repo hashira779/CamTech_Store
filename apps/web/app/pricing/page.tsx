@@ -191,9 +191,9 @@ export default function PricingPage() {
           <div className="card p-4 border-border flex items-center justify-between">
             <div>
               <div className="text-xs text-muted-foreground font-medium">Customer Type Defaults</div>
-              <div className="text-2xl font-bold text-emerald-400 mt-1">{defaultListsCount}</div>
+              <div className="text-2xl font-bold text-success mt-1">{defaultListsCount}</div>
             </div>
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="p-2.5 rounded-lg bg-success/10 text-success">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
@@ -201,9 +201,9 @@ export default function PricingPage() {
           <div className="card p-4 border-border flex items-center justify-between">
             <div>
               <div className="text-xs text-muted-foreground font-medium">Configured Price Tiers</div>
-              <div className="text-2xl font-bold text-blue-400 mt-1">{totalOverridesConfigured}</div>
+              <div className="text-2xl font-bold text-info mt-1">{totalOverridesConfigured}</div>
             </div>
-            <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
+            <div className="p-2.5 rounded-lg bg-info/10 text-info">
               <Layers className="w-5 h-5" />
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function PricingPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border border-border bg-muted/40 text-foreground">
                           {pl.customerType}
                           {pl.isDefault && (
-                            <span className="text-[10px] font-bold text-emerald-400">(Default)</span>
+                            <span className="text-[10px] font-bold text-success">(Default)</span>
                           )}
                         </span>
                       ) : (
@@ -300,8 +300,8 @@ export default function PricingPage() {
                         }
                         className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                           pl.isActive
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                            ? 'bg-success/10 text-success border-success/20'
+                            : 'bg-accent/10 text-muted-foreground border-border/20'
                         }`}
                       >
                         {pl.isActive ? 'Active' : 'Disabled'}
@@ -337,7 +337,7 @@ export default function PricingPage() {
               </p>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}
@@ -485,7 +485,7 @@ export default function PricingPage() {
               </div>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}
@@ -645,7 +645,7 @@ export default function PricingPage() {
 
                             <td className="p-3 font-mono font-medium">
                               {item.minQuantity > 1 ? (
-                                <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">
+                                <span className="px-2 py-0.5 rounded bg-info/10 text-info font-bold border border-info/20">
                                   ≥ {item.minQuantity} units
                                 </span>
                               ) : (
@@ -663,7 +663,7 @@ export default function PricingPage() {
 
                             <td className="p-3">
                               {savings > 0 ? (
-                                <span className="text-emerald-400 font-semibold text-[11px]">
+                                <span className="text-success font-semibold text-[11px]">
                                   -${savings.toFixed(2)} ({savingsPct}%)
                                 </span>
                               ) : (
@@ -680,7 +680,7 @@ export default function PricingPage() {
                                       itemId: item.id,
                                     })
                                   }
-                                  className="p-1 hover:bg-red-500/10 rounded text-muted-foreground hover:text-red-400"
+                                  className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
                                   title="Remove override"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />

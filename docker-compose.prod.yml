@@ -11,12 +11,14 @@ services:
     image: postgres:16-alpine
     container_name: mystore-postgres
     restart: always
+    # Must stay above the sum of every process's pool; tests/test_deploy_config.py checks it.
+    command: ['postgres', '-c', 'max_connections=200']
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-camtech}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camtech123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-camtechStore}
     ports:
-      - '${POSTGRES_PORT_HOST:-5433}:5432'
+      - '${DATA_BIND_HOST:-127.0.0.1}:${POSTGRES_PORT_HOST:-5433}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -34,12 +36,12 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-camtech}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camtech123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-camtechStore}
       PGUSER: ${POSTGRES_USER:-camtech}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-camtech123}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - '${POSTGRES_REPLICA_PORT_HOST:-5434}:5432'
+      - '${DATA_BIND_HOST:-127.0.0.1}:${POSTGRES_REPLICA_PORT_HOST:-5434}:5432'
     volumes:
       - pgreplicadata:/var/lib/postgresql/data
     depends_on:
@@ -73,7 +75,7 @@ services:
     restart: always
     environment:
       - DB_USER=${POSTGRES_USER:-camtech}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-camtech123}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=${POSTGRES_DB:-camtechStore}
@@ -84,7 +86,7 @@ services:
       - LISTEN_PORT=6432
       - AUTH_TYPE=scram-sha-256
     ports:
-      - '6432:6432'
+      - '${DATA_BIND_HOST:-127.0.0.1}:6432:6432'
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,8 +102,8 @@ services:
     volumes:
       - ./infra/telemetry/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
-      - '4317:4317'
-      - '4318:4318'
+      - '${DATA_BIND_HOST:-127.0.0.1}:4317:4317'
+      - '${DATA_BIND_HOST:-127.0.0.1}:4318:4318'
     networks:
       - mystore-net
 
@@ -110,7 +112,7 @@ services:
     container_name: mystore-jaeger
     restart: always
     ports:
-      - '16686:16686'
+      - '${DATA_BIND_HOST:-127.0.0.1}:16686:16686'
     networks:
       - mystore-net
 
@@ -121,17 +123,25 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-api-gateway
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
-    command: python -m uvicorn app.microservices.gateway:gateway --host 0.0.0.0 --port 4000 --workers 2
+    command: python -m uvicorn app.microservices.gateway:gateway --host 0.0.0.0 --port 4000 --workers ${GATEWAY_WORKERS:-4}
     ports:
       - '${API_GATEWAY_PORT_HOST:-4010}:4000'
     security_opt:
       - no-new-privileges:true
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
       - AUTH_SERVICE_URL=http://auth-service:4001
       - CATALOG_SERVICE_URL=http://catalog-service:4002
       - SALES_SERVICE_URL=http://sales-service:4003
@@ -156,15 +166,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-auth-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4001/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
-    command: python -m uvicorn app.microservices.auth_service:app --host 0.0.0.0 --port 4001 --workers 1
+    command: python -m uvicorn app.microservices.auth_service:app --host 0.0.0.0 --port 4001 --workers ${AUTH_WORKERS:-2}
     ports:
       - '127.0.0.1:4001:4001'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -179,15 +197,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-catalog-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4002/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
-    command: python -m uvicorn app.microservices.catalog_service:app --host 0.0.0.0 --port 4002 --workers 1
+    command: python -m uvicorn app.microservices.catalog_service:app --host 0.0.0.0 --port 4002 --workers ${CATALOG_WORKERS:-2}
     ports:
       - '127.0.0.1:4002:4002'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -202,15 +228,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-sales-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4003/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
-    command: python -m uvicorn app.microservices.sales_service:app --host 0.0.0.0 --port 4003 --workers 1
+    command: python -m uvicorn app.microservices.sales_service:app --host 0.0.0.0 --port 4003 --workers ${SALES_WORKERS:-2}
     ports:
       - '127.0.0.1:4003:4003'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -225,16 +259,24 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-delivery-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4004/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.delivery_service:app --host 0.0.0.0 --port 4004 --workers 1
     ports:
       - '127.0.0.1:4004:4004'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -249,15 +291,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-hr-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4005/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.hr_service:app --host 0.0.0.0 --port 4005 --workers 1
     ports:
       - '127.0.0.1:4005:4005'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -272,15 +322,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-finance-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4006/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.finance_service:app --host 0.0.0.0 --port 4006 --workers 1
     ports:
       - '127.0.0.1:4006:4006'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -295,15 +353,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-platform-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4007/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.platform_service:app --host 0.0.0.0 --port 4007 --workers 1
     ports:
       - '127.0.0.1:4007:4007'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -318,16 +384,24 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-bot-builder-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4008/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.bot_builder_service:app --host 0.0.0.0 --port 4008 --workers 1
     ports:
       - '127.0.0.1:4008:4008'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8846591226:AAEELFOvzsoPuB-fQVYTSrkix01YwOLpKeY}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - GATEWAY_URL=${GATEWAY_URL:-https://gateway.camtech.cam}
     depends_on:
       postgres:
@@ -343,15 +417,23 @@ services:
       dockerfile: Dockerfile
     container_name: mystore-infra-service
     restart: always
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4009/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     env_file:
       - .env
     command: python -m uvicorn app.microservices.infra_service:app --host 0.0.0.0 --port 4009 --workers 1
     ports:
       - '127.0.0.1:4009:4009'
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:-camtech123}@postgres:5432/${POSTGRES_DB:-camtechStore}
-      - JWT_SECRET=${JWT_SECRET:-mystore_super_secret_jwt_key_2026_enterprise_standard}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-camtech}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-camtechStore}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - REDIS_URL=redis://redis:6379/0
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-6}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-4}
     depends_on:
       postgres:
         condition: service_healthy
@@ -368,6 +450,12 @@ services:
       target: store-app
     container_name: mystore-store-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${STORE_PORT_HOST:-5001}:80'
     networks:
@@ -380,6 +468,12 @@ services:
       target: admin-app
     container_name: mystore-admin-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${ADMIN_PORT_HOST:-5002}:80'
     networks:
@@ -395,6 +489,12 @@ services:
       target: pos-app
     container_name: mystore-pos-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${POS_PORT_HOST:-5003}:80'
     networks:
@@ -407,6 +507,12 @@ services:
       target: delivery-app
     container_name: mystore-delivery-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${DELIVERY_PORT_HOST:-5004}:80'
     networks:
@@ -419,6 +525,12 @@ services:
       target: hr-app
     container_name: mystore-hr-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${HR_PORT_HOST:-5005}:80'
     networks:
@@ -431,6 +543,12 @@ services:
       target: ceo-app
     container_name: mystore-ceo-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${CEO_PORT_HOST:-5008}:80'
     networks:
@@ -444,6 +562,12 @@ services:
       target: infra-app
     container_name: mystore-infra-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${INFRA_PORT_HOST:-5009}:80'
     networks:
@@ -457,6 +581,12 @@ services:
       target: mini-app
     container_name: mystore-mini-app
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${MINI_PORT_HOST:-5007}:80'
     networks:
@@ -467,6 +597,12 @@ services:
     image: nginx:1.27-alpine
     container_name: mystore-nginx-ingress
     restart: always
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - '${INGRESS_PORT_HOST:-8090}:80'
     security_opt:

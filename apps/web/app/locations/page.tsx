@@ -48,13 +48,13 @@ const TYPE_ICONS: Record<LocationType, any> = {
 };
 
 const TYPE_COLORS: Record<LocationType, string> = {
-  COMPANY: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  COMPANY: 'bg-warning/10 text-warning border-warning/20',
   BUSINESS_UNIT: 'bg-primary/10 text-primary border-primary/20',
-  REGION: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  BRANCH: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  DEPARTMENT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  WAREHOUSE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  POS: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  REGION: 'bg-info/10 text-info border-info/20',
+  BRANCH: 'bg-info/10 text-info border-info/20',
+  DEPARTMENT: 'bg-warning/10 text-warning border-warning/20',
+  WAREHOUSE: 'bg-success/10 text-success border-success/20',
+  POS: 'bg-warning/10 text-warning border-warning/20',
 };
 
 export function LocationsPage() {
@@ -232,28 +232,28 @@ export function LocationsPage() {
             title="Total Nodes"
             value={totalLocations}
             icon={Building2}
-            iconColor="text-blue-500"
+            iconColor="text-info"
             isLoading={isListLoading}
           />
           <KpiCard
             title="Retail Stores & Branches"
             value={branchCount}
             icon={Store}
-            iconColor="text-emerald-500"
+            iconColor="text-success"
             isLoading={isListLoading}
           />
           <KpiCard
             title="Warehouses & Hubs"
             value={warehouseCount}
             icon={MapPin}
-            iconColor="text-amber-500"
+            iconColor="text-warning"
             isLoading={isListLoading}
           />
           <KpiCard
             title="POS Stations"
             value={posCount}
             icon={Laptop}
-            iconColor="text-orange-500"
+            iconColor="text-warning"
             isLoading={isListLoading}
           />
         </div>

@@ -54,13 +54,14 @@ shadow and transform only — width/height changes snap. For progress bars anima
 2. Fully keyboard reachable; focus ring visible (`focus-visible:ring-2 ring-ring`).
 3. Headless primitives from `components/ui` (Radix/shadcn) — no heavyweight UI kits.
 4. Presentation components are pure; data fetching lives in hooks (`useXxxQuery`) or the page shell.
-5. No new hex literals — CI-reviewable with `grep -rE "#[0-9a-fA-F]{6}" apps/web/app apps/web/src`.
+5. No new hex literals — enforced per file by `pnpm ui:check` (baseline: `apps/web/ui-token-baseline.json`).
+   After burning debt down, run `node scripts/check-ui-tokens.mjs --update` to lock the gain in.
 
 ## 7. Current debt (measured 2026-10-29, `apps/web`)
 
 | Metric | Count | Hotspots |
 |---|---|---|
-| Hex literals in `.tsx` | 696 in 26 files (243 as `bg-[#…]` classes) | `app/bot-builder/*`, `src/apps/infra/views/*`, `app/sales/page.tsx` |
+| Hex literals in `.tsx` | See `apps/web/ui-token-baseline.json` | Consumer surfaces (`app/mini`, `app/driver`), the printable invoice, chart and node series colors |
 | `backdrop-blur` | 40 | infra views, mini app |
 | `animate-pulse` / `animate-spin` / `animate-ping` | 43 / 36 / 8 | review for decorative use |
 | `<table>` elements / virtualized lists | 42 / 0 | large lists in sales, inventory, infra logs |

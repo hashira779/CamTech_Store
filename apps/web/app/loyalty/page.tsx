@@ -181,12 +181,12 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-warning/10 text-warning">
                 <Coins className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Points in Circulation</p>
-                <p className="text-xl font-bold text-amber-400 font-mono">
+                <p className="text-xl font-bold text-warning font-mono">
                   {totalPointsCirculating.toLocaleString()} pts
                 </p>
               </div>
@@ -195,12 +195,12 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-success/10 text-success">
                 <CreditCard className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Outstanding Store Credit</p>
-                <p className="text-xl font-bold text-emerald-400 font-mono">
+                <p className="text-xl font-bold text-success font-mono">
                   ${totalStoreCreditBalance.toFixed(2)}
                 </p>
               </div>
@@ -209,12 +209,12 @@ export default function LoyaltyPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-orange-500/10 text-orange-500">
+              <div className="p-2.5 rounded-lg bg-warning/10 text-warning">
                 <Crown className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Platinum VIPs</p>
-                <p className="text-xl font-bold text-orange-500 font-mono">{platinumMembers}</p>
+                <p className="text-xl font-bold text-warning font-mono">{platinumMembers}</p>
               </div>
             </div>
           </div>
@@ -298,10 +298,10 @@ export default function LoyaltyPage() {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               tx.type === 'EARN'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-success/10 text-success border border-success/20'
                                 : tx.type === 'REDEEM'
-                                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
-                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                ? 'bg-warning/10 text-warning border border-warning/20'
+                                : 'bg-info/10 text-info border border-info/20'
                             }`}
                           >
                             {tx.type}
@@ -309,7 +309,7 @@ export default function LoyaltyPage() {
                         </td>
                         <td
                           className={`py-3 px-4 font-mono font-bold ${
-                            tx.points >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                            tx.points >= 0 ? 'text-success' : 'text-destructive'
                           }`}
                         >
                           {tx.points >= 0 ? `+${tx.points}` : tx.points} pts
@@ -366,8 +366,8 @@ export default function LoyaltyPage() {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               tx.type === 'CREDIT'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                ? 'bg-success/10 text-success border border-success/20'
+                                : 'bg-warning/10 text-warning border border-warning/20'
                             }`}
                           >
                             {tx.type}
@@ -375,7 +375,7 @@ export default function LoyaltyPage() {
                         </td>
                         <td
                           className={`py-3 px-4 font-mono font-bold ${
-                            tx.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                            tx.amount >= 0 ? 'text-success' : 'text-destructive'
                           }`}
                         >
                           {tx.amount >= 0 ? `+$${tx.amount.toFixed(2)}` : `-$${Math.abs(tx.amount).toFixed(2)}`}
@@ -476,14 +476,14 @@ export default function LoyaltyPage() {
             {/* Tier Multipliers Breakdown */}
             <div className="card p-5 border-border bg-card space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-border">
-                <Crown className="w-4 h-4 text-amber-400" />
+                <Crown className="w-4 h-4 text-warning" />
                 <h3 className="font-bold text-sm text-foreground">VIP Tier Progression</h3>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div className="p-3 rounded-lg border border-border bg-muted/10 flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-amber-600 block">BRONZE (Default)</span>
+                    <span className="font-bold text-warning block">BRONZE (Default)</span>
                     <span className="text-[11px] text-muted-foreground">Annual spend $0 - $499</span>
                   </div>
                   <span className="font-mono font-bold text-foreground">1.0x Points</span>
@@ -491,7 +491,7 @@ export default function LoyaltyPage() {
 
                 <div className="p-3 rounded-lg border border-border bg-muted/10 flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-slate-300 block">SILVER VIP</span>
+                    <span className="font-bold text-foreground block">SILVER VIP</span>
                     <span className="text-[11px] text-muted-foreground">Annual spend $500 - $1,499</span>
                   </div>
                   <span className="font-mono font-bold text-primary">1.25x Points</span>
@@ -499,20 +499,20 @@ export default function LoyaltyPage() {
 
                 <div className="p-3 rounded-lg border border-border bg-muted/10 flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-amber-400 block">GOLD VIP</span>
+                    <span className="font-bold text-warning block">GOLD VIP</span>
                     <span className="text-[11px] text-muted-foreground">Annual spend $1,500 - $4,999</span>
                   </div>
-                  <span className="font-mono font-bold text-amber-400">1.5x Points</span>
+                  <span className="font-mono font-bold text-warning">1.5x Points</span>
                 </div>
 
-                <div className="p-3 rounded-lg border border-border bg-orange-500/10 border-orange-500/20 flex justify-between items-center">
+                <div className="p-3 rounded-lg border border-border bg-warning/10 border-warning/20 flex justify-between items-center">
                   <div>
-                    <span className="font-bold text-orange-500 block flex items-center gap-1">
+                    <span className="font-bold text-warning block flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> PLATINUM ELITE
                     </span>
                     <span className="text-[11px] text-muted-foreground">Annual spend $5,000+</span>
                   </div>
-                  <span className="font-mono font-bold text-orange-500">2.0x Points</span>
+                  <span className="font-mono font-bold text-warning">2.0x Points</span>
                 </div>
               </div>
             </div>
@@ -538,7 +538,7 @@ export default function LoyaltyPage() {
               </div>
 
               {formError && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs">
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs">
                   {formError}
                 </div>
               )}

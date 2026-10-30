@@ -1,0 +1,14 @@
+{
+  "apps/web/app/bot-builder/components/ExecutionDebugger.tsx": 4,
+  "apps/web/app/bot-builder/components/NodeLibrary.tsx": 4,
+  "apps/web/app/bot-builder/components/VersionHistory.tsx": 1,
+  "apps/web/app/bot-builder/components/VisualBuilder.tsx": 19,
+  "apps/web/app/dashboard/page.tsx": 3,
+  "apps/web/app/driver/page.tsx": 4,
+  "apps/web/app/mini/page.tsx": 11,
+  "apps/web/app/procurement/page.tsx": 1,
+  "apps/web/app/sales/page.tsx": 26,
+  "apps/web/src/apps/infra/components/TopologyGraph.tsx": 31,
+  "apps/web/src/apps/infra/views/CloudflareView.tsx": 1,
+  "apps/web/src/apps/infra/views/DockerView.tsx": 3
+}

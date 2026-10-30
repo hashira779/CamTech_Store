@@ -125,13 +125,13 @@ const AbaLogo = ({ className }: { className?: string }) => (
 );
 
 const BakongLogo = ({ className }: { className?: string }) => (
-  <div className={`flex items-center justify-center bg-gradient-to-r from-[#E1251B] to-[#b3140c] text-white font-black text-[10px] tracking-wider rounded-xl select-none px-2 py-1 shadow-sm border border-rose-400/30 ${className}`}>
+  <div className={`flex items-center justify-center bg-gradient-to-r from-[#E1251B] to-[#b3140c] text-white font-black text-[10px] tracking-wider rounded-xl select-none px-2 py-1 shadow-sm border border-destructive/30 ${className}`}>
     <span>KHQR</span>
   </div>
 );
 
 const CashLogo = ({ className }: { className?: string }) => (
-  <div className={`flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-[10px] rounded-xl select-none px-2 py-1 shadow-sm border border-emerald-400/30 ${className}`}>
+  <div className={`flex items-center justify-center bg-gradient-to-r from-success to-success text-white font-black text-[10px] rounded-xl select-none px-2 py-1 shadow-sm border border-success/30 ${className}`}>
     <span>COD 💵</span>
   </div>
 );
@@ -700,13 +700,13 @@ export default function TelegramMiniAppPage() {
       {/* ── Top Bar / Header ────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-[var(--tg-theme-bg-color,#0f172a)]/90 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-warning to-warning text-white flex items-center justify-center shadow-md shadow-amber-500/20">
             <Coffee className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="font-bold text-base leading-tight tracking-tight">{shopName}</h1>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Open Now" />
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" title="Open Now" />
             </div>
             <p className="text-[10px] text-white/50 flex items-center gap-1">
               <Clock className="w-3 h-3" /> Open Daily 7:00 AM – 8:00 PM
@@ -719,10 +719,10 @@ export default function TelegramMiniAppPage() {
           onClick={() => { triggerHaptic('selection'); setActiveTab('cart'); }}
           className="relative flex items-center gap-1.5 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
         >
-          <ShoppingBag className="w-4 h-4 text-amber-400" />
+          <ShoppingBag className="w-4 h-4 text-warning" />
           <span>${cartTotal.toFixed(2)}</span>
           {cartItemCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-black text-[10px] font-extrabold flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-warning text-black text-[10px] font-extrabold flex items-center justify-center">
               {cartItemCount}
             </span>
           )}
@@ -744,7 +744,7 @@ export default function TelegramMiniAppPage() {
                 placeholder="Search coffee, drinks, bakery..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-white/30"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-warning/50 transition-colors placeholder:text-white/30"
               />
             </div>
 
@@ -759,7 +759,7 @@ export default function TelegramMiniAppPage() {
                     onClick={() => { triggerHaptic('selection'); setSelectedCategory(cat.id); }}
                     className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                       isSelected 
-                        ? 'bg-amber-500 text-black shadow-md shadow-amber-500/25 scale-100 font-bold' 
+                        ? 'bg-warning text-black shadow-md shadow-amber-500/25 scale-100 font-bold' 
                         : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'
                     }`}
                   >
@@ -783,7 +783,7 @@ export default function TelegramMiniAppPage() {
                 <p className="text-sm font-medium">No items found in this section</p>
                 <button 
                   onClick={() => { setSelectedCategory('ALL'); setSearchQuery(''); }}
-                  className="mt-3 text-xs text-amber-400 font-semibold"
+                  className="mt-3 text-xs text-warning font-semibold"
                 >
                   View All Menu
                 </button>
@@ -806,7 +806,7 @@ export default function TelegramMiniAppPage() {
                         ) : (
                           <Coffee className="w-10 h-10 text-white/20" />
                         )}
-                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-300 border border-white/10">
+                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur text-[10px] font-bold px-2 py-0.5 rounded-full text-warning border border-white/10">
                           ${price.toFixed(2)}
                         </div>
                       </div>
@@ -820,12 +820,12 @@ export default function TelegramMiniAppPage() {
 
                       <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-extrabold text-amber-400">${price.toFixed(2)}</span>
+                          <span className="text-xs font-extrabold text-warning">${price.toFixed(2)}</span>
                           <span className="text-[9px] text-white/40 block">{(price * KHR_RATE).toLocaleString()} ៛</span>
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); openCustomizer(p); }}
-                          className="w-7 h-7 rounded-xl bg-amber-500 text-black flex items-center justify-center shadow-sm shadow-amber-500/20 active:scale-90 transition-transform"
+                          className="w-7 h-7 rounded-xl bg-warning text-black flex items-center justify-center shadow-sm shadow-amber-500/20 active:scale-90 transition-transform"
                         >
                           <Plus className="w-4 h-4 stroke-[2.5]" />
                         </button>
@@ -843,13 +843,13 @@ export default function TelegramMiniAppPage() {
           <div className="space-y-5 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-lg flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-amber-400" />
+                <ShoppingBag className="w-5 h-5 text-warning" />
                 <span>Your Order</span>
               </h2>
               {cart.length > 0 && (
                 <button 
                   onClick={() => { setCart([]); toast.info("Cart cleared"); }}
-                  className="text-xs text-rose-400 hover:underline"
+                  className="text-xs text-destructive hover:underline"
                 >
                   Clear All
                 </button>
@@ -862,7 +862,7 @@ export default function TelegramMiniAppPage() {
                 <p className="font-semibold text-sm">Your order is empty</p>
                 <button
                   onClick={() => setActiveTab('menu')}
-                  className="px-5 py-2.5 rounded-2xl bg-amber-500 text-black font-bold text-xs shadow-md shadow-amber-500/20"
+                  className="px-5 py-2.5 rounded-2xl bg-warning text-black font-bold text-xs shadow-md shadow-amber-500/20"
                 >
                   Browse Delicious Coffee
                 </button>
@@ -889,10 +889,10 @@ export default function TelegramMiniAppPage() {
                           <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.sugarLevel} sugar</span>
                           <span className="bg-white/10 px-1.5 py-0.5 rounded">{item.iceLevel}</span>
                           {item.addOns.map((a, i) => (
-                            <span key={i} className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">+{a}</span>
+                            <span key={i} className="bg-warning/20 text-warning px-1.5 py-0.5 rounded">+{a}</span>
                           ))}
                         </div>
-                        <p className="text-xs font-bold text-amber-400 mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-xs font-bold text-warning mt-1">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
 
                       <div className="flex items-center bg-black/40 rounded-full border border-white/10">
@@ -917,7 +917,7 @@ export default function TelegramMiniAppPage() {
                 {/* Recipient / Delivery Info */}
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
                   <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Delivery Destination
+                    <MapPin className="w-3.5 h-3.5 text-success" /> Delivery Destination
                   </h3>
                   
                   <div className="space-y-2">
@@ -926,25 +926,25 @@ export default function TelegramMiniAppPage() {
                       placeholder="Your Full Name..."
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50"
                     />
                     <input 
                       type="tel"
                       placeholder="Phone Number (e.g. 012 345 678)..."
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50"
                     />
                     <textarea 
                       placeholder="Detailed address (Street, Khan, Sangkat)..."
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
                       rows={2}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50 resize-none"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50 resize-none"
                     />
                     <button
                       onClick={requestLocation}
-                      className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      className="w-full bg-success/10 hover:bg-success/20 text-success border border-success/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <MapIcon className="w-3.5 h-3.5" />
                       {locationEnabled ? 'Location Pin Saved ✓' : 'Pin My Current Location'}
@@ -963,7 +963,7 @@ export default function TelegramMiniAppPage() {
                       onClick={() => { triggerHaptic('selection'); setPaymentMethod('ABA_PAYWAY'); }}
                       className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
                         paymentMethod === 'ABA_PAYWAY'
-                          ? 'bg-blue-600/25 border-blue-500 text-blue-300 shadow-md shadow-blue-500/20 ring-1 ring-blue-400/50'
+                          ? 'bg-info/25 border-info text-info shadow-md shadow-blue-500/20 ring-1 ring-info/50'
                           : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
                     >
@@ -982,7 +982,7 @@ export default function TelegramMiniAppPage() {
                       onClick={() => { triggerHaptic('selection'); setPaymentMethod('BAKONG'); }}
                       className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
                         paymentMethod === 'BAKONG'
-                          ? 'bg-rose-600/25 border-rose-500 text-rose-300 shadow-md shadow-rose-500/20 ring-1 ring-rose-400/50'
+                          ? 'bg-destructive/25 border-destructive text-destructive shadow-md shadow-rose-500/20 ring-1 ring-destructive/50'
                           : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
                     >
@@ -1000,7 +1000,7 @@ export default function TelegramMiniAppPage() {
                       onClick={() => { triggerHaptic('selection'); setPaymentMethod('COD'); }}
                       className={`p-2.5 rounded-2xl border flex flex-col items-center justify-between text-center gap-1.5 transition-all ${
                         paymentMethod === 'COD'
-                          ? 'bg-emerald-600/25 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/50'
+                          ? 'bg-success/25 border-success text-success shadow-md shadow-emerald-500/20 ring-1 ring-success/50'
                           : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                       }`}
                     >
@@ -1021,19 +1021,19 @@ export default function TelegramMiniAppPage() {
                   </div>
                   <div className="flex justify-between text-xs text-white/60">
                     <span>Delivery Fee</span>
-                    <span className="text-emerald-400 font-bold">Free (Promotion)</span>
+                    <span className="text-success font-bold">Free (Promotion)</span>
                   </div>
                   <div className="border-t border-white/10 pt-2 flex justify-between items-baseline">
                     <span className="font-bold text-sm">Total Amount</span>
                     <div className="text-right">
-                      <span className="font-extrabold text-lg text-amber-400">${cartTotal.toFixed(2)}</span>
+                      <span className="font-extrabold text-lg text-warning">${cartTotal.toFixed(2)}</span>
                       <span className="text-[10px] text-white/40 block">{(cartTotal * KHR_RATE).toLocaleString()} ៛</span>
                     </div>
                   </div>
 
                   <button
                     onClick={handleCheckout}
-                    className="w-full mt-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-transform"
+                    className="w-full mt-3 bg-gradient-to-r from-warning to-warning hover:from-warning hover:to-warning text-black py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-transform"
                   >
                     <span>Place Order & Pay</span>
                     <ChevronRight className="w-4 h-4 stroke-[3]" />
@@ -1050,7 +1050,7 @@ export default function TelegramMiniAppPage() {
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-lg flex items-center gap-2">
-                <History className="w-5 h-5 text-amber-400" />
+                <History className="w-5 h-5 text-warning" />
                 <span>Order History</span>
               </h2>
               <div className="flex items-center gap-2">
@@ -1059,7 +1059,7 @@ export default function TelegramMiniAppPage() {
                   className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                   title="Refresh orders from database"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin text-amber-400' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin text-warning' : ''}`} />
                 </button>
                 <span className="text-xs text-white/40">{pastOrders.length} orders</span>
               </div>
@@ -1071,7 +1071,7 @@ export default function TelegramMiniAppPage() {
                 <p className="font-semibold text-sm">No previous orders yet</p>
                 <button
                   onClick={() => setActiveTab('menu')}
-                  className="px-5 py-2.5 rounded-2xl bg-amber-500 text-black font-bold text-xs"
+                  className="px-5 py-2.5 rounded-2xl bg-warning text-black font-bold text-xs"
                 >
                   Order Fresh Coffee Now
                 </button>
@@ -1092,9 +1092,9 @@ export default function TelegramMiniAppPage() {
                           <div className="flex items-center gap-2">
                             <span className="font-black text-sm text-white">{ord.saleNumber}</span>
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                              isPaid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                              isPending ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                              'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                              isPaid ? 'bg-success/20 text-success border border-success/30' :
+                              isPending ? 'bg-warning/20 text-warning border border-warning/30' :
+                              'bg-info/20 text-info border border-info/30'
                             }`}>
                               {isPaid ? 'PAID & RECORDED' : ord.status}
                             </span>
@@ -1105,7 +1105,7 @@ export default function TelegramMiniAppPage() {
                         </div>
 
                         <div className="text-right">
-                          <span className="font-bold text-sm text-amber-400">${ord.total.toFixed(2)}</span>
+                          <span className="font-bold text-sm text-warning">${ord.total.toFixed(2)}</span>
                           <span className="text-[9px] text-white/40 block">{(ord.total * KHR_RATE).toLocaleString()} ៛</span>
                         </div>
                       </div>
@@ -1129,7 +1129,7 @@ export default function TelegramMiniAppPage() {
                         </div>
 
                         <div className="text-right">
-                          <span className={`text-[10px] font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          <span className={`text-[10px] font-bold ${isPaid ? 'text-success' : 'text-warning'}`}>
                             {isPaid ? '✓ Recorded in DB' : '⏳ Pending'}
                           </span>
                           {ord.paidAt && (
@@ -1154,7 +1154,7 @@ export default function TelegramMiniAppPage() {
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           onClick={() => handleReorder(ord)}
-                          className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          className="flex-1 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                         >
                           <RefreshCw className="w-3.5 h-3.5" /> Re-order
                         </button>
@@ -1178,7 +1178,7 @@ export default function TelegramMiniAppPage() {
         {activeTab === 'profile' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <h2 className="font-bold text-lg flex items-center gap-2">
-              <User className="w-5 h-5 text-amber-400" />
+              <User className="w-5 h-5 text-warning" />
               <span>Customer Profile</span>
             </h2>
 
@@ -1189,27 +1189,27 @@ export default function TelegramMiniAppPage() {
                   <img
                     src={customer.photoUrl}
                     alt={customerName}
-                    className="w-14 h-14 rounded-2xl object-cover border border-amber-500/40 shadow-md"
+                    className="w-14 h-14 rounded-2xl object-cover border border-warning/40 shadow-md"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-700 text-black font-extrabold text-xl flex items-center justify-center shadow-md">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-warning to-warning text-black font-extrabold text-xl flex items-center justify-center shadow-md">
                     {customerName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-base truncate">{customer?.name || customerName}</h3>
-                    <span className="p-0.5 rounded-full bg-sky-500/20 text-sky-400" title="Telegram Verified">
+                    <span className="p-0.5 rounded-full bg-info/20 text-info" title="Telegram Verified">
                       <Bot className="w-3.5 h-3.5" />
                     </span>
                   </div>
                   {(customer?.telegramUsername || WebApp.initDataUnsafe?.user?.username) && (
-                    <p className="text-xs text-sky-400 font-medium">
+                    <p className="text-xs text-info font-medium">
                       @{customer?.telegramUsername || WebApp.initDataUnsafe?.user?.username}
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="bg-warning/20 text-warning border border-warning/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Sparkles className="w-2.5 h-2.5" />
                       {customer?.loyaltyPoints || 100} Pts ({customer?.loyaltyTier || 'BRONZE'})
                     </span>
@@ -1221,19 +1221,19 @@ export default function TelegramMiniAppPage() {
               </div>
 
               {/* Telegram Auto-Sync Status */}
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between text-xs text-emerald-300">
+              <div className="bg-success/10 border border-success/20 rounded-2xl p-3 flex items-center justify-between text-xs text-success">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-success shrink-0" />
                   <span>Auto-registered via Telegram in DB</span>
                 </div>
-                <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded font-bold">PostgreSQL ✓</span>
+                <span className="text-[10px] bg-success/20 px-2 py-0.5 rounded font-bold">PostgreSQL ✓</span>
               </div>
             </div>
 
             {/* Contact Details & Sync Card */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
               <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-amber-400" /> Phone & Delivery Info
+                <Phone className="w-3.5 h-3.5 text-warning" /> Phone & Delivery Info
               </h3>
 
               <div className="space-y-3">
@@ -1245,13 +1245,13 @@ export default function TelegramMiniAppPage() {
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="e.g. 012 345 678"
-                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50"
                     />
                     <button
                       type="button"
                       disabled={isUpdatingContact}
                       onClick={() => syncContactWithServer()}
-                      className="bg-amber-500 text-black px-3 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
+                      className="bg-warning text-black px-3 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
                     >
                       {isUpdatingContact ? 'Saving...' : 'Save Phone'}
                     </button>
@@ -1266,7 +1266,7 @@ export default function TelegramMiniAppPage() {
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
                       placeholder="Street, Khan, Sangkat..."
-                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                      className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50"
                     />
                     <button
                       type="button"
@@ -1284,7 +1284,7 @@ export default function TelegramMiniAppPage() {
             {/* Store Information */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
               <h3 className="font-bold text-xs text-white/70 uppercase tracking-wider flex items-center gap-1.5">
-                <Store className="w-3.5 h-3.5 text-amber-400" /> Store Information
+                <Store className="w-3.5 h-3.5 text-warning" /> Store Information
               </h3>
               
               <div className="space-y-2 text-xs">
@@ -1302,7 +1302,7 @@ export default function TelegramMiniAppPage() {
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-white/60">Operating Status</span>
-                  <span className="text-emerald-400 font-bold">Open for Orders 🟢</span>
+                  <span className="text-success font-bold">Open for Orders 🟢</span>
                 </div>
               </div>
             </div>
@@ -1315,8 +1315,8 @@ export default function TelegramMiniAppPage() {
             <div className="text-center space-y-1">
               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-2 ${
                 activePaymentSale.provider === 'ABA_PAYWAY'
-                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  ? 'bg-info/20 text-info border-info/30'
+                  : 'bg-destructive/20 text-destructive border-destructive/30'
               }`}>
                 {activePaymentSale.provider === 'ABA_PAYWAY' ? (
                   <>
@@ -1336,7 +1336,7 @@ export default function TelegramMiniAppPage() {
               <p className="text-xs text-white/60">
                 Order <span className="font-bold text-white">{activePaymentSale.saleNumber}</span>
               </p>
-              <p className="text-lg font-black text-amber-400 mt-1">
+              <p className="text-lg font-black text-warning mt-1">
                 ${activePaymentSale.total.toFixed(2)} / {(activePaymentSale.total * KHR_RATE).toLocaleString()} ៛
               </p>
             </div>
@@ -1359,7 +1359,7 @@ export default function TelegramMiniAppPage() {
               </div>
             ) : (
               <div className="bg-white/5 p-8 rounded-3xl text-center">
-                <AlertCircle className="w-10 h-10 mx-auto text-amber-400 mb-2" />
+                <AlertCircle className="w-10 h-10 mx-auto text-warning mb-2" />
                 <p className="text-sm">Preparing merchant QR code...</p>
               </div>
             )}
@@ -1373,8 +1373,8 @@ export default function TelegramMiniAppPage() {
                   rel="noopener noreferrer"
                   className={`w-full flex items-center justify-center gap-2 text-white py-3.5 rounded-2xl font-bold text-xs shadow-lg transition-transform active:scale-95 ${
                     activePaymentSale.provider === 'ABA_PAYWAY'
-                      ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
-                      : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/25'
+                      ? 'bg-info hover:bg-info/90 shadow-blue-500/25'
+                      : 'bg-destructive hover:bg-destructive/90 shadow-rose-500/25'
                   }`}
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -1383,7 +1383,7 @@ export default function TelegramMiniAppPage() {
               )}
 
               <div className="flex items-center justify-center gap-2 text-xs text-white/50 pt-1">
-                <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPayment ? 'animate-spin text-amber-400' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isVerifyingPayment ? 'animate-spin text-warning' : ''}`} />
                 <span>Auto-detecting payment confirmation...</span>
               </div>
 
@@ -1428,7 +1428,7 @@ export default function TelegramMiniAppPage() {
                     onClick={() => { triggerHaptic('selection'); setSelectedSize(sz.name); }}
                     className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex justify-between items-center transition-all ${
                       selectedSize === sz.name 
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300' 
+                        ? 'bg-warning/20 border-warning text-warning' 
                         : 'bg-white/5 border-white/10 text-white/60'
                     }`}
                   >
@@ -1449,7 +1449,7 @@ export default function TelegramMiniAppPage() {
                     onClick={() => { triggerHaptic('selection'); setSelectedSugar(sug); }}
                     className={`py-2 rounded-xl text-[11px] font-bold border transition-all ${
                       selectedSugar === sug 
-                        ? 'bg-amber-500 border-amber-500 text-black' 
+                        ? 'bg-warning border-warning text-black' 
                         : 'bg-white/5 border-white/10 text-white/60'
                     }`}
                   >
@@ -1469,7 +1469,7 @@ export default function TelegramMiniAppPage() {
                     onClick={() => { triggerHaptic('selection'); setSelectedIce(ice); }}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
                       selectedIce === ice 
-                        ? 'bg-sky-500/20 border-sky-500 text-sky-300' 
+                        ? 'bg-info/20 border-info text-info' 
                         : 'bg-white/5 border-white/10 text-white/60'
                     }`}
                   >
@@ -1496,7 +1496,7 @@ export default function TelegramMiniAppPage() {
                       }}
                       className={`w-full py-2 px-3 rounded-xl border text-xs font-medium flex justify-between items-center transition-all ${
                         isChecked 
-                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' 
+                          ? 'bg-warning/15 border-warning/40 text-warning' 
                           : 'bg-white/5 border-white/5 text-white/60'
                       }`}
                     >
@@ -1516,7 +1516,7 @@ export default function TelegramMiniAppPage() {
                 placeholder="e.g. Extra hot, separate cup..."
                 value={itemNotes}
                 onChange={(e) => setItemNotes(e.target.value)}
-                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-500/50"
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-warning/50"
               />
             </div>
 
@@ -1540,7 +1540,7 @@ export default function TelegramMiniAppPage() {
 
               <button
                 onClick={confirmAddToCart}
-                className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold py-3 rounded-2xl text-xs flex justify-between px-4 items-center shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-transform"
+                className="flex-1 bg-gradient-to-r from-warning to-warning text-black font-extrabold py-3 rounded-2xl text-xs flex justify-between px-4 items-center shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-transform"
               >
                 <span>Add to Bag</span>
                 <span>${(calculateModalUnitPrice() * modalQuantity).toFixed(2)}</span>
@@ -1557,7 +1557,7 @@ export default function TelegramMiniAppPage() {
           <div className="bg-[var(--tg-theme-bg-color,#0f172a)] border border-white/15 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-amber-400" />
+                <Receipt className="w-5 h-5 text-warning" />
                 <h3 className="font-bold text-sm">Official Receipt</h3>
               </div>
               <button 
@@ -1584,7 +1584,7 @@ export default function TelegramMiniAppPage() {
               {viewingReceiptOrder.provider && (
                 <div className="flex justify-between">
                   <span className="text-white/50">Payment Provider</span>
-                  <span className="font-bold text-amber-400">{viewingReceiptOrder.provider}</span>
+                  <span className="font-bold text-warning">{viewingReceiptOrder.provider}</span>
                 </div>
               )}
               {viewingReceiptOrder.paymentReference && (
@@ -1596,15 +1596,15 @@ export default function TelegramMiniAppPage() {
               {viewingReceiptOrder.paidAt && (
                 <div className="flex justify-between">
                   <span className="text-white/50">Settlement Time</span>
-                  <span className="text-emerald-400 font-semibold">{new Date(viewingReceiptOrder.paidAt).toLocaleString()}</span>
+                  <span className="text-success font-semibold">{new Date(viewingReceiptOrder.paidAt).toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-white/50">Payment Status</span>
                 <span className={`font-bold ${
                   viewingReceiptOrder.status === 'PAID' || viewingReceiptOrder.status === 'COMPLETED'
-                    ? 'text-emerald-400'
-                    : 'text-amber-400'
+                    ? 'text-success'
+                    : 'text-warning'
                 }`}>
                   {viewingReceiptOrder.status === 'PAID' || viewingReceiptOrder.status === 'COMPLETED' ? '✓ PAID & RECORDED IN DB' : viewingReceiptOrder.status}
                 </span>
@@ -1627,7 +1627,7 @@ export default function TelegramMiniAppPage() {
               {/* Grand Total */}
               <div className="border-t border-white/10 pt-2 flex justify-between items-baseline font-black">
                 <span>Grand Total</span>
-                <span className="text-base text-amber-400">${viewingReceiptOrder.total.toFixed(2)}</span>
+                <span className="text-base text-warning">${viewingReceiptOrder.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1636,7 +1636,7 @@ export default function TelegramMiniAppPage() {
                 handleReorder(viewingReceiptOrder);
                 setViewingReceiptOrder(null);
               }}
-              className="w-full bg-amber-500 text-black py-2.5 rounded-xl font-bold text-xs"
+              className="w-full bg-warning text-black py-2.5 rounded-xl font-bold text-xs"
             >
               Order Again
             </button>
@@ -1651,7 +1651,7 @@ export default function TelegramMiniAppPage() {
         <button
           onClick={() => { triggerHaptic('selection'); setActiveTab('menu'); }}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeTab === 'menu' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
+            activeTab === 'menu' ? 'text-warning font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <Coffee className="w-5 h-5" />
@@ -1662,13 +1662,13 @@ export default function TelegramMiniAppPage() {
         <button
           onClick={() => { triggerHaptic('selection'); setActiveTab('cart'); }}
           className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeTab === 'cart' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
+            activeTab === 'cart' ? 'text-warning font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <div className="relative">
             <ShoppingBag className="w-5 h-5" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 px-1 min-w-[16px] h-4 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-2 px-1 min-w-[16px] h-4 rounded-full bg-warning text-black text-[9px] font-black flex items-center justify-center">
                 {cartItemCount}
               </span>
             )}
@@ -1680,7 +1680,7 @@ export default function TelegramMiniAppPage() {
         <button
           onClick={() => { triggerHaptic('selection'); setActiveTab('orders'); }}
           className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeTab === 'orders' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
+            activeTab === 'orders' ? 'text-warning font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <History className="w-5 h-5" />
@@ -1691,7 +1691,7 @@ export default function TelegramMiniAppPage() {
         <button
           onClick={() => { triggerHaptic('selection'); setActiveTab('profile'); }}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${
-            activeTab === 'profile' ? 'text-amber-400 font-bold' : 'text-white/40 hover:text-white/70'
+            activeTab === 'profile' ? 'text-warning font-bold' : 'text-white/40 hover:text-white/70'
           }`}
         >
           <User className="w-5 h-5" />

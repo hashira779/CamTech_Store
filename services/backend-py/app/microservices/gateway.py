@@ -1,12 +1,13 @@
+import asyncio
 import time
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from starlette.middleware.gzip import GZipMiddleware
-from app.core.config import settings
+from app.core.http_edge import add_cors, client_ip
+from app.microservices.registry import API_PREFIX, PLATFORM, SERVICES, resolve_service
 from app.microservices.gateway_dashboard import get_gateway_dashboard_html
 from app.core.static_assets import mount_static
 
@@ -51,7 +52,7 @@ async def gateway_lifespan(app: FastAPI):
 
 gateway = FastAPI(
     title="MyStore Universal Enterprise API Gateway (Port 4000)",
-    description="2026–2030 Cloud-Native API Gateway routing traffic to microservices on ports 4001-4007 with fault-tolerant local fallback.",
+    description="2026–2030 Cloud-Native API Gateway routing traffic to microservices on ports 4001-4009 with fault-tolerant local fallback.",
     version="2.0.0",
     docs_url=None,
     redoc_url=None,
@@ -98,68 +99,17 @@ async def custom_openapi_endpoint(request: Request, token: Optional[str] = None)
         )
     return JSONResponse(gateway.openapi())
 
-# CORS configuration allowing all frontend web applications (5001-5008)
-gateway.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam|camtech\.local|10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+)(:[0-9]+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+add_cors(gateway)
 
 # Response GZip compression for payloads >= 1KB (reduces bandwidth by 75-85%)
 gateway.add_middleware(GZipMiddleware, minimum_size=1000)
 
-import os
-
-# Routing Table: URL Prefix -> Target Microservice Port (Environment-aware for Docker)
-CATALOG = os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:4002")
-AUTH = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:4001")
-SALES = os.getenv("SALES_SERVICE_URL", "http://127.0.0.1:4003")
-# Platform & Experience service owns every domain not carved into a core service.
-PLATFORM_SERVICE_URL = os.getenv("PLATFORM_SERVICE_URL", "http://127.0.0.1:4007")
-
-BOT_BUILDER_SERVICE_URL = os.getenv("BOT_BUILDER_SERVICE_URL", "http://127.0.0.1:4008")
-INFRA_SERVICE_URL = os.getenv("INFRA_SERVICE_URL", "http://127.0.0.1:4009")
-
-ROUTING_MAP = {
-    "/api/v1/auth": AUTH,
-    "/api/v1/organizations": AUTH,
-    "/api/v1/locations": AUTH,
-    "/api/v1/products": CATALOG,
-    "/api/v1/public": CATALOG,
-    "/api/v1/categories": CATALOG,
-    "/api/v1/brands": CATALOG,
-    "/api/v1/inventory": CATALOG,
-    "/api/v1/warehouse": CATALOG,
-    "/api/v1/pricing": CATALOG,
-    "/api/v1/taxes": CATALOG,
-    "/api/v1/promotions": CATALOG,
-    "/api/v1/wms": CATALOG,
-    "/api/v1/sales": SALES,
-    "/api/v1/customers": SALES,
-    "/api/v1/loyalty": CATALOG,
-    "/api/v1/delivery": os.getenv("DELIVERY_SERVICE_URL", "http://127.0.0.1:4004"),
-    "/api/v1/hr": os.getenv("HR_SERVICE_URL", "http://127.0.0.1:4005"),
-    "/api/v1/finance": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
-    "/api/v1/accounts": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
-    "/api/v1/assets": os.getenv("FINANCE_SERVICE_URL", "http://127.0.0.1:4006"),
-    "/api/v1/developers": PLATFORM_SERVICE_URL,
-    "/api/v1/flows": PLATFORM_SERVICE_URL,
-    "/api/v1/telegram": PLATFORM_SERVICE_URL,
-    "/api/v1/bot-builder": BOT_BUILDER_SERVICE_URL,
-    "/api/v1/workflows": PLATFORM_SERVICE_URL,
-    "/api/v1/approvals": PLATFORM_SERVICE_URL,
-    "/api/v1/tickets": PLATFORM_SERVICE_URL,
-    "/api/v1/projects": PLATFORM_SERVICE_URL,
-    "/api/v1/documents": PLATFORM_SERVICE_URL,
-    "/api/v1/storage": PLATFORM_SERVICE_URL,
-    "/api/v1/notifications": PLATFORM_SERVICE_URL,
-    "/api/v1/reports": PLATFORM_SERVICE_URL,
-    "/api/v1/dashboard": PLATFORM_SERVICE_URL,
-    "/api/v1/infra": INFRA_SERVICE_URL,
-}
+# Never replayed in-process after the request may have reached the service.
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+# These fail before a single byte reaches the service, so a retry cannot double-apply.
+NOT_DELIVERED_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
+HOP_BY_HOP_HEADERS = frozenset({b"transfer-encoding", b"content-length", b"connection", b"keep-alive"})
+HEALTH_PROBE_TIMEOUT_SECONDS = 1.5
 
 # High-Concurrency Enterprise HTTP Connection Pool (sustains 3,000+ simultaneous requests)
 http_client = httpx.AsyncClient(
@@ -184,7 +134,7 @@ def custom_openapi():
         schema = dict(fb.openapi())
         schema["info"] = {
             "title": "MyStore Universal Enterprise API Gateway (Port 4000)",
-            "description": "2026–2030 Cloud-Native API Gateway routing traffic to 7 microservices with resilient fallback.",
+            "description": "2026–2030 Cloud-Native API Gateway routing traffic to 9 microservices with resilient fallback.",
             "version": "2.0.0",
         }
         gateway.openapi_schema = schema
@@ -207,35 +157,51 @@ async def gateway_root():
 async def gateway_favicon():
     return Response(status_code=204)
 
+async def _probe_service(service) -> str:
+    try:
+        response = await http_client.get(f"{service.url}/health", timeout=HEALTH_PROBE_TIMEOUT_SECONDS)
+    except httpx.HTTPError:
+        return "unreachable"
+    return "healthy" if response.status_code == 200 else "unhealthy"
+
+
 @gateway.get("/health")
 async def gateway_health():
+    # Always 200: this is the gateway's own liveness, and restarting it would not
+    # fix a downstream outage. Monitors read `status` for the fleet's state.
+    states = await asyncio.gather(*(_probe_service(service) for service in SERVICES))
     return {
-        "status": "healthy",
+        "status": "healthy" if all(state == "healthy" for state in states) else "degraded",
         "service": "api-gateway",
         "port": 4000,
-        "standard": "2026-2030 Enterprise Microservice Gateway",
-        "microservices": {
-            "auth": "healthy",
-            "catalog": "healthy",
-            "sales": "healthy",
-            "delivery": "healthy",
-            "hr": "healthy",
-            "finance": "healthy",
-            "platform": "healthy",
-        },
-        "mode": "Dynamic Reverse Proxy with In-Process Resilient Fallback"
+        "microservices": {service.key: state for service, state in zip(SERVICES, states)},
+        "mode": "Dynamic Reverse Proxy with In-Process Resilient Fallback",
     }
+
+
+def _proxied_response(content: bytes, status_code: int, raw_headers, body_decoded: bool = False) -> Response:
+    # httpx decompresses upstream bodies, which makes their content-encoding false;
+    # the in-process fallback hands over bytes still compressed by its own gzip layer.
+    # Raw headers, because a dict would keep only one of several Set-Cookie values.
+    dropped = HOP_BY_HOP_HEADERS | {b"content-encoding"} if body_decoded else HOP_BY_HOP_HEADERS
+    response = Response(content=content, status_code=status_code)
+    response.raw_headers = [
+        (name, value) for name, value in raw_headers if name.lower() not in dropped
+    ] + [(b"content-length", str(len(content)).encode("latin-1"))]
+    return response
+
+
+def _gateway_error(status_code: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={"success": False, "code": code, "message": message},
+    )
 
 
 def _record_gateway_traffic(request: Request, full_path: str, status_code: int, start_time: float, target_name: str):
     if not full_path.startswith("/api/v1") or "/events/stream" in full_path:
         return
     duration_ms = (time.time() - start_time) * 1000.0
-    client_ip = (
-        request.headers.get("X-Real-IP")
-        or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
-        or (request.client.host if request.client else "127.0.0.1")
-    ).strip()
     try:
         from app.modules.infra.service import LiveTrafficMonitor
         LiveTrafficMonitor.record(
@@ -243,7 +209,7 @@ def _record_gateway_traffic(request: Request, full_path: str, status_code: int, 
             path=full_path,
             status_code=status_code,
             duration_ms=duration_ms,
-            client_ip=client_ip,
+            client_ip=client_ip(request, default="127.0.0.1"),
             target_service=target_name,
             request_id=request.headers.get("x-request-id"),
             trace_id=request.headers.get("x-trace-id"),
@@ -257,23 +223,17 @@ async def route_gateway(request: Request, path: str):
     start_time = time.time()
     full_path = f"/{path}"
     
-    # 1. Determine destination microservice
+    # 1. Every /api/v1 route belongs to a microservice, so traffic always lands on
+    # one — the in-process fallback below is a safety net, never the primary path.
     target_base = None
-    target_service_name = "platform-service"
-    for prefix, target_url in ROUTING_MAP.items():
-        if full_path.startswith(prefix):
-            target_base = target_url
-            target_service_name = target_url.split("//")[-1]
-            break
-
-    # Every other /api/v1 route is owned by the Platform & Experience service, so
-    # traffic always lands on a microservice — the in-process fallback below is a
-    # safety net, never the primary path.
-    if target_base is None and full_path.startswith("/api/v1"):
-        target_base = PLATFORM_SERVICE_URL
-        target_service_name = "platform-service"
+    target_service_name = PLATFORM.key
+    if full_path == API_PREFIX or full_path.startswith(f"{API_PREFIX}/"):
+        service = resolve_service(full_path)
+        target_base = service.url
+        target_service_name = service.key
 
     is_sse = "text/event-stream" in request.headers.get("accept", "") or "/events/stream" in full_path
+    body = await request.body()
 
     # 2. If matching microservice found, attempt proxying
     if target_base:
@@ -282,7 +242,6 @@ async def route_gateway(request: Request, path: str):
             target_url += f"?{request.url.query}"
             
         try:
-            body = await request.body()
             headers = dict(request.headers)
             headers.pop("host", None)
             
@@ -308,39 +267,25 @@ async def route_gateway(request: Request, path: str):
                 content=body
             )
             
-            resp_headers = dict(proxy_resp.headers)
-            # httpx already decompressed the body, so the upstream content-length is
-            # stale; Response() recomputes it from the decoded content.
-            for hop in ("transfer-encoding", "content-encoding", "content-length", "connection", "keep-alive"):
-                resp_headers.pop(hop, None)
-
             _record_gateway_traffic(request, full_path, proxy_resp.status_code, start_time, target_service_name)
 
-            return Response(
-                content=proxy_resp.content,
-                status_code=proxy_resp.status_code,
-                headers=resp_headers,
-                media_type=proxy_resp.headers.get("content-type")
-            )
+            return _proxied_response(proxy_resp.content, proxy_resp.status_code, proxy_resp.headers.raw, body_decoded=True)
         except Exception as proxy_err:
-            # If target microservice is offline, log and gracefully fall through to in-process fallback
-            print(f"[gateway] Microservice request to {target_url} failed ({proxy_err}), falling back to in-process app")
+            print(f"[gateway] Microservice request to {target_url} failed ({proxy_err})")
+            if request.method not in SAFE_METHODS and not isinstance(proxy_err, NOT_DELIVERED_ERRORS):
+                # The service may have committed this write before the connection
+                # failed. Replaying it could duplicate a sale, so report the unknown.
+                _record_gateway_traffic(request, full_path, 504, start_time, target_service_name)
+                if isinstance(proxy_err, httpx.TimeoutException):
+                    return _gateway_error(504, "UPSTREAM_TIMEOUT", "The service did not respond in time. Check the result before retrying.")
+                return _gateway_error(502, "UPSTREAM_FAILED", "The service connection failed mid-request. Check the result before retrying.")
 
     # 3. Resilient In-Process Fallback: Execute via canonical local router.
     # Loaded lazily — if a module is broken the fallback is simply unavailable for
     # THAT route, while every healthy service (and the gateway itself) keeps serving.
     fallback_app = get_fallback_app()
     if fallback_app is None:
-        import json as _json
-        return Response(
-            content=_json.dumps({
-                "success": False,
-                "code": "SERVICE_UNAVAILABLE",
-                "message": "This route's service is unavailable and the in-process fallback could not load.",
-            }).encode("utf-8"),
-            status_code=503,
-            media_type="application/json",
-        )
+        return _gateway_error(503, "SERVICE_UNAVAILABLE", "This route's service is unavailable and the in-process fallback could not load.")
 
     if is_sse:
         transport = httpx.ASGITransport(app=fallback_app)
@@ -349,7 +294,7 @@ async def route_gateway(request: Request, path: str):
             method=request.method,
             url=request.url.path + (f"?{request.url.query}" if request.url.query else ""),
             headers=dict(request.headers),
-            content=await request.body()
+            content=body
         )
         r = await fb_sse_client.send(fb_req, stream=True)
         return StreamingResponse(
@@ -360,7 +305,16 @@ async def route_gateway(request: Request, path: str):
         )
 
     scope = request.scope
-    receive = request.receive
+    body_replayed = False
+
+    async def receive():
+        # The body was already consumed above; without replaying it the fallback
+        # app would wait forever for a request body that never arrives.
+        nonlocal body_replayed
+        if not body_replayed:
+            body_replayed = True
+            return {"type": "http.request", "body": body, "more_body": False}
+        return await request.receive()
 
     response_body = []
     response_status = 200
@@ -376,13 +330,8 @@ async def route_gateway(request: Request, path: str):
 
     await fallback_app(scope, receive, send)
     
-    headers_dict = {k.decode("latin1"): v.decode("latin1") for k, v in response_headers}
     _record_gateway_traffic(request, full_path, response_status, start_time, "in-process-fallback")
-    return Response(
-        content=b"".join(response_body),
-        status_code=response_status,
-        headers=headers_dict
-    )
+    return _proxied_response(b"".join(response_body), response_status, response_headers)
 
 if __name__ == "__main__":
     print("🚀 Starting API Gateway on http://localhost:4000...")

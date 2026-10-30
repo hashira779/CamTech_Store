@@ -1,5 +1,6 @@
 'use client';
 
+import { escapeHtml } from '@/lib/utils';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
@@ -75,8 +76,6 @@ export function SalesPage() {
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [isVoiding, setIsVoiding] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
   const [copiedTracking, setCopiedTracking] = useState(false);
 
   const canWrite = hasPermission(PERMISSIONS.SALES_WRITE);
@@ -273,7 +272,7 @@ export function SalesPage() {
             return (
               <Badge
                 variant="secondary"
-                className="text-[10px] font-semibold uppercase bg-amber-500/15 text-amber-500 border-amber-500/30"
+                className="text-[10px] font-semibold uppercase bg-warning/15 text-warning border-warning/30"
               >
                 PREPARING
               </Badge>
@@ -327,7 +326,7 @@ export function SalesPage() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => completeSaleMutation.mutate(sale.id)}
-                      className="text-emerald-600 focus:text-emerald-600"
+                      className="text-success focus:text-success"
                     >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       Mark Complete
@@ -389,7 +388,7 @@ export function SalesPage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Invoice #${sale.saleNumber}</title>
+          <title>Invoice #${escapeHtml(sale.saleNumber)}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px; color: #1e293b; line-height: 1.5; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ff007a; padding-bottom: 20px; align-items: flex-start; }
@@ -418,13 +417,13 @@ export function SalesPage() {
             </div>
             <div class="invoice-title">
               <div>TAX INVOICE</div>
-              <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px; font-family: monospace;">#${sale.saleNumber}</div>
+              <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px; font-family: monospace;">#${escapeHtml(sale.saleNumber)}</div>
             </div>
           </div>
           <div class="meta-grid">
             <div>
               <div class="meta-label">Customer</div>
-              <div class="meta-value">${sale.customer?.name || 'Walk-in Customer'}</div>
+              <div class="meta-value">${escapeHtml(sale.customer?.name || 'Walk-in Customer')}</div>
             </div>
             <div>
               <div class="meta-label">Date Placed</div>
@@ -432,11 +431,11 @@ export function SalesPage() {
             </div>
             <div>
               <div class="meta-label">Tracking ID</div>
-              <div class="meta-value" style="font-family: monospace; font-size: 12px;">${trackingNumber}</div>
+              <div class="meta-value" style="font-family: monospace; font-size: 12px;">${escapeHtml(trackingNumber)}</div>
             </div>
             <div>
               <div class="meta-label">Status</div>
-              <div class="meta-value"><span class="badge">${sale.deliveryStatus || sale.status}</span></div>
+              <div class="meta-value"><span class="badge">${escapeHtml(sale.deliveryStatus || sale.status)}</span></div>
             </div>
           </div>
           <table>
@@ -452,9 +451,9 @@ export function SalesPage() {
             <tbody>
               ${(sale.lineItems || []).map(item => `
                 <tr>
-                  <td><strong>${item.productName}</strong></td>
-                  <td style="font-family: monospace; color: #64748b; font-size: 12px;">${item.sku}</td>
-                  <td class="text-right">${item.quantity}</td>
+                  <td><strong>${escapeHtml(item.productName)}</strong></td>
+                  <td style="font-family: monospace; color: #64748b; font-size: 12px;">${escapeHtml(item.sku)}</td>
+                  <td class="text-right">${escapeHtml(item.quantity)}</td>
                   <td class="text-right">$${item.unitPrice.toFixed(2)}</td>
                   <td class="text-right" style="font-family: monospace; font-weight: 700;">$${item.lineTotal.toFixed(2)}</td>
                 </tr>
@@ -468,7 +467,7 @@ export function SalesPage() {
             </div>
             <div class="totals-row">
               <span>Delivery / Shipping</span>
-              <span style="font-family: monospace;">$${(sale.deliveryFee ?? 2.5).toFixed(2)}</span>
+              <span style="font-family: monospace;">$${(sale.deliveryFee ?? 0).toFixed(2)}</span>
             </div>
             <div class="totals-row">
               <span>Discount</span>
@@ -611,14 +610,14 @@ export function SalesPage() {
             title="Total Gross Volume"
             value={`$${totalGrossRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon={DollarSign}
-            iconColor="text-emerald-500"
+            iconColor="text-success"
             isLoading={isLoading}
           />
           <KpiCard
             title="Completed Transactions"
             value={completedSales.length}
             icon={ShoppingBag}
-            iconColor="text-blue-500"
+            iconColor="text-info"
             isLoading={isLoading}
           />
           <KpiCard
@@ -632,8 +631,7 @@ export function SalesPage() {
             title="Preparing Orders"
             value={preparingSales.length}
             icon={Clock}
-            iconColor={preparingSales.length > 0 ? 'text-amber-500' : 'text-muted-foreground'}
-            change={preparingSales.length > 0 ? preparingSales.length : 0}
+            iconColor={preparingSales.length > 0 ? 'text-warning' : 'text-muted-foreground'}
             changeLabel="orders being prepared"
             isLoading={isLoading}
           />
@@ -679,11 +677,11 @@ export function SalesPage() {
         <Sheet open={Boolean(selectedSaleId)} onOpenChange={(open) => !open && setSelectedSaleId(null)}>
           <SheetContent
             side="right"
-            className="w-full sm:max-w-3xl lg:max-w-4xl p-0 overflow-y-auto bg-[#fafafa] dark:bg-[#090a0f] border-l border-border/80 shadow-md"
+            className="w-full sm:max-w-3xl lg:max-w-4xl p-0 overflow-y-auto bg-background border-l border-border shadow-md"
           >
             {isLoadingDetail ? (
               <div className="py-32 flex flex-col items-center justify-center text-center space-y-3">
-                <Loader2 className="h-8 w-8 text-[#ff007a] animate-spin" />
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
                 <p className="text-xs text-muted-foreground font-medium animate-pulse">
                   Loading real-time order telemetry & tracking ledger...
                 </p>
@@ -702,7 +700,7 @@ export function SalesPage() {
 
                   <button
                     onClick={() => handleDownloadInvoice(selectedSale)}
-                    className="bg-[#ff007a] hover:bg-[#e0006c] text-white px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-pink-500/25 hover:shadow-pink-500/40 flex items-center gap-2 transition-all cursor-pointer"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide shadow-sm flex items-center gap-2 transition-all cursor-pointer"
                   >
                     <span>Download Invoice</span>
                     <FileText className="w-4 h-4" />
@@ -754,8 +752,8 @@ export function SalesPage() {
                     <div className="mt-1">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
                         (!selectedSale.deliveryStatus || selectedSale.deliveryStatus === 'PREPARING') && selectedSale.status === 'DRAFT'
-                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 border-amber-200 dark:border-amber-800'
-                          : 'bg-pink-50 dark:bg-pink-950/40 text-[#ff007a] border-pink-200 dark:border-pink-800'
+                          ? 'bg-warning/10 dark:bg-warning/40 text-warning border-warning/30 dark:border-warning'
+                          : 'bg-primary/10 text-primary border-primary/30'
                       }`}>
                         {(selectedSale.deliveryStatus && selectedSale.deliveryStatus !== 'PREPARING')
                           ? selectedSale.deliveryStatus
@@ -771,8 +769,8 @@ export function SalesPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base text-foreground">Order Tracking</h3>
                       {selectedSale.deliveryStatus && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-success/10 dark:bg-success/40 text-success border border-success/30 dark:border-success">
+                          <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" />
                           Live GPS Active
                         </span>
                       )}
@@ -786,7 +784,7 @@ export function SalesPage() {
                         title="Copy Tracking ID"
                       >
                         {copiedTracking ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <Check className="w-3.5 h-3.5 text-success" />
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
@@ -797,10 +795,10 @@ export function SalesPage() {
                   {/* 5-Stage Timeline Bar */}
                   <div className="relative pt-2 pb-4">
                     {/* Background track line */}
-                    <div className="absolute top-7 left-7 right-7 h-1 bg-slate-200 dark:bg-zinc-800 rounded-full" />
-                    {/* Active pink progress fill line */}
+                    <div className="absolute top-7 left-7 right-7 h-1 bg-muted rounded-full" />
+                    {/* Active progress fill line */}
                     <div
-                      className="absolute top-7 left-7 h-1 bg-gradient-to-r from-[#ff007a] to-pink-500 rounded-full transition-all duration-500 shadow-sm shadow-pink-500/50"
+                      className="absolute top-7 left-7 h-1 bg-primary rounded-full"
                       style={{ width: `calc(${(currentStage / 3) * 100}% - 28px)` }}
                     />
 
@@ -813,11 +811,11 @@ export function SalesPage() {
                         return (
                           <div key={st.label} className="flex flex-col items-center text-center max-w-[80px]">
                             <div
-                              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
                                 isDone
-                                  ? 'bg-[#ff007a] text-white shadow-md shadow-pink-500/30'
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
                                   : isActive
-                                  ? 'bg-[#ff007a] text-white ring-4 ring-pink-500/25 shadow-lg shadow-pink-500/40 animate-pulse'
+                                  ? 'bg-primary text-primary-foreground ring-4 ring-primary/25'
                                   : 'bg-muted/80 text-muted-foreground border border-border'
                               }`}
                             >
@@ -843,7 +841,7 @@ export function SalesPage() {
                   {selectedSale.driverName ? (
                     <div className="p-4 rounded-lg bg-muted/40 border border-border/80 flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-950/60 text-[#ff007a] flex items-center justify-center font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                           <Bike className="w-5 h-5" />
                         </div>
                         <div>
@@ -851,7 +849,7 @@ export function SalesPage() {
                             <span className="font-bold text-xs text-foreground">
                               {selectedSale.driverName}
                             </span>
-                            <span className="text-[10px] font-semibold text-amber-500">★ 4.8</span>
+                            <span className="text-[10px] font-semibold text-warning">★ 4.8</span>
                             {selectedSale.driverVehicle && (
                               <span className="text-[10px] text-muted-foreground font-mono">
                                 · {selectedSale.driverVehicle}
@@ -874,14 +872,14 @@ export function SalesPage() {
                             className="p-2 rounded-lg bg-card border border-border hover:bg-muted text-foreground transition-colors"
                             title="Call Driver"
                           >
-                            <Phone className="w-4 h-4 text-emerald-600" />
+                            <Phone className="w-4 h-4 text-success" />
                           </a>
                         )}
                         <a
                           href={googleMapsUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 dark:bg-success/50 text-success border border-success/30 dark:border-success text-xs font-semibold hover:bg-success/10 transition-colors"
                         >
                           <MapPin className="w-3.5 h-3.5" />
                           <span>Google Maps</span>
@@ -902,7 +900,7 @@ export function SalesPage() {
                           size="sm"
                           onClick={() => createDeliveryMutation.mutate(selectedSale)}
                           disabled={createDeliveryMutation.isPending}
-                          className="bg-primary hover:bg-primary/90 text-white gap-1.5 h-8 text-xs font-medium"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 h-8 text-xs font-medium"
                         >
                           {createDeliveryMutation.isPending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -930,7 +928,7 @@ export function SalesPage() {
                                 })
                               }
                               disabled={updateDeliveryStatusMutation.isPending}
-                              className="bg-[#ff007a] hover:bg-[#e0006c] text-white gap-1.5 h-8 text-xs font-medium"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 h-8 text-xs font-medium"
                             >
                               <Package className="w-3.5 h-3.5" />
                               {isAwaitingPacking ? 'Mark as Packed' : 'Hand to Courier'}
@@ -946,7 +944,7 @@ export function SalesPage() {
                                 })
                               }
                               disabled={updateDeliveryStatusMutation.isPending}
-                              className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 h-8 text-xs font-medium"
+                              className="bg-warning hover:bg-warning/90 text-warning-foreground gap-1.5 h-8 text-xs font-medium"
                             >
                               <Truck className="w-3.5 h-3.5" />
                               Set Out for Delivery
@@ -962,14 +960,14 @@ export function SalesPage() {
                                 })
                               }
                               disabled={updateDeliveryStatusMutation.isPending}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 text-xs font-medium"
+                              className="bg-success hover:bg-success/90 text-success-foreground gap-1.5 h-8 text-xs font-medium"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Confirm Delivered
                             </Button>
                           )}
                           {currentStage === 3 && (
-                            <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                            <span className="flex items-center gap-1 text-success font-semibold">
                               <CheckCircle2 className="w-4 h-4" /> Delivered & Completed
                             </span>
                           )}
@@ -1007,7 +1005,7 @@ export function SalesPage() {
                             className="p-4 flex items-center justify-between gap-3 text-xs"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-lg bg-pink-50 dark:bg-zinc-800 border border-pink-100 dark:border-zinc-700 flex items-center justify-center text-[#ff007a] font-bold text-lg shadow-sm">
+                              <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shadow-sm">
                                 🛋️
                               </div>
                               <div>
@@ -1054,7 +1052,7 @@ export function SalesPage() {
                           variant="default"
                           onClick={() => completeSaleMutation.mutate(selectedSale.id)}
                           disabled={completeSaleMutation.isPending}
-                          className="w-full gap-2 text-xs font-semibold h-10 bg-emerald-600 hover:bg-emerald-700"
+                          className="w-full gap-2 text-xs font-semibold h-10 bg-success hover:bg-success/90"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           {completeSaleMutation.isPending ? 'Completing...' : 'Mark Order as Completed'}
@@ -1078,26 +1076,26 @@ export function SalesPage() {
                     )}
                   </div>
 
-                  {/* Right Column: Signature Pop-Couch Dark Navy Summary Card (Image 2) */}
+                  {/* Right Column: Summary Card */}
                   <div className="lg:col-span-5">
-                    <div className="bg-[#0f0b29] text-white p-6 rounded-lg shadow-md border border-white/10 space-y-5">
-                      <h3 className="font-bold text-lg text-white">Summary</h3>
+                    <div className="bg-card text-card-foreground p-6 rounded-lg shadow-sm border border-border space-y-5">
+                      <h3 className="font-bold text-lg text-foreground">Summary</h3>
 
-                      <div className="space-y-3 text-xs text-zinc-300">
+                      <div className="space-y-3 text-xs text-muted-foreground">
                         <div className="flex justify-between">
                           <span>Subtotal</span>
-                          <span className="font-mono font-semibold text-white">
+                          <span className="figure font-semibold text-foreground">
                             ${selectedSale.subtotal.toFixed(2)}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Shipping</span>
-                          <span className="font-mono font-semibold text-white">
-                            ${(selectedSale.deliveryFee ?? 2.5).toFixed(2)}
+                          <span className="figure font-semibold text-foreground">
+                            ${(selectedSale.deliveryFee ?? 0).toFixed(2)}
                           </span>
                         </div>
                         {selectedSale.discountTotal > 0 && (
-                          <div className="flex justify-between text-emerald-400">
+                          <div className="flex justify-between text-success">
                             <span>Discount</span>
                             <span className="font-mono font-semibold">
                               -${selectedSale.discountTotal.toFixed(2)}
@@ -1106,54 +1104,24 @@ export function SalesPage() {
                         )}
                         <div className="flex justify-between">
                           <span>Tax</span>
-                          <span className="font-mono font-semibold text-white">
+                          <span className="figure font-semibold text-foreground">
                             ${selectedSale.taxTotal.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
-                      {/* Promo Code Box */}
-                      <div className="pt-2">
-                        <div className="relative flex items-center bg-white/5 border border-white/15 rounded-lg p-1.5 focus-within:border-pink-500/50 transition-colors">
-                          <Tag className="w-4 h-4 ml-2.5 text-zinc-400" />
-                          <input
-                            type="text"
-                            value={couponCode}
-                            onChange={(e) => setCouponCode(e.target.value)}
-                            placeholder="Add a coupon code"
-                            className="bg-transparent border-0 text-white placeholder:text-zinc-500 text-xs px-2.5 py-1 focus:outline-none flex-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!couponCode) return;
-                              setCouponApplied(true);
-                              toast.success(`Coupon "${couponCode}" applied successfully!`);
-                            }}
-                            className="text-[#ff007a] hover:text-pink-300 font-bold text-xs px-3 py-1 transition-colors cursor-pointer"
-                          >
-                            Apply
-                          </button>
-                        </div>
-                        {couponApplied && (
-                          <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Special promo discount verified
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Total and Pink Action Button */}
-                      <div className="pt-4 border-t border-white/10 space-y-4">
+                      {/* Total and Invoice Action */}
+                      <div className="pt-4 border-t border-border space-y-4">
                         <div className="flex justify-between items-baseline">
-                          <span className="font-semibold text-sm text-zinc-200">Total</span>
-                          <span className="font-mono font-black text-2xl text-white">
+                          <span className="font-semibold text-sm text-foreground">Total</span>
+                          <span className="figure font-bold text-2xl text-foreground">
                             ${selectedSale.grandTotal.toFixed(2)}
                           </span>
                         </div>
 
                         <button
                           onClick={() => handleDownloadInvoice(selectedSale)}
-                          className="w-full bg-[#ff007a] hover:bg-[#e0006c] text-white font-bold py-3.5 px-5 rounded-lg flex items-center justify-between shadow-lg shadow-pink-500/30 hover:shadow-pink-500/45 transition-all cursor-pointer group"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 px-5 rounded-lg flex items-center justify-between shadow-sm transition-colors cursor-pointer group"
                         >
                           <span className="text-sm">Download Official Invoice</span>
                           <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />

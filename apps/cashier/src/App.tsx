@@ -960,7 +960,7 @@ export function App() {
                 </div>
 
                 {/* Quick Autofill Presets */}
-                <div className="pt-1 flex flex-wrap gap-2">
+                {import.meta.env.DEV && <div className="pt-1 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -981,7 +981,7 @@ export function App() {
                   >
                     Quick: Super Admin
                   </button>
-                </div>
+                </div>}
 
                 <button
                   type="submit"
