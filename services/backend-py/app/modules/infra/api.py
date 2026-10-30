@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_streaming_user
 from app.core.dependencies import get_current_user, TenantUser
 from app.core.rate_limiter import ip_ban_list, AUTO_BAN_DURATION_SECONDS, PERM_BAN_DURATION_SECONDS
 from app.modules.infra.service import infra_service_instance
@@ -297,7 +298,7 @@ async def activate_emergency_break_glass(
 @router.get("/events/stream", summary="Real-time Server-Sent Events stream for NOC/SOC")
 async def stream_infra_events(
     request: Request,
-    token: Optional[str] = None,
+    user: TenantUser = Depends(get_streaming_user),
 ):
     """
     Continuous Server-Sent Events (SSE) telemetry connection.
@@ -312,6 +313,9 @@ async def stream_infra_events(
     from app.modules.observability.eventbus import envelope, event_bus
     from app.modules.observability.ingestion import get_ingestor
     from app.modules.observability.scheduler import get_scheduler
+
+    if not set(user.roles) & AUTHORIZED_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Infra Control Center access denied")
 
     async def event_generator():
         async with event_bus.subscribe() as queue:

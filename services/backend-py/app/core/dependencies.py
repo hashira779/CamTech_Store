@@ -148,6 +148,11 @@ async def _authenticate(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found",
             )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="This account is disabled",
+            )
         roles_list = extract_user_roles(user)
         permissions_list = extract_user_permissions(user)
         return TenantUser(user=user, roles=roles_list, permissions=permissions_list)

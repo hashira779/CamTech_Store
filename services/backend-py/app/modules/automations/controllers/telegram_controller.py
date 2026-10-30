@@ -527,6 +527,7 @@ async def execute_telegram_command(
 @router.post("/telegram/webhook")
 async def telegram_webhook_simulation(
     request: Request,
+    user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:

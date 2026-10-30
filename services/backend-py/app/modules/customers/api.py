@@ -81,6 +81,14 @@ async def _resolve_target_org(user: Optional[TenantUser], db: AsyncSession) -> s
     return _cached_default_org_id
 
 
+def _authorized_email(user: TenantUser, email: str) -> str:
+    """The email a request may act on. Customers only ever get their own."""
+    email_clean = email.strip().lower()
+    if set(user.roles) <= {"CUSTOMER"} and email_clean != (user.email or "").strip().lower():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own account")
+    return email_clean
+
+
 async def _find_customer_by_email(email_clean: str, target_org: str, db: AsyncSession) -> Optional[Customer]:
     """Efficiently find customer prioritizing target_org while leveraging index on email."""
     stmt = (
@@ -97,7 +105,7 @@ async def _find_customer_by_email(email_clean: str, target_org: str, db: AsyncSe
 @router.post("/customers/public-sync", response_model=CustomerDto)
 async def sync_customer(
     input_data: CustomerSyncInput,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -107,7 +115,7 @@ async def sync_customer(
     2. Persists & updates the user account in PostgreSQL 'users' table with role 'CUSTOMER'.
     Both Super Admin (apps/web) and Storefront immediately share dynamic, synchronized data without gaps.
     """
-    email_clean = input_data.email.strip().lower()
+    email_clean = _authorized_email(user, input_data.email)
     name_clean = input_data.name.strip()
     phone_clean = input_data.phone.strip() if input_data.phone else None
 
@@ -153,27 +161,6 @@ async def sync_customer(
             customer.default_lng = input_data.defaultLng
         customer.is_active = True
 
-    # 2. Sync / Provision in 'users' table (Visible to Super Admin in User Directory)
-    user_result = await db.execute(
-        select(User).where(or_(User.email == email_clean, func.lower(User.email) == email_clean)).limit(1)
-    )
-    user_record = user_result.scalar_one_or_none()
-
-    if not user_record:
-        user_record = User(
-            organization_id=target_org,
-            email=email_clean,
-            name=name_clean or email_clean.split("@")[0],
-            password_hash="OAUTH_EXTERNAL_SSO_USER",
-            roles='["CUSTOMER"]',
-            is_active=True
-        )
-        db.add(user_record)
-    else:
-        if name_clean and (not user_record.name or user_record.name == "Google User"):
-            user_record.name = name_clean
-        user_record.is_active = True
-
     await db.commit()
     await db.refresh(customer)
     return _to_dto(customer)
@@ -182,13 +169,13 @@ async def sync_customer(
 @router.get("/customers/profile", response_model=CustomerDto)
 async def get_customer_profile(
     email: str,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Fetches real-time customer profile & loyalty metrics by email.
     """
-    email_clean = email.strip().lower()
+    email_clean = _authorized_email(user, email)
     target_org = await _resolve_target_org(user, db)
     customer = await _find_customer_by_email(email_clean, target_org, db)
     if not customer:
@@ -199,13 +186,13 @@ async def get_customer_profile(
 @router.get("/customers/cart", response_model=CustomerCartDto)
 async def get_customer_cart(
     email: str,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieves the customer's active shopping cart directly from PostgreSQL.
     """
-    email_clean = email.strip().lower()
+    email_clean = _authorized_email(user, email)
     target_org = await _resolve_target_org(user, db)
     customer = await _find_customer_by_email(email_clean, target_org, db)
 
@@ -228,13 +215,13 @@ async def get_customer_cart(
 @router.post("/customers/cart", response_model=CustomerCartDto)
 async def sync_customer_cart(
     payload: CustomerCartSyncInput,
-    user: Optional[TenantUser] = Depends(get_optional_user),
+    user: TenantUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Persists customer shopping cart in PostgreSQL linked to their customer profile.
     """
-    email_clean = payload.email.strip().lower()
+    email_clean = _authorized_email(user, payload.email)
     target_org = await _resolve_target_org(user, db)
     customer = await _find_customer_by_email(email_clean, target_org, db)
 

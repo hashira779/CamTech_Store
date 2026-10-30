@@ -1,5 +1,5 @@
 from pydantic import BaseModel, validator
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 class UserDto(BaseModel):
     id: str
@@ -46,12 +46,9 @@ class RegisterResponse(BaseModel):
     latencyMs: float
     queuedEventId: str
 
-class OAuthSyncRequest(BaseModel):
-    email: str
-    name: Optional[str] = None
-    provider: Optional[str] = "google"
-    providerId: Optional[str] = None
-    avatarUrl: Optional[str] = None
+class CustomerSessionRequest(BaseModel):
+    provider: Literal["firebase", "supabase"] = "firebase"
+    idToken: str
 
 class CreateUserInput(BaseModel):
     name: str

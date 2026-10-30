@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     ]
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     GATEWAY_URL: str = os.getenv("GATEWAY_URL", "https://gateway.camtech.cam")
+    # Storefront sign-in: Firebase is primary, Supabase the fallback. Unset = unavailable.
+    FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "")
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "")
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 

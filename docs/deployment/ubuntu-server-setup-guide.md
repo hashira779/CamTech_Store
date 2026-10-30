@@ -151,7 +151,7 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_URL=redis://redis:6379/0
 
-JWT_SECRET=camtech_production_secret_key_2026_super_secure_enterprise_grade
+JWT_SECRET=CHANGE_ME_generate_with_openssl_rand_hex_32
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=43200
 

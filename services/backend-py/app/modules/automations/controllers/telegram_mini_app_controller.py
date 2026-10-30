@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Dict, Any, Optional
@@ -11,7 +11,7 @@ import uuid
 import os
 
 from app.core.database import get_db
-from app.core.security import create_access_token
+from app.core.security import create_access_token, decode_access_token
 from app.core.crypto import EncryptionService
 from app.core.datetime_utils import utc_now
 from app.core.dependencies import get_optional_user, TenantUser
@@ -232,22 +232,35 @@ async def telegram_mini_app_auth(
 @router.post("/telegram/mini-app/sync-contact")
 async def sync_telegram_contact(
     data: Dict[str, Any],
+    request: Request,
     db: AsyncSession = Depends(get_db),
     user: Optional[TenantUser] = Depends(get_optional_user),
 ):
     """
     Update or save phone number, delivery address, and full name for the Telegram customer.
+    The customer comes from the signed Mini App token, never from the request body.
     """
     phone = data.get("phone") or data.get("phoneNumber")
     name = data.get("name")
     address = data.get("address")
-    customer_id = data.get("customerId") or (user.extra.get("customerId") if user and hasattr(user, "extra") and user.extra else None)
-    org_id = data.get("organizationId") or (user.organization_id if user else None)
-    tg_id = data.get("telegramId")
+    if user:
+        org_id = user.organization_id
+        customer_id = data.get("customerId")
+        tg_id = data.get("telegramId")
+    else:
+        bearer = request.headers.get("authorization", "")
+        claims = decode_access_token(bearer[7:].strip()) if bearer.lower().startswith("bearer ") else None
+        customer_id = (claims or {}).get("customerId")
+        if not customer_id:
+            raise HTTPException(status_code=401, detail="Sign in through the Mini App to update your details")
+        org_id = claims.get("orgId")
+        tg_id = None
 
     customer = None
     if customer_id:
-        cust_res = await db.execute(select(Customer).where(Customer.id == customer_id))
+        cust_res = await db.execute(
+            select(Customer).where(Customer.id == customer_id, Customer.organization_id == org_id)
+        )
         customer = cust_res.scalar_one_or_none()
 
     if not customer and tg_id and org_id:
@@ -259,7 +272,7 @@ async def sync_telegram_contact(
         )
         customer = cust_res.scalar_one_or_none()
 
-    if not customer and phone and org_id:
+    if not customer and user and phone and org_id:
         cust_res = await db.execute(
             select(Customer).where(
                 Customer.organization_id == org_id,
