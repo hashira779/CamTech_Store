@@ -1,9 +1,10 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.access_policy import enforce_access
 from app.core.dependencies import get_current_user, get_optional_user, TenantUser, RequirePermissions, RequireAnyPermission
 from .schemas import (
     DeliveryDriverDto, CreateDriverInput, DriverLocationPingInput, UpdateDriverInput,
@@ -15,6 +16,14 @@ from .api_auth import router as auth_router
 
 router = APIRouter(prefix="/delivery", tags=["Delivery & Live Fleet Dispatch"])
 router.include_router(auth_router, prefix="/auth")
+
+def require_fleet_user(request: Request, user: Optional[TenantUser]) -> TenantUser:
+    """Delivery tasks hold recipient names, phones and addresses, so they need a login."""
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in to view delivery tasks")
+    enforce_access(request, user)
+    return user
+
 
 def resolve_org_id(user: Optional[TenantUser]) -> str:
     """
@@ -51,6 +60,7 @@ async def track_delivery_order(
 async def list_delivery_tasks(
     status: Optional[str] = None,
     search: Optional[str] = None,
+    request: Request = None,
     user: Optional[TenantUser] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -58,7 +68,7 @@ async def list_delivery_tasks(
     Courier App & Driver Dispatch Endpoint for apps/delivery (Port 5004).
     Returns delivery tasks and their preparation/dispatch state.
     """
-    target_org = resolve_org_id(user)
+    target_org = resolve_org_id(require_fleet_user(request, user))
     orders = await svc.list_orders(db, org_id=target_org, status=status, search=search)
     return {
         "items": [
@@ -97,27 +107,29 @@ async def list_public_drivers(
 @router.post("/tasks", response_model=DeliveryOrderDto)
 async def create_public_delivery_order(
     inp: CreateDeliveryOrderInput,
+    request: Request,
     user: Optional[TenantUser] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Public delivery-order creation endpoint.
+    Delivery-order creation for signed-in fleet staff.
     Orders created here are immediately ready for courier dispatch.
     """
-    target_org = resolve_org_id(user)
+    target_org = resolve_org_id(require_fleet_user(request, user))
     return await svc.create_order(db, org_id=target_org, inp=inp)
 
 @router.patch("/tasks/{order_id}/status", response_model=DeliveryOrderDto)
 async def update_delivery_task_status(
     order_id: str,
     inp: UpdateDeliveryStatusInput,
+    request: Request,
     user: Optional[TenantUser] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Allows mobile delivery couriers to update package status (IN_TRANSIT, DELIVERED).
     """
-    target_org = resolve_org_id(user)
+    target_org = resolve_org_id(require_fleet_user(request, user))
     driver_id = user.id if (user and ("DELIVERY_DRIVER" in user.roles or hasattr(user, "id"))) else None
     order = await svc.update_order_status(db, org_id=target_org, order_id=order_id, inp=inp, driver_id=driver_id)
     if not order:

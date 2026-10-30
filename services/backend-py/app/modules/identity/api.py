@@ -58,7 +58,8 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
     # Get active organization id
     org_res = await db.execute(select(User.organization_id).limit(1))
     org_id = org_res.scalar_one_or_none() or "cmtk8h18o0000vkd0etmdacgw"
-    roles = [req.role.upper()] if req.role else ["CUSTOMER"]
+    # Public sign-up only ever creates customers. Staff accounts are created by an admin.
+    roles = ["CUSTOMER"]
 
     # 3. Create user record
     new_user = User(
@@ -130,7 +131,7 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
     hash_to_verify = user.password_hash if user else _DUMMY_BCRYPT_HASH
     is_valid = await asyncio.to_thread(verify_password, req.password, hash_to_verify)
 
-    if not user or not is_valid:
+    if not user or not is_valid or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
