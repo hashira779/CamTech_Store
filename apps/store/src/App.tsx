@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
-import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
+import { getSupabase, isSupabaseCallback, isSupabaseReachable, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
 import { signInWithFirebaseGoogle, signOutFromFirebase, getFirebaseAuth, isFirebaseSignInCancelled } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { CheckoutModal } from './components/modals/CheckoutModal';
@@ -230,6 +230,9 @@ export function App() {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const signInInProgressRef = useRef(false);
+  const announceSignInRef = useRef(false);
   const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
   const [authNameInput, setAuthNameInput] = useState('');
   const [authEmailInput, setAuthEmailInput] = useState('');
@@ -532,6 +535,12 @@ export function App() {
       });
       if (phone) setGuestPhone(phone);
 
+      setIsAuthModalOpen(false);
+      if (announceSignInRef.current) {
+        announceSignInRef.current = false;
+        toast.success(`Signed in as ${profile.name}`);
+      }
+
       await syncCustomerWithDatabase({ name: profile.name, email, phone, avatarUrl: profile.avatarUrl, authProvider: provider });
       await mergeAndSyncCart(email);
     };
@@ -550,9 +559,36 @@ export function App() {
 
     // 1. Firebase Auth Listener (Primary)
     let unsubscribeFirebase = () => {};
+    let unsubscribeSupabase = () => {};
     let unmounted = false;
-    getFirebaseAuth(API_BASE_URL).then((auth) => {
-      if (!auth || unmounted) return;
+
+    // 2. Supabase Auth Listener (Fallback), only when it is actually in use
+    const startSupabaseListener = async () => {
+      const supabase = await getSupabase();
+      if (unmounted) return;
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) processSupabaseSession(session);
+      });
+      unsubscribeSupabase = () => subscription.unsubscribe();
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) processSupabaseSession(data.session);
+      } catch (err: any) {
+        console.warn('Supabase auth session check bypassed:', err?.message || err);
+      }
+    };
+
+    if (isSupabaseCallback()) {
+      announceSignInRef.current = true;
+      startSupabaseListener();
+    }
+
+    getFirebaseAuth(API_BASE_URL).then(async (auth) => {
+      if (unmounted) return;
+      if (!auth) {
+        if (!isSupabaseCallback() && (await isSupabaseReachable())) startSupabaseListener();
+        return;
+      }
       unsubscribeFirebase = onAuthStateChanged(auth, (user) => {
         if (user?.email) {
           processSignIn('firebase', () => user.getIdToken(), {
@@ -565,41 +601,37 @@ export function App() {
       });
     });
 
-    // 2. Supabase Auth Listener (Fallback)
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) processSupabaseSession(data.session);
-    }).catch((err) => {
-      console.warn('Supabase auth session check bypassed:', err?.message || err);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) processSupabaseSession(session);
-    });
-
     return () => {
       unmounted = true;
-      subscription.unsubscribe();
+      unsubscribeSupabase();
       unsubscribeFirebase();
     };
   }, []);
 
   const handleGoogleSignIn = async () => {
+    // A second click while the popup is open would only get blocked by the browser.
+    if (signInInProgressRef.current) return;
+    signInInProgressRef.current = true;
+    setIsSigningIn(true);
+    announceSignInRef.current = true;
     try {
-      toast.loading('Signing in...');
       await signInWithFirebaseGoogle(API_BASE_URL);
-      toast.dismiss();
     } catch (err: any) {
-      toast.dismiss();
+      announceSignInRef.current = false;
       if (isFirebaseSignInCancelled(err)) return;
 
       console.warn('Firebase sign-in failed. Falling back to Supabase.', err);
-      toast.loading('Trying another way to sign in...');
       try {
         // Redirects away on success; the Supabase listener finishes the sign-in on return.
+        announceSignInRef.current = true;
         await signInWithGoogle();
       } catch {
-        toast.dismiss();
+        announceSignInRef.current = false;
         toast.error('Sign-in is unavailable right now. Please try again shortly.');
       }
+    } finally {
+      signInInProgressRef.current = false;
+      setIsSigningIn(false);
     }
   };
 
@@ -2896,10 +2928,11 @@ export function App() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs transition flex items-center justify-center gap-2.5 shadow-sm border border-slate-200"
+                disabled={isSigningIn}
+                className="disabled:opacity-60 disabled:cursor-wait w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs transition flex items-center justify-center gap-2.5 shadow-sm border border-slate-200"
               >
                 <GoogleIcon className="w-4 h-4" />
-                <span>Continue with Google</span>
+                <span>{isSigningIn ? 'Signing in...' : 'Continue with Google'}</span>
               </button>
 
               <div className="relative my-3 text-center">
