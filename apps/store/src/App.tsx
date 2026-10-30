@@ -50,7 +50,7 @@ import {
 import { Toaster, toast } from 'sonner';
 import { ThemeToggle } from '@mystore/ui';
 import { supabase, signInWithGoogle, signOut as supabaseSignOut } from './supabase';
-import { signInWithFirebaseGoogle, signOutFromFirebase, firebaseAuth } from './firebase';
+import { signInWithFirebaseGoogle, signOutFromFirebase, firebaseAuth, isFirebaseSignInCancelled } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { CheckoutModal } from './components/modals/CheckoutModal';
 import { OrderHistoryModal } from './components/modals/OrderHistoryModal';
@@ -116,6 +116,9 @@ export function App() {
   const queryClient = useQueryClient();
   const orgParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('org') || new URLSearchParams(window.location.search).get('store') || undefined) : undefined;
   const lastProcessedEmailRef = useRef<string>('');
+  // Backend login, held in memory only; the provider's session recreates it on reload.
+  const customerTokenRef = useRef<string>('');
+  const authHeaders = (): Record<string, string> => (customerTokenRef.current ? { Authorization: `Bearer ${customerTokenRef.current}` } : {});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [cart, setCart] = useState<Array<ProductItem & { quantity: number }>>(() => {
@@ -352,6 +355,7 @@ export function App() {
     email: string;
     phone?: string;
     avatarUrl?: string;
+    authProvider?: string;
     defaultAddress?: string;
     defaultLat?: number | null;
     defaultLng?: number | null;
@@ -359,13 +363,13 @@ export function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/customers/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           name: info.name,
           email: info.email,
           phone: info.phone || '',
           avatarUrl: info.avatarUrl || '',
-          authProvider: 'google',
+          authProvider: info.authProvider || 'firebase',
           defaultAddress: info.defaultAddress,
           defaultLat: info.defaultLat,
           defaultLng: info.defaultLng,
@@ -402,7 +406,7 @@ export function App() {
     try {
       await fetch(`${API_BASE_URL}/api/v1/customers/cart`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ email, items }),
       });
     } catch (err) {
@@ -414,7 +418,7 @@ export function App() {
   const mergeAndSyncCart = async (email: string) => {
     if (!email) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/customers/cart?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/customers/cart?email=${encodeURIComponent(email)}`, { headers: authHeaders() });
       let serverItems: Array<ProductItem & { quantity: number }> = [];
       if (res.ok) {
         const json = await res.json();
@@ -472,24 +476,55 @@ export function App() {
     }
   };
 
-  // Listen for Supabase Google session and dynamically link with Central Database
+  // Trade the provider's signed token for a backend login. The backend takes the
+  // email from the verified token, so nothing here can claim someone else's account.
+  const establishCustomerSession = async (provider: 'firebase' | 'supabase', idToken: string) => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/customer-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, idToken }),
+    });
+    if (!res.ok) {
+      return { ok: false, status: res.status };
+    }
+    const json = await res.json();
+    customerTokenRef.current = (json.data || json).accessToken;
+    return { ok: true, status: res.status };
+  };
+
+  // Listen for the Firebase session first, and Supabase as the fallback provider
   useEffect(() => {
-    const processSession = (session: any) => {
-      if (!session?.user) return;
-      const email = session.user.email || '';
+    const processSignIn = async (
+      provider: 'firebase' | 'supabase',
+      getToken: () => Promise<string>,
+      profile: { email: string; name: string; phone?: string | null; avatarUrl?: string }
+    ) => {
+      const { email } = profile;
       if (!email) return;
 
       // Prevent redundant concurrent executions on mount
       if (lastProcessedEmailRef.current === email) return;
       lastProcessedEmailRef.current = email;
 
-      const metadata = session.user.user_metadata || {};
+      let session = { ok: false, status: 0 };
+      try {
+        session = await establishCustomerSession(provider, await getToken());
+      } catch (err) {
+        console.warn('Customer session exchange failed:', err);
+      }
+      if (!session.ok) {
+        lastProcessedEmailRef.current = '';
+        toast.error(session.status === 403
+          ? 'This account cannot sign in here. Staff should use the staff login page.'
+          : 'We could not verify your sign-in. Please try again.');
+        return;
+      }
+
       const savedPhone = localStorage.getItem('camtech_customer_phone') || '';
-      const phone = session.user.phone || metadata.phone || savedPhone || '';
-      const name = metadata.full_name || metadata.name || email.split('@')[0] || 'Google User';
+      const phone = profile.phone || savedPhone || '';
 
       setCustomer({
-        name,
+        name: profile.name,
         email,
         phone,
         loyaltyPoints: 500,
@@ -497,53 +532,42 @@ export function App() {
       });
       if (phone) setGuestPhone(phone);
 
-      syncCustomerWithDatabase({
-        name,
+      await syncCustomerWithDatabase({ name: profile.name, email, phone, avatarUrl: profile.avatarUrl, authProvider: provider });
+      await mergeAndSyncCart(email);
+    };
+
+    const processSupabaseSession = (session: any) => {
+      const email = session?.user?.email;
+      if (!email) return;
+      const metadata = session.user.user_metadata || {};
+      return processSignIn('supabase', async () => session.access_token, {
         email,
-        phone,
+        name: metadata.full_name || metadata.name || email.split('@')[0],
+        phone: session.user.phone || metadata.phone,
         avatarUrl: metadata.avatar_url,
-      }).then(() => {
-        mergeAndSyncCart(email);
       });
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) {
-        processSession(data.session);
+    // 1. Firebase Auth Listener (Primary)
+    const unsubscribeFirebase = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user?.email) {
+        processSignIn('firebase', () => user.getIdToken(), {
+          email: user.email,
+          name: user.displayName || user.email.split('@')[0],
+          phone: user.phoneNumber,
+          avatarUrl: user.photoURL || undefined,
+        });
       }
+    });
+
+    // 2. Supabase Auth Listener (Fallback)
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) processSupabaseSession(data.session);
     }).catch((err) => {
       console.warn('Supabase auth session check bypassed:', err?.message || err);
     });
-
-    // 1. Supabase Auth Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        processSession(session);
-        if (event === 'SIGNED_IN') {
-          const metadata = session.user.user_metadata || {};
-          toast.success(`Signed in with Google as ${metadata.full_name || session.user.email}!`);
-        }
-      }
-    });
-
-    // 2. Firebase Auth Listener (Fallback)
-    const unsubscribeFirebase = onAuthStateChanged(firebaseAuth, (user) => {
-      if (user) {
-        // Mock a Supabase-like session object for the processSession function
-        const mockSession = {
-          user: {
-            id: user.uid,
-            email: user.email,
-            user_metadata: {
-              full_name: user.displayName,
-              avatar_url: user.photoURL,
-              phone: user.phoneNumber,
-            }
-          }
-        };
-        processSession(mockSession as any);
-        toast.dismiss();
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) processSupabaseSession(session);
     });
 
     return () => {
@@ -554,19 +578,21 @@ export function App() {
 
   const handleGoogleSignIn = async () => {
     try {
-      toast.loading('Logging in with Primary Auth...');
-      await signInWithGoogle();
+      toast.loading('Signing in...');
+      await signInWithFirebaseGoogle();
+      toast.dismiss();
     } catch (err: any) {
       toast.dismiss();
-      console.warn("Supabase Auth Paused/Failed. Failing over to Firebase...", err);
-      toast.loading('Primary auth busy. Falling back to Backup Auth (Firebase)...');
+      if (isFirebaseSignInCancelled(err)) return;
+
+      console.warn('Firebase sign-in failed. Falling back to Supabase.', err);
+      toast.loading('Trying another way to sign in...');
       try {
-        await signInWithFirebaseGoogle();
+        // Redirects away on success; the Supabase listener finishes the sign-in on return.
+        await signInWithGoogle();
+      } catch {
         toast.dismiss();
-        toast.success("Signed in successfully via Backup Auth!");
-      } catch (fbErr: any) {
-        toast.dismiss();
-        toast.error('Both Primary and Backup Auth systems are unreachable. Please try again.');
+        toast.error('Sign-in is unavailable right now. Please try again shortly.');
       }
     }
   };
@@ -579,6 +605,7 @@ export function App() {
       await signOutFromFirebase();
     } catch {}
     lastProcessedEmailRef.current = '';
+    customerTokenRef.current = '';
     setCustomer(null);
     setCart([]);
 
@@ -676,7 +703,7 @@ export function App() {
         if (phone) queryParams.set('phone', phone);
         if (historyChannelTab === 'STORE') queryParams.set('channel', 'STORE');
 
-        const res = await fetch(`${API_BASE_URL}/api/v1/sales/customer-orders?${queryParams.toString()}`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/sales/customer-orders?${queryParams.toString()}`, { headers: authHeaders() });
         if (!res.ok) return [];
         const json = await res.json();
         return json.data?.items || json.items || json.data || [];

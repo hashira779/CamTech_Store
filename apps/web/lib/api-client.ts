@@ -386,11 +386,6 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  oauthSync: (data: { email: string; name?: string; provider?: string; providerId?: string; avatarUrl?: string }) =>
-    request<LoginResult>('/auth/oauth-sync', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
 
   // ─── Passkeys (WebAuthn) ─────────────────────────────────────────────────
   // Each ceremony is two calls: the server issues options plus an opaque

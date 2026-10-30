@@ -69,6 +69,24 @@ ACCESS_RULES: tuple[AccessRule, ...] = (
     AccessRule("telegram", ADMIN),
 )
 
+# Anyone with a Google account can become a CUSTOMER, so that role is allow-listed:
+# a new staff endpoint is closed to customers unless it is added here.
+_CUSTOMER_ONLY_ROLES = frozenset({"CUSTOMER"})
+_CUSTOMER_AREAS = (
+    "auth/me",
+    "customers/sync",
+    "customers/public-sync",
+    "customers/profile",
+    "customers/cart",
+    "sales/customer-orders",
+    "sales/store-checkout",
+    "sales/public-checkout",
+    "sales/payment-methods",
+    "sales/orders",
+    "delivery/track",
+    "public",
+)
+
 # Any employee may file their own leave request; approving one stays with HR.
 _SELF_SERVICE = frozenset({("POST", "hr/leaves")})
 
@@ -82,11 +100,14 @@ def _find_rule(area: str) -> Optional[AccessRule]:
 
 def is_allowed(method: str, path: str, roles: Iterable[str], permissions: Iterable[str]) -> bool:
     area = path.removeprefix("/api/v1/").rstrip("/")
+    held = set(roles)
+    if held and held <= _CUSTOMER_ONLY_ROLES:
+        return any(area == allowed or area.startswith(f"{allowed}/") for allowed in _CUSTOMER_AREAS)
+
     rule = _find_rule(area)
     if rule is None or (method, area) in _SELF_SERVICE:
         return True
 
-    held = set(roles)
     if method in _READ_METHODS:
         return rule.read_roles is None or bool(held & rule.read_roles)
     return bool(held & rule.write_roles) or has_any_permission(list(permissions), list(rule.write_permissions))

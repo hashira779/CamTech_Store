@@ -21,9 +21,15 @@ from typing import List
 from .models import User, Role, UserRole
 from .schemas import (
     LoginRequest, LoginResponse, RefreshTokenRequest, TokenResponse,
-    RegisterRequest, RegisterResponse, UserDto, OAuthSyncRequest,
+    RegisterRequest, RegisterResponse, UserDto, CustomerSessionRequest,
     CreateUserInput, UpdateUserInput, UserDetailDto
 )
+
+from app.core.config import settings
+from app.core.external_identity import ExternalIdentityError, verify_external_token
+from app.core.telemetry import get_logger
+
+logger = get_logger("mystore.identity")
 
 router = APIRouter(tags=["Auth"])
 
@@ -163,81 +169,55 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
         )
     )
 
-@router.post("/oauth-sync", response_model=LoginResponse)
-async def oauth_sync(req: OAuthSyncRequest, request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/customer-session", response_model=LoginResponse)
+async def customer_session(req: CustomerSessionRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    """Exchange a verified Firebase (or fallback Supabase) token for a storefront login."""
     await auth_rate_limiter.check(request)
-    if not req.email or "@" not in req.email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Valid email is required for OAuth synchronization"
-        )
+    try:
+        identity = await verify_external_token(req.provider, req.idToken)
+    except ExternalIdentityError as exc:
+        logger.warning(f"[AUTH] customer sign-in refused: {exc}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign-in could not be verified")
 
-    # 1. Lookup user in local PostgreSQL
-    result = await db.execute(select(User).where(User.email == req.email))
+    from sqlalchemy import func
+    result = await db.execute(select(User).where(func.lower(User.email) == identity.email).limit(1))
     user = result.scalar_one_or_none()
 
-    if not user:
-        # Determine organization id from existing database
-        org_res = await db.execute(select(User.organization_id).limit(1))
-        org_id = org_res.scalar_one_or_none()
-        if not org_id:
-            from app.models.entities import Organization
-            org_lookup = await db.execute(select(Organization.id).limit(1))
-            org_id = org_lookup.scalar_one_or_none() or "cmtn25rqc0000vk64wgyfvaov"
-
-        user_id = f"usr_{uuid.uuid4().hex[:10]}"
-        roles = ["ORG_ADMIN"]
-        dummy_hash = await asyncio.to_thread(hash_password, uuid.uuid4().hex)
-
+    if user is None:
+        from app.models.entities import Organization
+        org_result = await db.execute(select(Organization.id).order_by(Organization.created_at.asc()).limit(1))
         user = User(
-            id=user_id,
-            organization_id=org_id,
-            email=req.email,
-            name=req.name or req.email.split("@")[0],
-            password_hash=dummy_hash,
-            roles=json.dumps(roles),
-            is_active=True
+            organization_id=org_result.scalar_one_or_none() or settings.DEFAULT_ORG_ID,
+            email=identity.email,
+            name=identity.name or identity.email.split("@")[0],
+            # Never a valid bcrypt hash, so this account can't use password login.
+            password_hash="OAUTH_EXTERNAL_SSO_USER",
+            roles='["CUSTOMER"]',
+            is_active=True,
         )
         db.add(user)
         await db.commit()
         await db.refresh(user)
-    else:
-        if req.name and user.name != req.name:
-            user.name = req.name
-            await db.commit()
-            await db.refresh(user)
 
-    roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or ["ORG_ADMIN"])
-    token = create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles})
-    refresh_token = create_refresh_token({"sub": user.id, "orgId": user.organization_id})
-
-    permissions = [
-        "products.read", "products.write", "customers.read", "customers.write",
-        "sales.read", "sales.write", "sales.void", "sales.refund",
-        "inventory.read", "inventory.adjust", "locations.read", "locations.write",
-        "organizations.read", "organizations.write", "procurement.read", "procurement.write",
-        "promotions.read", "promotions.write", "pricing.read", "pricing.write",
-        "payments.read", "taxes.read", "taxes.write", "loyalty.read", "loyalty.write",
-        "storage.read", "storage.write", "notifications.read", "notifications.write",
-        "reports.read", "reports.export", "finance.read", "finance.write", "journal.post",
-        "workflow.read", "workflow.manage", "workflow.approve", "hr.read", "hr.write",
-        "payroll.run", "assets.read", "assets.write", "projects.read", "projects.write",
-        "tickets.read", "tickets.write", "developer.read", "developer.write",
-        "webhooks.manage", "telegram.manage", "automation.read", "automation.write", "automation.execute"
-    ]
+    roles = json.loads(user.roles) if isinstance(user.roles, str) else (user.roles or [])
+    # A verified Google email must never become a staff login.
+    if roles != ["CUSTOMER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff accounts sign in from the staff login page")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account is disabled")
 
     return LoginResponse(
-        accessToken=token,
-        refreshToken=refresh_token,
+        accessToken=create_access_token({"sub": user.id, "orgId": user.organization_id, "roles": roles}),
+        refreshToken=create_refresh_token({"sub": user.id, "orgId": user.organization_id}),
         user=UserDto(
             id=user.id,
             organizationId=user.organization_id,
             email=user.email,
             name=user.name,
             roles=roles,
-            permissions=permissions,
-            locationId=user.location_id
-        )
+            permissions=[],
+            locationId=user.location_id,
+        ),
     )
 
 @router.post("/refresh", response_model=TokenResponse)

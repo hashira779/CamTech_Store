@@ -33,6 +33,12 @@ async def get_customer_orders(
     Fetches past sales orders and invoices for a customer directly from PostgreSQL.
     Supports filtering by channel (e.g. 'STORE' for online storefront orders) and lookup by email or phone.
     """
+    # An email identifies an account, so it takes that account's login to use it.
+    if not user:
+        email = None
+    elif set(user.roles) <= {"CUSTOMER"}:
+        email = user.email
+
     if not email and not phone and not user:
         return PaginatedResponse(items=[], meta=PageMeta(page=1, limit=50, total=0, totalPages=1), total=0)
 

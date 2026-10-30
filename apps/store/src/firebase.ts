@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "UNCONFIGURED",
@@ -20,9 +20,29 @@ export const app = initializeApp(firebaseConfig);
 export const firebaseAuth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+export const isFirebaseConfigured = firebaseConfig.apiKey !== "UNCONFIGURED" && firebaseConfig.projectId !== "UNCONFIGURED";
+
+/** The customer backed out; that isn't an outage, so it must not trigger the fallback. */
+export function isFirebaseSignInCancelled(err: unknown) {
+  const code = (err as { code?: string })?.code;
+  return code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request";
+}
+
 export async function signInWithFirebaseGoogle() {
-  const result = await signInWithPopup(firebaseAuth, googleProvider);
-  return result.user;
+  if (!isFirebaseConfigured) {
+    throw new Error("Firebase is not configured");
+  }
+  try {
+    const result = await signInWithPopup(firebaseAuth, googleProvider);
+    return result.user;
+  } catch (err) {
+    // In-app browsers often block popups, while a redirect still works.
+    if ((err as { code?: string })?.code === "auth/popup-blocked") {
+      await signInWithRedirect(firebaseAuth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function signOutFromFirebase() {
