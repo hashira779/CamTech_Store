@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,6 +62,10 @@ from app.modules.infra.db_migration_service import db_migration_service
 
 
 logger = logging.getLogger("mystore.infra.api")
+
+class UpdatePlatformSettingsRequest(BaseModel):
+    values: Dict[str, Optional[str]]
+
 
 router = APIRouter(prefix="/infra", tags=["Infra & Security Control Center"])
 
@@ -612,6 +617,30 @@ async def run_task_now(
 # ═════════════════════════════════════════════════════════════════════════════
 # ICP — Cloudflare Integration
 # ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/platform-settings", summary="Sign-in settings, with secrets never returned")
+async def get_platform_settings(
+    user: TenantUser = Depends(require_infra_operator),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.infra import platform_settings
+    return await platform_settings.describe_settings(db)
+
+
+@router.put("/platform-settings", summary="Update sign-in settings")
+async def update_platform_settings(
+    payload: UpdatePlatformSettingsRequest,
+    request: Request,
+    user: TenantUser = Depends(require_infra_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.http_edge import client_ip
+    from app.modules.infra import platform_settings
+    try:
+        return await platform_settings.update_settings(db, payload.values, user.id, client_ip(request))
+    except platform_settings.InvalidSetting as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
 
 @router.get("/cloudflare/config", summary="Get Cloudflare zone config status")
 async def get_cloudflare_config(

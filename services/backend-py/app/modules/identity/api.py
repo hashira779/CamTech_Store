@@ -175,7 +175,8 @@ async def customer_session(req: CustomerSessionRequest, request: Request, db: As
     """Exchange a verified Firebase (or fallback Supabase) token for a storefront login."""
     await auth_rate_limiter.check(request)
     try:
-        identity = await verify_external_token(req.provider, req.idToken)
+        from app.modules.infra.platform_settings import load_identity_config
+        identity = await verify_external_token(req.provider, req.idToken, await load_identity_config(db))
     except ExternalIdentityError as exc:
         logger.warning(f"[AUTH] customer sign-in refused: {exc}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign-in could not be verified")

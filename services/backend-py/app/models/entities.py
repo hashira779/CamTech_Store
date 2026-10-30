@@ -609,7 +609,7 @@ from app.modules.infra.models import (
     InfraBreakGlassSession,
     # ICP — Infrastructure Control Platform
     InfraAgent, InfraAgentCommand, InfraScheduledTask,
-    InfraServerMetric, InfraCloudflareConfig,
+    InfraServerMetric, InfraCloudflareConfig, InfraPlatformSetting,
     InfraAlertRule, InfraAlert, InfraNotificationChannel,
 )
 

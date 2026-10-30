@@ -116,6 +116,14 @@ router = APIRouter(tags=["Catalog"])
 # PRODUCTS
 # ==============================================================================
 
+@router.get("/public/auth-config")
+async def get_public_auth_config(response: Response, db: AsyncSession = Depends(get_db)):
+    """Firebase web config for the storefront. Public by design; holds no secrets."""
+    from app.modules.infra.platform_settings import public_auth_config
+    response.headers["Cache-Control"] = "public, max-age=30"
+    return {"firebase": await public_auth_config(db)}
+
+
 @router.get("/public/products", response_model=PaginatedResponse[ProductDto])
 async def list_public_products(
     response: Response,

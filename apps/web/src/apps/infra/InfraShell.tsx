@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   LogOut,
   ShieldCheck,
+  KeyRound,
   Menu,
   X,
   Clock,
@@ -61,6 +62,7 @@ const NAV_SECTIONS = [
       { to: '/infra/threats',    icon: ShieldAlert,  label: 'Security Threat Center' },
       { to: '/infra/incidents',  icon: AlertOctagon, label: 'Incidents & Deploys' },
       { to: '/infra/audit',      icon: Terminal,     label: 'Immutable Audit Logs' },
+      { to: '/infra/sign-in-setup', icon: KeyRound,   label: 'Sign-in Setup' },
     ],
   },
 ];
