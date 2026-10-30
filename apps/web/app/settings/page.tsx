@@ -128,7 +128,7 @@ export default function SettingsPage() {
           </div>
 
           {savedSuccess && (
-            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-xs font-semibold animate-in fade-in">
+            <div className="flex items-center gap-2 text-success bg-success/10 px-3 py-1.5 rounded-lg border border-success/20 text-xs font-semibold animate-in fade-in">
               <CheckCircle2 className="w-4 h-4" />
               Settings saved successfully!
             </div>
@@ -136,7 +136,7 @@ export default function SettingsPage() {
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
             {error}
           </div>
         )}
@@ -188,7 +188,7 @@ export default function SettingsPage() {
             {/* Financial & Regional Defaults */}
             <div className="card p-5 border-border">
               <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <DollarSign className="w-4 h-4 text-success" />
                 <h2 className="font-bold text-foreground text-sm">Financial & Operational Policies</h2>
               </div>
 
@@ -275,7 +275,7 @@ export default function SettingsPage() {
             {/* Dynamic Feature Flags / Module Toggle (Spec §76, §98) */}
             <div className="card p-5 border-border">
               <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
-                <Sliders className="w-4 h-4 text-orange-500" />
+                <Sliders className="w-4 h-4 text-warning" />
                 <div>
                   <h2 className="font-bold text-foreground text-sm">Enterprise Feature Modules</h2>
                   <p className="text-muted-foreground text-[11px]">
@@ -316,7 +316,7 @@ export default function SettingsPage() {
             {/* Receipt Branding */}
             <div className="card p-5 border-border">
               <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
-                <Receipt className="w-4 h-4 text-orange-400" />
+                <Receipt className="w-4 h-4 text-warning" />
                 <h2 className="font-bold text-foreground text-sm">POS Receipt Customization</h2>
               </div>
 

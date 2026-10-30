@@ -234,7 +234,7 @@ export default function StorefrontChannelsPage() {
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-card border border-border hover:bg-muted text-foreground transition-all"
           >
-            <Globe className="w-4 h-4 text-emerald-400" />
+            <Globe className="w-4 h-4 text-success" />
             Open Web Store
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </a>
@@ -257,7 +257,7 @@ export default function StorefrontChannelsPage() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+              <div className="w-10 h-10 rounded-xl bg-info/10 text-info flex items-center justify-center border border-info/20">
                 <Bot className="w-5 h-5" />
               </div>
               <div>
@@ -267,7 +267,7 @@ export default function StorefrontChannelsPage() {
                 </p>
               </div>
             </div>
-            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+            <Badge className="bg-success/10 text-success border-success/20">
               Active Channel
             </Badge>
           </div>
@@ -301,7 +301,7 @@ export default function StorefrontChannelsPage() {
                     size="sm"
                     onClick={() => handleCopy(activeMiniAppUrl, 'mini-url')}
                   >
-                    {copiedKey === 'mini-url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedKey === 'mini-url' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
                   </Button>
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function StorefrontChannelsPage() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+              <div className="w-10 h-10 rounded-xl bg-info/10 text-info flex items-center justify-center border border-info/20">
                 <CreditCard className="w-5 h-5" />
               </div>
               <div>
@@ -340,11 +340,11 @@ export default function StorefrontChannelsPage() {
               </div>
             </div>
             {channels?.paywayConfigured ? (
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1">
+              <Badge className="bg-success/10 text-success border-success/20 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Linked & Active
               </Badge>
             ) : (
-              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
+              <Badge className="bg-warning/10 text-warning border-warning/20 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Not Configured
               </Badge>
             )}
@@ -365,7 +365,7 @@ export default function StorefrontChannelsPage() {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Payment Verification:</span>
-              <span className="text-emerald-400 font-semibold">
+              <span className="text-success font-semibold">
                 HMAC-SHA512 + EMVCo NBC Bakong KHQR
               </span>
             </div>
@@ -391,7 +391,7 @@ export default function StorefrontChannelsPage() {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 font-black text-xs">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20 font-bold text-xs">
                 KHQR
               </div>
               <div>
@@ -402,11 +402,11 @@ export default function StorefrontChannelsPage() {
               </div>
             </div>
             {channels?.bakongConfigured ? (
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 flex items-center gap-1">
+              <Badge className="bg-success/10 text-success border-success/20 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Linked & Active
               </Badge>
             ) : (
-              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
+              <Badge className="bg-warning/10 text-warning border-warning/20 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Not Configured
               </Badge>
             )}
@@ -427,13 +427,13 @@ export default function StorefrontChannelsPage() {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Account Routing:</span>
-              <span className="text-emerald-400 font-semibold">
+              <span className="text-success font-semibold">
                 100% Dynamic per Store Account
               </span>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-muted-foreground space-y-2">
+          <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-xs text-muted-foreground space-y-2">
             <p>
               Link your store to your Bakong account (e.g. from the Bakong app or any commercial bank).
               Customer KHQR codes are dynamically personalized without modifying any codebase.
@@ -442,7 +442,7 @@ export default function StorefrontChannelsPage() {
               variant="outline"
               size="sm"
               onClick={() => window.location.href = '/settings'}
-              className="text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 mt-2"
+              className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10 mt-2"
             >
               Configure Bakong Account in Settings →
             </Button>
@@ -500,7 +500,7 @@ export default function StorefrontChannelsPage() {
                 onClick={() => handleCopy(ep.url, `ep-${idx}`)}
                 className="self-start sm:self-auto shrink-0"
               >
-                {copiedKey === `ep-${idx}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedKey === `ep-${idx}` ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           ))}

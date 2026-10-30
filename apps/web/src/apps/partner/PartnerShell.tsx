@@ -19,23 +19,23 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-pink-500/30">
+    <div className="min-h-screen bg-card text-foreground font-sans selection:bg-pink-500/30">
       <Toaster position="top-right" theme="dark" richColors />
       
       {/* Partner Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 shadow-sm">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-card border-b border-border shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="bg-pink-500/10 p-2 rounded-md text-pink-400 border border-pink-500/20">
               <Code2 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Partner & Developer Hub</h1>
-              <p className="text-xs text-slate-400 font-medium">{user.name} • API Integrations</p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Partner & Developer Hub</h1>
+              <p className="text-xs text-muted-foreground font-medium">{user.name} • API Integrations</p>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-950 p-1 rounded-md border border-slate-800">
+          <nav className="hidden md:flex items-center gap-1.5 bg-card p-1 rounded-md border border-border">
             {tabs.map((tab) => {
               const active = location.pathname.startsWith(tab.path);
               const Icon = tab.icon;
@@ -45,8 +45,8 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
                   to={tab.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                     active 
-                      ? 'bg-slate-800 text-pink-400 shadow-sm border border-slate-700' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      ? 'bg-muted text-pink-400 shadow-sm border border-border' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -60,7 +60,7 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => { clear(); navigate('/login'); }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors text-xs font-bold border border-slate-700"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted text-foreground hover:text-foreground rounded-lg transition-colors text-xs font-bold border border-border"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

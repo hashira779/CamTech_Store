@@ -47,7 +47,7 @@ export function CategoryTreeNode({
           ${isSelected
             ? 'bg-primary/10 ring-1 ring-primary/20 shadow-sm'
             : isMatch
-            ? 'bg-amber-500/10 ring-1 ring-amber-500/20'
+            ? 'bg-warning/10 ring-1 ring-warning/20'
             : 'hover:bg-muted/40'
           }
           ${!node.isActive ? 'opacity-50' : ''}

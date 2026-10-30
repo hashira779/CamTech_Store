@@ -141,24 +141,24 @@ export function PickingPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Banner with Real-Time Alert Status */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-amber-950/40 via-zinc-900 to-zinc-900 border border-amber-500/20 shadow-lg">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-warning/40 via-zinc-900 to-zinc-900 border border-warning/20 shadow-lg">
         <div className="flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          <div className="p-3 rounded-lg bg-warning/10 text-warning border border-warning/30">
             <Boxes className="w-8 h-8" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white tracking-tight">
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
                 Warehouse Stocker • Picking & Packing Console
               </h1>
               {pendingOrders.length > 0 && (
                 <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-warning"></span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Live customer orders synchronized from storefront checkout. Pick items from shelves and hand over to delivery couriers.
             </p>
           </div>
@@ -172,8 +172,8 @@ export function PickingPage() {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
               soundEnabled
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                ? 'bg-warning/10 text-warning border-warning/30'
+                : 'bg-muted text-muted-foreground border-border'
             }`}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -184,7 +184,7 @@ export function PickingPage() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ['wms-picking-orders'] })}
             variant="outline"
             size="sm"
-            className="text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-200"
+            className="text-xs bg-muted hover:bg-muted border-border text-foreground"
           >
             Refresh Queue
           </Button>
@@ -193,32 +193,32 @@ export function PickingPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-card border border-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-zinc-400 font-medium">To Pick (Pending)</span>
-            <p className="text-2xl font-black text-amber-400 mt-1">{pendingOrders.length}</p>
+            <span className="text-xs text-muted-foreground font-medium">To Pick (Pending)</span>
+            <p className="text-2xl font-bold text-warning mt-1">{pendingOrders.length}</p>
           </div>
-          <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div className="p-3 rounded-lg bg-warning/10 text-warning border border-warning/20">
             <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-card border border-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-zinc-400 font-medium">Picked & Handed to Courier</span>
-            <p className="text-2xl font-black text-emerald-400 mt-1">{pickedOrders.length}</p>
+            <span className="text-xs text-muted-foreground font-medium">Picked & Handed to Courier</span>
+            <p className="text-2xl font-bold text-success mt-1">{pickedOrders.length}</p>
           </div>
-          <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-3 rounded-lg bg-success/10 text-success border border-success/20">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-card border border-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-zinc-400 font-medium">Total Orders Today</span>
-            <p className="text-2xl font-black text-sky-400 mt-1">{orders.length}</p>
+            <span className="text-xs text-muted-foreground font-medium">Total Orders Today</span>
+            <p className="text-2xl font-bold text-info mt-1">{orders.length}</p>
           </div>
-          <div className="p-3 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          <div className="p-3 rounded-lg bg-info/10 text-info border border-info/20">
             <Package className="w-5 h-5" />
           </div>
         </div>
@@ -226,13 +226,13 @@ export function PickingPage() {
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-lg border border-zinc-800 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 bg-card p-1 rounded-lg border border-border w-full sm:w-auto">
           <button
             onClick={() => setFilter('PENDING')}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
               filter === 'PENDING'
-                ? 'bg-amber-500 text-zinc-950 shadow-sm font-bold'
-                : 'text-zinc-400 hover:text-white'
+                ? 'bg-warning text-foreground shadow-sm font-bold'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Pending Picking ({pendingOrders.length})
@@ -241,8 +241,8 @@ export function PickingPage() {
             onClick={() => setFilter('PICKED')}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
               filter === 'PICKED'
-                ? 'bg-zinc-800 text-white shadow-sm border border-zinc-700'
-                : 'text-zinc-400 hover:text-white'
+                ? 'bg-muted text-foreground shadow-sm border border-border'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Picked & Boxed ({pickedOrders.length})
@@ -251,8 +251,8 @@ export function PickingPage() {
             onClick={() => setFilter('ALL')}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
               filter === 'ALL'
-                ? 'bg-zinc-800 text-white shadow-sm border border-zinc-700'
-                : 'text-zinc-400 hover:text-white'
+                ? 'bg-muted text-foreground shadow-sm border border-border'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             All Orders ({orders.length})
@@ -260,24 +260,24 @@ export function PickingPage() {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search order #, customer, address..."
-            className="pl-9 bg-zinc-900 border-zinc-800 text-xs text-white placeholder:text-zinc-500 rounded-lg"
+            className="pl-9 bg-card border-border text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
           />
         </div>
       </div>
 
       {/* Orders Grid */}
       {isLoading ? (
-        <div className="text-center py-16 text-zinc-500 text-sm">Synchronizing warehouse orders...</div>
+        <div className="text-center py-16 text-muted-foreground text-sm">Synchronizing warehouse orders...</div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-20 p-6 bg-zinc-900/40 rounded-lg border border-dashed border-zinc-800 space-y-2">
-          <CheckCircle2 className="w-12 h-12 text-zinc-600 mx-auto" />
-          <h3 className="text-base font-semibold text-zinc-300">No Orders in this Queue</h3>
-          <p className="text-xs text-zinc-500">
+        <div className="text-center py-20 p-6 bg-card/40 rounded-lg border border-dashed border-border space-y-2">
+          <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto" />
+          <h3 className="text-base font-semibold text-foreground">No Orders in this Queue</h3>
+          <p className="text-xs text-muted-foreground">
             {filter === 'PENDING'
               ? 'Great work! All customer orders are picked and packaged.'
               : 'No orders match your filter criteria.'}
@@ -292,57 +292,57 @@ export function PickingPage() {
                 key={order.id}
                 className={`p-5 rounded-lg border transition-all flex flex-col justify-between space-y-4 ${
                   isPending
-                    ? 'bg-zinc-900 border-amber-500/30 hover:border-amber-500/50 shadow-md'
-                    : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
+                    ? 'bg-card border-warning/30 hover:border-warning/50 shadow-md'
+                    : 'bg-card/60 border-border hover:border-border'
                 }`}
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="font-mono text-xs font-bold text-amber-400">{order.saleNumber}</span>
-                      <h4 className="text-sm font-bold text-white mt-0.5">{order.customerName}</h4>
+                      <span className="font-mono text-xs font-bold text-warning">{order.saleNumber}</span>
+                      <h4 className="text-sm font-bold text-foreground mt-0.5">{order.customerName}</h4>
                     </div>
                     <Badge
                       className={`text-[10px] font-semibold ${
                         isPending
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
-                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          ? 'bg-warning/10 text-warning border-warning/20 animate-pulse'
+                          : 'bg-success/10 text-success border-success/20'
                       }`}
                     >
                       {isPending ? 'To Pick' : 'Picked & Ready'}
                     </Badge>
                   </div>
 
-                  <div className="flex items-start gap-2 text-xs text-zinc-400">
-                    <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <MapPin className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
                     <p className="line-clamp-2">{order.deliveryAddress || 'Central Store, Phnom Penh'}</p>
                   </div>
 
                   {/* Items Preview */}
-                  <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80 space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
+                  <div className="p-2.5 rounded-lg bg-card border border-border/80 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                       Items to Assemble ({order.itemCount})
                     </span>
                     {(order.items ?? []).slice(0, 3).map((it) => (
-                      <div key={it.id} className="flex items-center justify-between text-xs text-zinc-300">
+                      <div key={it.id} className="flex items-center justify-between text-xs text-foreground">
                         <span className="truncate pr-2 font-medium">
                           {it.quantity}x {it.name}
                         </span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                           {it.zone} • {it.bin}
                         </span>
                       </div>
                     ))}
                     {(order.items?.length ?? 0) > 3 && (
-                      <span className="text-[10px] text-zinc-500 block pt-1">
+                      <span className="text-[10px] text-muted-foreground block pt-1">
                         +{(order.items?.length ?? 0) - 3} more items...
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-zinc-500">
+                <div className="pt-2 border-t border-border/80 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">
                     {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
 
@@ -352,7 +352,7 @@ export function PickingPage() {
                         setSelectedOrder(order);
                         setCheckedItems({});
                       }}
-                      className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-lg shadow-sm"
+                      className="bg-warning hover:bg-warning text-foreground font-bold text-xs rounded-lg shadow-sm"
                     >
                       Open Picking Checklist
                     </Button>
@@ -365,7 +365,7 @@ export function PickingPage() {
                         setCheckedItems(allChecked);
                       }}
                       variant="outline"
-                      className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs rounded-lg"
+                      className="border-border hover:bg-muted text-foreground text-xs rounded-lg"
                     >
                       View Details
                     </Button>
@@ -379,29 +379,29 @@ export function PickingPage() {
 
       {/* Picking Checklist Modal */}
       <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-w-lg rounded-lg">
+        <DialogContent className="bg-card border-border text-foreground max-w-lg rounded-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center justify-between">
               <span>Picking Checklist: {selectedOrder?.saleNumber}</span>
               <Badge
                 className={`text-[10px] ${
                   selectedOrder?.wmsStatus === 'PENDING_PICKING'
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    ? 'bg-warning/10 text-warning border-warning/20'
+                    : 'bg-success/10 text-success border-success/20'
                 }`}
               >
                 {selectedOrder?.wmsStatus === 'PENDING_PICKING' ? 'Pending Pick' : 'Completed'}
               </Badge>
             </DialogTitle>
-            <DialogDescription className="text-xs text-zinc-400">
-              Customer: <strong className="text-zinc-200">{selectedOrder?.customerName}</strong> • Phone: {selectedOrder?.customerPhone || 'N/A'}
+            <DialogDescription className="text-xs text-muted-foreground">
+              Customer: <strong className="text-foreground">{selectedOrder?.customerName}</strong> • Phone: {selectedOrder?.customerPhone || 'N/A'}
               <br />
-              Delivery To: <span className="text-zinc-300">{selectedOrder?.deliveryAddress}</span>
+              Delivery To: <span className="text-foreground">{selectedOrder?.deliveryAddress}</span>
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 my-2">
-            <div className="flex items-center justify-between text-xs text-zinc-400 pb-1 border-b border-zinc-800">
+            <div className="flex items-center justify-between text-xs text-muted-foreground pb-1 border-b border-border">
               <span>Item Description & Location</span>
               <span>Checked</span>
             </div>
@@ -415,27 +415,27 @@ export function PickingPage() {
                     onClick={() => selectedOrder?.wmsStatus === 'PENDING_PICKING' && toggleItemCheck(it.id)}
                     className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
                       isChecked
-                        ? 'bg-emerald-950/20 border-emerald-500/30'
-                        : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                        ? 'bg-success/20 border-success/30'
+                        : 'bg-card border-border hover:border-border'
                     }`}
                   >
                     <div>
-                      <h5 className={`text-xs font-bold ${isChecked ? 'text-emerald-300 line-through' : 'text-white'}`}>
+                      <h5 className={`text-xs font-bold ${isChecked ? 'text-success line-through' : 'text-foreground'}`}>
                         {it.quantity}x {it.name}
                       </h5>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400">
-                        <span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded">{it.sku}</span>
-                        <span className="text-amber-400 font-semibold">{it.zone}</span>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{it.sku}</span>
+                        <span className="text-warning font-semibold">{it.zone}</span>
                         <span>•</span>
-                        <span className="text-zinc-300">{it.bin}</span>
+                        <span className="text-foreground">{it.bin}</span>
                       </div>
                     </div>
 
                     <div>
                       {isChecked ? (
-                        <CheckSquare className="w-5 h-5 text-emerald-400" />
+                        <CheckSquare className="w-5 h-5 text-success" />
                       ) : (
-                        <Square className="w-5 h-5 text-zinc-600" />
+                        <Square className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
                   </div>
@@ -445,23 +445,23 @@ export function PickingPage() {
 
             {selectedOrder?.wmsStatus === 'PENDING_PICKING' && (
               <div className="space-y-1.5 pt-2">
-                <label className="text-[11px] font-semibold text-zinc-400">Packaging Notes / Special Instructions</label>
+                <label className="text-[11px] font-semibold text-muted-foreground">Packaging Notes / Special Instructions</label>
                 <Input
                   value={packingNotes}
                   onChange={(e) => setPackingNotes(e.target.value)}
                   placeholder="e.g. Fragile package boxed, placed on Shelf 2 for Express Courier"
-                  className="bg-zinc-950 border-zinc-800 text-xs text-white"
+                  className="bg-card border-border text-xs text-foreground"
                 />
               </div>
             )}
           </div>
 
-          <DialogFooter className="flex items-center justify-between sm:justify-between border-t border-zinc-800/80 pt-3">
+          <DialogFooter className="flex items-center justify-between sm:justify-between border-t border-border/80 pt-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedOrder(null)}
-              className="border-zinc-700 text-zinc-300 text-xs rounded-lg"
+              className="border-border text-foreground text-xs rounded-lg"
             >
               Close
             </Button>
@@ -473,7 +473,7 @@ export function PickingPage() {
                   selectedOrder &&
                   fulfillMutation.mutate({ saleId: selectedOrder.id, notes: packingNotes })
                 }
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-lg flex items-center gap-1.5"
+                className="bg-success hover:bg-success text-success-foreground font-bold text-xs rounded-lg shadow-lg flex items-center gap-1.5"
               >
                 <Truck className="w-4 h-4" />
                 Mark Picked & Hand to Courier

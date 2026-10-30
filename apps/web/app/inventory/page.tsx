@@ -298,7 +298,7 @@ export function InventoryPage() {
             title="Total Stock Units"
             value={totalStockOnHand.toLocaleString()}
             icon={Boxes}
-            iconColor="text-blue-500"
+            iconColor="text-info"
             isLoading={isLoading}
           />
           <KpiCard
@@ -312,7 +312,7 @@ export function InventoryPage() {
             title="Low Stock Watchlist"
             value={lowStockCount}
             icon={AlertTriangle}
-            iconColor={lowStockCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}
+            iconColor={lowStockCount > 0 ? 'text-warning' : 'text-muted-foreground'}
             change={lowStockCount > 0 ? -lowStockCount : 0}
             changeLabel="below reorder threshold"
             isLoading={isLoading}
@@ -321,7 +321,7 @@ export function InventoryPage() {
             title="Out of Stock SKUs"
             value={outOfStockCount}
             icon={XCircle}
-            iconColor={outOfStockCount > 0 ? 'text-destructive' : 'text-emerald-500'}
+            iconColor={outOfStockCount > 0 ? 'text-destructive' : 'text-success'}
             change={outOfStockCount === 0 ? 100 : 0}
             changeLabel={outOfStockCount === 0 ? '100% available' : 'critical depletion'}
             isLoading={isLoading}
@@ -416,8 +416,8 @@ export function InventoryPage() {
                         <div
                           className={`p-2 rounded-md ${
                             isInflow
-                              ? 'bg-emerald-500/10 text-emerald-500'
-                              : 'bg-rose-500/10 text-rose-500'
+                              ? 'bg-success/10 text-success'
+                              : 'bg-destructive/10 text-destructive'
                           }`}
                         >
                           {isInflow ? (
@@ -445,7 +445,7 @@ export function InventoryPage() {
                       <div className="text-right">
                         <span
                           className={`font-mono font-bold text-sm ${
-                            isInflow ? 'text-emerald-500' : 'text-rose-500'
+                            isInflow ? 'text-success' : 'text-destructive'
                           }`}
                         >
                           {isInflow ? `+${m.quantity}` : `-${m.quantity}`}

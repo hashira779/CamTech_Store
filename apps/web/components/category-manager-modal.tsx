@@ -432,7 +432,7 @@ export function CategoryManagerModal({
         </DialogHeader>
 
         {error && (
-          <div className="mx-6 p-3 text-xs bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg">
+          <div className="mx-6 p-3 text-xs bg-destructive/10 border border-destructive/20 text-destructive rounded-lg">
             {error}
           </div>
         )}

@@ -47,21 +47,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           <CommandItem
             onSelect={() => runCommand(() => navigate('/sales/new'))}
           >
-            <PlusCircle className="mr-2 h-4 w-4 text-emerald-500" />
+            <PlusCircle className="mr-2 h-4 w-4 text-success" />
             <span>Open Point of Sale (POS Terminal)</span>
             <CommandShortcut>F1</CommandShortcut>
           </CommandItem>
           <CommandItem
             onSelect={() => runCommand(() => navigate('/products'))}
           >
-            <PlusCircle className="mr-2 h-4 w-4 text-blue-500" />
+            <PlusCircle className="mr-2 h-4 w-4 text-info" />
             <span>Add New Product to Catalog</span>
             <CommandShortcut>N</CommandShortcut>
           </CommandItem>
           <CommandItem
             onSelect={() => runCommand(() => navigate('/inventory'))}
           >
-            <Boxes className="mr-2 h-4 w-4 text-amber-500" />
+            <Boxes className="mr-2 h-4 w-4 text-warning" />
             <span>Stock Adjustment</span>
           </CommandItem>
         </CommandGroup>

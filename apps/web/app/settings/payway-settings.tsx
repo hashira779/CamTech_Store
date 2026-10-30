@@ -87,7 +87,7 @@ export function PaywaySettings() {
   return (
     <div className="card p-5 border-border mt-6">
       <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-border">
-        <CreditCard className="w-4 h-4 text-blue-500" />
+        <CreditCard className="w-4 h-4 text-info" />
         <div>
           <h2 className="font-bold text-foreground text-sm">ABA PayWay Configuration</h2>
           <p className="text-muted-foreground text-[11px]">
@@ -98,7 +98,7 @@ export function PaywaySettings() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             {error}
           </div>
@@ -161,7 +161,7 @@ export function PaywaySettings() {
           <label className="block font-medium text-foreground mb-1">
             RSA Private Key 
             {paywayData?.rsaPublicKey && !formData.rsaPrivateKey && (
-              <span className="text-emerald-500 ml-2">(Currently configured and encrypted)</span>
+              <span className="text-success ml-2">(Currently configured and encrypted)</span>
             )}
           </label>
           <textarea
@@ -183,7 +183,7 @@ export function PaywaySettings() {
             </div>
             <div className="flex items-center gap-3">
               {savedSuccess && (
-                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold animate-in fade-in">
+                <div className="flex items-center gap-1.5 text-success text-xs font-semibold animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4" />
                   Verified & Saved
                 </div>

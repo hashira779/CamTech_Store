@@ -327,7 +327,7 @@ export default function UsersPage() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight">Users & Access Control</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success font-mono border border-success/20">
                 Dynamic RBAC
               </span>
             </div>
@@ -477,7 +477,7 @@ export default function UsersPage() {
                                     <span
                                       key={rName}
                                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
-                                        rObj?.isSystem ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/30'
+                                        rObj?.isSystem ? 'bg-warning/10 text-warning border-warning/30' : 'bg-primary/10 text-primary border-primary/30'
                                       }`}
                                     >
                                       {rName}
@@ -489,11 +489,11 @@ export default function UsersPage() {
 
                             <td className="py-3.5 px-4">
                               {u.isActive ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                                <span className="inline-flex items-center gap-1 text-[11px] text-success font-medium">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Active
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 font-medium">
+                                <span className="inline-flex items-center gap-1 text-[11px] text-destructive font-medium">
                                   <XCircle className="w-3.5 h-3.5" /> Inactive
                                 </span>
                               )}
@@ -573,11 +573,11 @@ export default function UsersPage() {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${
-                        r.isSystem ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/30'
+                        r.isSystem ? 'bg-warning/10 text-warning border-warning/30' : 'bg-primary/10 text-primary border-primary/30'
                       }`}>
                         {r.name}
                       </span>
-                      {r.isSystem && <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 px-1 rounded">SYSTEM</span>}
+                      {r.isSystem && <span className="text-[10px] font-mono text-warning bg-warning/10 px-1 rounded">SYSTEM</span>}
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                       {r.description || 'No description provided.'}
@@ -585,7 +585,7 @@ export default function UsersPage() {
                     
                     <div className="flex flex-wrap gap-1 mb-4">
                       {r.permissions.includes('*') ? (
-                        <span className="text-[9px] font-mono bg-amber-500/20 text-amber-400 px-1 rounded">ALL PERMISSIONS (*)</span>
+                        <span className="text-[9px] font-mono bg-warning/20 text-warning px-1 rounded">ALL PERMISSIONS (*)</span>
                       ) : (
                         r.permissions.map(p => (
                           <span key={p} className="text-[9px] font-mono bg-muted text-muted-foreground px-1 rounded">{p}</span>
@@ -724,8 +724,8 @@ export default function UsersPage() {
                     onClick={() => setEditIsActive(!editIsActive)}
                     className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
                       editIsActive
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        ? 'bg-success/20 text-success border border-success/30'
+                        : 'bg-destructive/20 text-destructive border border-destructive/30'
                     }`}
                   >
                     {editIsActive ? 'ACTIVE' : 'SUSPENDED'}
@@ -874,12 +874,12 @@ export default function UsersPage() {
                               <span className="truncate">{perm.key}</span>
                               {/* A permission that gates nothing must not look like an active control. */}
                               {!perm.enforced && (
-                                <span className="ml-auto text-[9px] text-amber-500/80 shrink-0" title="Defined but not enforced">
+                                <span className="ml-auto text-[9px] text-warning/80 shrink-0" title="Defined but not enforced">
                                   n/e
                                 </span>
                               )}
                               {perm.platformScope && (
-                                <span className="ml-auto text-[9px] text-rose-400/80 shrink-0" title="Platform scope">
+                                <span className="ml-auto text-[9px] text-destructive/80 shrink-0" title="Platform scope">
                                   plat
                                 </span>
                               )}

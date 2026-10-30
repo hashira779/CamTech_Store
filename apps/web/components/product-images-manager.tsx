@@ -154,7 +154,7 @@ export function ProductImagesManager({ token, product }: ProductImagesManagerPro
               <div className="hidden w-full h-full items-center justify-center text-muted-foreground">
                 <ImageIcon className="w-12 h-12 opacity-40" />
               </div>
-              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm font-medium z-10">
+              <div className="absolute top-2 left-2 bg-warning text-warning-foreground text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm font-medium z-10">
                 <Star className="w-3 h-3 fill-current" />
                 Primary
               </div>

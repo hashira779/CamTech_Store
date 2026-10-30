@@ -65,8 +65,8 @@ export function KpiCard({
             <span
               className={cn(
                 'inline-flex items-center gap-0.5 font-semibold text-[11px] tabular-nums',
-                isPositive && 'text-emerald-600 dark:text-emerald-400',
-                isNegative && 'text-red-600 dark:text-red-400',
+                isPositive && 'text-success',
+                isNegative && 'text-destructive',
                 !isPositive && !isNegative && 'text-muted-foreground'
               )}
             >

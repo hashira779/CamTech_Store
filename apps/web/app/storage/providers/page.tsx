@@ -113,9 +113,9 @@ export default function ProvidersPage() {
                         <div className="flex items-center gap-2.5">
                           <div className="p-2 rounded bg-muted/30 border border-border">
                             {provider.type === 'GOOGLE_DRIVE' ? (
-                              <Cloud className="w-4 h-4 text-blue-400" />
+                              <Cloud className="w-4 h-4 text-info" />
                             ) : (
-                              <Server className="w-4 h-4 text-emerald-400" />
+                              <Server className="w-4 h-4 text-success" />
                             )}
                           </div>
                           <p className="font-semibold text-foreground">{provider.name}</p>
@@ -126,11 +126,11 @@ export default function ProvidersPage() {
                       </td>
                       <td className="py-3 px-4">
                         {provider.status === 'CONNECTED' ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 w-max">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-success/10 text-success border border-success/20 flex items-center gap-1 w-max">
                             <CheckCircle2 className="w-3 h-3" /> Connected
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1 w-max">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-1 w-max">
                             <AlertCircle className="w-3 h-3" /> {provider.status}
                           </span>
                         )}
@@ -154,7 +154,7 @@ export default function ProvidersPage() {
                               deleteProviderMutation.mutate(provider.id);
                             }
                           }}
-                          className="text-muted-foreground hover:text-rose-400 transition-colors p-1"
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
                           title="Delete Provider"
                           disabled={deleteProviderMutation.isPending}
                         >
@@ -218,7 +218,7 @@ export default function ProvidersPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 font-semibold text-foreground">
-                          {provider ? `${provider.name} (${provider.type})` : <span className="text-rose-400">Unknown Provider</span>}
+                          {provider ? `${provider.name} (${provider.type})` : <span className="text-destructive">Unknown Provider</span>}
                         </td>
                         <td className="py-3 px-4 text-right">
                           <button
@@ -227,7 +227,7 @@ export default function ProvidersPage() {
                                 deletePolicyMutation.mutate(policy.id);
                               }
                             }}
-                            className="p-1.5 hover:bg-rose-500/20 rounded text-rose-400"
+                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
                             title="Remove Rule"
                           >
                             <Trash2 className="w-4 h-4" />

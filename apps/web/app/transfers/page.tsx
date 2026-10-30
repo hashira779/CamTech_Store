@@ -158,11 +158,11 @@ export default function TransfersPage() {
   const getStatusBadge = (status: StockTransferStatus) => {
     const styles: Record<StockTransferStatus, string> = {
       DRAFT: 'bg-muted/30 text-muted-foreground border-border',
-      REQUESTED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      REQUESTED: 'bg-info/10 text-info border-info/20',
       APPROVED: 'bg-primary/10 text-primary border-primary/20',
-      IN_TRANSIT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      RECEIVED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      CANCELLED: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      IN_TRANSIT: 'bg-warning/10 text-warning border-warning/20',
+      RECEIVED: 'bg-success/10 text-success border-success/20',
+      CANCELLED: 'bg-destructive/10 text-destructive border-destructive/20',
     };
     return (
       <span
@@ -215,36 +215,36 @@ export default function TransfersPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-warning/10 text-warning">
                 <Truck className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">In Transit</p>
-                <p className="text-xl font-bold text-amber-400 font-mono">{inTransitCount}</p>
+                <p className="text-xl font-bold text-warning font-mono">{inTransitCount}</p>
               </div>
             </div>
           </div>
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-info/10 text-info">
                 <PackageCheck className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Pending Receipt</p>
-                <p className="text-xl font-bold text-blue-400 font-mono">{pendingReceiptCount}</p>
+                <p className="text-xl font-bold text-info font-mono">{pendingReceiptCount}</p>
               </div>
             </div>
           </div>
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400">
+              <div className="p-2.5 rounded-lg bg-destructive/10 text-destructive">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Transit Discrepancies</p>
-                <p className="text-xl font-bold text-rose-400 font-mono">{totalDiscrepancies}</p>
+                <p className="text-xl font-bold text-destructive font-mono">{totalDiscrepancies}</p>
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function TransfersPage() {
                             <button
                               type="button"
                               onClick={() => shipMutation.mutate(t.id)}
-                              className="px-2 py-1 rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 font-semibold flex items-center gap-1"
+                              className="px-2 py-1 rounded bg-warning/10 text-warning hover:bg-warning/20 font-semibold flex items-center gap-1"
                             >
                               <Truck className="w-3 h-3" />
                               Ship Goods
@@ -337,7 +337,7 @@ export default function TransfersPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenReceive(t)}
-                              className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 font-semibold flex items-center gap-1"
+                              className="px-2 py-1 rounded bg-success/10 text-success hover:bg-success/20 font-semibold flex items-center gap-1"
                             >
                               <PackageCheck className="w-3 h-3" />
                               Receive
@@ -380,7 +380,7 @@ export default function TransfersPage() {
               </div>
 
               {formError && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs">
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs">
                   {formError}
                 </div>
               )}
@@ -464,7 +464,7 @@ export default function TransfersPage() {
                               onClick={() =>
                                 setTransferLines(transferLines.filter((_, i) => i !== idx))
                               }
-                              className="text-rose-400 hover:text-rose-300 text-[11px]"
+                              className="text-destructive hover:text-destructive text-[11px]"
                             >
                               Remove
                             </button>
@@ -565,7 +565,7 @@ export default function TransfersPage() {
             <div className="card max-w-lg w-full p-6 border-border shadow-md bg-card">
               <div className="flex justify-between items-center pb-3 border-b border-border mb-4">
                 <div className="flex items-center gap-2">
-                  <PackageCheck className="w-5 h-5 text-emerald-400" />
+                  <PackageCheck className="w-5 h-5 text-success" />
                   <h3 className="text-lg font-bold text-foreground">
                     Receive Goods ({receiveModalTransfer.transferNumber})
                   </h3>
@@ -615,7 +615,7 @@ export default function TransfersPage() {
                         </div>
 
                         {missing > 0 && (
-                          <div className="text-rose-400 text-xs font-semibold pt-4">
+                          <div className="text-destructive text-xs font-semibold pt-4">
                             Missing: {missing} units
                           </div>
                         )}
@@ -658,7 +658,7 @@ export default function TransfersPage() {
                       },
                     })
                   }
-                  className="btn px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                  className="btn px-4 py-1.5 text-xs bg-success hover:bg-success text-success-foreground font-bold"
                 >
                   {receiveMutation.isPending ? 'Confirming...' : 'Confirm Inbound Receipt'}
                 </button>
@@ -729,10 +729,10 @@ export default function TransfersPage() {
                         <div className="flex justify-between text-muted-foreground font-mono">
                           <span>Requested: {line.requestedQty}</span>
                           <span>Dispatched: {line.sentQty}</span>
-                          <span className="text-emerald-400">Received: {line.receivedQty}</span>
+                          <span className="text-success">Received: {line.receivedQty}</span>
                         </div>
                         {line.discrepancyQty > 0 && (
-                          <div className="text-rose-400 font-semibold text-[11px]">
+                          <div className="text-destructive font-semibold text-[11px]">
                             Discrepancy: -{line.discrepancyQty} units
                           </div>
                         )}

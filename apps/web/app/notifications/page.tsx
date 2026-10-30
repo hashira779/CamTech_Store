@@ -131,15 +131,15 @@ export default function NotificationsPage() {
   const getTypeIcon = (type: NotificationType) => {
     switch (type) {
       case 'LOW_STOCK_ALERT':
-        return <AlertTriangle className="w-4 h-4 text-amber-400" />;
+        return <AlertTriangle className="w-4 h-4 text-warning" />;
       case 'ORDER_CREATED':
-        return <ShoppingBag className="w-4 h-4 text-emerald-400" />;
+        return <ShoppingBag className="w-4 h-4 text-success" />;
       case 'TRANSFER_DISPATCHED':
-        return <ArrowLeftRight className="w-4 h-4 text-orange-500" />;
+        return <ArrowLeftRight className="w-4 h-4 text-warning" />;
       case 'PO_APPROVED':
-        return <CheckCircle2 className="w-4 h-4 text-blue-400" />;
+        return <CheckCircle2 className="w-4 h-4 text-info" />;
       case 'PAYMENT_RECEIVED':
-        return <CreditCard className="w-4 h-4 text-teal-400" />;
+        return <CreditCard className="w-4 h-4 text-success" />;
       default:
         return <Bell className="w-4 h-4 text-primary" />;
     }
@@ -149,25 +149,25 @@ export default function NotificationsPage() {
     switch (channel) {
       case 'TELEGRAM':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-info/10 text-info border border-info/20 flex items-center gap-1">
             <Radio className="w-3 h-3" /> TELEGRAM
           </span>
         );
       case 'EMAIL':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 flex items-center gap-1">
             <Mail className="w-3 h-3" /> EMAIL
           </span>
         );
       case 'SMS':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 flex items-center gap-1">
             <Smartphone className="w-3 h-3" /> SMS
           </span>
         );
       default:
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-info/10 text-info border border-info/20 flex items-center gap-1">
             <Bell className="w-3 h-3" /> IN-APP
           </span>
         );
@@ -213,7 +213,7 @@ export default function NotificationsPage() {
         </div>
 
         {testSentMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs flex items-center gap-2">
+          <div className="p-3 bg-success/10 border border-success/20 text-success rounded-lg text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
             {testSentMsg}
           </div>
@@ -235,24 +235,24 @@ export default function NotificationsPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-400">
+              <div className="p-2.5 rounded-lg bg-destructive/10 text-destructive">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Unread In-App</p>
-                <p className="text-xl font-bold text-rose-400 font-mono">{stats?.unreadInApp ?? 0}</p>
+                <p className="text-xl font-bold text-destructive font-mono">{stats?.unreadInApp ?? 0}</p>
               </div>
             </div>
           </div>
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-400">
+              <div className="p-2.5 rounded-lg bg-info/10 text-info">
                 <Radio className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Active Channels</p>
-                <p className="text-sm font-bold text-sky-400 font-mono">
+                <p className="text-sm font-bold text-info font-mono">
                   {stats?.activeChannels?.length ? stats.activeChannels.join(', ') : 'IN_APP'}
                 </p>
               </div>
@@ -261,12 +261,12 @@ export default function NotificationsPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-success/10 text-success">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Delivery Health</p>
-                <p className="text-xl font-bold text-emerald-400 font-mono">100%</p>
+                <p className="text-xl font-bold text-success font-mono">100%</p>
               </div>
             </div>
           </div>
@@ -329,10 +329,10 @@ export default function NotificationsPage() {
                         <span
                           className={`px-1.5 py-0.2 text-[9px] font-bold rounded ${
                             notif.status === 'SENT'
-                              ? 'bg-emerald-500/10 text-emerald-400'
+                              ? 'bg-success/10 text-success'
                               : notif.status === 'FAILED'
-                              ? 'bg-rose-500/10 text-rose-400'
-                              : 'bg-amber-500/10 text-amber-400'
+                              ? 'bg-destructive/10 text-destructive'
+                              : 'bg-warning/10 text-warning'
                           }`}
                         >
                           {notif.status}
@@ -366,7 +366,7 @@ export default function NotificationsPage() {
             {/* Telegram Setup Card */}
             <div className="card p-5 border-border bg-card space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-border">
-                <Radio className="w-5 h-5 text-sky-400" />
+                <Radio className="w-5 h-5 text-info" />
                 <div>
                   <h3 className="font-bold text-sm text-foreground">Telegram Bot Broadcasts</h3>
                   <p className="text-[11px] text-muted-foreground">
@@ -422,7 +422,7 @@ export default function NotificationsPage() {
             {/* Email & In-App Setup Card */}
             <div className="card p-5 border-border bg-card space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-border">
-                <Mail className="w-5 h-5 text-amber-400" />
+                <Mail className="w-5 h-5 text-warning" />
                 <div>
                   <h3 className="font-bold text-sm text-foreground">Email & In-App Settings</h3>
                   <p className="text-[11px] text-muted-foreground">

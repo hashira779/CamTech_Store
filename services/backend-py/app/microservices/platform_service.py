@@ -16,13 +16,13 @@ from app.modules.reporting.api import router as reporting_router
 # a confusing duplicate registration.
 
 # Supporting / platform routers
-from app.routers.industry_routes import router as industry_router
-from app.routers.ai_copilot_routes import router as ai_copilot_router
-from app.routers.data_exchange_routes import router as data_exchange_router
-from app.routers.event_routes import router as event_router
-from app.routers.app_registry_routes import router as app_registry_router
-from app.routers.outbox_routes import router as outbox_router
-from app.routers.security_routes import router as security_router
+from app.modules.industry.api import router as industry_router
+from app.modules.ai_copilot.api import router as ai_copilot_router
+from app.modules.data_exchange.api import router as data_exchange_router
+from app.modules.events.api import router as event_router
+from app.modules.app_registry.api import router as app_registry_router
+from app.modules.outbox.api import router as outbox_router
+from app.modules.security.api import router as security_router
 
 app = create_microservice(
     name="Platform & Experience Microservice",

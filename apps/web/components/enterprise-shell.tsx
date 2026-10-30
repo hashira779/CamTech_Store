@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, createContext, useContext, Suspense } from 'react';
+import React, { lazy, useEffect, useState, useMemo, createContext, useContext, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-store';
@@ -13,7 +13,6 @@ import {
   LogOut,
   Bell,
   Search,
-  Building2,
   WifiOff,
   Sun,
   Moon,
@@ -25,8 +24,6 @@ import {
   X,
 } from 'lucide-react';
 import { useThemeStore } from '@/lib/theme-store';
-import { CommandPalette } from '@/components/command-palette';
-import { AiCopilotDrawer } from '@/components/ai-copilot-drawer';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { useExperienceStore, EXPERIENCE_CONFIGS } from '@/lib/experience-store';
 import { Button } from '@/components/ui/button';
@@ -47,6 +44,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+
+// Rarely opened panels stay out of the shell bundle that every screen pays for.
+const CommandPalette = lazy(() =>
+  import('@/components/command-palette').then((m) => ({ default: m.CommandPalette }))
+);
+const AiCopilotDrawer = lazy(() =>
+  import('@/components/ai-copilot-drawer').then((m) => ({ default: m.AiCopilotDrawer }))
+);
+
+const IS_APPLE = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
 
 // Dynamic code-splitting prefetch cache
 const ROUTE_PREFETCH_MAP: Record<string, () => Promise<any>> = {
@@ -250,8 +257,10 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
       >
         Skip to main content
       </a>
-      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
-      <AiCopilotDrawer />
+      <Suspense fallback={null}>
+        {cmdOpen && <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />}
+        <AiCopilotDrawer />
+      </Suspense>
 
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
@@ -287,12 +296,14 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
             className="lg:hidden p-1 rounded-md text-muted-foreground hover:text-foreground"
+            aria-label="Close navigation"
           >
             <X className="w-5 h-5" />
           </button>
@@ -373,17 +384,6 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
 
         {/* ─── User Footer ─── */}
         <div className="p-2 border-t border-border shrink-0">
-          {!collapsed && (
-            <div className="flex items-center gap-2 mb-2 p-2 rounded-md bg-accent/50 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <div className="truncate flex-1">
-                <p className="font-medium text-foreground truncate text-[11px]">
-                  {isSuperAdmin ? 'Headquarters' : 'Branch #1'}
-                </p>
-              </div>
-            </div>
-          )}
-
           <div className="flex items-center justify-between">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -430,6 +430,7 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
                 }}
                 className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors cursor-pointer"
                 title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -446,6 +447,7 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             <button
               onClick={() => setMobileOpen(true)}
               className="lg:hidden p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+              aria-label="Open navigation"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -467,10 +469,10 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             >
               <span className="flex items-center gap-2 truncate">
                 <Search className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Search...</span>
+                <span className="truncate">Search</span>
               </span>
               <kbd className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px] bg-accent px-1.5 py-0.5 rounded border border-border text-muted-foreground">
-                <span>⌘</span>K
+                {IS_APPLE ? '⌘K' : 'Ctrl K'}
               </kbd>
             </button>
           </div>
@@ -481,12 +483,12 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
 
             {/* Online/Offline */}
             {isOnline ? (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-success">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
                 Online
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-warning bg-warning/10">
                 <WifiOff className="w-3 h-3" />
                 Offline
               </span>
@@ -536,7 +538,7 @@ export function EnterpriseShell({ children }: { children?: React.ReactNode }) {
             >
               <Bell className="w-4 h-4" />
               {Boolean(notifStats?.unreadInApp && notifStats.unreadInApp > 0) ? (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
                   {notifStats!.unreadInApp > 99 ? '99+' : notifStats!.unreadInApp}
                 </span>
               ) : null}

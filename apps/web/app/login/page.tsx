@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   // Check if we're on the infra subdomain
   const hostname = window.location.hostname.toLowerCase();
-  const isInfra = hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.') || window.location.pathname.startsWith('/infra');
+  const isInfra = hostname.startsWith('infra.') || hostname.startsWith('soc.') || hostname.startsWith('noc.') || window.location.pathname === '/infra' || window.location.pathname.startsWith('/infra/');
 
   useEffect(() => {
     setPasskeySupported(isPasskeySupported());
@@ -140,14 +140,14 @@ export default function LoginPage() {
         <div className="max-w-lg">
           {isInfra ? (
             <>
-              <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-info/30 bg-info/10 px-3 py-1 text-xs font-medium text-info">
+                <span className="h-1.5 w-1.5 rounded-full bg-info animate-pulse" />
                 NOC Control Panel
               </p>
               <h1 className="text-4xl font-bold leading-tight tracking-tight">
                 Infrastructure
                 <br />
-                <span className="text-blue-500">Command Center</span>
+                <span className="text-info">Command Center</span>
               </h1>
               <p className="mt-4 max-w-md text-base text-muted-foreground">
                 Centralized monitoring, service topology, and critical alerts for the CamTech production environment.
@@ -156,13 +156,13 @@ export default function LoginPage() {
           ) : (
             <>
               <p className="mb-4 inline-flex items-center gap-2 rounded-md border border-border bg-accent px-3 py-1 text-xs font-medium text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 Enterprise Platform
               </p>
               <h1 className="text-4xl font-bold leading-tight tracking-tight">
                 Run your entire
                 <br />
-                <span className="text-primary">business empire</span>
+                <span className="text-primary">operation</span>
               </h1>
               <p className="mt-4 max-w-md text-base text-muted-foreground">
                 POS, inventory, finance, CRM &amp; delivery — unified across every branch, in real time.
@@ -174,17 +174,13 @@ export default function LoginPage() {
           <div className="mt-8 max-w-sm">
             <div className="rounded-lg border border-border bg-card p-5">
               <div className="flex items-center gap-3">
-                <div className={`grid h-10 w-10 place-items-center rounded-lg font-bold text-sm ${isInfra ? 'bg-blue-600 text-white' : 'bg-primary text-primary-foreground'}`}>
+                <div className={`grid h-10 w-10 place-items-center rounded-lg font-bold text-sm ${isInfra ? 'bg-info text-info-foreground' : 'bg-primary text-primary-foreground'}`}>
                   {isInfra ? 'NOC' : 'MS'}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-semibold leading-tight">{isInfra ? 'Production Cluster' : 'MyStore Enterprise'}</p>
-                  <p className="truncate text-xs text-muted-foreground">{isInfra ? 'Region: us-east-1' : 'Universal Business Platform'}</p>
+                  <p className="truncate text-xs text-muted-foreground">{isInfra ? 'Infrastructure control' : 'Universal Business Platform'}</p>
                 </div>
-                <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Active
-                </span>
               </div>
 
               <div className="my-4 h-px bg-border" />
@@ -193,39 +189,39 @@ export default function LoginPage() {
                 {isInfra ? (
                   <>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Microservices</p>
-                      <p className="font-semibold text-blue-500">7 Active</p>
+                      <p className="text-[11px] text-muted-foreground">Monitoring</p>
+                      <p className="font-semibold">Live telemetry</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Nodes</p>
-                      <p className="font-semibold">3 Workers</p>
+                      <p className="text-[11px] text-muted-foreground">Incidents</p>
+                      <p className="font-semibold">Tracked &amp; audited</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Cluster State</p>
-                      <p className="font-semibold text-emerald-500">Healthy</p>
+                      <p className="text-[11px] text-muted-foreground">Access</p>
+                      <p className="font-semibold">Role-based</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Load</p>
-                      <p className="font-semibold text-amber-500">14% CPU</p>
+                      <p className="text-[11px] text-muted-foreground">Emergency</p>
+                      <p className="font-semibold">Break-glass</p>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Modules</p>
-                      <p className="font-semibold">30+ Suites</p>
+                      <p className="text-[11px] text-muted-foreground">Operations</p>
+                      <p className="font-semibold">POS &amp; delivery</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Back office</p>
+                      <p className="font-semibold">Stock &amp; finance</p>
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground">Deployment</p>
-                      <p className="font-semibold">Multi-Branch</p>
+                      <p className="font-semibold">Multi-branch</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground">Uptime</p>
-                      <p className="font-semibold">99.98%</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Security</p>
-                      <p className="font-semibold">RBAC · Isolated</p>
+                      <p className="text-[11px] text-muted-foreground">Access</p>
+                      <p className="font-semibold">Role-based</p>
                     </div>
                   </>
                 )}
@@ -238,10 +234,10 @@ export default function LoginPage() {
           {isInfra ? (
             <>
               <span className="inline-flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-blue-500" /> Zero Trust Auth
+                <ShieldCheck className="h-4 w-4 text-info" /> Zero Trust Auth
               </span>
               <span className="inline-flex items-center gap-2">
-                <Zap className="h-4 w-4 text-blue-500" /> Live Telemetry
+                <Zap className="h-4 w-4 text-info" /> Live Telemetry
               </span>
             </>
           ) : (
@@ -273,14 +269,14 @@ export default function LoginPage() {
           </div>
 
           {isExpired && (
-            <div className="mb-5 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <div className="mb-5 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs font-medium text-warning">
               <KeyRound className="h-4 w-4 shrink-0" />
               <span>Your session has expired. Please sign in again.</span>
             </div>
           )}
 
           {isInactive && (
-            <div className="mb-5 flex items-center gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-xs font-medium text-blue-600 dark:text-blue-400">
+            <div className="mb-5 flex items-center gap-2 rounded-md border border-info/30 bg-info/10 p-3 text-xs font-medium text-info">
               <KeyRound className="h-4 w-4 shrink-0" />
               <span>Signed out after 30 minutes of inactivity.</span>
             </div>
@@ -369,10 +365,12 @@ export default function LoginPage() {
             )}
           </form>
 
-          <p className="mt-5 text-center text-xs text-muted-foreground">
-            Demo · <span className="font-mono text-foreground">admin@demo.test</span> /{' '}
-            <span className="font-mono text-foreground">Admin123!</span>
-          </p>
+          {import.meta.env.DEV && (
+            <p className="mt-5 text-center text-xs text-muted-foreground">
+              Demo · <span className="font-mono text-foreground">admin@demo.test</span> /{' '}
+              <span className="font-mono text-foreground">Admin123!</span>
+            </p>
+          )}
         </div>
       </div>
     </main>

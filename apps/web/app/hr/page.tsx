@@ -279,7 +279,7 @@ export default function HrPage() {
                       <td className="p-3 font-medium text-foreground">{emp.position}</td>
                       <td className="p-3 text-muted-foreground font-mono">{emp.departmentName || '—'}</td>
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-success/10 text-success border border-success/20">
                           {emp.status}
                         </span>
                       </td>
@@ -337,7 +337,7 @@ export default function HrPage() {
                         {new Date(l.startDate).toLocaleDateString()} to {new Date(l.endDate).toLocaleDateString()} ({l.daysCount} days)
                       </td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${l.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400' : l.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${l.status === 'APPROVED' ? 'bg-success/10 text-success' : l.status === 'REJECTED' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
                           {l.status}
                         </span>
                       </td>
@@ -346,7 +346,7 @@ export default function HrPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => approveLeaveMutation.mutate(l.id)}
-                              className="btn py-1 px-2.5 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white"
+                              className="btn py-1 px-2.5 text-[11px] bg-success hover:bg-success text-success-foreground"
                             >
                               Approve
                             </button>
@@ -381,7 +381,7 @@ export default function HrPage() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-muted-foreground uppercase tracking-wider block">Total Net Disbursement</span>
-                    <span className="text-lg font-bold font-mono text-emerald-400">${run.totalNet.toFixed(2)}</span>
+                    <span className="text-lg font-bold font-mono text-success">${run.totalNet.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -401,8 +401,8 @@ export default function HrPage() {
                         <tr key={it.id}>
                           <td className="p-2 font-bold text-foreground">{it.employeeName}</td>
                           <td className="p-2 text-right font-mono">${it.baseSalary.toFixed(2)}</td>
-                          <td className="p-2 text-right font-mono text-emerald-400">+${it.allowances.toFixed(2)}</td>
-                          <td className="p-2 text-right font-mono text-rose-400">-${it.deductions.toFixed(2)}</td>
+                          <td className="p-2 text-right font-mono text-success">+${it.allowances.toFixed(2)}</td>
+                          <td className="p-2 text-right font-mono text-destructive">-${it.deductions.toFixed(2)}</td>
                           <td className="p-2 text-right font-mono font-bold text-foreground">${it.netPay.toFixed(2)}</td>
                         </tr>
                       ))}

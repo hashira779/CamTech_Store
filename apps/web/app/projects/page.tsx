@@ -154,7 +154,7 @@ export default function ProjectsPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[10px] uppercase">Logged Hours</span>
-                      <span className="font-mono font-bold text-emerald-400">{p.totalActualHours || 0} hrs</span>
+                      <span className="font-mono font-bold text-success">{p.totalActualHours || 0} hrs</span>
                     </div>
                     <button
                       onClick={() => {

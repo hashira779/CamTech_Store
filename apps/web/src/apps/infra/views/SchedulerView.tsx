@@ -267,11 +267,11 @@ export function SchedulerView() {
       {/* ── Top Bar ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Clock className="w-5 h-5 text-[#F38020]" />
+          <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
+            <Clock className="w-5 h-5 text-primary" />
             Scheduled Operations &amp; Cron Triggers
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Automate routine service restarts, database optimizations, backups, and maintenance cron schedules
           </p>
         </div>
@@ -279,7 +279,7 @@ export function SchedulerView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition cursor-pointer"
+            className="p-2 rounded-lg bg-card border border-border text-foreground hover:text-foreground hover:border-border transition cursor-pointer"
             title="Refresh Tasks"
           >
             <RotateCw className="w-4 h-4" />
@@ -289,7 +289,7 @@ export function SchedulerView() {
               applyTemplate(QUICK_TEMPLATES[0]);
               setShowAddModal(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold shadow-md shadow-[#F38020]/20 transition cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             New Scheduled Task
@@ -299,13 +299,13 @@ export function SchedulerView() {
 
       {/* ── Task List ── */}
       {isLoading ? (
-        <div className="p-12 text-center text-zinc-500 text-sm font-mono">Loading scheduler cron jobs...</div>
+        <div className="p-12 text-center text-muted-foreground text-sm font-mono">Loading scheduler cron jobs...</div>
       ) : tasks.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 space-y-4">
-          <Calendar className="w-10 h-10 text-zinc-600 mx-auto" />
+        <div className="p-12 text-center rounded-2xl bg-card/40 border border-dashed border-border space-y-4">
+          <Calendar className="w-10 h-10 text-muted-foreground mx-auto" />
           <div>
-            <p className="text-zinc-200 text-sm font-semibold">No scheduled operations configured</p>
-            <p className="text-zinc-500 text-xs mt-1 max-w-md mx-auto">
+            <p className="text-foreground text-sm font-semibold">No scheduled operations configured</p>
+            <p className="text-muted-foreground text-xs mt-1 max-w-md mx-auto">
               Automate nightly container recycles, memory cleanup, or database maintenance without writing raw cron syntax.
             </p>
           </div>
@@ -314,7 +314,7 @@ export function SchedulerView() {
               applyTemplate(QUICK_TEMPLATES[0]);
               setShowAddModal(true);
             }}
-            className="px-4 py-2 bg-[#F38020] hover:bg-[#E07116] text-white rounded-lg text-xs font-semibold cursor-pointer shadow-md shadow-[#F38020]/20 transition"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold cursor-pointer shadow-md shadow-primary/20 transition"
           >
             Create 1-Click Nightly Auto-Restart
           </button>
@@ -326,66 +326,66 @@ export function SchedulerView() {
             return (
               <div
                 key={task.id}
-                className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700 transition flex flex-col justify-between"
+                className="p-4 rounded-xl bg-card/70 border border-border/80 hover:border-border transition flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                      <h4 className="font-bold text-foreground text-sm flex items-center gap-2">
                         {task.name}
                         {task.enabled ? (
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                          <span className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_color-mix(in srgb, var(--success) 70%, transparent)]" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                          <span className="w-2 h-2 rounded-full bg-accent" />
                         )}
                       </h4>
-                      {task.description && <p className="text-xs text-zinc-400 mt-0.5">{task.description}</p>}
+                      {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
                     </div>
 
                     <button
                       onClick={() => toggleMutation.mutate({ id: task.id, enabled: !task.enabled })}
-                      className="text-zinc-400 hover:text-white transition cursor-pointer"
+                      className="text-muted-foreground hover:text-foreground transition cursor-pointer"
                       title={task.enabled ? 'Pause Schedule' : 'Enable Schedule'}
                     >
                       {task.enabled ? (
-                        <ToggleRight className="w-6 h-6 text-[#F38020]" />
+                        <ToggleRight className="w-6 h-6 text-primary" />
                       ) : (
-                        <ToggleLeft className="w-6 h-6 text-zinc-600" />
+                        <ToggleLeft className="w-6 h-6 text-muted-foreground" />
                       )}
                     </button>
                   </div>
 
                   {/* Task Specs */}
-                  <div className="mt-3.5 space-y-1.5 p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/60 font-mono text-xs">
-                    <div className="flex items-center justify-between text-zinc-400">
+                  <div className="mt-3.5 space-y-1.5 p-2.5 rounded-lg bg-card/60 border border-border/60 font-mono text-xs">
+                    <div className="flex items-center justify-between text-muted-foreground">
                       <span>Schedule:</span>
-                      <span className="text-[#F38020] font-bold bg-[#F38020]/15 px-2 py-0.5 rounded border border-[#F38020]/30">
+                      <span className="text-primary font-bold bg-primary/15 px-2 py-0.5 rounded border border-primary/30">
                         {task.cronExpr}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-zinc-400">
+                    <div className="flex items-center justify-between text-muted-foreground">
                       <span>Command:</span>
-                      <span className="text-zinc-200 truncate max-w-[200px]" title={task.command}>
+                      <span className="text-foreground truncate max-w-[200px]" title={task.command}>
                         {task.command}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-zinc-400">
+                    <div className="flex items-center justify-between text-muted-foreground">
                       <span>Target Host:</span>
-                      <span className="text-zinc-300">{agent ? agent.hostname : 'Platform Cluster'}</span>
+                      <span className="text-foreground">{agent ? agent.hostname : 'Platform Cluster'}</span>
                     </div>
                   </div>
 
                   {/* Execution Feedback */}
                   {task.lastResult && (
-                    <div className="mt-3 p-2 rounded bg-zinc-950/40 border border-zinc-800 text-[11px] font-mono text-zinc-400 truncate">
-                      Last execution: <span className="text-emerald-400">{task.lastResult}</span>
+                    <div className="mt-3 p-2 rounded bg-card/40 border border-border text-[11px] font-mono text-muted-foreground truncate">
+                      Last execution: <span className="text-success">{task.lastResult}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
-                  <span className="text-[11px] text-zinc-500 font-mono">
+                <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground font-mono">
                     {task.lastRunAt ? `Last run: ${new Date(task.lastRunAt).toLocaleTimeString()}` : 'Never executed'}
                   </span>
 
@@ -393,7 +393,7 @@ export function SchedulerView() {
                     <button
                       onClick={() => runNowMutation.mutate(task.id)}
                       disabled={runNowMutation.isPending}
-                      className="px-2.5 py-1 rounded bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                      className="px-2.5 py-1 rounded bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                     >
                       <Play className="w-3 h-3" /> Run Now
                     </button>
@@ -403,7 +403,7 @@ export function SchedulerView() {
                           deleteMutation.mutate(task.id);
                         }
                       }}
-                      className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                      className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition cursor-pointer"
                       title="Delete task"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -419,16 +419,16 @@ export function SchedulerView() {
       {/* ── Create Task Modal (Easy Mode + Presets + Visual Picker) ── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#090d16] border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div className="bg-background border border-border rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[92vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+            <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#F38020]/15 border border-[#F38020]/30 text-[#F38020]">
+                <div className="p-2 rounded-lg bg-primary/15 border border-primary/30 text-primary">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white tracking-tight">Create Cron Trigger &amp; Operation</h3>
-                  <p className="text-xs text-zinc-400">
+                  <h3 className="text-base font-bold text-foreground tracking-tight">Create Cron Trigger &amp; Operation</h3>
+                  <p className="text-xs text-muted-foreground">
                     Choose a quick template or configure a custom recurring schedule in plain English
                   </p>
                 </div>
@@ -436,7 +436,7 @@ export function SchedulerView() {
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
+                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -445,11 +445,11 @@ export function SchedulerView() {
             {/* ── Quick Templates Section ── */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#F38020]" />
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
                   1-Click Quick Templates
                 </span>
-                <span className="text-[11px] text-zinc-500">Click to auto-fill everything</span>
+                <span className="text-[11px] text-muted-foreground">Click to auto-fill everything</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {QUICK_TEMPLATES.map((tmpl, idx) => (
@@ -457,27 +457,27 @@ export function SchedulerView() {
                     key={idx}
                     type="button"
                     onClick={() => applyTemplate(tmpl)}
-                    className="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-850 border border-zinc-800 hover:border-[#F38020]/50 text-left transition group cursor-pointer"
+                    className="p-3 rounded-xl bg-card/80 hover:bg-accent border border-border hover:border-primary/50 text-left transition group cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <div className="text-xs font-bold text-white group-hover:text-[#F38020] transition flex items-center gap-1.5">
-                        <tmpl.icon className="w-3.5 h-3.5 text-[#F38020]" />
+                      <div className="text-xs font-bold text-foreground group-hover:text-primary transition flex items-center gap-1.5">
+                        <tmpl.icon className="w-3.5 h-3.5 text-primary" />
                         {tmpl.title}
                       </div>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50">
                         {tmpl.badge}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{tmpl.description}</p>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{tmpl.description}</p>
                   </button>
                 ))}
               </div>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4 pt-1 border-t border-zinc-800/80">
+            <form onSubmit={handleCreate} className="space-y-4 pt-1 border-t border-border/80">
               {/* ── 1. Schedule Frequency (Visual Picker) ── */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-2">
+                <label className="block text-xs font-semibold text-foreground mb-2">
                   1. How often should it run?
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -494,25 +494,25 @@ export function SchedulerView() {
                       onClick={() => setFrequency(f.key as FrequencyType)}
                       className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
                         frequency === f.key
-                          ? 'bg-[#F38020]/20 border-[#F38020] text-white shadow-[0_0_12px_rgba(243,128,32,0.25)]'
-                          : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                          ? 'bg-primary/20 border-primary text-foreground shadow-[0_0_12px_rgba(243,128,32,0.25)]'
+                          : 'bg-card/60 border-border text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
                       <div className="text-xs font-bold">{f.label}</div>
-                      <div className="text-[10px] text-zinc-500 font-mono mt-0.5">{f.desc}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{f.desc}</div>
                     </button>
                   ))}
                 </div>
 
                 {/* Sub-selectors for Frequency */}
-                <div className="mt-3 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-2.5">
+                <div className="mt-3 p-3 rounded-xl bg-card/80 border border-border/80 space-y-2.5">
                   {frequency === 'daily' && (
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-zinc-400">Run daily at:</span>
+                      <span className="text-xs text-muted-foreground">Run daily at:</span>
                       <select
                         value={dailyHour}
                         onChange={(e) => setDailyHour(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-white font-mono focus:outline-none focus:border-[#F38020]"
+                        className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       >
                         {[
                           '00:00',
@@ -532,17 +532,17 @@ export function SchedulerView() {
                           </option>
                         ))}
                       </select>
-                      <span className="text-xs text-zinc-500 font-mono">Recommended: 04:00 AM (lowest traffic)</span>
+                      <span className="text-xs text-muted-foreground font-mono">Recommended: 04:00 AM (lowest traffic)</span>
                     </div>
                   )}
 
                   {frequency === 'weekly' && (
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-xs text-zinc-400">Run on:</span>
+                      <span className="text-xs text-muted-foreground">Run on:</span>
                       <select
                         value={weeklyDay}
                         onChange={(e) => setWeeklyDay(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-white font-mono focus:outline-none focus:border-[#F38020]"
+                        className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       >
                         <option value="0">Sunday</option>
                         <option value="1">Monday</option>
@@ -552,11 +552,11 @@ export function SchedulerView() {
                         <option value="5">Friday</option>
                         <option value="6">Saturday</option>
                       </select>
-                      <span className="text-xs text-zinc-400">at:</span>
+                      <span className="text-xs text-muted-foreground">at:</span>
                       <select
                         value={dailyHour}
                         onChange={(e) => setDailyHour(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-white font-mono focus:outline-none focus:border-[#F38020]"
+                        className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       >
                         <option value="02:00">02:00 AM UTC</option>
                         <option value="03:00">03:00 AM UTC</option>
@@ -566,42 +566,42 @@ export function SchedulerView() {
                   )}
 
                   {frequency === 'hourly' && (
-                    <p className="text-xs text-zinc-400 font-mono">
+                    <p className="text-xs text-muted-foreground font-mono">
                       ⚡ Triggers automatically at minute :00 of every hour (e.g. 01:00, 02:00, 03:00...)
                     </p>
                   )}
 
                   {frequency === 'six_hours' && (
-                    <p className="text-xs text-zinc-400 font-mono">
+                    <p className="text-xs text-muted-foreground font-mono">
                       ⚡ Triggers 4 times daily: at 00:00, 06:00, 12:00, and 18:00 UTC
                     </p>
                   )}
 
                   {frequency === 'custom' && (
                     <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">Custom Cron Expression (min hour day month weekday)</label>
+                      <label className="block text-[11px] text-muted-foreground mb-1">Custom Cron Expression (min hour day month weekday)</label>
                       <input
                         type="text"
                         placeholder="0 4 * * *"
                         value={customCron}
                         onChange={(e) => setCustomCron(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-[#F38020] font-mono focus:outline-none focus:border-[#F38020]"
+                        className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-primary font-mono focus:outline-none focus:border-primary"
                       />
                     </div>
                   )}
 
                   {/* Live Plain English Translation Badge */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/60 text-xs font-mono">
-                    <span className="text-zinc-500">Plain English:</span>
-                    <span className="text-emerald-400 font-bold">{getScheduleSummary()}</span>
-                    <span className="text-zinc-600">({computeCron()})</span>
+                  <div className="flex items-center gap-2 pt-1 border-t border-border/60 text-xs font-mono">
+                    <span className="text-muted-foreground">Plain English:</span>
+                    <span className="text-success font-bold">{getScheduleSummary()}</span>
+                    <span className="text-muted-foreground">({computeCron()})</span>
                   </div>
                 </div>
               </div>
 
               {/* ── 2. Action / Command Selection ── */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-2">
+                <label className="block text-xs font-semibold text-foreground mb-2">
                   2. What action should be executed?
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -617,25 +617,25 @@ export function SchedulerView() {
                       onClick={() => setActionCategory(cat.key as any)}
                       className={`p-2 rounded-xl border text-center transition cursor-pointer flex items-center justify-center gap-1.5 ${
                         actionCategory === cat.key
-                          ? 'bg-[#F38020]/20 border-[#F38020] text-white shadow-[0_0_12px_rgba(243,128,32,0.25)]'
-                          : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                          ? 'bg-primary/20 border-primary text-foreground shadow-[0_0_12px_rgba(243,128,32,0.25)]'
+                          : 'bg-card/60 border-border text-muted-foreground hover:text-foreground hover:border-border'
                       }`}
                     >
-                      <cat.icon className="w-3.5 h-3.5 text-[#F38020]" />
+                      <cat.icon className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs font-medium">{cat.label}</span>
                     </button>
                   ))}
                 </div>
 
                 {/* Sub-inputs per action category */}
-                <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                <div className="p-3 rounded-xl bg-card/80 border border-border/80">
                   {actionCategory === 'service' && (
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                      <span className="text-xs text-zinc-400 shrink-0">Select Service:</span>
+                      <span className="text-xs text-muted-foreground shrink-0">Select Service:</span>
                       <select
                         value={selectedService}
                         onChange={(e) => setSelectedService(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-white font-mono focus:outline-none focus:border-[#F38020]"
+                        className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       >
                         <option value="camtech-backend">camtech-backend (FastAPI Monolith)</option>
                         <option value="camtech-gateway">camtech-gateway (API Gateway)</option>
@@ -648,11 +648,11 @@ export function SchedulerView() {
 
                   {actionCategory === 'docker' && (
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                      <span className="text-xs text-zinc-400 shrink-0">Select Container:</span>
+                      <span className="text-xs text-muted-foreground shrink-0">Select Container:</span>
                       <select
                         value={selectedContainer}
                         onChange={(e) => setSelectedContainer(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-white font-mono focus:outline-none focus:border-[#F38020]"
+                        className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       >
                         {liveContainers.length > 0 ? (
                           liveContainers.map((c: any) => (
@@ -673,21 +673,21 @@ export function SchedulerView() {
                   )}
 
                   {actionCategory === 'system' && (
-                    <div className="text-xs text-zinc-300 font-mono flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="text-xs text-foreground font-mono flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                       <span>Command: `docker system prune -f` (Prunes unused images and dangling volumes)</span>
                     </div>
                   )}
 
                   {actionCategory === 'custom' && (
                     <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">Enter shell / agent command:</label>
+                      <label className="block text-[11px] text-muted-foreground mb-1">Enter shell / agent command:</label>
                       <input
                         type="text"
                         placeholder="e.g. sync && echo 3 > /proc/sys/vm/drop_caches"
                         value={customCommand}
                         onChange={(e) => setCustomCommand(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
+                        className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                       />
                     </div>
                   )}
@@ -697,22 +697,22 @@ export function SchedulerView() {
               {/* ── 3. Name & Host (Optional customization) ── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Operation Name</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Operation Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Nightly Backend Auto-Restart"
                     value={newTaskName}
                     onChange={(e) => setNewTaskName(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-[#F38020]"
+                    className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Target Host</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Target Host</label>
                   <select
                     value={newTaskAgentId}
                     onChange={(e) => setNewTaskAgentId(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#F38020]"
+                    className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                   >
                     <option value="">Platform Cluster (All Nodes)</option>
                     {agents.map((a) => (
@@ -725,33 +725,33 @@ export function SchedulerView() {
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1">Description (Optional)</label>
+                <label className="block text-xs text-muted-foreground mb-1">Description (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Clears memory leaks by restarting container at 04:00 AM"
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-[#F38020]"
+                  className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
-                <div className="text-[11px] text-zinc-500 font-mono hidden sm:block">
-                  Command: <strong className="text-zinc-300">{computeCommand()}</strong>
+              <div className="flex items-center justify-between pt-3 border-t border-border/80">
+                <div className="text-[11px] text-muted-foreground font-mono hidden sm:block">
+                  Command: <strong className="text-foreground">{computeCommand()}</strong>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs cursor-pointer transition"
+                    className="px-3.5 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted text-xs cursor-pointer transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={createMutation.isPending}
-                    className="px-4 py-1.5 rounded-lg bg-[#F38020] hover:bg-[#E07116] text-white text-xs font-bold shadow-md shadow-[#F38020]/20 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md shadow-primary/20 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                   >
                     {createMutation.isPending ? 'Scheduling...' : 'Save Scheduled Task'}
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -768,14 +768,14 @@ export function SchedulerView() {
         <div
           className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-sm transition duration-panel animate-in fade-in slide-in-from-bottom-4 ${
             toast.type === 'success'
-              ? 'bg-zinc-900/95 border-emerald-500/50 text-emerald-300 shadow-emerald-500/10'
-              : 'bg-zinc-900/95 border-rose-500/50 text-rose-300 shadow-rose-500/10'
+              ? 'bg-card/95 border-success/50 text-success shadow-emerald-500/10'
+              : 'bg-card/95 border-destructive/50 text-destructive shadow-rose-500/10'
           }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
           )}
           <span className="text-xs font-mono font-medium">{toast.message}</span>
         </div>

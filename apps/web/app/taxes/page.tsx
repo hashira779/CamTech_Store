@@ -177,36 +177,36 @@ export default function TaxesPage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-success/10 text-success">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Active Rates</p>
-                <p className="text-xl font-bold text-emerald-400 font-mono">{activeRates}</p>
+                <p className="text-xl font-bold text-success font-mono">{activeRates}</p>
               </div>
             </div>
           </div>
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-info/10 text-info">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Standard VAT</p>
-                <p className="text-xl font-bold text-blue-400 font-mono">{defaultVat.toFixed(1)}%</p>
+                <p className="text-xl font-bold text-info font-mono">{defaultVat.toFixed(1)}%</p>
               </div>
             </div>
           </div>
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-orange-500/10 text-orange-500">
+              <div className="p-2.5 rounded-lg bg-warning/10 text-warning">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Inclusive Rates</p>
-                <p className="text-xl font-bold text-orange-500 font-mono">{inclusiveCount}</p>
+                <p className="text-xl font-bold text-warning font-mono">{inclusiveCount}</p>
               </div>
             </div>
           </div>
@@ -256,8 +256,8 @@ export default function TaxesPage() {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               rate.isInclusive
-                                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
-                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                ? 'bg-warning/10 text-warning border border-warning/20'
+                                : 'bg-info/10 text-info border border-info/20'
                             }`}
                           >
                             {rate.isInclusive ? 'INCLUSIVE (VAT)' : 'EXCLUSIVE (SALES)'}
@@ -275,7 +275,7 @@ export default function TaxesPage() {
                             className="flex items-center gap-1.5 font-semibold text-[11px]"
                           >
                             {rate.isActive ? (
-                              <span className="text-emerald-400 flex items-center gap-1">
+                              <span className="text-success flex items-center gap-1">
                                 <ToggleRight className="w-4 h-4" /> Active
                               </span>
                             ) : (
@@ -420,7 +420,7 @@ export default function TaxesPage() {
               </div>
 
               {formError && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs">
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs">
                   {formError}
                 </div>
               )}

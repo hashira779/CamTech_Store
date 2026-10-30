@@ -76,46 +76,46 @@ export function ExecutionDebugger({ botId }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0f172a', color: '#e2e8f0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Top Analytics Bar */}
       <div style={{
-        padding: '16px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+        padding: '16px 24px', borderBottom: '1px solid var(--border)',
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16,
-        background: 'rgba(15,23,42,0.6)',
+        background: 'var(--muted)',
       }}>
         <div style={{
-          background: 'rgba(30,41,59,0.5)', padding: '12px 16px', borderRadius: 10,
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'var(--card)', padding: '12px 16px', borderRadius: 10,
+          border: '1px solid var(--border)',
         }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Executions</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Executions</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--foreground)', marginTop: 4 }}>
             {analytics?.totalExecutions ?? executions.length}
           </div>
         </div>
         <div style={{
-          background: 'rgba(30,41,59,0.5)', padding: '12px 16px', borderRadius: 10,
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'var(--card)', padding: '12px 16px', borderRadius: 10,
+          border: '1px solid var(--border)',
         }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Success Rate</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#22c55e', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Success Rate</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--success)', marginTop: 4 }}>
             {analytics ? `${(analytics.successRate * 100).toFixed(1)}%` : '100%'}
           </div>
         </div>
         <div style={{
-          background: 'rgba(30,41,59,0.5)', padding: '12px 16px', borderRadius: 10,
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'var(--card)', padding: '12px 16px', borderRadius: 10,
+          border: '1px solid var(--border)',
         }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Failed Runs</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#ef4444', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Failed Runs</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--destructive)', marginTop: 4 }}>
             {analytics?.failedCount ?? 0}
           </div>
         </div>
         <div style={{
-          background: 'rgba(30,41,59,0.5)', padding: '12px 16px', borderRadius: 10,
-          border: '1px solid rgba(148,163,184,0.08)',
+          background: 'var(--card)', padding: '12px 16px', borderRadius: 10,
+          border: '1px solid var(--border)',
         }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Unique Telegram Users</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#818cf8', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Unique Telegram Users</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary)', marginTop: 4 }}>
             {analytics?.uniqueUsers ?? 0}
           </div>
         </div>
@@ -125,12 +125,12 @@ export function ExecutionDebugger({ botId }: Props) {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left Executions Table / List */}
         <div style={{
-          width: 440, borderRight: '1px solid rgba(148,163,184,0.1)',
+          width: 440, borderRight: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column',
         }}>
           {/* Filter / Refresh Header */}
           <div style={{
-            padding: '12px 16px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+            padding: '12px 16px', borderBottom: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           }}>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -141,8 +141,8 @@ export function ExecutionDebugger({ botId }: Props) {
                   style={{
                     padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                     border: 'none', cursor: 'pointer',
-                    background: statusFilter === st ? 'rgba(129,140,248,0.2)' : 'rgba(30,41,59,0.5)',
-                    color: statusFilter === st ? '#818cf8' : '#94a3b8',
+                    background: statusFilter === st ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--card)',
+                    color: statusFilter === st ? 'var(--primary)' : 'var(--muted-foreground)',
                   }}
                 >
                   {st}
@@ -152,7 +152,7 @@ export function ExecutionDebugger({ botId }: Props) {
             <button
               onClick={() => { fetchExecutions(); fetchAnalytics(); }}
               style={{
-                background: 'transparent', border: 'none', color: '#94a3b8',
+                background: 'transparent', border: 'none', color: 'var(--muted-foreground)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
               }}
             >
@@ -163,11 +163,11 @@ export function ExecutionDebugger({ botId }: Props) {
           {/* List Items */}
           <div style={{ flex: 1, overflowY: 'auto', padding: 10 }}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted-foreground)', fontSize: 13 }}>
                 Loading executions...
               </div>
             ) : executions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#64748b', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted-foreground)', fontSize: 13 }}>
                 No execution traces recorded yet. Send a message to your Telegram bot to test!
               </div>
             ) : (
@@ -182,38 +182,38 @@ export function ExecutionDebugger({ botId }: Props) {
                       padding: '12px 14px', borderRadius: 10, marginBottom: 8,
                       cursor: 'pointer',
                       background: isSelected
-                        ? 'rgba(129,140,248,0.12)'
-                        : 'rgba(30,41,59,0.4)',
-                      border: `1px solid ${isSelected ? 'rgba(129,140,248,0.3)' : 'rgba(148,163,184,0.08)'}`,
+                        ? 'color-mix(in srgb, var(--primary) 12%, transparent)'
+                        : 'var(--card)',
+                      border: `1px solid ${isSelected ? 'color-mix(in srgb, var(--primary) 30%, transparent)' : 'var(--border)'}`,
                       transition: 'all 0.15s ease',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {isSuccess ? (
-                          <CheckCircle2 size={15} style={{ color: '#22c55e' }} />
+                          <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
                         ) : (
-                          <XCircle size={15} style={{ color: '#ef4444' }} />
+                          <XCircle size={15} style={{ color: 'var(--destructive)' }} />
                         )}
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>
                           {exec.triggerType}: {exec.triggerData?.command || exec.triggerData?.text || 'event'}
                         </span>
                       </div>
                       <span style={{
                         fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-                        background: isSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                        color: isSuccess ? '#22c55e' : '#ef4444',
+                        background: isSuccess ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'color-mix(in srgb, var(--destructive) 15%, transparent)',
+                        color: isSuccess ? 'var(--success)' : 'var(--destructive)',
                       }}>
                         {exec.status}
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted-foreground)' }}>
                       <span>User ID: {exec.telegramUserId || 'Anonymous'}</span>
                       <span>v{exec.versionNumber || 1} · {exec.executionTrace?.length || 0} nodes</span>
                     </div>
 
-                    <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 4 }}>
                       {exec.startedAt ? new Date(exec.startedAt).toLocaleTimeString() : ''}
                     </div>
                   </div>
@@ -230,22 +230,22 @@ export function ExecutionDebugger({ botId }: Props) {
               {/* Header */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                paddingBottom: 20, borderBottom: '1px solid rgba(148,163,184,0.1)',
+                paddingBottom: 20, borderBottom: '1px solid var(--border)',
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>
                       Execution Trace: {selectedExecution.id.substring(0, 12)}
                     </h2>
                     <span style={{
                       fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600,
-                      background: selectedExecution.status === 'SUCCESS' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                      color: selectedExecution.status === 'SUCCESS' ? '#22c55e' : '#ef4444',
+                      background: selectedExecution.status === 'SUCCESS' ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'color-mix(in srgb, var(--destructive) 15%, transparent)',
+                      color: selectedExecution.status === 'SUCCESS' ? 'var(--success)' : 'var(--destructive)',
                     }}>
                       {selectedExecution.status}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: 12, color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--muted-foreground)' }}>
                     <span>Trigger: <strong>{selectedExecution.triggerType}</strong></span>
                     <span>Chat ID: <strong>{selectedExecution.chatId || 'N/A'}</strong></span>
                     <span>Workflow Version: <strong>v{selectedExecution.versionNumber}</strong></span>
@@ -258,15 +258,15 @@ export function ExecutionDebugger({ botId }: Props) {
               {selectedExecution.errorMessage && (
                 <div style={{
                   marginTop: 16, padding: 14, borderRadius: 10,
-                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)',
                   display: 'flex', alignItems: 'flex-start', gap: 10,
                 }}>
-                  <AlertTriangle size={18} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
+                  <AlertTriangle size={18} style={{ color: 'var(--destructive)', flexShrink: 0, marginTop: 2 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#fca5a5' }}>
                       Runtime Execution Error
                     </div>
-                    <div style={{ fontSize: 12, color: '#f87171', marginTop: 4, fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: 12, color: 'var(--destructive)', marginTop: 4, fontFamily: 'monospace' }}>
                       {selectedExecution.errorMessage}
                     </div>
                   </div>
@@ -275,12 +275,12 @@ export function ExecutionDebugger({ botId }: Props) {
 
               {/* Node Execution Step-by-Step Flow */}
               <div style={{ marginTop: 24 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: 16 }}>
                   Execution Pipeline ({selectedExecution.executionTrace?.length || 0} Steps)
                 </div>
 
                 {(!selectedExecution.executionTrace || selectedExecution.executionTrace.length === 0) ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#64748b', background: 'rgba(30,41,59,0.3)', borderRadius: 10 }}>
+                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-foreground)', background: 'var(--card)', borderRadius: 10 }}>
                     No intermediate node traces recorded for this execution.
                   </div>
                 ) : (
@@ -291,8 +291,8 @@ export function ExecutionDebugger({ botId }: Props) {
                         <div
                           key={index}
                           style={{
-                            background: 'rgba(30,41,59,0.5)', borderRadius: 10,
-                            border: `1px solid ${isStepSuccess ? 'rgba(148,163,184,0.1)' : 'rgba(239,68,68,0.3)'}`,
+                            background: 'var(--card)', borderRadius: 10,
+                            border: `1px solid ${isStepSuccess ? 'var(--border)' : 'color-mix(in srgb, var(--destructive) 30%, transparent)'}`,
                             padding: 16,
                           }}
                         >
@@ -301,31 +301,31 @@ export function ExecutionDebugger({ botId }: Props) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{
                                 width: 22, height: 22, borderRadius: '50%',
-                                background: isStepSuccess ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-                                color: isStepSuccess ? '#22c55e' : '#ef4444',
+                                background: isStepSuccess ? 'color-mix(in srgb, var(--success) 20%, transparent)' : 'color-mix(in srgb, var(--destructive) 20%, transparent)',
+                                color: isStepSuccess ? 'var(--success)' : 'var(--destructive)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 11, fontWeight: 700,
                               }}>
                                 {index + 1}
                               </span>
-                              <span style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
                                 {step.nodeName || step.nodeId}
                               </span>
                               <span style={{
-                                fontSize: 10, background: 'rgba(129,140,248,0.15)', color: '#818cf8',
+                                fontSize: 10, background: 'color-mix(in srgb, var(--primary) 15%, transparent)', color: 'var(--primary)',
                                 padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace',
                               }}>
                                 {step.nodeType}
                               </span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <span style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <span style={{ fontSize: 11, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Clock size={12} /> {formatDuration(step.durationMs)}
                               </span>
                               <span style={{
                                 fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-                                background: isStepSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                                color: isStepSuccess ? '#22c55e' : '#ef4444',
+                                background: isStepSuccess ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'color-mix(in srgb, var(--destructive) 15%, transparent)',
+                                color: isStepSuccess ? 'var(--success)' : 'var(--destructive)',
                               }}>
                                 {step.status}
                               </span>
@@ -335,8 +335,8 @@ export function ExecutionDebugger({ botId }: Props) {
                           {/* Node Step Details (Input / Output / Error) */}
                           {step.errorMessage && (
                             <div style={{
-                              marginTop: 10, padding: 8, background: 'rgba(239,68,68,0.15)',
-                              color: '#ef4444', borderRadius: 6, fontSize: 12, fontFamily: 'monospace',
+                              marginTop: 10, padding: 8, background: 'color-mix(in srgb, var(--destructive) 15%, transparent)',
+                              color: 'var(--destructive)', borderRadius: 6, fontSize: 12, fontFamily: 'monospace',
                             }}>
                               {step.errorMessage}
                             </div>
@@ -348,12 +348,12 @@ export function ExecutionDebugger({ botId }: Props) {
                           }}>
                             {step.inputData && (
                               <div>
-                                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>
+                                <div style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 600, marginBottom: 4 }}>
                                   INPUT DATA
                                 </div>
                                 <pre style={{
                                   background: '#0a0f1d', padding: 10, borderRadius: 6,
-                                  fontSize: 11, color: '#38bdf8', margin: 0,
+                                  fontSize: 11, color: 'var(--info)', margin: 0,
                                   maxHeight: 120, overflowY: 'auto',
                                 }}>
                                   {JSON.stringify(step.inputData, null, 2)}
@@ -362,7 +362,7 @@ export function ExecutionDebugger({ botId }: Props) {
                             )}
                             {step.outputData && (
                               <div>
-                                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>
+                                <div style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 600, marginBottom: 4 }}>
                                   OUTPUT / RESULT
                                 </div>
                                 <pre style={{
@@ -385,7 +385,7 @@ export function ExecutionDebugger({ botId }: Props) {
           ) : (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flex: 1, color: '#64748b', fontSize: 14,
+              flex: 1, color: 'var(--muted-foreground)', fontSize: 14,
             }}>
               Select an execution on the left to inspect its pipeline trace.
             </div>

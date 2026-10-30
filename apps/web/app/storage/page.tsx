@@ -113,12 +113,12 @@ export default function StoragePage() {
   };
 
   const getMimeIcon = (mime: string) => {
-    if (mime.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-emerald-400" />;
-    if (mime.includes('pdf')) return <FileText className="w-4 h-4 text-rose-400" />;
+    if (mime.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-success" />;
+    if (mime.includes('pdf')) return <FileText className="w-4 h-4 text-destructive" />;
     if (mime.includes('csv') || mime.includes('spreadsheet') || mime.includes('excel')) {
-      return <FileSpreadsheet className="w-4 h-4 text-amber-400" />;
+      return <FileSpreadsheet className="w-4 h-4 text-warning" />;
     }
-    return <File className="w-4 h-4 text-blue-400" />;
+    return <File className="w-4 h-4 text-info" />;
   };
 
   if (!token) return null;
@@ -176,12 +176,12 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-success/10 text-success">
                 <HardDrive className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Storage Used</p>
-                <p className="text-xl font-bold text-emerald-400 font-mono">
+                <p className="text-xl font-bold text-success font-mono">
                   {formatBytes(stats?.totalBytes ?? 0)}
                 </p>
               </div>
@@ -190,12 +190,12 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="p-2.5 rounded-lg bg-warning/10 text-warning">
                 <FolderArchive className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Storage Engine</p>
-                <p className="text-sm font-bold text-amber-400 font-mono">
+                <p className="text-sm font-bold text-warning font-mono">
                   {stats?.activeStorageDriver || 'LOCAL_FILESYSTEM'}
                 </p>
               </div>
@@ -204,12 +204,12 @@ export default function StoragePage() {
 
           <div className="card p-4 border-border bg-card">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400">
+              <div className="p-2.5 rounded-lg bg-info/10 text-info">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Max Upload Cap</p>
-                <p className="text-xl font-bold text-blue-400 font-mono">25 MB</p>
+                <p className="text-xl font-bold text-info font-mono">25 MB</p>
               </div>
             </div>
           </div>
@@ -312,7 +312,7 @@ export default function StoragePage() {
                             title="Copy Direct Link"
                           >
                             {copySuccessId === doc.id ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
@@ -324,7 +324,7 @@ export default function StoragePage() {
                                 deleteMutation.mutate(doc.id);
                               }
                             }}
-                            className="p-1.5 hover:bg-rose-500/20 rounded text-rose-400"
+                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
                             title="Delete Document"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -358,7 +358,7 @@ export default function StoragePage() {
               </div>
 
               {uploadError && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs">
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-xs">
                   {uploadError}
                 </div>
               )}

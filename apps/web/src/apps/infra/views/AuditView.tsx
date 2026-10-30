@@ -50,9 +50,9 @@ export const AuditView: React.FC = () => {
         <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Recorded Events</div>
-            <div className="text-2xl font-black text-foreground mt-1">{auditLogs.length}</div>
+            <div className="text-2xl font-bold text-foreground mt-1">{auditLogs.length}</div>
           </div>
-          <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
+          <div className="p-3 bg-info/10 rounded-lg text-info border border-info/20">
             <Terminal className="w-5 h-5" />
           </div>
         </div>
@@ -60,9 +60,9 @@ export const AuditView: React.FC = () => {
         <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Break-Glass Invocations</div>
-            <div className="text-2xl font-black text-rose-400 mt-1">{breakGlassCount}</div>
+            <div className="text-2xl font-bold text-destructive mt-1">{breakGlassCount}</div>
           </div>
-          <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400 border border-rose-500/20">
+          <div className="p-3 bg-destructive/10 rounded-lg text-destructive border border-destructive/20">
             <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
@@ -70,11 +70,11 @@ export const AuditView: React.FC = () => {
         <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Log Immutability</div>
-            <div className="text-sm font-bold text-emerald-400 mt-2 flex items-center gap-1.5">
+            <div className="text-sm font-bold text-success mt-2 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" /> SHA-256 Verified Ledger
             </div>
           </div>
-          <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
+          <div className="p-3 bg-success/10 rounded-lg text-success border border-success/20">
             <ShieldAlert className="w-5 h-5" />
           </div>
         </div>
@@ -100,7 +100,7 @@ export const AuditView: React.FC = () => {
             <button
               onClick={() => setFilterBreakGlass(null)}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                filterBreakGlass === null ? 'bg-accent text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                filterBreakGlass === null ? 'bg-accent text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               All
@@ -108,7 +108,7 @@ export const AuditView: React.FC = () => {
             <button
               onClick={() => setFilterBreakGlass(true)}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                filterBreakGlass === true ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-muted-foreground hover:text-foreground'
+                filterBreakGlass === true ? 'bg-destructive/20 text-destructive border border-destructive/30' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Break-Glass Only
@@ -116,7 +116,7 @@ export const AuditView: React.FC = () => {
             <button
               onClick={() => setFilterBreakGlass(false)}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                filterBreakGlass === false ? 'bg-accent text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                filterBreakGlass === false ? 'bg-accent text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Standard
@@ -168,7 +168,7 @@ export const AuditView: React.FC = () => {
                   <tr 
                     key={log.id} 
                     className={`hover:bg-accent transition-colors cursor-pointer ${
-                      log.isBreakGlass ? 'bg-rose-950/10' : ''
+                      log.isBreakGlass ? 'bg-destructive/10' : ''
                     }`}
                     onClick={() => setSelectedLog(log)}
                   >
@@ -194,7 +194,7 @@ export const AuditView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       {log.isBreakGlass ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse font-sans">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/20 text-destructive border border-destructive/40 animate-pulse font-sans">
                           <AlertTriangle className="w-3 h-3" /> BREAK-GLASS
                         </span>
                       ) : (
@@ -230,7 +230,7 @@ export const AuditView: React.FC = () => {
               </div>
               <button 
                 onClick={() => setSelectedLog(null)}
-                className="text-muted-foreground hover:text-white p-1 rounded-lg hover:bg-accent"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-accent"
               >
                 ✕
               </button>
@@ -283,8 +283,8 @@ export const AuditView: React.FC = () => {
               </div>
 
               {selectedLog.isBreakGlass && (
-                <div className="bg-rose-950/30 border border-rose-500/50 p-3 rounded-lg text-xs text-rose-300 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="bg-destructive/30 border border-destructive/50 p-3 rounded-lg text-xs text-destructive flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block">EMERGENCY BREAK-GLASS ACTION</span>
                     This operation was executed under an active break-glass session with elevated privileges. An automatic incident report has been flagged for compliance.

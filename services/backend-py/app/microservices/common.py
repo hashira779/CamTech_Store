@@ -1,17 +1,6 @@
-import time
-import json
-import uuid
-import secrets
+from fastapi import FastAPI, Request, Response
 
-from fastapi import FastAPI, Request, Response, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.gzip import GZipMiddleware
-
-from app.core.config import settings
-from app.core.validation_errors import format_validation_errors, validation_error_details
+from app.core.http_edge import EdgePolicy, add_cors, add_gzip, client_ip, install_edge
 
 # Import the full entity graph so EVERY microservice registers all SQLAlchemy
 # models — a service that mounts only a few routers would otherwise have an
@@ -20,182 +9,33 @@ from app.core.validation_errors import format_validation_errors, validation_erro
 import app.models.entities  # noqa: F401
 from sqlalchemy.orm import configure_mappers as _configure_mappers
 
-# Paths that must pass through untouched (docs, health/ops probes).
-_RAW_PATHS = {"/docs", "/redoc", "/openapi.json", "/health", "/ready", "/metrics"}
-
-from app.core.telemetry import (
-    setup_structured_logging, current_trace_id, current_span_id,
-    current_request_id, get_logger
-)
+from app.core.telemetry import setup_structured_logging, get_logger
 
 setup_structured_logging()
 logger = get_logger("mystore.microservice")
 
 
-def apply_enterprise_layer(app: FastAPI) -> None:
-    """Give a microservice the SAME error envelope + response wrapping the monolith
-    edge (app.main) applies, so responses proxied through the gateway are identical
-    whether they are served by a microservice or by the in-process fallback.
-
-    The frontend api-client requires the `{success, data, requestId}` envelope
-    (`if (!body.success) throw; return body.data`) — without this, every call
-    routed to a microservice would fail to parse.
-    """
-
-    @app.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-        req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-        code = "UNAUTHORIZED" if exc.status_code == 401 else (
-            "FORBIDDEN" if exc.status_code == 403 else (
-                "NOT_FOUND" if exc.status_code == 404 else "HTTP_ERROR"
-            )
-        )
-        resp_headers = {"X-Request-Id": req_id}
-        if exc.headers:
-            resp_headers.update(exc.headers)
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"success": False, "code": code, "message": str(exc.detail), "requestId": req_id},
-            headers=resp_headers,
-        )
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={
-                "success": False,
-                "code": "VALIDATION_ERROR",
-                "message": format_validation_errors(exc.errors()),
-                "details": validation_error_details(exc.errors()),
-                "requestId": req_id,
-            },
-            headers={"X-Request-Id": req_id},
-        )
-
-    @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception):
-        req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-        logger.error(f"Microservice internal error in {request.method} {request.url.path}: {exc}", exc_info=True)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "success": False,
-                "code": "INTERNAL_SERVER_ERROR",
-                "message": "An internal server error occurred. Please contact system support.",
-                "requestId": req_id,
-            },
-            headers={"X-Request-Id": req_id},
-        )
-
-    @app.middleware("http")
-    async def response_envelope_middleware(request: Request, call_next):
-        start_time = time.time()
-        req_id = str(uuid.uuid4())
-        request.state.request_id = req_id
-
-        incoming = request.headers.get("traceparent")
-        if incoming and len(incoming.split("-")) == 4:
-            trace_id = incoming.split("-")[1]
-        else:
-            trace_id = secrets.token_hex(16)
-        span_id = secrets.token_hex(8)
-        traceparent = f"00-{trace_id}-{span_id}-01"
-        request.state.trace_id = trace_id
-        request.state.span_id = span_id
-        current_trace_id.set(trace_id)
-        current_span_id.set(span_id)
-        current_request_id.set(req_id)
-
+def _traffic_recorder(app: FastAPI):
+    def record(request: Request, response: Response, duration_ms: float, request_id: str, trace_id: str) -> None:
         path = request.url.path
-        if path in _RAW_PATHS:
-            response = await call_next(request)
-            response.headers["X-Request-Id"] = req_id
-            response.headers["X-Trace-Id"] = trace_id
-            response.headers["traceparent"] = traceparent
-            return response
-
-        # ── IP Ban Check (highest priority — before any business logic) ─────
-        if path.startswith("/api/v1/"):
-            from app.core.rate_limiter import ip_ban_list
-            client_ip = (
-                request.headers.get("X-Real-IP")
-                or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
-                or (request.client.host if request.client else "unknown")
-            ).strip()
-            if await ip_ban_list.is_banned(client_ip):
-                logger.warning(f"[SECURITY] Blocked banned IP: {client_ip} -> {path}")
-                return JSONResponse(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    content={
-                        "success": False,
-                        "code": "IP_BANNED",
-                        "message": "Your IP address has been blocked due to suspicious activity. Contact support if this is an error.",
-                        "requestId": req_id,
-                    },
-                    headers={"X-Request-Id": req_id},
-                )
-
-        response = await call_next(request)
-        process_time = (time.time() - start_time) * 1000
-        response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
-        response.headers["X-Request-Id"] = req_id
-        response.headers["X-Trace-Id"] = trace_id
-        response.headers["traceparent"] = traceparent
-
-        # ── Security Response Headers ─────────────────────────────────────────
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
-
-        if path not in ["/favicon.ico"]:
-            logger.info(
-                f"{request.method} {path} {response.status_code} ({process_time:.2f}ms)",
-                extra={"durationMs": round(process_time, 2), "statusCode": response.status_code}
+        if not path.startswith("/api/v1/") or path.startswith("/api/v1/infra/events/stream"):
+            return
+        try:
+            from app.modules.infra.service import LiveTrafficMonitor
+            LiveTrafficMonitor.record(
+                method=request.method,
+                path=path,
+                status_code=response.status_code,
+                duration_ms=duration_ms,
+                client_ip=client_ip(request, default="127.0.0.1"),
+                target_service=getattr(app, "title", "microservice").split("(")[0].strip(),
+                request_id=request_id,
+                trace_id=trace_id,
             )
+        except Exception:
+            pass
 
-        if path.startswith("/api/v1/") and path not in _RAW_PATHS and not path.startswith("/api/v1/infra/events/stream"):
-            try:
-                from app.modules.infra.service import LiveTrafficMonitor
-                c_ip = (
-                    request.headers.get("X-Real-IP")
-                    or (request.headers.get("X-Forwarded-For") or "").split(",")[0]
-                    or (request.client.host if request.client else "127.0.0.1")
-                ).strip()
-                LiveTrafficMonitor.record(
-                    method=request.method,
-                    path=path,
-                    status_code=response.status_code,
-                    duration_ms=process_time,
-                    client_ip=c_ip,
-                    target_service=getattr(app, "title", "microservice").split("(")[0].strip(),
-                    request_id=req_id,
-                    trace_id=trace_id,
-                )
-            except Exception:
-                pass
-
-        content_type = response.headers.get("content-type", "")
-        if response.status_code < 400 and "application/json" in content_type:
-            body = [chunk async for chunk in response.body_iterator]
-            raw_body = b"".join(body)
-            try:
-                parsed = json.loads(raw_body.decode("utf-8"))
-                if isinstance(parsed, dict) and "success" in parsed and "data" in parsed:
-                    return Response(content=raw_body, status_code=response.status_code, headers=dict(response.headers), media_type="application/json")
-                enveloped = {"success": True, "data": parsed, "requestId": req_id}
-                new_content = json.dumps(enveloped).encode("utf-8")
-                headers = dict(response.headers)
-                headers["content-length"] = str(len(new_content))
-                return Response(content=new_content, status_code=response.status_code,
-                                headers=headers, media_type="application/json")
-            except Exception:
-                return Response(content=raw_body, status_code=response.status_code, headers=dict(response.headers))
-
-        return response
+    return record
 
 
 def create_microservice(name: str, description: str, port: int, lifespan=None) -> FastAPI:
@@ -212,33 +52,15 @@ def create_microservice(name: str, description: str, port: int, lifespan=None) -
         lifespan=lifespan,
     )
 
-    # CORS configuration allowing all frontend web applications (5001-5008)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_origin_regex=r"https?://([a-zA-Z0-9-]+\.)*(localhost|127\.0\.0\.1|camtech\.cam|camtech\.local|10\.[0-9]+\.[0-9]+\.[0-9]+|192\.168\.[0-9]+\.[0-9]+)(:[0-9]+)?",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    # High-concurrency GZip compression for payloads >= 1KB
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-    # Same error envelope + response wrapping as the monolith edge.
-    apply_enterprise_layer(app)
+    add_cors(app)
+    install_edge(app, EdgePolicy(logger=logger, on_served=_traffic_recorder(app)))
+    add_gzip(app)
 
     # Eagerly wire up all ORM relationships now that the full registry is loaded.
     _configure_mappers()
 
     @app.get("/health")
     async def health():
-        return {
-            "status": "healthy",
-            "service": name,
-            "port": port,
-            "standard": "2026-2030 Microservice Standard",
-            "dataCenter": "PostgreSQL 16 Enterprise (Connected)",
-        }
+        return {"status": "healthy", "service": name, "port": port}
 
     return app

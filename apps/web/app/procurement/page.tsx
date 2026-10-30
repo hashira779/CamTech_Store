@@ -33,12 +33,12 @@ import type {
 } from '@mystore/contracts';
 
 const PO_STATUS_COLORS: Record<PurchaseOrderStatus, string> = {
-  DRAFT: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-  SUBMITTED: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  APPROVED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  PARTIALLY_RECEIVED: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  COMPLETED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
+  DRAFT: 'bg-accent/10 text-muted-foreground border-border/20',
+  SUBMITTED: 'bg-warning/10 text-warning border-warning/20',
+  APPROVED: 'bg-info/10 text-info border-info/20',
+  PARTIALLY_RECEIVED: 'bg-warning/10 text-warning border-warning/20',
+  COMPLETED: 'bg-success/10 text-success border-success/20',
+  CANCELLED: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 export default function ProcurementPage() {
@@ -427,7 +427,7 @@ export default function ProcurementPage() {
                             {canApprove && (po.status === 'DRAFT' || po.status === 'SUBMITTED') && (
                               <button
                                 onClick={() => approveMutation.mutate(po.id)}
-                                className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-[11px] font-medium"
+                                className="px-2 py-0.5 rounded bg-info/10 text-info hover:bg-info/20 text-[11px] font-medium"
                               >
                                 Approve
                               </button>
@@ -436,7 +436,7 @@ export default function ProcurementPage() {
                             {canReceive && (po.status === 'APPROVED' || po.status === 'PARTIALLY_RECEIVED') && (
                               <button
                                 onClick={() => openReceiveModal(po)}
-                                className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[11px] font-semibold flex items-center gap-1"
+                                className="px-2 py-0.5 rounded bg-success/10 text-success hover:bg-success/20 text-[11px] font-semibold flex items-center gap-1"
                               >
                                 <PackageCheck className="w-3 h-3" />
                                 Receive Goods
@@ -450,7 +450,7 @@ export default function ProcurementPage() {
                                     cancelMutation.mutate(po.id);
                                   }
                                 }}
-                                className="p-1 hover:bg-red-500/10 rounded text-muted-foreground hover:text-red-400"
+                                className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
                                 title="Cancel Order"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
@@ -506,13 +506,13 @@ export default function ProcurementPage() {
                           {grn.lineItems.map((l, i) => (
                             <span key={i} className="text-muted-foreground">
                               {l.productName} ({l.sku}):{' '}
-                              <strong className="text-emerald-400">+{l.quantityReceived}</strong>
+                              <strong className="text-success">+{l.quantityReceived}</strong>
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold border bg-success/10 text-success border-success/20">
                           COMPLETED
                         </span>
                       </td>
@@ -576,8 +576,8 @@ export default function ProcurementPage() {
                         <span
                           className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
                             sup.isActive
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : 'bg-red-500/10 text-red-400 border-red-500/20'
+                              ? 'bg-success/10 text-success border-success/20'
+                              : 'bg-destructive/10 text-destructive border-destructive/20'
                           }`}
                         >
                           {sup.isActive ? 'Active' : 'Inactive'}
@@ -601,7 +601,7 @@ export default function ProcurementPage() {
               </p>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}
@@ -755,7 +755,7 @@ export default function ProcurementPage() {
                           <button
                             type="button"
                             onClick={() => removePoLine(idx)}
-                            className="text-muted-foreground hover:text-red-400 p-1"
+                            className="text-muted-foreground hover:text-destructive p-1"
                             title="Remove Line"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -821,7 +821,7 @@ export default function ProcurementPage() {
           <div className="fixed inset-0 z-50 bg-black/60  flex items-center justify-center p-4">
             <div className="card max-w-2xl w-full p-6 border-border shadow-sm max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
-                <PackageCheck className="w-5 h-5 text-emerald-400" />
+                <PackageCheck className="w-5 h-5 text-success" />
                 Inbound Goods Receipt (GRN)
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
@@ -830,7 +830,7 @@ export default function ProcurementPage() {
               </p>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}
@@ -882,7 +882,7 @@ export default function ProcurementPage() {
                                   className="input w-24 text-xs font-mono"
                                 />
                               ) : (
-                                <span className="text-emerald-400 font-semibold">Fully Received</span>
+                                <span className="text-success font-semibold">Fully Received</span>
                               )}
                             </td>
                           </tr>
@@ -914,7 +914,7 @@ export default function ProcurementPage() {
                   <button
                     type="submit"
                     disabled={receiveMutation.isPending}
-                    className="btn px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500"
+                    className="btn px-4 py-1.5 bg-success hover:bg-success"
                   >
                     {receiveMutation.isPending ? 'Processing GRN...' : 'Confirm Goods Receipt & Add Stock'}
                   </button>
@@ -966,7 +966,7 @@ export default function ProcurementPage() {
                             <div className="text-[11px] font-mono text-muted-foreground">{l.sku}</div>
                           </td>
                           <td className="p-2.5 font-mono">{l.quantity}</td>
-                          <td className="p-2.5 font-mono text-emerald-400 font-semibold">{l.receivedQty}</td>
+                          <td className="p-2.5 font-mono text-success font-semibold">{l.receivedQty}</td>
                           <td className="p-2.5 font-mono">${l.unitCost.toFixed(2)}</td>
                           <td className="p-2.5 font-mono text-right font-semibold">${l.lineTotal.toFixed(2)}</td>
                         </tr>
@@ -1016,7 +1016,7 @@ export default function ProcurementPage() {
               </p>
 
               {formError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs mb-4">
                   {formError}
                 </div>
               )}

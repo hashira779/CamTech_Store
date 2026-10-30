@@ -127,7 +127,7 @@ export default function AddProviderPage() {
                     type="button"
                     onClick={() => setType('CLOUDFLARE_R2')}
                     className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 border transition-colors ${
-                      type === 'CLOUDFLARE_R2' ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-muted/10 border-border text-muted-foreground'
+                      type === 'CLOUDFLARE_R2' ? 'bg-warning/10 border-warning/50 text-warning' : 'bg-muted/10 border-border text-muted-foreground'
                     }`}
                   >
                     <Cloud className="w-3.5 h-3.5" /> R2 CDN
@@ -136,7 +136,7 @@ export default function AddProviderPage() {
                     type="button"
                     onClick={() => setType('GOOGLE_DRIVE')}
                     className={`flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 border transition-colors ${
-                      type === 'GOOGLE_DRIVE' ? 'bg-blue-500/10 border-blue-500/50 text-blue-500' : 'bg-muted/10 border-border text-muted-foreground'
+                      type === 'GOOGLE_DRIVE' ? 'bg-info/10 border-info/50 text-info' : 'bg-muted/10 border-border text-muted-foreground'
                     }`}
                   >
                     <Cloud className="w-3.5 h-3.5" /> GDrive
@@ -170,7 +170,7 @@ export default function AddProviderPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-foreground">Cloudflare R2 Configuration</h3>
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">Production Image CDN</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning font-medium">Production Image CDN</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Connect your Cloudflare R2 bucket. The sync worker will automatically optimize and push WebP variants directly to R2 and Cloudflare CDN.

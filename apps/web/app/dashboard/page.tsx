@@ -89,7 +89,7 @@ export default function DashboardPage() {
               <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-xs">
                 {workspace.badge}
               </Badge>
-              <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-xs">
+              <Badge variant="outline" className="border-success/30 text-success bg-success/10 text-xs">
                 {periodLabel}
               </Badge>
             </div>
@@ -122,7 +122,7 @@ export default function DashboardPage() {
             change={dashboard?.metrics.revenue.changePct ?? undefined}
             changeLabel={dashboard?.metrics.revenue.changePct != null ? "vs comparison period" : "current period"}
             icon={DollarSign}
-            iconColor="text-emerald-500"
+            iconColor="text-success"
             isLoading={dashboardLoading}
           />
           <KpiCard
@@ -131,7 +131,7 @@ export default function DashboardPage() {
             change={dashboard?.metrics.orders.changePct ?? undefined}
             changeLabel={dashboard?.metrics.orders.changePct != null ? "vs comparison period" : "current period"}
             icon={ShoppingBag}
-            iconColor="text-blue-500"
+            iconColor="text-info"
             isLoading={dashboardLoading}
           />
           <KpiCard
@@ -149,7 +149,7 @@ export default function DashboardPage() {
             change={dashboard?.metrics.customers.changePct ?? undefined}
             changeLabel={dashboard?.metrics.customers.changePct != null ? "vs comparison period" : "registered"}
             icon={Users}
-            iconColor="text-orange-500"
+            iconColor="text-warning"
             isLoading={dashboardLoading}
           />
         </div>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               {channelBreakdown.map((channel, idx) => {
                 const pct = totalRevenue > 0 ? Math.round((channel.amount / totalRevenue) * 100) : 0;
-                const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-amber-500'];
+                const colors = ['bg-info', 'bg-success', 'bg-warning', 'bg-warning'];
                 const color = colors[idx % colors.length];
 
                 return (
@@ -281,7 +281,7 @@ export default function DashboardPage() {
 
               <div className="p-3 rounded-lg border border-border/80 bg-muted/30 mt-4 text-xs text-muted-foreground flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                   Transactions synced
                 </span>
                 <Badge variant="secondary" className="font-mono text-[11px] font-bold">
@@ -359,7 +359,7 @@ export default function DashboardPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-500">
+                  <div className="p-1.5 rounded-lg bg-warning/15 text-warning">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
@@ -382,10 +382,10 @@ export default function DashboardPage() {
                     to={alert.href}
                     className={`flex items-center justify-between rounded-lg border p-3 text-xs transition-all  shadow-sm ${
                       alert.severity === 'critical'
-                        ? 'border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10'
+                        ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
                         : alert.severity === 'warning'
-                          ? 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'
-                          : 'border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10'
+                          ? 'border-warning/30 bg-warning/5 hover:bg-warning/10'
+                          : 'border-info/30 bg-info/5 hover:bg-info/10'
                     }`}
                   >
                     <div className="min-w-0 pr-3">
@@ -403,7 +403,7 @@ export default function DashboardPage() {
 
                 {!dashboardLoading && (dashboard?.alerts.length ?? 0) === 0 && (
                   <div className="py-12 text-center text-muted-foreground text-sm">
-                    <p className="font-medium text-emerald-500">No active operational alerts.</p>
+                    <p className="font-medium text-success">No active operational alerts.</p>
                     <p className="text-xs text-muted-foreground mt-1">Inventory, approvals, and service queues are clear.</p>
                   </div>
                 )}

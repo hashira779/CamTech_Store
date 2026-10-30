@@ -49,14 +49,14 @@ import {
 import { toast } from 'sonner';
 
 const STATUS_BADGES: Record<DeliveryStatus, { label: string; className: string }> = {
-  PREPARING: { label: 'Preparing', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
-  PENDING: { label: 'Pending Dispatch', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  DISPATCHED: { label: 'Dispatched', className: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-  IN_TRANSIT: { label: 'In Transit', className: 'bg-sky-500/10 text-sky-400 border-sky-500/20 animate-pulse' },
-  DELIVERED: { label: 'Delivered', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-  FAILED: { label: 'Failed', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
-  CANCELLED: { label: 'Cancelled', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
-  RETURNED: { label: 'Returned', className: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+  PREPARING: { label: 'Preparing', className: 'bg-accent/10 text-muted-foreground border-border/20' },
+  PENDING: { label: 'Pending Dispatch', className: 'bg-warning/10 text-warning border-warning/20' },
+  DISPATCHED: { label: 'Dispatched', className: 'bg-info/10 text-info border-info/20' },
+  IN_TRANSIT: { label: 'In Transit', className: 'bg-info/10 text-info border-info/20 animate-pulse' },
+  DELIVERED: { label: 'Delivered', className: 'bg-success/10 text-success border-success/20' },
+  FAILED: { label: 'Failed', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  CANCELLED: { label: 'Cancelled', className: 'bg-accent/10 text-muted-foreground border-border/20' },
+  RETURNED: { label: 'Returned', className: 'bg-warning/10 text-warning border-warning/20' },
 };
 
 export function DeliveryPage() {
@@ -336,7 +336,7 @@ export function DeliveryPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold tracking-wide text-foreground uppercase flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-sky-400" />
+              <Navigation className="w-4 h-4 text-info" />
               Live Fleet Dispatch Canvas
             </h3>
             <span className="text-xs text-muted-foreground">
@@ -426,7 +426,7 @@ export function DeliveryPage() {
                               if (ord.driverId) setSelectedDriverId(ord.driverId);
                             }}
                             className={`cursor-pointer transition-colors ${
-                              isSelected ? 'bg-sky-500/10' : 'hover:bg-muted/30'
+                              isSelected ? 'bg-info/10' : 'hover:bg-muted/30'
                             }`}
                           >
                             <td className="py-3 px-4">
@@ -457,7 +457,7 @@ export function DeliveryPage() {
                                   <span className="text-xs text-foreground">{ord.driverName}</span>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-amber-500 italic">Unassigned</span>
+                                <span className="text-[10px] text-warning italic">Unassigned</span>
                               )}
                             </td>
                             <td className="py-3 px-4">
@@ -471,7 +471,7 @@ export function DeliveryPage() {
                             <td className="py-3 px-4">
                               {ord.etaMinutes ? (
                                 <div>
-                                  <span className="text-xs text-sky-400 font-bold">
+                                  <span className="text-xs text-info font-bold">
                                     {ord.etaMinutes} min
                                   </span>
                                   <p className="text-[10px] text-muted-foreground">
@@ -493,10 +493,10 @@ export function DeliveryPage() {
                                   href={`https://www.google.com/maps/dir/?api=1&destination=${ord.destLat || 11.5564},${ord.destLng || 104.9282}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="h-7 w-7 rounded-md border border-border/60 bg-background hover:bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-blue-500 transition"
+                                  className="h-7 w-7 rounded-md border border-border/60 bg-background hover:bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-info transition"
                                   title="Open in Google Maps"
                                 >
-                                  <Navigation className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
+                                  <Navigation className="w-3.5 h-3.5 text-info fill-info" />
                                 </a>
                                 {drivers.filter((drv: any) => drv.status === 'IDLE').map((drv: any) => (
                                   <Button
@@ -515,7 +515,7 @@ export function DeliveryPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 text-[11px] px-2 text-sky-400 border-sky-500/30"
+                                    className="h-7 text-[11px] px-2 text-info border-info/30"
                                     onClick={() =>
                                       updateStatusMutation.mutate({
                                         orderId: ord.id,
@@ -529,7 +529,7 @@ export function DeliveryPage() {
                                 {ord.status === 'IN_TRANSIT' && (
                                   <Button
                                     size="sm"
-                                    className="h-7 text-[11px] px-2 bg-emerald-600 hover:bg-emerald-500"
+                                    className="h-7 text-[11px] px-2 bg-success hover:bg-success"
                                     onClick={() => {
                                       setActiveOrderForAction(ord);
                                       setPodOpen(true);
@@ -595,7 +595,7 @@ export function DeliveryPage() {
                     onClick={() => setSelectedDriverId(drv.id)}
                     className={`p-3 rounded-lg border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-sky-500/10 border-sky-500/40 shadow-md ring-1 ring-sky-500/30'
+                        ? 'bg-info/10 border-info/40 shadow-md ring-1 ring-info/30'
                         : 'bg-card border-border/60 hover:bg-muted/30'
                     }`}
                   >
@@ -622,25 +622,25 @@ export function DeliveryPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="w-6 h-6 hover:bg-slate-800"
+                          className="w-6 h-6 hover:bg-muted"
                           onClick={(e) => { e.stopPropagation(); setDriverToEdit(drv); }}
                         >
-                          <Edit2 className="w-3 h-3 text-slate-400" />
+                          <Edit2 className="w-3 h-3 text-muted-foreground" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="w-6 h-6 hover:bg-red-900/30"
+                          className="w-6 h-6 hover:bg-destructive/30"
                           onClick={(e) => { e.stopPropagation(); setDriverToDelete(drv.id); }}
                         >
-                          <Trash2 className="w-3 h-3 text-red-400" />
+                          <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                         <Badge
                           variant="outline"
                           className={`text-[10px] ml-1 ${
                             isEnRoute
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                              ? 'bg-success/10 text-success border-success/20'
+                              : 'bg-accent/10 text-muted-foreground border-border/20'
                           }`}
                         >
                           {isEnRoute ? 'En Route' : 'Idle'}
@@ -650,7 +650,7 @@ export function DeliveryPage() {
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40 font-mono">
                       <span>{drv.activeOrdersCount ?? 0} active orders</span>
-                      <span className="text-sky-400">{drv.batteryLevel ?? 95}% bat</span>
+                      <span className="text-info">{drv.batteryLevel ?? 95}% bat</span>
                     </div>
                   </div>
                 );
@@ -659,17 +659,17 @@ export function DeliveryPage() {
 
             {pendingDrivers.length > 0 && (
               <>
-                <h3 className="text-sm font-semibold tracking-wide text-amber-500 uppercase mt-8 pt-4 border-t border-border/40">
+                <h3 className="text-sm font-semibold tracking-wide text-warning uppercase mt-8 pt-4 border-t border-border/40">
                   Pending Approvals ({pendingDrivers.length})
                 </h3>
                 <div className="space-y-2.5">
                   {pendingDrivers.map((drv) => (
                     <div
                       key={drv.id}
-                      className="p-3 rounded-lg border bg-amber-500/5 border-amber-500/20 flex flex-col gap-3"
+                      className="p-3 rounded-lg border bg-warning/5 border-warning/20 flex flex-col gap-3"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
+                        <div className="w-7 h-7 rounded-lg bg-warning/20 flex items-center justify-center text-warning">
                           {drv.vehicleType === 'VAN' ? (
                             <Truck className="w-4 h-4" />
                           ) : (
@@ -687,7 +687,7 @@ export function DeliveryPage() {
                       </div>
                       <Button
                         size="sm"
-                        className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-500 text-white font-medium"
+                        className="w-full h-8 text-xs bg-warning hover:bg-warning text-warning-foreground font-medium"
                         disabled={approveDriverMutation.isPending}
                         onClick={() => approveDriverMutation.mutate(drv.id)}
                       >
@@ -924,7 +924,7 @@ export function DeliveryPage() {
         <Dialog open={!!driverToDelete} onOpenChange={(open) => !open && setDriverToDelete(null)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-red-500 flex items-center gap-2">
+              <DialogTitle className="text-destructive flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" /> Remove Driver
               </DialogTitle>
               <DialogDescription>
@@ -1016,7 +1016,7 @@ export function DeliveryPage() {
               </Button>
               <Button
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-500"
+                className="bg-success hover:bg-success"
                 onClick={() =>
                   updateStatusMutation.mutate({
                     orderId: activeOrderForAction!.id,
