@@ -1,0 +1,1 @@
+import{j as o}from"./vendor-query-DrWo5QUq.js";import{u as r,r as s}from"./vendor-react-DSv2pju_.js";import{u as n}from"./index-5OkvZD01.js";function p(){const t=r(),e=n(a=>a.token);return s.useEffect(()=>{t(e?"/dashboard":"/login",{replace:!0})},[e,t]),o.jsx("main",{style:{padding:24},children:"Loading…"})}export{p as default};
